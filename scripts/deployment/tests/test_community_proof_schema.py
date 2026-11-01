@@ -120,6 +120,10 @@ def test_preparation_sentinel_never_becomes_deployment_evidence(monkeypatch):
         schema.validate_disclosure({}, target_sha=NEW_SHA)
 
 
+def test_repository_candidate_matches_the_actual_frozen_postgresql_fixture():
+    schema.validate_candidate(ROOT)
+
+
 def test_exact_candidate_and_disclosure_preserve_behavior_and_recovery(candidate, frozen_delta):
     schema.validate_candidate(candidate)
     value = disclosure(frozen_delta)

@@ -41,8 +41,8 @@ TABLES = frozenset("pages_" + name for name in (
     "communitysolution", "communitycontentreport", "communitysolutionrevision",
     "communitysolutionasset", "moderationevent", "problempublication",
 ))
-# Preparation is deliberately fail-closed until pinned PostgreSQL discovery is reviewed.
-DELTA_SHA256 = "0" * 64
+# Frozen from the digest-verified PostgreSQL 17.9 artifact of CI run 41298236813.
+DELTA_SHA256 = "79cb612647f39ff661fe1f00aa128133c67bcb007f7ba07d12c1d43aa043279e"
 DELTA_PATH = Path("scripts/deployment/tests/fixtures/community-proof-schema-delta.json")
 BEHAVIOUR_SHA256 = community_schema.BEHAVIOUR_SHA256
 POSTGRES_VERSION = 170009

@@ -124,7 +124,7 @@ sign-in handoff, and concurrent saves/publication/withdrawal/holds.
 
 Validation performed locally:
 
-- Complete suite: 3,502 passed, 18 skipped; three existing Django URLField warnings.
+- Integrated complete suite: 4,008 passed, 22 skipped; three existing Django URLField warnings.
 - Separate PostgreSQL 15.19 run: six real concurrency tests and 39 HTTP/privacy tests passed.
 - Django system/migration checks, changed Python lint, and new/changed community
   template lint/format checks passed; existing public-base lint findings are unchanged.

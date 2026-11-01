@@ -2,10 +2,20 @@
 
 ## Current status
 
-This is a local proposal for the separately bounded
-`community-proof-library-maintenance-v1` allowance. The PostgreSQL delta hash is
-deliberately the fail-closed all-zero sentinel until real pinned PostgreSQL 17.9
-discovery is reviewed. No discovery report is accepted as deployment proof.
+This is the hash-frozen proposal for the separately bounded
+`community-proof-library-maintenance-v1` allowance. Actual PostgreSQL 17.9 discovery
+passed in [CI run 41298236813](https://github.com/stevenchew83/AsterProof/actions/runs/41298236813).
+The original artifact ZIP digest is
+`61beb25c9698fab356a3433ae4b6b5fa1e450de1bf86337a0b94ded14ce648c7`;
+the normalized add/remove delta fingerprint is
+`79cb612647f39ff661fe1f00aa128133c67bcb007f7ba07d12c1d43aa043279e`.
+All 81 new-table columns match the reviewed models, plus exactly the four appended
+community columns and nullable-only MOHS replacement. The frozen fixture retains
+the original artifact bytes. Discovery-only CI wiring has been removed.
+
+No discovery report is accepted as deployment proof. Normal CI and the protected
+release build must rerun the strict rehearsal against the exact candidate and
+active source identities. This document does not establish installation or deployment.
 
 Application implementation, schema classification, a passing SQLite suite, or this
 document does not establish production authority installation or deployment. The

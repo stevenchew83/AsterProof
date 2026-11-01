@@ -144,7 +144,6 @@ jobs:
           if ! git diff --quiet "$BASE_SHA" HEAD -- scripts/deployment/community_proof_schema.py scripts/deployment/community_proof_schema_rehearsal.py scripts/deployment/tests/fixtures/community-proof-schema-delta.json inspinia/pages/migrations/0045_community_proof_library.py; then
             rehearsal=scripts.deployment.community_proof_schema_rehearsal
             active_sha="$BASE_SHA"
-            rehearsal_args=(--discover-delta --delta-output "$RUNNER_TEMP/community-proof-schema-delta.json")
           elif ! git diff --quiet "$BASE_SHA" HEAD -- scripts/deployment/solution_evaluation_schema.py scripts/deployment/solution_evaluation_schema_rehearsal.py scripts/deployment/tests/fixtures/solution-evaluation-schema-delta.json inspinia/solutions/migrations/0010_offline_evaluation_contract.py; then
             rehearsal=scripts.deployment.solution_evaluation_schema_rehearsal
             active_sha="$BASE_SHA"
@@ -326,6 +325,23 @@ jobs:
               'inspinia/solutions/test_admin_collection_concurrency.py',
               'inspinia/solutions/test_document_revisions.py',
               'inspinia/solutions/test_reviews.py', '--create-db', '-q',
+          ]))
+          PY
+          .ci-quality/bin/python - <<'PY'
+          from django.conf import settings
+          from scripts.deployment.schema_rehearsal import configure_rehearsal_database
+          configure_rehearsal_database(settings)
+          settings.DATABASES['default']['TEST'] = {'NAME': 'test_community_proof_locks'}
+          settings.DATABASES['default']['ATOMIC_REQUESTS'] = True
+          import django
+          django.setup()
+          from django.db import connection
+          if connection.pg_version != 170009:
+              raise SystemExit('Community privacy/concurrency checks require PostgreSQL 17.9')
+          import pytest
+          raise SystemExit(pytest.main([
+              'inspinia/pages/test_proof_concurrency.py',
+              'inspinia/pages/test_proof_library.py', '--create-db', '-q',
           ]))
           PY
 
