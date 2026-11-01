@@ -6,10 +6,13 @@ on:
       - .github/workflows/catalogue-rehearsal.yml
       - scripts/deployment/catalogue_*.py
       - scripts/deployment/database_recovery.py
+      - scripts/deployment/operation_worker.py
       - scripts/deployment/postgres_runtime.py
       - scripts/deployment/recovery_crypto.py
       - scripts/deployment/tests/test_database_recovery.py
       - scripts/deployment/tests/test_systemd_recovery.py
+      - scripts/deployment/tests/test_systemd_drain.py
+      - deployment/systemd/asterproof-deploy-operation@.service.in
       - scripts/deployment/tests/test_postgres_runtime.py
       - scripts/deployment/tests/test_recovery_crypto.py
       - scripts/deployment/tests/test_catalogue_*.py
@@ -86,8 +89,16 @@ jobs:
           PY
       - name: Reproduce a real stopped oneshot scheduler on the ephemeral runner
         run: |
-          sudo --preserve-env=GITHUB_ACTIONS,GITHUB_RUN_ID .catalogue-quality/bin/python -m pytest \
+          sudo --preserve-env=GITHUB_ACTIONS,GITHUB_RUN_ID,GITHUB_SHA,RUNNER_TEMP .catalogue-quality/bin/python -m pytest \
             scripts/deployment/tests/test_systemd_drain.py -q
+      - name: Retain normalized drain lifecycle evidence
+        if: always()
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v7.0.1
+        with:
+          name: drain-lifecycle-${{ github.sha }}
+          path: ${{ runner.temp }}/drain-lifecycle-*.json
+          if-no-files-found: ignore
+          retention-days: 7
       - name: Retain metadata-only rehearsal proof
         uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v7.0.1
         with:
