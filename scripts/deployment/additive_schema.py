@@ -12,10 +12,13 @@ from scripts.deployment import solution_collections_schema
 from scripts.deployment import solution_document_schema
 from scripts.deployment import solution_pdf_schema
 from scripts.deployment import solution_sharing_schema
+from scripts.deployment import statement_reports_schema
 from scripts.deployment import website_schema
 
 
 def schema_for_disclosure(value):  # noqa: C901, PLR0911 - Keep each frozen allowance explicit.
+    if isinstance(value, dict) and value.get("migration") == statement_reports_schema.MIGRATION:
+        return statement_reports_schema
     if isinstance(value, dict) and value.get("migration") == solution_document_schema.MIGRATION:
         return solution_document_schema
     if isinstance(value, dict) and value.get("migration") == curated_collections_schema.MIGRATION:

@@ -1,0 +1,194 @@
+{% extends 'layouts/vertical.html' %}
+
+{% block title %}Statement reports{% endblock title %}
+
+{% block extra_css %}
+  {{ block.super }}
+  <style>
+    .statement-reports { --report-border: var(--ins-border-color); }
+    .statement-reports .report-inbox { overflow: hidden; }
+    .statement-reports .report-toolbar {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: .75rem 1.25rem;
+      padding: .875rem 1rem;
+    }
+    .statement-reports .report-tabs { display: flex; flex-wrap: wrap; gap: .25rem; }
+    .statement-reports .report-tab {
+      display: inline-flex;
+      align-items: center;
+      gap: .5rem;
+      padding: .4375rem .625rem;
+      border-radius: var(--ins-border-radius);
+      color: var(--ins-body-color);
+      font-size: .8125rem;
+      font-weight: 500;
+      transition: background-color 150ms ease, color 150ms ease;
+    }
+    .statement-reports .report-tab:hover { background: var(--ins-tertiary-bg); }
+    .statement-reports .report-tab[aria-current="page"] {
+      background: var(--ins-primary-bg-subtle);
+      color: var(--ins-primary-text-emphasis);
+    }
+    .statement-reports .report-tab-count { font-size: .6875rem; font-variant-numeric: tabular-nums; opacity: .75; }
+    .statement-reports .report-search { flex: 0 1 22rem; margin: 0; }
+    .statement-reports .report-search .input-group { flex-wrap: nowrap; }
+    .statement-reports .report-search .form-control { min-width: 0; }
+    .statement-reports .report-list-meta { padding: .625rem 1rem; background: var(--ins-tertiary-bg); }
+    .statement-reports .report-item { border-top: 1px solid var(--report-border); }
+    .statement-reports .report-summary {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 10rem 6rem 1.75rem;
+      align-items: center;
+      gap: 1rem;
+      padding: .875rem 1rem;
+      border-inline-start: 3px solid transparent;
+      cursor: pointer;
+      list-style: none;
+      transition: background-color 150ms ease;
+    }
+    .statement-reports .report-summary::-webkit-details-marker { display: none; }
+    .statement-reports .report-summary:hover { background: var(--ins-tertiary-bg); }
+    .statement-reports .report-item--open > .report-summary { border-inline-start-color: var(--ins-warning); }
+    .statement-reports .report-item[open] > .report-summary { background: var(--ins-primary-bg-subtle); }
+    .statement-reports .report-main { min-width: 0; }
+    .statement-reports .report-title { color: var(--ins-emphasis-color); font-size: .875rem; }
+    .statement-reports .report-chevron {
+      display: grid;
+      place-items: center;
+      width: 1.75rem;
+      height: 1.75rem;
+      border: 1px solid var(--report-border);
+      border-radius: 50%;
+      color: var(--ins-secondary-color);
+      transition: transform 150ms ease;
+    }
+    .statement-reports .report-item[open] .report-chevron { transform: rotate(180deg); }
+    .statement-reports .report-body { padding: 1rem 1.25rem; border-top: 1px solid var(--report-border); }
+    .statement-reports .report-description { line-height: 1.7; overflow-wrap: anywhere; }
+    .statement-reports .report-source { display: block; min-width: 0; max-width: none; }
+    .statement-reports .report-source[open] { min-width: 0; max-width: none; }
+    .statement-reports .report-source > summary { white-space: normal; }
+    .statement-reports .report-source-text { max-height: 16rem; white-space: pre-wrap; overflow-wrap: anywhere; }
+    .statement-reports .report-footer { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: .75rem; }
+    .statement-reports .report-empty { padding: 3rem 1rem; text-align: center; }
+    .statement-reports a:focus-visible,
+    .statement-reports summary:focus-visible { outline: 2px solid var(--ins-primary); outline-offset: -2px; }
+    @media (max-width: 767.98px) {
+      .statement-reports .report-search { flex-basis: 100%; }
+      .statement-reports .report-summary { grid-template-columns: minmax(0, 1fr) auto 1.75rem; gap: .5rem .75rem; }
+      .statement-reports .report-submitted { grid-row: 2; grid-column: 1 / -1; display: flex; flex-wrap: wrap; gap: .25rem .5rem; }
+      .statement-reports .report-body { padding: 1rem; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .statement-reports .report-tab,
+      .statement-reports .report-summary,
+      .statement-reports .report-chevron { transition: none; }
+    }
+  </style>
+{% endblock extra_css %}
+
+{% block page_content %}
+<div class="container-fluid app-table-page statement-reports">
+  <header class="page-title-head app-page-header">
+    {% include 'partials/page-header-intro.html' with title='Statement reports' subtitle='Content maintenance' page_icon='ti-flag' only %}
+    <div class="app-page-header-actions">
+      <span class="badge bg-warning-subtle text-warning-emphasis px-2 py-2"><i class="ti ti-inbox me-1" aria-hidden="true"></i>{{ open_count }} awaiting review</span>
+      <a href="{% url 'pages:problem_statement_editor' %}" class="btn btn-outline-secondary btn-sm"><i class="ti ti-edit me-1" aria-hidden="true"></i>Statement editor</a>
+    </div>
+  </header>
+  {% for message in messages %}<div class="alert alert-success py-2 fs-sm" role="status"><i class="ti ti-circle-check me-1" aria-hidden="true"></i>{{ message }}</div>{% endfor %}
+
+  <section class="card report-inbox" aria-label="Statement error reports">
+    <div class="report-toolbar">
+      <nav class="report-tabs" aria-label="Report status">
+        {% for tab in status_tabs %}
+        <a href="{{ tab.url }}" class="report-tab"{% if selected_status == tab.value %} aria-current="page"{% endif %}>
+          {{ tab.label }}<span class="report-tab-count">{{ tab.count }}</span>
+        </a>
+        {% endfor %}
+      </nav>
+      <form method="get" class="app-table-filters report-search" role="search" aria-label="Search reports">
+        <input id="report-status" type="hidden" name="status" value="{{ selected_status }}" />
+        <label class="visually-hidden" for="report-query">Search problem or report</label>
+        <div class="input-group input-group-sm">
+          <span class="input-group-text bg-transparent"><i class="ti ti-search" aria-hidden="true"></i></span>
+          <input id="report-query" type="search" name="q" class="form-control" maxlength="200" value="{{ query }}" placeholder="Search problem or report…" />
+          <button type="submit" class="btn btn-outline-secondary">Search</button>
+        </div>
+      </form>
+    </div>
+    <div class="report-list-meta d-flex flex-wrap justify-content-between align-items-center gap-2 text-muted fs-xs" role="status">
+      <span>{% if reports.paginator.count %}{{ reports.start_index }}–{{ reports.end_index }} of {{ reports.paginator.count }} report{{ reports.paginator.count|pluralize }}{% else %}0 reports{% endif %}{% if query %} matching “{{ query }}”{% endif %}{% if query %} · <a href="?status={{ selected_status }}">Clear search</a>{% endif %}</span>
+      <span><i class="ti ti-sort-descending me-1" aria-hidden="true"></i>Newest first</span>
+    </div>
+
+    {% for report in reports %}
+    <details class="report-item{% if report.status == 'open' %} report-item--open{% endif %}">
+      <summary class="report-summary">
+        <span class="report-main">
+          <span class="d-flex align-items-baseline gap-2 mb-1"><strong class="report-title text-truncate">{{ report.statement_label }}</strong><span class="text-muted fs-xs flex-shrink-0">#{{ report.pk }}</span></span>
+          <span class="d-block text-truncate text-muted fs-sm">{{ report.description }}</span>
+        </span>
+        <span class="report-submitted text-muted fs-xs">
+          <span class="d-block text-truncate">{% if report.reporter %}<i class="ti ti-user me-1" aria-hidden="true"></i>{{ report.reporter.name|default:'Signed-in user' }}{% else %}<i class="ti ti-user-question me-1" aria-hidden="true"></i>Guest / removed account{% endif %}</span>
+          <time class="d-block mt-md-1" datetime="{{ report.created_at|date:'c' }}">{{ report.created_at|date:'j M Y · H:i' }}</time>
+        </span>
+        <span class="badge rounded-pill {% if report.status == 'open' %}bg-warning-subtle text-warning-emphasis{% elif report.status == 'resolved' %}bg-success-subtle text-success-emphasis{% else %}bg-secondary-subtle text-secondary-emphasis{% endif %}">{{ report.get_status_display }}</span>
+        <span class="report-chevron" aria-hidden="true"><i class="ti ti-chevron-down"></i></span>
+        <span class="visually-hidden">Review report #{{ report.pk }}</span>
+      </summary>
+      <div class="report-body">
+        <div class="row g-3 mb-3">
+          <div class="col-lg-7">
+            <h2 class="text-muted fs-xs text-uppercase fw-semibold mb-2">Reader’s report</h2>
+            <div class="report-description fs-sm">{{ report.description|linebreaksbr }}</div>
+          </div>
+          <div class="col-lg-5">
+            <details class="app-table-details report-source" open>
+              <summary class="fw-semibold"><i class="ti ti-file-text me-1" aria-hidden="true"></i>Statement when reported</summary>
+              <div class="app-table-details-body"><pre class="report-source-text fs-xs mb-0" tabindex="0" role="region" aria-label="Original statement source">{{ report.statement_snapshot }}</pre></div>
+            </details>
+          </div>
+        </div>
+        {% if report.reviewed_at %}<p class="text-muted fs-xs mb-3"><i class="ti ti-history me-1" aria-hidden="true"></i>Reviewed {{ report.reviewed_at|date:'j M Y · H:i' }}{% if report.reviewed_by %} by {{ report.reviewed_by.name|default:'Administrator' }}{% endif %}.</p>{% endif %}
+        <div class="report-footer border-top pt-3">
+          <div class="d-flex flex-wrap gap-2">
+            {% if report.statement %}
+            <a href="{% url 'pages:problem_statement_detail' report.statement_uuid %}" class="btn btn-outline-secondary btn-sm"><i class="ti ti-external-link me-1" aria-hidden="true"></i>View statement</a>
+            {% else %}<span class="text-muted fs-xs"><i class="ti ti-file-off me-1" aria-hidden="true"></i>Statement deleted · original preserved</span>{% endif %}
+          </div>
+          <form method="post" action="{% url 'pages:statement_report_update' report.pk %}" class="d-flex flex-wrap gap-2" aria-label="Update report #{{ report.pk }}">
+            {% csrf_token %}
+            <input type="hidden" name="return_status" value="{{ selected_status }}" />
+            <input type="hidden" name="return_query" value="{{ query }}" />
+            <input type="hidden" name="return_page" value="{{ reports.number }}" />
+            {% if report.status != 'open' %}<button type="submit" name="status" value="open" class="btn btn-outline-secondary btn-sm"><i class="ti ti-rotate-clockwise me-1" aria-hidden="true"></i>Reopen</button>{% endif %}
+            {% if report.status != 'dismissed' %}<button type="submit" name="status" value="dismissed" class="btn btn-outline-secondary btn-sm">Dismiss</button>{% endif %}
+            {% if report.status != 'resolved' %}<button type="submit" name="status" value="resolved" class="btn btn-primary btn-sm"><i class="ti ti-check me-1" aria-hidden="true"></i>Mark resolved</button>{% endif %}
+          </form>
+        </div>
+      </div>
+    </details>
+    {% empty %}
+    <div class="report-empty">
+      <span class="d-inline-flex bg-primary-subtle text-primary rounded-circle p-3 mb-3"><i class="ti {% if query %}ti-search{% elif selected_status == 'open' %}ti-circle-check{% else %}ti-inbox{% endif %} fs-24" aria-hidden="true"></i></span>
+      <h2 class="h5 mb-1">{% if query %}No matching reports{% elif selected_status == 'open' %}You’re all caught up{% elif selected_status == 'all' %}No reports yet{% else %}No {{ selected_status }} reports{% endif %}</h2>
+      <p class="text-muted fs-sm mb-0">{% if query %}Try a different search or choose another status.{% elif selected_status == 'open' %}New statement reports will appear here for review.{% else %}Choose another status to continue reviewing.{% endif %}</p>
+    </div>
+    {% endfor %}
+
+    {% if reports.has_other_pages %}
+    <nav class="report-toolbar border-top fs-xs text-muted" aria-label="Report pages">
+      <span>Page {{ reports.number }} of {{ reports.paginator.num_pages }}</span>
+      <div class="d-flex gap-2">
+        {% if reports.has_previous %}<a class="btn btn-outline-secondary btn-sm" href="?{{ pagination_query }}&amp;page={{ reports.previous_page_number }}"><i class="ti ti-chevron-left me-1" aria-hidden="true"></i>Previous</a>{% endif %}
+        {% if reports.has_next %}<a class="btn btn-outline-secondary btn-sm" href="?{{ pagination_query }}&amp;page={{ reports.next_page_number }}">Next<i class="ti ti-chevron-right ms-1" aria-hidden="true"></i></a>{% endif %}
+      </div>
+    </nav>
+    {% endif %}
+  </section>
+</div>
+{% endblock page_content %}
