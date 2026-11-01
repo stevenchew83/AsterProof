@@ -1,79 +1,23 @@
 {% extends 'layouts/vertical.html' %}
 
-{% block title %}View analytics{% endblock title %}
+{% load static %}
 
+{% block title %}
+  View analytics
+{% endblock title %}
 {% block page_content %}
   <div class="container-fluid app-table-page page-view-page"
        id="page-view-dashboard">
     <header class="page-title-head app-page-header">
       {% url 'pages:user_activity_dashboard' as page_view_home_url %}
       {% include 'partials/page-header-intro.html' with title='View analytics' subtitle='Admin analytics' page_icon='ti-chart-histogram' back_url=page_view_home_url back_label='AsterProof' only %}
-      {% if page_view_stats.total %}
-        <div class="app-page-header-actions">
+      <div class="app-page-header-actions">
+        <span class="page-view-period"><i class="ti ti-calendar" aria-hidden="true"></i>{{ page_view_date_range.label }}</span>
+        {% if page_view_stats.total %}
           <a href="#page-view-recent" class="btn btn-sm btn-outline-secondary"><i class="ti ti-history me-1" aria-hidden="true"></i>Recent activity</a>
-        </div>
-      {% endif %}
-    </header>
-    <section class="page-view-overview" aria-label="View volume by surface">
-      <div class="page-view-overview-heading">
-        <h2 class="visually-hidden">View volume by surface</h2>
-        <dl class="page-view-audience-summary">
-          <div>
-            <dt>total views</dt>
-            <dd>
-              {{ page_view_stats.total }}
-            </dd>
-          </div>
-          <div>
-            <dt>known user{{ page_view_stats.known_user_total|pluralize }}</dt>
-            <dd>
-              {{ page_view_stats.known_user_total }}
-            </dd>
-          </div>
-          <div>
-            <dt>anonymous views</dt>
-            <dd>
-              {{ page_view_stats.anonymous_view_total }}
-            </dd>
-          </div>
-        </dl>
-        <span class="page-view-period">{{ page_view_date_range.label }}</span>
+        {% endif %}
       </div>
-      <dl class="page-view-metrics">
-        {% for row in page_view_kpi_rows %}
-          <div class="page-view-metric">
-            <dt>
-              <i class="{{ row.icon_class }}" aria-hidden="true"></i>{{ row.kpi_label }}
-            </dt>
-            <dd class="page-view-metric-value">
-              {{ row.view_total }}
-            </dd>
-            <dd class="page-view-metric-bar">
-              <div class="progress page-view-surface-progress">
-                <div class="progress-bar {{ row.bar_class }}"
-                     role="progressbar"
-                     style="width: {{ row.bar_width }}%"
-                     aria-label="{{ row.kpi_label }}, relative to the busiest surface"
-                     aria-valuenow="{{ row.bar_width }}"
-                     aria-valuemin="0"
-                     aria-valuemax="100"></div>
-              </div>
-            </dd>
-            <dd class="page-view-metric-delta">
-              <span class="badge {{ row.delta_badge_class }}">{{ row.delta_label }}</span>
-            </dd>
-            <dd class="page-view-metric-meta">
-              {{ row.known_user_total }} user{{ row.known_user_total|pluralize }} ·
-              {% if row.latest_at_label %}
-                <span title="{{ row.latest_at_title }}" data-bs-toggle="tooltip">{{ row.latest_at_label }}</span>
-              {% else %}
-                No activity
-              {% endif %}
-            </dd>
-          </div>
-        {% endfor %}
-      </dl>
-    </section>
+    </header>
     <section class="card page-view-filter-panel"
              aria-label="Analytics range and audience">
       <form method="get"
@@ -160,256 +104,307 @@
           </div>
         </form>
       </section>
+      <section class="page-view-summary" aria-label="Traffic overview">
+        <div class="page-view-summary-metric">
+          <span class="page-view-stat-icon bg-primary-subtle text-primary"><i class="ti ti-eye" aria-hidden="true"></i></span>
+          <dl>
+            <dt>Total views</dt>
+            <dd>
+              {{ page_view_stats.total }}
+            </dd>
+            <dd class="page-view-stat-caption">
+              <span class="badge {{ page_view_summary.delta_class }}">{{ page_view_summary.delta_label }}</span>
+            </dd>
+          </dl>
+        </div>
+        <div class="page-view-summary-metric">
+          <span class="page-view-stat-icon bg-info-subtle text-info"><i class="ti ti-users" aria-hidden="true"></i></span>
+          <dl>
+            <dt>Known users</dt>
+            <dd>
+              {{ page_view_stats.known_user_total }}
+            </dd>
+            <dd class="page-view-stat-caption">
+              Distinct signed-in accounts
+            </dd>
+          </dl>
+        </div>
+        <div class="page-view-summary-metric">
+          <span class="page-view-stat-icon bg-primary-subtle text-primary"><i class="ti ti-chart-line" aria-hidden="true"></i></span>
+          <dl>
+            <dt>Views / day</dt>
+            <dd>
+              {{ page_view_summary.views_per_day|floatformat:1 }}
+            </dd>
+            <dd class="page-view-stat-caption">
+              Across {{ page_view_summary.days }} day{{ page_view_summary.days|pluralize }} in range
+            </dd>
+          </dl>
+        </div>
+        <div class="page-view-summary-metric">
+          <span class="page-view-stat-icon bg-success-subtle text-success"><i class="ti ti-calendar-check" aria-hidden="true"></i></span>
+          <dl>
+            <dt>Active days</dt>
+            <dd>
+              {{ page_view_summary.active_days }}<span class="page-view-stat-denominator">/ {{ page_view_summary.days }}</span>
+            </dd>
+            <dd class="page-view-stat-caption">
+              Days with recorded visits
+            </dd>
+          </dl>
+        </div>
+      </section>
       {% if not page_view_stats.total %}
-        <div class="page-view-empty" role="status">
+        <section class="card page-view-empty" role="status">
           <span class="page-view-empty-icon"><i class="ti ti-chart-histogram" aria-hidden="true"></i></span>
           <h2 class="header-title">No page views in this range</h2>
-          <p>View counts will appear after students open statement, solution, list, or contest pages.</p>
+          <p>Try a wider date range or include another audience.</p>
           <a href="{% url 'pages:page_view_analytics' %}?range=all"
              class="btn btn-sm btn-outline-secondary">Show all time</a>
-        </div>
-      {% endif %}
-      {% if page_view_stats.total > 0 %}
-        <div class="row g-3 mt-0">
-          <div class="col-12">
-            <div class="d-flex flex-wrap align-items-end justify-content-between gap-2">
+        </section>
+      {% else %}
+        <div class="page-view-charts-grid">
+          <section class="card page-view-trend-panel"
+                   aria-labelledby="page-view-trend-heading">
+            <div class="card-header page-view-panel-heading">
               <div>
-                <h2 class="header-title mb-0">Top content</h2>
-                <p class="text-muted fs-xs mb-0">Top 10 statements and solutions in the selected range</p>
+                <h2 class="header-title" id="page-view-trend-heading">Traffic over time</h2>
+                <p class="text-muted fs-xs mb-0">{{ page_view_charts.timeline.interval_label }} page views, by page type</p>
               </div>
+              <span class="page-view-panel-label"><span class="page-view-dot bg-primary"></span>{{ page_view_stats.total }} views</span>
             </div>
-          </div>
-          <div class="col-xl-6">
-            <div class="card h-100">
-              <div class="card-header border-0 pb-0">
-                <h4 class="header-title mb-0">Most viewed statements</h4>
-                <p class="text-muted fs-xs mb-0">Problem statement detail pages</p>
+            <div class="card-body pt-0">
+              <div id="page-view-trend-chart"
+                   class="page-view-chart page-view-trend-chart"
+                   role="img"
+                   aria-label="{{ page_view_charts.timeline.interval_label }} page views by page type. Exact values are available in the chart data below.">
+                <p class="page-view-chart-fallback text-muted fs-xs">Chart unavailable. Open chart data below for exact values.</p>
               </div>
-              <div class="card-body pt-2">
+              <details class="page-view-chart-data app-table-details">
+                <summary>View chart data</summary>
                 <div class="app-table-region table-responsive"
                      tabindex="0"
                      role="region"
-                     aria-label="Scrollable analytics results">
-                  <table class="app-table-compact page-view-ranking-table table table-sm table-hover align-middle mb-0">
+                     aria-label="Traffic over time data">
+                  <table class="table table-sm app-table-compact mb-0">
                     <thead>
                       <tr>
-                        <th scope="col">Problem</th>
-                        <th scope="col" class="text-end">Views</th>
-                        <th scope="col" class="text-end">Users</th>
-                        <th scope="col">Latest</th>
+                        <th scope="col">Period</th>
+                        {% for series in page_view_charts.timeline.series %}<th scope="col">{{ series.name }}</th>{% endfor %}
                       </tr>
                     </thead>
                     <tbody>
-                      {% for row in page_view_top_statements %}
+                      {% for row in page_view_charts.timeline.rows %}
                         <tr>
-                          <td>
-                            {% if row.url %}
-                              <a href="{{ row.url }}"
-                                 class="fw-semibold text-decoration-none"
-                                 title="{{ row.display_label }}">{{ row.display_label }}</a>
-                            {% else %}
-                              <span class="fw-semibold" title="{{ row.display_label }}">{{ row.display_label }}</span>
-                            {% endif %}
-                            <span class="text-muted fs-12 app-table-meta">{{ row.contest_name }}
-                              {% if row.contest_year %}{{ row.contest_year }}{% endif %}
-                            </span>
-                          </td>
-                          <td class="text-end">{{ row.view_total }}</td>
-                          <td class="text-end">{{ row.known_user_total }}</td>
-                          <td>
-                            {% if row.latest_at_label %}
-                              <span data-bs-toggle="tooltip" title="{{ row.latest_at_title }}">{{ row.latest_at_label }}</span>
-                            {% else %}
-                              —
-                            {% endif %}
-                          </td>
-                        </tr>
-                      {% empty %}
-                        <tr>
-                          <td colspan="4" class="text-muted">No statement views yet.</td>
+                          <th scope="row">{{ row.label }}</th>
+                          {% for value in row.values %}<td>{{ value }}</td>{% endfor %}
                         </tr>
                       {% endfor %}
                     </tbody>
                   </table>
                 </div>
+              </details>
+            </div>
+          </section>
+          <section class="card page-view-mix-panel"
+                   aria-labelledby="page-view-mix-heading">
+            <div class="card-header">
+              <h2 class="header-title" id="page-view-mix-heading">Content mix</h2>
+              <p class="text-muted fs-xs mb-0">Where your audience spends its visits</p>
+            </div>
+            <div class="card-body pt-0">
+              <div id="page-view-mix-chart"
+                   class="page-view-chart page-view-mix-chart"
+                   role="img"
+                   aria-label="Page-view share by content type. Counts and percentages are listed below."></div>
+              <dl class="page-view-mix-list">
+                {% for row in page_view_mix_rows %}
+                  <div>
+                    <dt>
+                      <span class="page-view-dot {{ row.bar_class }}"></span><span title="{{ row.delta_label }}">{{ row.kpi_label }}</span>
+                    </dt>
+                    <dd>
+                      {{ row.view_total }}<span>{{ row.share|floatformat:1 }}%</span>
+                    </dd>
+                  </div>
+                {% endfor %}
+              </dl>
+            </div>
+          </section>
+          <section class="card page-view-activity-panel"
+                   aria-labelledby="page-view-heatmap-heading">
+            <div class="card-header page-view-panel-heading">
+              <div>
+                <h2 class="header-title" id="page-view-heatmap-heading">When users visit</h2>
+                <p class="text-muted fs-xs mb-0">Views by weekday and hour · {{ page_view_charts.timezone }}</p>
+              </div>
+              <div class="page-view-heat-legend"
+                   aria-label="Heat intensity: fewer to more visits">
+                <span>Less</span><span class="page-view-heat-swatch" aria-hidden="true">■</span><span class="page-view-heat-swatch" aria-hidden="true">■</span><span class="page-view-heat-swatch" aria-hidden="true">■</span><span class="page-view-heat-swatch" aria-hidden="true">■</span><span>More</span>
               </div>
             </div>
-          </div>
-          <div class="col-xl-6">
-            <div class="card h-100">
-              <div class="card-header border-0 pb-0">
-                <h4 class="header-title mb-0">Most viewed solutions</h4>
-                <p class="text-muted fs-xs mb-0">Problem solution pages</p>
+            <div class="card-body pt-0">
+              <div class="page-view-heatmap-scroll"
+                   tabindex="0"
+                   role="region"
+                   aria-label="Hourly activity heatmap">
+                <div id="page-view-heatmap-chart"
+                     class="page-view-chart page-view-heatmap-chart"
+                     role="img"
+                     aria-label="Weekday and hour activity heatmap. Exact counts are available in the chart data below.">
+                  <p class="page-view-chart-fallback text-muted fs-xs">Chart unavailable. Open chart data below for exact values.</p>
+                </div>
               </div>
-              <div class="card-body pt-2">
+              <details class="page-view-chart-data app-table-details">
+                <summary>View chart data</summary>
                 <div class="app-table-region table-responsive"
                      tabindex="0"
                      role="region"
-                     aria-label="Scrollable analytics results">
-                  <table class="app-table-compact page-view-ranking-table table table-sm table-hover align-middle mb-0">
+                     aria-label="Weekday and hour activity data">
+                  <table class="table table-sm app-table-compact mb-0">
                     <thead>
                       <tr>
-                        <th scope="col">Problem</th>
-                        <th scope="col" class="text-end">Views</th>
-                        <th scope="col" class="text-end">Users</th>
-                        <th scope="col">Latest</th>
+                        <th scope="col">Day / hour</th>
+                        {% for point in page_view_charts.heatmap.0.data %}<th scope="col">{{ point.x }}</th>{% endfor %}
                       </tr>
                     </thead>
                     <tbody>
-                      {% for row in page_view_top_solutions %}
+                      {% for row in page_view_charts.heatmap %}
                         <tr>
-                          <td>
-                            {% if row.url %}
-                              <a href="{{ row.url }}"
-                                 class="fw-semibold text-decoration-none"
-                                 title="{{ row.display_label }}">{{ row.display_label }}</a>
-                            {% else %}
-                              <span class="fw-semibold" title="{{ row.display_label }}">{{ row.display_label }}</span>
-                            {% endif %}
-                            <span class="text-muted fs-12 app-table-meta">{{ row.contest_name }}
-                              {% if row.contest_year %}{{ row.contest_year }}{% endif %}
-                            </span>
-                          </td>
-                          <td class="text-end">{{ row.view_total }}</td>
-                          <td class="text-end">{{ row.known_user_total }}</td>
-                          <td>
-                            {% if row.latest_at_label %}
-                              <span data-bs-toggle="tooltip" title="{{ row.latest_at_title }}">{{ row.latest_at_label }}</span>
-                            {% else %}
-                              —
-                            {% endif %}
-                          </td>
-                        </tr>
-                      {% empty %}
-                        <tr>
-                          <td colspan="4" class="text-muted">No solution views yet.</td>
+                          <th scope="row">{{ row.name }}</th>
+                          {% for point in row.data %}<td>{{ point.y }}</td>{% endfor %}
                         </tr>
                       {% endfor %}
                     </tbody>
                   </table>
                 </div>
-              </div>
+              </details>
             </div>
-          </div>
+          </section>
+          <section class="card page-view-audience-panel"
+                   aria-labelledby="page-view-audience-heading">
+            <div class="card-header">
+              <h2 class="header-title" id="page-view-audience-heading">Audience</h2>
+              <p class="text-muted fs-xs mb-0">Signed-in and anonymous visits</p>
+            </div>
+            <div class="card-body pt-2">
+              <div class="page-view-audience-numbers">
+                <span><strong>{{ page_view_summary.known_views }}</strong> signed-in views</span><span><strong>{{ page_view_stats.anonymous_view_total }}</strong> anonymous</span>
+              </div>
+              <div class="progress page-view-audience-bar"
+                   role="img"
+                   aria-label="{{ page_view_summary.known_share }} percent of views are signed-in; {{ page_view_stats.anonymous_view_total }} anonymous views">
+                <div class="progress-bar bg-primary"
+                     style="width: {{ page_view_summary.known_share }}%"></div>
+              </div>
+              <div class="page-view-readers-heading">
+                <h3>Most active users</h3>
+                <span>Views</span>
+              </div>
+              <ol class="page-view-reader-list">
+                {% for reader in page_view_readers %}
+                  <li>
+                    <a href="{{ reader.url }}"
+                       title="View activity for {{ reader.label }} · last visit {{ reader.latest }}"><span class="page-view-reader-avatar">{{ reader.initial }}</span><span class="page-view-reader-info"><span>{{ reader.label }}</span><span class="page-view-reader-track"><span style="width: {{ reader.width }}%"></span></span></span><strong>{{ reader.total }}</strong><i class="ti ti-chevron-right" aria-hidden="true"></i></a>
+                  </li>
+                {% empty %}
+                  <li class="text-muted fs-xs py-2">No signed-in visits in this range.</li>
+                {% endfor %}
+              </ol>
+            </div>
+          </section>
         </div>
-        <div class="row g-3 mt-0">
-          <div class="col-12">
+        <section class="card page-view-rankings"
+                 aria-labelledby="page-view-rankings-heading">
+          <div class="card-header page-view-panel-heading">
             <div>
-              <h2 class="header-title mb-0">List and contest traffic</h2>
-              <p class="text-muted fs-xs mb-0">Top 10 lists and contests in the selected range</p>
+              <h2 class="header-title" id="page-view-rankings-heading">Top content</h2>
+              <p class="text-muted fs-xs mb-0">Up to 10 pages per type · ranked by views</p>
             </div>
+            <span class="page-view-panel-label">{{ page_view_date_range.label }}</span>
           </div>
-          <div class="col-xl-6">
-            <div class="card h-100">
-              <div class="card-header border-0 pb-0">
-                <h4 class="header-title mb-0">List views</h4>
-                <p class="text-muted fs-xs mb-0">Statement and problem list traffic</p>
-              </div>
-              <div class="card-body pt-2">
-                <div class="app-table-region table-responsive"
-                     tabindex="0"
-                     role="region"
-                     aria-label="Scrollable analytics results">
-                  <table class="app-table-compact page-view-ranking-table table table-sm table-hover align-middle mb-0">
-                    <thead>
-                      <tr>
-                        <th scope="col">List</th>
-                        <th scope="col" class="text-end">Views</th>
-                        <th scope="col" class="text-end">Users</th>
-                        <th scope="col">Latest</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {% for row in page_view_top_lists %}
+          <div class="card-body pt-0">
+            <ul class="nav nav-pills page-view-ranking-tabs"
+                role="tablist"
+                aria-label="Content rankings">
+              {% for group in page_view_rankings %}
+                <li class="nav-item" role="presentation">
+                  <button class="nav-link{% if group.active %} active{% endif %}"
+                          id="page-view-{{ group.key }}-tab"
+                          data-bs-toggle="tab"
+                          data-bs-target="#page-view-{{ group.key }}-panel"
+                          type="button"
+                          role="tab"
+                          aria-controls="page-view-{{ group.key }}-panel"
+                          aria-selected="{% if group.active %}true{% else %}false{% endif %}">
+                    {{ group.label }}<span>{{ group.total }}</span>
+                  </button>
+                </li>
+              {% endfor %}
+            </ul>
+            <div class="tab-content">
+              {% for group in page_view_rankings %}
+                <div class="tab-pane{% if group.active %} active{% endif %}"
+                     id="page-view-{{ group.key }}-panel"
+                     role="tabpanel"
+                     aria-labelledby="page-view-{{ group.key }}-tab"
+                     tabindex="0">
+                  <div class="app-table-region table-responsive"
+                       tabindex="0"
+                       role="region"
+                       aria-label="{{ group.label }} rankings">
+                    <table class="app-table-compact page-view-ranking-table table table-sm table-hover align-middle mb-0">
+                      <thead>
                         <tr>
-                          <td>
-                            <a href="{{ row.url }}"
-                               class="fw-semibold text-decoration-none"
-                               title="{{ row.display_label }}">{{ row.display_label }}</a>
-                            {% if row.filter_chips %}
-                              <details class="app-table-details page-view-path-details">
-                                <summary>Filters · {{ row.filter_chips|length }}</summary>
-                                <div class="app-table-details-body d-flex flex-wrap gap-1">
-                                  {% for chip in row.filter_chips %}<span class="badge {{ chip.badge_class }}">{{ chip.label }}</span>{% endfor %}
-                                </div>
-                              </details>
-                            {% endif %}
-                          </td>
-                          <td class="text-end">{{ row.view_total }}</td>
-                          <td class="text-end">{{ row.known_user_total }}</td>
-                          <td>
-                            {% if row.latest_at_label %}
-                              <span data-bs-toggle="tooltip" title="{{ row.latest_at_title }}">{{ row.latest_at_label }}</span>
-                            {% else %}
-                              —
-                            {% endif %}
-                          </td>
+                          <th scope="col" class="page-view-rank-column">#</th>
+                          <th scope="col">Page</th>
+                          <th scope="col" class="text-end">Views</th>
+                          <th scope="col" class="text-end">Users</th>
+                          <th scope="col">Last viewed</th>
                         </tr>
-                      {% empty %}
-                        <tr>
-                          <td colspan="4" class="text-muted">No list views yet.</td>
-                        </tr>
-                      {% endfor %}
-                    </tbody>
-                  </table>
+                      </thead>
+                      <tbody>
+                        {% for row in group.rows %}
+                          <tr>
+                            <td class="page-view-rank-column">{{ forloop.counter|stringformat:'02d' }}</td>
+                            <td>
+                              {% if row.url %}
+                                <a href="{{ row.url }}"
+                                   class="fw-semibold text-decoration-none"
+                                   title="{{ row.display_label|default:row.label }}">{{ row.display_label|default:row.label }}</a>
+                              {% else %}
+                                <span class="fw-semibold">{{ row.display_label|default:row.label }}</span>
+                              {% endif %}
+                              {% if row.filter_chips %}
+                                <details class="app-table-details page-view-path-details">
+                                  <summary>Filters · {{ row.filter_chips|length }}</summary>
+                                  <div class="app-table-details-body d-flex flex-wrap gap-1">
+                                    {% for chip in row.filter_chips %}<span class="badge {{ chip.badge_class }}">{{ chip.label }}</span>{% endfor %}
+                                  </div>
+                                </details>
+                              {% endif %}
+                            </td>
+                            <td class="text-end">
+                              <span class="page-view-ranking-value">{{ row.view_total }}</span><span class="page-view-ranking-track"><span style="width: {{ row.width }}%"></span></span>
+                            </td>
+                            <td class="text-end">{{ row.known_user_total }}</td>
+                            <td>
+                              <span title="{{ row.latest_at_title }}" data-bs-toggle="tooltip">{{ row.latest_at_label }}</span>
+                            </td>
+                          </tr>
+                        {% empty %}
+                          <tr>
+                            <td colspan="5" class="text-muted py-4 text-center">No {{ group.label|lower }} viewed in this range.</td>
+                          </tr>
+                        {% endfor %}
+                      </tbody>
+                    </table>
+                  </div>
                 </div>
-              </div>
+              {% endfor %}
             </div>
           </div>
-          <div class="col-xl-6">
-            <div class="card h-100">
-              <div class="card-header border-0 pb-0">
-                <h4 class="header-title mb-0">Contest views</h4>
-                <p class="text-muted fs-xs mb-0">Contest listing traffic</p>
-              </div>
-              <div class="card-body pt-2">
-                <div class="app-table-region table-responsive"
-                     tabindex="0"
-                     role="region"
-                     aria-label="Scrollable analytics results">
-                  <table class="app-table-compact page-view-ranking-table table table-sm table-hover align-middle mb-0">
-                    <thead>
-                      <tr>
-                        <th scope="col">Contest</th>
-                        <th scope="col" class="text-end">Views</th>
-                        <th scope="col" class="text-end">Users</th>
-                        <th scope="col">Latest</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {% for row in page_view_top_contests %}
-                        <tr>
-                          <td>
-                            {% if row.url %}
-                              <a href="{{ row.url }}"
-                                 class="fw-semibold text-decoration-none"
-                                 title="{{ row.label }}">{{ row.label }}</a>
-                            {% else %}
-                              <span class="fw-semibold">{{ row.label }}</span>
-                            {% endif %}
-                          </td>
-                          <td class="text-end">{{ row.view_total }}</td>
-                          <td class="text-end">{{ row.known_user_total }}</td>
-                          <td>
-                            {% if row.latest_at_label %}
-                              <span data-bs-toggle="tooltip" title="{{ row.latest_at_title }}">{{ row.latest_at_label }}</span>
-                            {% else %}
-                              —
-                            {% endif %}
-                          </td>
-                        </tr>
-                      {% empty %}
-                        <tr>
-                          <td colspan="4" class="text-muted">No contest views yet.</td>
-                        </tr>
-                      {% endfor %}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
+        </section>
         <div class="row g-3 mt-0 mb-4" id="page-view-recent">
           <div class="col-12">
             <div class="card">
@@ -610,79 +605,89 @@
             </div>
           </div>
         </div>
+        <p class="page-view-coverage-note">
+          <i class="ti ti-info-circle" aria-hidden="true"></i>Page views cover tracked statement, solution, list, and contest pages. Known users are distinct signed-in accounts; anonymous views are visits, not unique people.
+        </p>
       {% endif %}
+      {{ page_view_charts|json_script:'page-view-charts-data' }}
     </div>
   {% endblock page_content %}
+  {% block extra_javascript %}
+    {% if page_view_stats.total %}
+      {% include 'partials/apexcharts-vendor-script.html' %}
+      <script src="{% static 'js/page-view-charts.js' %}"></script>
+    {% endif %}
+    <script>
+      (function() {
+        var rangeSelect = document.getElementById("page-view-range");
+        var customDates = document.getElementById("page-view-custom-dates");
+        rangeSelect.addEventListener("change", function() {
+          if (rangeSelect.value === "custom") customDates.open = true;
+        });
+        ["page-view-start", "page-view-end"].forEach(function(id) {
+          document.getElementById(id).addEventListener("change", function() {
+            rangeSelect.value = "custom";
+          });
+        });
 
-{% block extra_javascript %}
-<script>
-(function () {
-  var rangeSelect = document.getElementById("page-view-range");
-  var customDates = document.getElementById("page-view-custom-dates");
-  rangeSelect.addEventListener("change", function () {
-    if (rangeSelect.value === "custom") customDates.open = true;
-  });
-  ["page-view-start", "page-view-end"].forEach(function (id) {
-    document.getElementById(id).addEventListener("change", function () { rangeSelect.value = "custom"; });
-  });
+        var copyStatus = document.getElementById("page-view-copy-status");
 
-  var copyStatus = document.getElementById("page-view-copy-status");
-  function setCopyStatus(message, isError) {
-    if (!copyStatus) return;
-    copyStatus.textContent = message;
-    copyStatus.classList.toggle("text-danger", Boolean(isError));
-    copyStatus.classList.toggle("text-muted", !isError);
-  }
+        function setCopyStatus(message, isError) {
+          if (!copyStatus) return;
+          copyStatus.textContent = message;
+          copyStatus.classList.toggle("text-danger", Boolean(isError));
+          copyStatus.classList.toggle("text-muted", !isError);
+        }
 
-  function fallbackCopy(text) {
-    var textArea = document.createElement("textarea");
-    textArea.value = text;
-    textArea.setAttribute("readonly", "");
-    textArea.style.position = "fixed";
-    textArea.style.opacity = "0";
-    document.body.appendChild(textArea);
-    textArea.select();
-    try {
-      if (!document.execCommand("copy")) return Promise.reject(new Error("Copy failed"));
-    } finally {
-      document.body.removeChild(textArea);
-    }
-    return Promise.resolve();
-  }
+        function fallbackCopy(text) {
+          var textArea = document.createElement("textarea");
+          textArea.value = text;
+          textArea.setAttribute("readonly", "");
+          textArea.style.position = "fixed";
+          textArea.style.opacity = "0";
+          document.body.appendChild(textArea);
+          textArea.select();
+          try {
+            if (!document.execCommand("copy")) return Promise.reject(new Error("Copy failed"));
+          } finally {
+            document.body.removeChild(textArea);
+          }
+          return Promise.resolve();
+        }
 
-  function copyText(text) {
-    if (navigator.clipboard && navigator.clipboard.writeText) {
-      return navigator.clipboard.writeText(text);
-    }
-    return fallbackCopy(text);
-  }
+        function copyText(text) {
+          if (navigator.clipboard && navigator.clipboard.writeText) {
+            return navigator.clipboard.writeText(text);
+          }
+          return fallbackCopy(text);
+        }
 
-  document.querySelectorAll(".page-view-copy-path").forEach(function (button) {
-    var defaultHtml = button.innerHTML;
-    button.addEventListener("click", async function () {
-      var path = button.getAttribute("data-page-view-path") || "";
-      if (!path) return;
-      button.disabled = true;
-      try {
-        await copyText(path);
-        setCopyStatus("Path copied.", false);
-        button.innerHTML = '<i class="ti ti-check" aria-hidden="true"></i>';
-        button.setAttribute("aria-label", "Path copied");
-        button.classList.remove("btn-outline-secondary");
-        button.classList.add("btn-success");
-        window.setTimeout(function () {
-          button.innerHTML = defaultHtml;
-          button.classList.remove("btn-success");
-          button.classList.add("btn-outline-secondary");
-          button.setAttribute("aria-label", "Copy path");
-        }, 1200);
-      } catch (_) {
-        setCopyStatus("Could not copy the path. Open Path details to select it manually.", true);
-      } finally {
-        button.disabled = false;
-      }
-    });
-  });
-})();
-</script>
-{% endblock extra_javascript %}
+        document.querySelectorAll(".page-view-copy-path").forEach(function(button) {
+          var defaultHtml = button.innerHTML;
+          button.addEventListener("click", async function() {
+            var path = button.getAttribute("data-page-view-path") || "";
+            if (!path) return;
+            button.disabled = true;
+            try {
+              await copyText(path);
+              setCopyStatus("Path copied.", false);
+              button.innerHTML = '<i class="ti ti-check" aria-hidden="true"></i>';
+              button.setAttribute("aria-label", "Path copied");
+              button.classList.remove("btn-outline-secondary");
+              button.classList.add("btn-success");
+              window.setTimeout(function() {
+                button.innerHTML = defaultHtml;
+                button.classList.remove("btn-success");
+                button.classList.add("btn-outline-secondary");
+                button.setAttribute("aria-label", "Copy path");
+              }, 1200);
+            } catch (_) {
+              setCopyStatus("Could not copy the path. Open Path details to select it manually.", true);
+            } finally {
+              button.disabled = false;
+            }
+          });
+        });
+      })();
+    </script>
+  {% endblock extra_javascript %}
