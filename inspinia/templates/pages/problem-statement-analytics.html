@@ -1,624 +1,779 @@
 {% extends 'layouts/vertical.html' %}
 
-{% load static i18n %}
+{% load static %}
 
-{% block title %}Problem statement analytics{% endblock title %}
-
+{% block title %}
+  Problem statement analytics
+{% endblock title %}
 {% block extra_css %}
-<link rel="stylesheet" href="{% static 'plugins/datatables/dataTables.bootstrap5.min.css' %}">
-<style>
-  .statement-analytics-attention {
-    transition: border-color 0.15s ease, background-color 0.15s ease;
-  }
-
-  .statement-analytics-attention:hover {
-    background-color: var(--bs-tertiary-bg);
-    border-color: var(--bs-primary-border-subtle) !important;
-  }
-
-  .statement-analytics-heatmap-frame.is-all-mode {
-    max-height: 680px;
-    overflow-y: auto;
-  }
-
-  .statement-analytics-progress {
-    min-width: 128px;
-  }
-
-  .statement-analytics-progress .progress {
-    height: 0.35rem;
-  }
-</style>
+  <link rel="stylesheet"
+        href="{% static 'plugins/datatables/dataTables.bootstrap5.min.css' %}" />
 {% endblock extra_css %}
-
 {% block page_content %}
-
-<div class="container-fluid app-table-page">
-
-  {% include 'partials/page-title.html' with title='Problem statement analytics' subtitle='Admin' page_icon='ti-chart-bar' %}
-
-  <div class="row g-3 mt-0">
-    <div class="col-sm-6 col-xl-3">
-      <div class="card m-0">
-        <div class="card-body">
-          <div class="d-flex align-items-center">
-            <div class="flex-shrink-0">
-              <span class="avatar-title bg-primary-subtle text-primary rounded">
-                <i class="ti ti-folders fs-24"></i>
-              </span>
-            </div>
-            <div class="flex-grow-1 ms-2">
-              <p class="text-muted mb-0 fs-xs text-uppercase fw-semibold">Contest-year sets</p>
-              <h3 class="mb-0">{{ statement_dashboard_total_label }}</h3>
-              <p class="text-muted fs-xs mb-0">{{ statement_dashboard_stats.year_range_label }}</p>
-            </div>
+  <div class="container-fluid app-table-page statement-analytics-page"
+       id="statement-analytics-dashboard">
+    <header class="page-title-head app-page-header">
+      {% url 'pages:user_activity_dashboard' as statement_analytics_home_url %}
+      {% include 'partials/page-header-intro.html' with title='Statement analytics' subtitle='Admin analytics' page_icon='ti-chart-bar' back_url=statement_analytics_home_url back_label='AsterProof' only %}
+      {% if statement_dashboard_total %}
+        <div class="app-page-header-actions">
+          <a href="#statement-analytics-directory"
+             class="btn btn-sm btn-outline-secondary"><i class="ti ti-list-search me-1" aria-hidden="true"></i>Browse directory</a>
+        </div>
+      {% endif %}
+    </header>
+    <section class="statement-analytics-overview"
+             aria-label="Statement archive summary">
+      <dl class="statement-analytics-metrics">
+        <div>
+          <dt>Contest-year sets</dt>
+          <dd>
+            {{ statement_dashboard_total_label }}
+          </dd>
+          <small>{{ statement_dashboard_stats.year_range_label }}</small>
+        </div>
+        <div>
+          <dt>Distinct contests</dt>
+          <dd>
+            {{ statement_dashboard_stats.contest_total_label }}
+          </dd>
+          <small>Across the statement archive</small>
+        </div>
+        <div>
+          <dt>Statement rows</dt>
+          <dd>
+            {{ statement_dashboard_statement_total_label }}
+          </dd>
+          <small>{{ statement_dashboard_stats.unlinked_total_label }} unlinked</small>
+        </div>
+        <div>
+          <dt>Linked coverage</dt>
+          <dd>
+            {{ statement_dashboard_stats.overall_link_rate_label }}
+          </dd>
+          <small>{{ statement_dashboard_stats.linked_total_label }} linked · {{ statement_dashboard_stats.unlinked_total_label }} unlinked</small>
+          <div class="progress statement-analytics-coverage-progress"
+               role="progressbar"
+               aria-label="Overall linked coverage"
+               aria-valuenow="{{ statement_dashboard_stats.overall_link_rate }}"
+               aria-valuemin="0"
+               aria-valuemax="100">
+            <div class="progress-bar bg-{{ statement_dashboard_stats.overall_link_rate_variant }}"
+                 style="width: {{ statement_dashboard_stats.overall_link_rate }}%"></div>
           </div>
         </div>
-      </div>
-    </div>
-    <div class="col-sm-6 col-xl-3">
-      <div class="card m-0">
-        <div class="card-body">
-          <div class="d-flex align-items-center">
-            <div class="flex-shrink-0">
-              <span class="avatar-title bg-info-subtle text-info rounded">
-                <i class="ti ti-trophy fs-24"></i>
-              </span>
-            </div>
-            <div class="flex-grow-1 ms-2">
-              <p class="text-muted mb-0 fs-xs text-uppercase fw-semibold">Distinct contests</p>
-              <h3 class="mb-0">{{ statement_dashboard_stats.contest_total_label }}</h3>
-              <p class="text-muted fs-xs mb-0">{{ statement_dashboard_total_label }} contest-year sets</p>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-    <div class="col-sm-6 col-xl-3">
-      <div class="card m-0">
-        <div class="card-body">
-          <div class="d-flex align-items-center">
-            <div class="flex-shrink-0">
-              <span class="avatar-title bg-warning-subtle text-warning rounded">
-                <i class="ti ti-file-text fs-24"></i>
-              </span>
-            </div>
-            <div class="flex-grow-1 ms-2">
-              <p class="text-muted mb-0 fs-xs text-uppercase fw-semibold">Statement rows</p>
-              <h3 class="mb-0">{{ statement_dashboard_statement_total_label }}</h3>
-              <p class="text-muted fs-xs mb-0">{{ statement_dashboard_stats.unlinked_total_label }} unlinked backlog</p>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-    <div class="col-sm-6 col-xl-3">
-      <div class="card m-0">
-        <div class="card-body">
-          <div class="d-flex align-items-center">
-            <div class="flex-shrink-0">
-              <span class="avatar-title bg-{{ statement_dashboard_stats.overall_link_rate_variant }}-subtle text-{{ statement_dashboard_stats.overall_link_rate_variant }} rounded">
-                <i class="ti ti-link fs-24"></i>
-              </span>
-            </div>
-            <div class="flex-grow-1 ms-2">
-              <p class="text-muted mb-0 fs-xs text-uppercase fw-semibold">Linked coverage</p>
-              <h3 class="mb-0">{{ statement_dashboard_stats.overall_link_rate_label }}</h3>
-              <p class="text-muted fs-xs mb-0">{{ statement_dashboard_stats.linked_total_label }} linked / {{ statement_dashboard_stats.unlinked_total_label }} unlinked</p>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  {% if statement_dashboard_total == 0 %}
-  <div class="alert alert-info mt-4" role="alert">
-    <strong>No statement data yet.</strong> Save parsed results from <a href="{% url 'pages:latex_preview' %}" class="alert-link">LaTeX preview</a> to populate this dashboard.
-  </div>
-  {% else %}
-
-  <div class="row g-3 mt-1">
-    <div class="col-12">
-      <div class="card h-100">
+      </dl>
+    </section>
+    {% if statement_dashboard_total == 0 %}
+      <section class="statement-analytics-empty" role="status">
+        <span class="statement-analytics-empty-icon"><i class="ti ti-files" aria-hidden="true"></i></span>
+        <h2 class="header-title">No statement data yet</h2>
+        <p>Save parsed statements from LaTeX preview to populate this dashboard.</p>
+        <a href="{% url 'pages:latex_preview' %}" class="btn btn-sm btn-primary">Open LaTeX preview</a>
+      </section>
+    {% else %}
+      <section class="card statement-analytics-attention-panel"
+               aria-labelledby="statement-attention-heading">
         <div class="card-header border-0 pb-0">
-          <h4 class="header-title mb-0">Needs attention</h4>
-          <p class="text-muted fs-xs mb-0">Backlog-first signals for the next statement-linking pass</p>
+          <h2 class="header-title mb-0" id="statement-attention-heading">Needs attention</h2>
+          <p class="text-muted fs-xs mb-0">Start with the next statement-linking pass</p>
         </div>
         <div class="card-body pt-2">
-          <div class="row g-3">
+          <div class="statement-analytics-attention-grid">
             {% for item in statement_dashboard_attention %}
-            <div class="col-md-6 col-xl-3">
               {% if item.url %}
-              <a href="{{ item.url }}" class="statement-analytics-attention border rounded p-3 d-flex align-items-start gap-2 text-reset text-decoration-none h-100">
-              {% else %}
-              <div class="statement-analytics-attention border rounded p-3 d-flex align-items-start gap-2 h-100">
+                <a href="{{ item.url }}"
+                   class="statement-analytics-attention"
+                   title="{{ item.target_label }}">
+                {% else %}
+                  <div class="statement-analytics-attention">
+                  {% endif %}
+                  <span class="statement-analytics-attention-label"><i class="ti {% if item.key == 'oldest_unlinked' %}ti-calendar{% else %}{{ item.icon }}{% endif %} text-{{ item.variant }}" aria-hidden="true"></i>{{ item.label }}</span>
+                  <span class="statement-analytics-attention-target">{{ item.target_label }}</span>
+                  <span class="statement-analytics-attention-value">{{ item.value }}</span>
+                  {% if item.url %}
+                  </a>
+                {% else %}
+                </div>
               {% endif %}
-                <span class="avatar-title bg-{{ item.variant }}-subtle text-{{ item.variant }} rounded flex-shrink-0">
-                  <i class="ti {{ item.icon }} fs-20"></i>
-                </span>
-                <span class="min-w-0">
-                  <span class="text-muted d-block fs-xs text-uppercase fw-semibold">{{ item.label }}</span>
-                  <span class="fw-semibold d-block text-truncate">{{ item.target_label }}</span>
-                  <span class="text-muted d-block fs-xs">{{ item.value }}</span>
-                </span>
-              {% if item.url %}
-              </a>
-              {% else %}
-              </div>
-              {% endif %}
-            </div>
             {% endfor %}
           </div>
         </div>
-      </div>
-    </div>
-  </div>
-
-  <div class="row g-3 mt-0">
-    <div class="col-12">
-      <div class="card">
-        <div class="card-header border-0 pb-0 d-flex flex-wrap align-items-start gap-2">
-          <div class="flex-grow-1">
-            <h4 class="header-title mb-0">Unlinked statement backlog heatmap</h4>
-            <p class="text-muted fs-xs mb-0">Darker cells indicate heavier backlog. Click a populated cell to open its contest-year master list.</p>
+      </section>
+      <section class="card"
+               id="statement-analytics-coverage"
+               aria-labelledby="statement-heatmap-heading">
+        <div class="card-header border-0 pb-0 statement-analytics-chart-header">
+          <div>
+            <h2 class="header-title mb-0" id="statement-heatmap-heading">Unlinked statement backlog heatmap</h2>
+            <p class="text-muted fs-xs mb-0">Select a populated cell to open its contest-year master list.</p>
           </div>
-          <div class="app-table-toolbar btn-group btn-group-sm" role="group" aria-label="Statement heatmap mode">
-            <button type="button" class="btn btn-primary" data-statement-heatmap-mode="backlog">Backlog</button>
-            <button type="button" class="btn btn-light" data-statement-heatmap-mode="lowCoverage">Low coverage</button>
-            <button type="button" class="btn btn-light" data-statement-heatmap-mode="volume">Volume</button>
-            <button type="button" class="btn btn-light" data-statement-heatmap-mode="recent">Recent</button>
-            <button type="button" class="btn btn-light" data-statement-heatmap-mode="all">All</button>
+          <div class="app-table-toolbar statement-analytics-mode-controls statement-analytics-js-only"
+               role="group"
+               aria-label="Statement heatmap mode">
+            <button type="button"
+                    class="btn btn-sm btn-primary"
+                    data-statement-heatmap-mode="backlog"
+                    aria-pressed="true">Backlog</button>
+            <button type="button"
+                    class="btn btn-sm btn-light"
+                    data-statement-heatmap-mode="lowCoverage"
+                    aria-pressed="false">Low coverage</button>
+            <button type="button"
+                    class="btn btn-sm btn-light"
+                    data-statement-heatmap-mode="volume"
+                    aria-pressed="false">Volume</button>
+            <button type="button"
+                    class="btn btn-sm btn-light"
+                    data-statement-heatmap-mode="recent"
+                    aria-pressed="false">Recent</button>
+            <button type="button"
+                    class="btn btn-sm btn-light"
+                    data-statement-heatmap-mode="all"
+                    aria-pressed="false">All</button>
           </div>
         </div>
         <div class="card-body pt-2">
-          <div id="chart-statement-heatmap-alert" class="alert alert-warning d-none mb-3" role="alert">
-            Statement heatmap data could not be loaded.
+          <div id="chart-statement-heatmap-alert"
+               class="alert alert-warning d-none mb-2"
+               role="alert">Statement heatmap data could not be loaded.</div>
+          <div id="statement-analytics-heatmap-frame"
+               class="statement-analytics-heatmap-frame statement-analytics-js-only"
+               tabindex="0"
+               role="region"
+               aria-label="Scrollable statement coverage heatmap">
+            <div id="chart-statement-heatmap"></div>
           </div>
-          <div id="statement-analytics-heatmap-frame" class="statement-analytics-heatmap-frame">
-            <div id="chart-statement-heatmap" style="min-height: 360px;"></div>
+          <p class="statement-analytics-chart-scope statement-analytics-js-only"
+             id="statement-heatmap-scope"
+             role="status"
+             aria-live="polite"></p>
+          <noscript>
+            <p class="text-muted fs-xs mb-0">
+              Charts need JavaScript. The directory below provides contest-year counts and links.
+            </p>
+          </noscript>
+          <details class="statement-analytics-year-details statement-analytics-js-only"
+                   id="statement-analytics-trends">
+            <summary>
+              <span><i class="ti ti-chart-bar me-1" aria-hidden="true"></i>Statement rows by year</span><i class="ti ti-chevron-down" aria-hidden="true"></i>
+            </summary>
+            <div class="statement-analytics-year-content">
+              <p class="text-muted fs-xs mb-1">Statement rows by contest year across the archive.</p>
+              <div class="statement-analytics-year-frame"
+                   tabindex="0"
+                   role="region"
+                   aria-label="Scrollable statement rows by year chart">
+                <div id="chart-year-bars"></div>
+              </div>
+            </div>
+          </details>
+        </div>
+      </section>
+      <section class="card"
+               id="statement-analytics-directory"
+               aria-labelledby="statement-directory-heading">
+        <div class="card-header statement-analytics-directory-header">
+          <div>
+            <h2 class="header-title mb-0" id="statement-directory-heading">Contest-year directory</h2>
+            <p class="text-muted fs-xs mb-0">
+              {{ statement_dashboard_total_label }} sets · {{ statement_dashboard_stats.year_range_label }}
+            </p>
           </div>
-        </div>
-      </div>
-    </div>
-    <div class="col-12">
-      <div class="card">
-        <div class="card-header border-0 pb-0">
-          <h4 class="header-title mb-0">Statement rows by year</h4>
-          <p class="text-muted fs-xs mb-0">Bar graph of year-only imported statement coverage across the archive.</p>
-        </div>
-        <div class="card-body pt-2">
-          <div id="chart-year-bars" style="min-height: 280px;"></div>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <div class="row g-3 mt-0 mb-4">
-    <div class="col-12">
-      <div class="card">
-        <div class="card-header border-bottom d-flex flex-wrap align-items-center gap-2">
-          <div class="flex-grow-1">
-            <h4 class="header-title mb-0">Contest-year directory</h4>
-            <p class="text-muted fs-xs mb-0">Search, sort, and compare statement coverage by contest and year only</p>
-          </div>
-          <span class="badge text-bg-light">{{ statement_dashboard_stats.year_range_label }}</span>
+          <button type="button"
+                  id="statement-analytics-columns"
+                  class="btn btn-sm btn-outline-secondary statement-analytics-js-only"
+                  aria-pressed="false"
+                  aria-controls="problem-statement-analytics-table">
+            <i class="ti ti-columns-3 me-1" aria-hidden="true"></i><span>More columns</span>
+          </button>
         </div>
         <div class="card-body">
-          <div class="d-flex flex-wrap align-items-center gap-2 mb-3">
-            <span class="text-muted fs-xs text-uppercase fw-semibold me-1">Quick filter</span>
-            <div class="app-table-toolbar btn-group btn-group-sm" role="group" aria-label="Statement directory quick filters">
-              <button type="button" class="btn btn-primary" data-statement-analytics-filter="all">All</button>
-              <button type="button" class="btn btn-light" data-statement-analytics-filter="unlinked">Unlinked</button>
-              <button type="button" class="btn btn-light" data-statement-analytics-filter="low-coverage">Low coverage</button>
-              <button type="button" class="btn btn-light" data-statement-analytics-filter="recent">2020+</button>
-              <button type="button" class="btn btn-light" data-statement-analytics-filter="complete">100% linked</button>
+          <div class="statement-analytics-directory-toolbar statement-analytics-js-only">
+            <div class="app-table-toolbar statement-analytics-mode-controls"
+                 role="group"
+                 aria-label="Statement directory quick filters">
+              <button type="button"
+                      class="btn btn-sm btn-primary"
+                      data-statement-analytics-filter="all"
+                      aria-pressed="true">All</button>
+              <button type="button"
+                      class="btn btn-sm btn-light"
+                      data-statement-analytics-filter="unlinked"
+                      aria-pressed="false">Unlinked</button>
+              <button type="button"
+                      class="btn btn-sm btn-light"
+                      data-statement-analytics-filter="low-coverage"
+                      aria-pressed="false">Low coverage</button>
+              <button type="button"
+                      class="btn btn-sm btn-light"
+                      data-statement-analytics-filter="recent"
+                      aria-pressed="false">2020+</button>
+              <button type="button"
+                      class="btn btn-sm btn-light"
+                      data-statement-analytics-filter="complete"
+                      aria-pressed="false">100% linked</button>
             </div>
+            <p class="text-muted fs-xs mb-0">
+              Filters and search apply to the directory. Summary and charts show the full archive.
+            </p>
           </div>
-          <div id="problem-statement-analytics-table-alert" class="alert alert-warning d-none" role="alert">
-            Statement directory data could not be loaded.
+          <div id="problem-statement-analytics-table-alert"
+               class="alert alert-warning d-none"
+               role="alert">Statement directory data could not be loaded.</div>
+          <div class="app-table-region table-responsive statement-analytics-js-only"
+               tabindex="0"
+               role="region"
+               aria-label="Scrollable contest-year directory">
+            <table data-paging-type="simple"
+                   id="problem-statement-analytics-table"
+                   class="app-table-compact statement-analytics-table table table-sm table-hover align-middle w-100"
+                   aria-label="Contest-year statement coverage">
+            </table>
           </div>
-          <div class="app-table-region table-responsive" tabindex="0" role="region" aria-label="Scrollable results">
-            <table data-paging-type="simple" id="problem-statement-analytics-table" class="app-table-compact table table-striped table-bordered align-middle w-100"></table>
-          </div>
+          <noscript>
+            <p class="text-muted fs-xs">
+              Showing the first 25 contest-year sets. Enable JavaScript to search, sort, and paginate the full directory, or <a href="{% url 'pages:problem_statement_list' %}">browse the statement library</a>.
+            </p>
+            <div class="app-table-region table-responsive"
+                 tabindex="0"
+                 role="region"
+                 aria-label="Contest-year directory without JavaScript">
+              <table class="app-table-compact table table-sm align-middle mb-0">
+                <thead>
+                  <tr>
+                    <th scope="col">Contest-year</th>
+                    <th scope="col" class="text-end">Statements</th>
+                    <th scope="col" class="text-end">Unlinked</th>
+                    <th scope="col" class="text-end">Linked coverage</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {% for row in statement_dashboard_rows|slice:':25' %}
+                    <tr>
+                      <td>
+                        {% if row.contest_year_url %}
+                          <a href="{{ row.contest_year_url }}">{{ row.contest_year_label }}</a>
+                        {% else %}
+                          {{ row.contest_year_label }}
+                        {% endif %}
+                      </td>
+                      <td class="text-end">{{ row.statement_count }}</td>
+                      <td class="text-end">{{ row.unlinked_count }}</td>
+                      <td class="text-end">{{ row.link_rate_label }}</td>
+                    </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
+          </noscript>
         </div>
-      </div>
-    </div>
+      </section>
+    {% endif %}
   </div>
-
-  {% endif %}
-</div>
-
-{{ charts_payload|json_script:"problem-statement-dashboard-charts-data" }}
-{{ statement_dashboard_rows|json_script:"problem-statement-dashboard-table-data" }}
-
+  {{ charts_payload|json_script:'problem-statement-dashboard-charts-data' }}
+  {{ statement_dashboard_rows|json_script:'problem-statement-dashboard-table-data' }}
 {% endblock page_content %}
-
 {% block extra_javascript %}
-{% if statement_dashboard_total > 0 %}
-{% include 'partials/apexcharts-vendor-script.html' %}
-{% include 'partials/datatables-vendor-scripts.html' %}
-<script>
-(function () {
-  var dataEl = document.getElementById("problem-statement-dashboard-charts-data");
-  var tableEl = document.getElementById("problem-statement-dashboard-table-data");
-  var heatmapAlert = document.getElementById("chart-statement-heatmap-alert");
-  var tableAlert = document.getElementById("problem-statement-analytics-table-alert");
-  var heatmapFrame = document.getElementById("statement-analytics-heatmap-frame");
-  var heatmapButtons = Array.prototype.slice.call(document.querySelectorAll("[data-statement-heatmap-mode]"));
-  var tableFilterButtons = Array.prototype.slice.call(document.querySelectorAll("[data-statement-analytics-filter]"));
-  var activeTableFilter = "all";
-  var currentHeatmapChart = null;
+  {% if statement_dashboard_total > 0 %}
+    {% include 'partials/apexcharts-vendor-script.html' %}
+    {% include 'partials/datatables-vendor-scripts.html' %}
+    <script>
+      (function() {
+        var dashboard = document.getElementById("statement-analytics-dashboard");
+        if (dashboard) dashboard.classList.add("has-statement-js");
+        var dataEl = document.getElementById("problem-statement-dashboard-charts-data");
+        var tableEl = document.getElementById("problem-statement-dashboard-table-data");
+        var heatmapAlert = document.getElementById("chart-statement-heatmap-alert");
+        var tableAlert = document.getElementById("problem-statement-analytics-table-alert");
+        var heatmapFrame = document.getElementById("statement-analytics-heatmap-frame");
+        var heatmapButtons = Array.prototype.slice.call(document.querySelectorAll("[data-statement-heatmap-mode]"));
+        var tableFilterButtons = Array.prototype.slice.call(document.querySelectorAll("[data-statement-analytics-filter]"));
+        var activeTableFilter = "all";
+        var currentHeatmapChart = null;
+        var yearDetails = document.getElementById("statement-analytics-trends");
+        var yearBarChart = null;
 
-  function showAlert(alertEl, message) {
-    if (!alertEl) return;
-    alertEl.textContent = message;
-    alertEl.classList.remove("d-none");
-  }
+        function showAlert(alertEl, message) {
+          if (!alertEl) return;
+          alertEl.textContent = message;
+          alertEl.classList.remove("d-none");
+        }
 
-  function hideAlert(alertEl) {
-    if (!alertEl) return;
-    alertEl.classList.add("d-none");
-  }
+        function hideAlert(alertEl) {
+          if (!alertEl) return;
+          alertEl.classList.add("d-none");
+        }
 
-  function parseJsonScript(el, alertEl, message) {
-    if (!el) {
-      showAlert(alertEl, message);
-      return null;
-    }
-    try {
-      return JSON.parse(el.textContent || "{}");
-    } catch (_error) {
-      showAlert(alertEl, message);
-      return null;
-    }
-  }
+        function parseJsonScript(el, alertEl, message) {
+          if (!el) {
+            showAlert(alertEl, message);
+            return null;
+          }
+          try {
+            return JSON.parse(el.textContent || "{}");
+          } catch (_error) {
+            showAlert(alertEl, message);
+            return null;
+          }
+        }
 
-  var charts = parseJsonScript(dataEl, heatmapAlert, "Statement heatmap data could not be loaded.");
-  var rows = parseJsonScript(tableEl, tableAlert, "Statement directory data could not be loaded.");
+        var charts = parseJsonScript(dataEl, heatmapAlert, "Statement heatmap data could not be loaded.");
+        var rows = parseJsonScript(tableEl, tableAlert, "Statement directory data could not be loaded.");
 
-  function formatMetric(value, suffix) {
-    if (typeof value !== "number") return value;
-    var rendered = Number.isInteger(value) ? String(value) : value.toFixed(2);
-    return suffix ? rendered + suffix : rendered;
-  }
+        function formatMetric(value, suffix) {
+          if (typeof value !== "number") return value;
+          var rendered = Number.isInteger(value) ? String(value) : value.toFixed(2);
+          return suffix ? rendered + suffix : rendered;
+        }
 
-  function escapeHtml(value) {
-    return String(value == null ? "" : value)
-      .replace(/&/g, "&amp;")
-      .replace(/</g, "&lt;")
-      .replace(/>/g, "&gt;")
-      .replace(/\"/g, "&quot;")
-      .replace(/'/g, "&#39;");
-  }
+        function escapeHtml(value) {
+          return String(value == null ? "" : value)
+            .replace(/&/g, "&amp;")
+            .replace(/</g, "&lt;").replace(/>/g, "&gt;")
+            .replace(/\"/g, "&quot;")
+            .replace(/'/g, "&#39;");
+        }
 
-  function cssVar(name, fallback) {
-    var value = getComputedStyle(document.documentElement).getPropertyValue(name).trim();
-    return value || fallback;
-  }
+        function cssVar(name, fallback) {
+          var value = getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+          return value || fallback;
+        }
 
-  function themeColors() {
-    return {
-      body: cssVar("--bs-body-color", "#212529"),
-      border: cssVar("--bs-border-color", "rgba(108,117,125,0.2)"),
-      empty: cssVar("--bs-tertiary-bg", "#eef2f7"),
-      primary: cssVar("--bs-primary", "#0d6efd"),
-      primarySubtle: cssVar("--bs-primary-bg-subtle", "#cfe2ff"),
-      warning: cssVar("--bs-warning", "#ffc107"),
-      warningSubtle: cssVar("--bs-warning-bg-subtle", "#fff3cd"),
-      danger: cssVar("--bs-danger", "#dc3545")
-    };
-  }
+        function themeColors() {
+          return {
+            body: cssVar("--ins-body-color", "#212529"),
+            border: cssVar("--ins-border-color", "rgba(108,117,125,0.2)"),
+            empty: cssVar("--ins-tertiary-bg", "#eef2f7"),
+            primary: cssVar("--ins-primary", "#0d6efd"),
+            primarySubtle: cssVar("--ins-primary-bg-subtle", "#cfe2ff"),
+            warning: cssVar("--ins-warning", "#ffc107"),
+            warningSubtle: cssVar("--ins-warning-bg-subtle", "#fff3cd"),
+            danger: cssVar("--ins-danger", "#dc3545")
+          };
+        }
 
-  function heatmapRanges(maxValue) {
-    var colors = themeColors();
-    if (!maxValue) {
-      return [
-        { from: 0, to: 0, name: "No rows", color: colors.empty }
-      ];
-    }
+        function heatmapRanges(maxValue) {
+          var colors = themeColors();
+          if (!maxValue) {
+            return [{
+              from: 0,
+              to: 0,
+              name: "No rows",
+              color: colors.empty
+            }];
+          }
 
-    var firstUpper = Math.max(1, Math.ceil(maxValue / 4));
-    var secondUpper = Math.max(firstUpper + 1, Math.ceil(maxValue / 2));
-    var thirdUpper = Math.max(secondUpper + 1, Math.ceil((maxValue * 3) / 4));
+          var firstUpper = Math.max(1, Math.ceil(maxValue / 4));
+          var secondUpper = Math.max(firstUpper + 1, Math.ceil(maxValue / 2));
+          var thirdUpper = Math.max(secondUpper + 1, Math.ceil((maxValue * 3) / 4));
 
-    return [
-      { from: 0, to: 0, name: "0", color: colors.empty },
-      { from: 1, to: firstUpper, name: "1-" + firstUpper, color: colors.warningSubtle },
-      { from: firstUpper + 1, to: secondUpper, name: (firstUpper + 1) + "-" + secondUpper, color: colors.primarySubtle },
-      { from: secondUpper + 1, to: thirdUpper, name: (secondUpper + 1) + "-" + thirdUpper, color: colors.warning },
-      { from: thirdUpper + 1, to: maxValue, name: (thirdUpper + 1) + "+" , color: colors.danger }
-    ].filter(function (range) {
-      return range.from <= range.to;
-    });
-  }
+          return [{
+            from: 0,
+            to: 0,
+            name: "0",
+            color: colors.empty
+          }, {
+            from: 1,
+            to: firstUpper,
+            name: "1-" + firstUpper,
+            color: colors.warningSubtle
+          }, {
+            from: firstUpper + 1,
+            to: secondUpper,
+            name: (firstUpper + 1) + "-" + secondUpper,
+            color: colors.primarySubtle
+          }, {
+            from: secondUpper + 1,
+            to: thirdUpper,
+            name: (secondUpper + 1) + "-" + thirdUpper,
+            color: colors.warning
+          }, {
+            from: thirdUpper + 1,
+            to: maxValue,
+            name: (thirdUpper + 1) + "+",
+            color: colors.danger
+          }].filter(function(range) {
+            return range.from <= range.to;
+          });
+        }
 
-  function heatmapOptions(payload) {
-    var colors = themeColors();
-    var metricLabel = payload.metric_label || "Statement rows";
-    return {
-      chart: {
-        type: "heatmap",
-        height: Math.max(360, 34 * payload.series.length + 88),
-        toolbar: { show: false },
-        fontFamily: "inherit",
-        events: {
-          dataPointSelection: function (_event, _chartContext, config) {
-            var point = payload.series[config.seriesIndex].data[config.dataPointIndex];
-            if (point && point.url) {
-              window.location.href = point.url;
+        function heatmapOptions(payload) {
+          var colors = themeColors();
+          var metricLabel = payload.metric_label || "Statement rows";
+          return {
+            chart: {
+              type: "heatmap",
+              height: Math.max(280, 26 * payload.series.length + 88),
+              animations: {
+                enabled: false
+              },
+              foreColor: colors.body,
+              toolbar: {
+                show: false
+              },
+              fontFamily: "inherit",
+              events: {
+                dataPointSelection: function(_event, _chartContext, config) {
+                  var point = payload.series[config.seriesIndex].data[config.dataPointIndex];
+                  if (point && point.url) {
+                    window.location.href = point.url;
+                  }
+                },
+                dataPointMouseEnter: function(event, _chartContext, config) {
+                  var point = payload.series[config.seriesIndex].data[config.dataPointIndex];
+                  if (event && event.target) {
+                    event.target.style.cursor = point && point.url ? "pointer" : "default";
+                  }
+                },
+                dataPointMouseLeave: function(event) {
+                  if (event && event.target) {
+                    event.target.style.cursor = "";
+                  }
+                }
+              }
+            },
+            series: payload.series,
+            legend: {
+              show: true,
+              position: "top",
+              horizontalAlign: "left",
+              fontSize: "11px"
+            },
+            stroke: {
+              width: 1,
+              colors: [colors.border]
+            },
+            dataLabels: {
+              enabled: false
+            },
+            plotOptions: {
+              heatmap: {
+                radius: 2,
+                shadeIntensity: 0.92,
+                useFillColorAsStroke: false,
+                colorScale: {
+                  ranges: heatmapRanges(Number(payload.max_value || 0))
+                }
+              }
+            },
+            xaxis: {
+              type: "category",
+              labels: {
+                rotate: -45,
+                hideOverlappingLabels: true,
+                style: {
+                  fontSize: "11px"
+                }
+              },
+            },
+            yaxis: {
+              labels: {
+                maxWidth: 190,
+                style: {
+                  fontSize: "11px"
+                }
+              }
+            },
+            tooltip: {
+              y: {
+                formatter: function(value, opts) {
+                  var point = opts.w.config.series[opts.seriesIndex].data[opts.dataPointIndex];
+                  var suffix = point && point.url ? " - click to open master list" : "";
+                  return formatMetric(value, "") + " " + metricLabel.toLowerCase() + suffix;
+                }
+              }
+            },
+            grid: {
+              borderColor: colors.border
             }
+          };
+        }
+
+        function updateModeButtons(mode) {
+          heatmapButtons.forEach(function(button) {
+            var isActive = button.getAttribute("data-statement-heatmap-mode") === mode;
+            button.classList.toggle("btn-primary", isActive);
+            button.classList.toggle("btn-light", !isActive);
+            button.setAttribute("aria-pressed", String(isActive));
+          });
+        }
+
+        function renderHeatmapMode(mode) {
+          var el = document.querySelector("#chart-statement-heatmap");
+          if (!el || !charts || typeof ApexCharts === "undefined") {
+            showAlert(heatmapAlert, "Statement heatmap data could not be loaded.");
+            return;
+          }
+          var views = charts.statementHeatmapViews || {};
+          var payload = views[mode] || views.backlog || charts.statementCountHeatmap;
+          var headings = {
+            backlog: "Unlinked statement backlog heatmap",
+            lowCoverage: "Low-coverage statement heatmap",
+            volume: "Statement volume heatmap",
+            recent: "Recent statement backlog heatmap",
+            all: "All statement sets heatmap"
+          };
+          var heading = document.getElementById("statement-heatmap-heading");
+          var scope = document.getElementById("statement-heatmap-scope");
+          if (heading) heading.textContent = headings[mode] || headings.backlog;
+          if (heatmapFrame) heatmapFrame.classList.toggle("is-all-mode", mode === "all");
+          if (scope) {
+            var count = payload && payload.series ? payload.series.length : 0;
+            scope.textContent = (payload && payload.metric_label ? payload.metric_label + " · " : "") +
+              count + " contest" + (count === 1 ? "" : "s") +
+              (payload && payload.is_limited ? " · top 20 in this mode" : "") + ". Directory filters do not change the charts.";
+          }
+          if (!payload || !payload.series || !payload.series.length) {
+            if (currentHeatmapChart) {
+              currentHeatmapChart.destroy();
+              currentHeatmapChart = null;
+            }
+            showAlert(heatmapAlert, "No statement rows match this heatmap mode.");
+            updateModeButtons(mode);
+            return;
+          }
+
+          hideAlert(heatmapAlert);
+          el.style.minWidth = Math.max(640, (payload.years || []).length * 22 + 220) + "px";
+          if (currentHeatmapChart) {
+            currentHeatmapChart.destroy();
+          }
+          currentHeatmapChart = new ApexCharts(el, heatmapOptions(payload));
+          currentHeatmapChart.render();
+          updateModeButtons(mode);
+        }
+
+        function yearBarOptions(payload) {
+          var colors = themeColors();
+          return {
+            chart: {
+              type: "bar",
+              height: 240,
+              animations: {
+                enabled: false
+              },
+              foreColor: colors.body,
+              toolbar: {
+                show: false
+              },
+              fontFamily: "inherit"
+            },
+            series: [{
+              name: "Statement rows",
+              data: payload.values
+            }],
+            colors: [colors.primary],
+            plotOptions: {
+              bar: {
+                borderRadius: 4,
+                columnWidth: "58%"
+              }
+            },
+            dataLabels: {
+              enabled: payload.values.length <= 14,
+              formatter: function(value) {
+                return formatMetric(value, "");
+              }
+            },
+            xaxis: {
+              categories: payload.labels,
+              labels: {
+                rotate: payload.labels.length > 8 ? -45 : 0,
+                hideOverlappingLabels: true,
+                style: {
+                  fontSize: "11px"
+                }
+              }
+            },
+            yaxis: {
+              labels: {
+                style: {
+                  fontSize: "11px"
+                }
+              }
+            },
+            tooltip: {
+              y: {
+                formatter: function(value) {
+                  return formatMetric(value, "");
+                }
+              }
+            },
+            grid: {
+              strokeDashArray: 4,
+              borderColor: colors.border
+            }
+          };
+        }
+
+        function renderBar(sel, payload) {
+          var el = document.querySelector(sel);
+          if (!el || !payload || !payload.labels || !payload.labels.length) return null;
+          el.style.minWidth = Math.max(560, payload.labels.length * 16 + 80) + "px";
+          var chart = new ApexCharts(el, yearBarOptions(payload));
+          chart.render();
+          return chart;
+        }
+
+        if (charts && typeof ApexCharts !== "undefined") {
+          renderHeatmapMode(charts.statementDefaultHeatmapView || "backlog");
+        } else {
+          showAlert(heatmapAlert, "Statement heatmap data could not be loaded.");
+        }
+
+        heatmapButtons.forEach(function(button) {
+          button.addEventListener("click", function() {
+            renderHeatmapMode(button.getAttribute("data-statement-heatmap-mode") || "backlog");
+          });
+        });
+
+        if (yearDetails) {
+          yearDetails.addEventListener("toggle", function() {
+            if (yearDetails.open && !yearBarChart && charts && typeof ApexCharts !== "undefined") {
+              yearBarChart = renderBar("#chart-year-bars", charts.statementYearBarChart);
+            }
+          });
+        }
+
+        if (!rows || typeof DataTable === "undefined") {
+          showAlert(tableAlert, "Statement directory data could not be loaded.");
+          return;
+        }
+
+        function renderLinkRate(data, type, row) {
+          var rate = Number(data || 0);
+          if (type === "sort") return rate;
+          if (type === "filter") return row.link_rate_label || formatMetric(rate, "%");
+          var safeRate = Math.max(0, Math.min(100, rate));
+          var variant = row.link_rate_variant || "secondary";
+          var label = row.link_rate_label || formatMetric(rate, "%");
+          return (
+            '<div class="statement-analytics-progress">' +
+            '<div class="d-flex align-items-center justify-content-between gap-2 mb-1">' +
+            '<span class="fw-semibold">' + escapeHtml(label) + "</span>" +
+            '<span class="text-muted fs-xs">' + escapeHtml(row.linked_count || 0) + "/" + escapeHtml(row.statement_count || 0) + "</span>" +
+            "</div>" +
+            '<div class="progress" role="progressbar" aria-label="Link rate" aria-valuenow="' + safeRate + '" aria-valuemin="0" aria-valuemax="100">' +
+            '<div class="progress-bar bg-' + escapeHtml(variant) + '" style="width: ' + safeRate + '%"></div>' +
+            "</div>" +
+            "</div>"
+          );
+        }
+
+        function renderOpenAction(_data, type, row) {
+          if (type !== "display" || !row.contest_year_url) return "";
+          return (
+            '<a href="' + escapeHtml(row.contest_year_url) + '" class="btn btn-sm btn-light btn-icon statement-analytics-open" ' + 'title="Open contest-year" aria-label="Open contest-year ' + escapeHtml(row.contest_year_label || "") + '">' +
+            '<i class="ti ti-external-link" aria-hidden="true"></i>' +
+            "</a>"
+          );
+        }
+
+        DataTable.ext.search.push(function(settings, _data, _dataIndex, rowData) {
+          if (!settings.nTable || settings.nTable.id !== "problem-statement-analytics-table") return true;
+          var row = rowData || {};
+          if (activeTableFilter === "unlinked") return Boolean(row.has_unlinked);
+          if (activeTableFilter === "low-coverage") return Boolean(row.is_low_coverage);
+          if (activeTableFilter === "recent") return Boolean(row.is_recent);
+          if (activeTableFilter === "complete") return Number(row.link_rate || 0) >= 100;
+          return true;
+        });
+
+        var table = new DataTable("#problem-statement-analytics-table", {
+          data: rows,
+          columns: [{
+            data: "contest_year",
+            title: "Year",
+            className: "text-nowrap",
+            render: function(data, type, row) {
+              if (type !== "display") return data;
+              if (!row.contest_year_url) return data;
+              return '<a href="' + escapeHtml(row.contest_year_url) + '">' + escapeHtml(data) + "</a>";
+            }
+          }, {
+            data: "contest_name",
+            title: "Contest",
+            render: function(data, type, row) {
+              if (type !== "display") return data;
+              var label = escapeHtml(data);
+              return row.contest_year_url ? '<a href="' + escapeHtml(row.contest_year_url) + '" class="statement-analytics-contest-link" title="' + label + '">' + label + '</a>' : label;
+            }
+          }, {
+            data: "statement_count",
+            title: "Statements",
+            className: "text-end text-nowrap"
+          }, {
+            data: "linked_count",
+            title: "Linked",
+            className: "text-end text-nowrap",
+            visible: false
+          }, {
+            data: "unlinked_count",
+            title: "Unlinked",
+            className: "text-end text-nowrap"
+          }, {
+            data: "link_rate",
+            title: "Link rate",
+            className: "text-nowrap",
+            render: renderLinkRate
+          }, {
+            data: "last_updated_label",
+            title: "Last updated",
+            className: "text-nowrap",
+            visible: false
+          }, {
+            data: null,
+            title: "Open",
+            className: "text-nowrap text-end",
+            orderable: false,
+            searchable: false,
+            render: renderOpenAction
+          }, ],
+          order: [
+            [2, "desc"],
+            [0, "desc"],
+            [1, "asc"]
+          ],
+          pageLength: 25,
+          lengthMenu: [10, 25, 50, 100],
+          layout: {
+            topStart: null,
+            topEnd: "search",
+            bottomStart: ["pageLength", "info"],
+            bottomEnd: "paging"
           },
-          dataPointMouseEnter: function (event, _chartContext, config) {
-            var point = payload.series[config.seriesIndex].data[config.dataPointIndex];
-            if (event && event.target) {
-              event.target.style.cursor = point && point.url ? "pointer" : "default";
-            }
+          language: {
+            search: "Find in directory:",
+            searchPlaceholder: "Contest or year…"
           },
-          dataPointMouseLeave: function (event) {
-            if (event && event.target) {
-              event.target.style.cursor = "";
-            }
-          }
+          scrollX: true,
+          autoWidth: false,
+        });
+
+        var columnsButton = document.getElementById("statement-analytics-columns");
+        if (columnsButton) {
+          columnsButton.addEventListener("click", function() {
+            var show = columnsButton.getAttribute("aria-pressed") !== "true";
+            table.columns([3, 6]).visible(show);
+            columnsButton.setAttribute("aria-pressed", String(show));
+            columnsButton.querySelector("span").textContent = show ? "Fewer columns" : "More columns";
+          });
         }
-      },
-      series: payload.series,
-      legend: {
-        show: true,
-        position: "top",
-        horizontalAlign: "left"
-      },
-      stroke: {
-        width: 1,
-        colors: [colors.border]
-      },
-      dataLabels: {
-        enabled: false
-      },
-      plotOptions: {
-        heatmap: {
-          radius: 4,
-          shadeIntensity: 0.92,
-          useFillColorAsStroke: false,
-          colorScale: {
-            ranges: heatmapRanges(Number(payload.max_value || 0))
-          }
-        }
-      },
-      xaxis: {
-        type: "category",
-        labels: { style: { fontSize: "11px" } },
-      },
-      yaxis: {
-        labels: {
-          maxWidth: 240,
-          style: { fontSize: "11px" }
-        }
-      },
-      tooltip: {
-        y: {
-          formatter: function (value, opts) {
-            var point = opts.w.config.series[opts.seriesIndex].data[opts.dataPointIndex];
-            var suffix = point && point.url ? " - click to open master list" : "";
-            return formatMetric(value, "") + " " + metricLabel.toLowerCase() + suffix;
-          }
-        }
-      },
-      grid: {
-        borderColor: colors.border
-      }
-    };
-  }
 
-  function updateModeButtons(mode) {
-    heatmapButtons.forEach(function (button) {
-      var isActive = button.getAttribute("data-statement-heatmap-mode") === mode;
-      button.classList.toggle("btn-primary", isActive);
-      button.classList.toggle("btn-light", !isActive);
-    });
-  }
-
-  function renderHeatmapMode(mode) {
-    var el = document.querySelector("#chart-statement-heatmap");
-    if (!el || !charts || typeof ApexCharts === "undefined") {
-      showAlert(heatmapAlert, "Statement heatmap data could not be loaded.");
-      return;
-    }
-    var views = charts.statementHeatmapViews || {};
-    var payload = views[mode] || views.backlog || charts.statementCountHeatmap;
-    if (!payload || !payload.series || !payload.series.length) {
-      if (currentHeatmapChart) {
-        currentHeatmapChart.destroy();
-        currentHeatmapChart = null;
-      }
-      showAlert(heatmapAlert, "No statement rows match this heatmap mode.");
-      updateModeButtons(mode);
-      return;
-    }
-
-    hideAlert(heatmapAlert);
-    if (heatmapFrame) {
-      heatmapFrame.classList.toggle("is-all-mode", mode === "all");
-    }
-    if (currentHeatmapChart) {
-      currentHeatmapChart.destroy();
-    }
-    currentHeatmapChart = new ApexCharts(el, heatmapOptions(payload));
-    currentHeatmapChart.render();
-    updateModeButtons(mode);
-  }
-
-  function yearBarOptions(payload) {
-    var colors = themeColors();
-    return {
-      chart: {
-        type: "bar",
-        height: 280,
-        toolbar: { show: false },
-        fontFamily: "inherit"
-      },
-      series: [{ name: "Statement rows", data: payload.values }],
-      colors: [colors.primary],
-      plotOptions: {
-        bar: {
-          borderRadius: 4,
-          columnWidth: "58%"
-        }
-      },
-      dataLabels: {
-        enabled: payload.values.length <= 14,
-        formatter: function (value) {
-          return formatMetric(value, "");
-        }
-      },
-      xaxis: {
-        categories: payload.labels,
-        labels: {
-          rotate: payload.labels.length > 8 ? -45 : 0,
-          hideOverlappingLabels: true,
-          style: { fontSize: "11px" }
-        }
-      },
-      yaxis: {
-        labels: {
-          style: { fontSize: "11px" }
-        }
-      },
-      tooltip: {
-        y: {
-          formatter: function (value) { return formatMetric(value, ""); }
-        }
-      },
-      grid: {
-        strokeDashArray: 4,
-        borderColor: colors.border
-      }
-    };
-  }
-
-  function renderBar(sel, payload) {
-    var el = document.querySelector(sel);
-    if (!el || !payload.labels.length) return;
-    var chart = new ApexCharts(el, yearBarOptions(payload));
-    chart.render();
-  }
-
-  if (charts && typeof ApexCharts !== "undefined") {
-    renderHeatmapMode(charts.statementDefaultHeatmapView || "backlog");
-    renderBar("#chart-year-bars", charts.statementYearBarChart || { labels: [], values: [] });
-  } else {
-    showAlert(heatmapAlert, "Statement heatmap data could not be loaded.");
-  }
-
-  heatmapButtons.forEach(function (button) {
-    button.addEventListener("click", function () {
-      renderHeatmapMode(button.getAttribute("data-statement-heatmap-mode") || "backlog");
-    });
-  });
-
-  if (!rows || typeof DataTable === "undefined") {
-    showAlert(tableAlert, "Statement directory data could not be loaded.");
-    return;
-  }
-
-  function renderLinkRate(data, type, row) {
-    var rate = Number(data || 0);
-    if (type === "sort") return rate;
-    if (type === "filter") return row.link_rate_label || formatMetric(rate, "%");
-    var safeRate = Math.max(0, Math.min(100, rate));
-    var variant = row.link_rate_variant || "secondary";
-    var label = row.link_rate_label || formatMetric(rate, "%");
-    return (
-      '<div class="statement-analytics-progress">' +
-        '<div class="d-flex align-items-center justify-content-between gap-2 mb-1">' +
-          '<span class="fw-semibold">' + escapeHtml(label) + "</span>" +
-          '<span class="text-muted fs-xs">' + escapeHtml(row.linked_count || 0) + "/" + escapeHtml(row.statement_count || 0) + "</span>" +
-        "</div>" +
-        '<div class="progress" role="progressbar" aria-label="Link rate" aria-valuenow="' + safeRate + '" aria-valuemin="0" aria-valuemax="100">' +
-          '<div class="progress-bar bg-' + escapeHtml(variant) + '" style="width: ' + safeRate + '%"></div>' +
-        "</div>" +
-      "</div>"
-    );
-  }
-
-  function renderOpenAction(_data, type, row) {
-    if (type !== "display" || !row.contest_year_url) return "";
-    return (
-      '<a href="' + escapeHtml(row.contest_year_url) + '" class="btn btn-sm btn-light btn-icon" ' +
-      'title="Open contest-year" aria-label="Open contest-year ' + escapeHtml(row.contest_year_label || "") + '">' +
-        '<i class="ti ti-external-link"></i>' +
-      "</a>"
-    );
-  }
-
-  DataTable.ext.search.push(function (settings, _data, _dataIndex, rowData) {
-    if (!settings.nTable || settings.nTable.id !== "problem-statement-analytics-table") return true;
-    var row = rowData || {};
-    if (activeTableFilter === "unlinked") return Boolean(row.has_unlinked);
-    if (activeTableFilter === "low-coverage") return Boolean(row.is_low_coverage);
-    if (activeTableFilter === "recent") return Boolean(row.is_recent);
-    if (activeTableFilter === "complete") return Number(row.link_rate || 0) >= 100;
-    return true;
-  });
-
-  var table = new DataTable("#problem-statement-analytics-table", {
-    data: rows,
-    columns: [
-      {
-        data: "contest_year",
-        title: "Year",
-        className: "text-nowrap",
-        render: function (data, type, row) {
-          if (type !== "display") return data;
-          if (!row.contest_year_url) return data;
-          return '<a href="' + escapeHtml(row.contest_year_url) + '">' + escapeHtml(data) + "</a>";
-        }
-      },
-      {
-        data: "contest_name",
-        title: "Contest",
-        render: function (data, type) {
-          return type === "display" ? escapeHtml(data) : data;
-        }
-      },
-      { data: "statement_count", title: "Statements", className: "text-nowrap" },
-      { data: "linked_count", title: "Linked", className: "text-nowrap" },
-      { data: "unlinked_count", title: "Unlinked", className: "text-nowrap" },
-      {
-        data: "link_rate",
-        title: "Link rate",
-        className: "text-nowrap",
-        render: renderLinkRate
-      },
-      { data: "last_updated_label", title: "Last updated", className: "text-nowrap" },
-      {
-        data: null,
-        title: "Open",
-        className: "text-nowrap text-end",
-        orderable: false,
-        searchable: false,
-        render: renderOpenAction
-      },
-    ],
-    order: [[2, "desc"], [0, "desc"], [1, "asc"]],
-    pageLength: 25,
-    lengthMenu: [10, 25, 50, 100],
-    scrollX: true,
-    autoWidth: false,
-  });
-
-  tableFilterButtons.forEach(function (button) {
-    button.addEventListener("click", function () {
-      activeTableFilter = button.getAttribute("data-statement-analytics-filter") || "all";
-      tableFilterButtons.forEach(function (candidate) {
-        var isActive = candidate === button;
-        candidate.classList.toggle("btn-primary", isActive);
-        candidate.classList.toggle("btn-light", !isActive);
-      });
-      table.draw();
-    });
-  });
-})();
-</script>
-{% endif %}
+        tableFilterButtons.forEach(function(button) {
+          button.addEventListener("click", function() {
+            activeTableFilter = button.getAttribute("data-statement-analytics-filter") || "all";
+            tableFilterButtons.forEach(function(candidate) {
+              var isActive = candidate === button;
+              candidate.classList.toggle("btn-primary", isActive);
+              candidate.classList.toggle("btn-light", !isActive);
+              candidate.setAttribute("aria-pressed", String(isActive));
+            });
+            table.draw();
+          });
+        });
+      })();
+    </script>
+  {% endif %}
 {% endblock extra_javascript %}
