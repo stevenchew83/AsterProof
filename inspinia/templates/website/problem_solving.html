@@ -45,8 +45,8 @@
 
     <section id="example-editor" class="website-container solving-editor-section" aria-labelledby="example-editor-title">
       <div class="solving-section-heading">
-        <div><p class="website-kicker">02 / Your argument, taking shape</p><h2 id="example-editor-title">Small steps.<br><em>A complete proof.</em></h2></div>
-        <p>Start with an idea. Add a claim, explain why it holds, and bring the argument together. Edit any block below to see the preview change.</p>
+        <div><p class="website-kicker">02 / Your argument, taking shape</p><h2 id="example-editor-title">One document.<br><em>A complete proof.</em></h2></div>
+        <p>Write freely with text and LaTeX, then refine your argument as a whole. Edit the document below to see the preview change.</p>
       </div>
       <div class="solving-editor">
         <div class="solving-editor-toolbar">
@@ -55,13 +55,8 @@
         </div>
         <div class="solving-editor-grid">
           <div class="solving-write-pane">
-            <div class="solving-pane-heading"><h3>Your working</h3><span>LaTeX &amp; plain text</span></div>
-            {% for block in example_blocks %}
-              <div class="solving-input-block">
-                <label for="demo-block-{{ forloop.counter }}"><span aria-hidden="true">{{ forloop.counter|stringformat:"02d" }}</span>{{ block.kind }}</label>
-                <textarea id="demo-block-{{ forloop.counter }}" data-demo-source="{{ forloop.counter }}" rows="3" spellcheck="false" aria-describedby="demo-edit-note">{{ block.body }}</textarea>
-              </div>
-            {% endfor %}
+            <div class="solving-pane-heading"><h3><label for="demo-document">Your solution</label></h3><span>Text &amp; LaTeX</span></div>
+            <textarea class="solving-document-source" id="demo-document" data-demo-source="document" rows="15" spellcheck="false" aria-describedby="demo-edit-note">{{ example_document }}</textarea>
             <p id="demo-edit-note" class="website-fineprint">Try <code>$...$</code> for inline math or <code>\[...\]</code> for an equation. Example edits reset when you reload; they are not saved to an account.</p>
           </div>
           <div class="solving-preview-pane">
@@ -69,18 +64,13 @@
             <article class="solving-preview-paper" aria-labelledby="demo-proof-title">
               <p class="website-kicker">A first inequality / Solution</p>
               <h4 id="demo-proof-title">The difference is<br>a sum of squares.</h4>
-              {% for block in example_blocks %}
-                <section class="solving-preview-block">
-                  <h5>{{ block.kind }}</h5>
-                  <div data-demo-preview="{{ forloop.counter }}">{{ block.body }}</div>
-                </section>
-              {% endfor %}
+              <div class="solving-preview-document" data-demo-preview="document">{{ example_document }}</div>
               <div class="solving-proof-end" aria-label="End of example proof">□</div>
             </article>
           </div>
         </div>
         <div class="solving-editor-footnote">
-          <p>In your workspace: add and reorder blocks, paste images, save drafts, and export your saved solution as a PDF. For a quick export without signing in, open <a href="{% url 'website:solution_preview' %}">Solution Writer</a>.</p>
+          <p>In your workspace: write your whole argument in one document, use LaTeX command suggestions, insert images, save drafts, and export your saved solution as a PDF. For a quick export without signing in, open <a href="{% url 'website:solution_preview' %}">Solution Writer</a>.</p>
           <a class="website-text-link" href="{{ workspace_url }}">Write your own solution <span aria-hidden="true">↗</span></a>
         </div>
       </div>

@@ -106,6 +106,23 @@ def test_problem_solving_links_approved_users_to_the_problem_library(client):
     assert response.context["workspace_url"] == reverse("pages:problem_statement_list")
 
 
+def test_problem_solving_example_uses_one_continuous_solution_document(client):
+    response = client.get(reverse("website:problem_solving"))
+    html = response.content.decode()
+    source = response.context["example_document"]
+
+    assert html.count("data-demo-source=") == 1
+    assert 'id="demo-document" data-demo-source="document"' in html
+    assert html.count('data-demo-preview="document"') == 1
+    assert "One document." in html
+    assert "write your whole argument in one document" in html
+    assert "Edit any block" not in html
+    assert "add and reorder blocks" not in html
+    assert r"2(a^2+b^2+c^2-ab-bc-ca)=(a-b)^2+(b-c)^2+(c-a)^2" in source
+    assert "Every square is non-negative" in source
+    assert "$a=b=c$" in source
+
+
 def test_homepage_invites_visitors_to_the_problem_solving_walkthrough(client):
     html = client.get(reverse("pages:home")).content.decode()
 

@@ -14,7 +14,7 @@ from django.utils.http import urlencode
 from django.views.decorators.http import require_GET
 from django.views.decorators.http import require_http_methods
 
-from inspinia.solutions.examples import INEQUALITY_BLOCKS
+from inspinia.solutions.examples import INEQUALITY_SOLUTION
 from inspinia.training.markdown import render_markdown
 
 from .forms import NewsletterForm
@@ -126,7 +126,7 @@ def problem_solving_view(request):
         has_math=True,
         hide_newsletter=True,
         workspace_url=workspace_url,
-        example_blocks=INEQUALITY_BLOCKS,
+        example_document=INEQUALITY_SOLUTION,
         example_days=["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"],
     )
 
