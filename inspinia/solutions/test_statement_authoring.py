@@ -1,5 +1,6 @@
 """Every active statement can open a private solution under its existing UUID."""
 
+from html.parser import HTMLParser
 from http import HTTPStatus
 
 import pytest
@@ -28,6 +29,91 @@ def workspace(client):
 
 def start_url(statement):
     return reverse("solutions:statement_solution_start", args=[statement.statement_uuid])
+
+
+class StartFormParser(HTMLParser):
+    def __init__(self, html, action):
+        super().__init__()
+        self.action = action
+        self.method = ""
+        self.fields = {}
+        self.in_start_form = False
+        self.feed(html)
+
+    def handle_starttag(self, tag, attrs):
+        attrs = dict(attrs)
+        if tag == "form":
+            self.in_start_form = attrs.get("action") == self.action
+            if self.in_start_form:
+                self.method = attrs.get("method")
+        if tag == "input" and self.in_start_form and "name" in attrs:
+            self.fields[attrs["name"]] = attrs.get("value", "")
+
+    def handle_endtag(self, tag):
+        if tag == "form":
+            self.in_start_form = False
+
+
+@pytest.mark.parametrize("entry", ["detail", "contest", "picker"])
+def test_new_statement_can_start_from_reading_and_picker_pages_with_csrf(workspace, entry):
+    _client, user, statement = workspace
+    client = Client(enforce_csrf_checks=True)
+    client.force_login(user)
+    url, params = {
+        "detail": (reverse("pages:problem_statement_detail", args=[statement.statement_uuid]), {}),
+        "contest": (
+            reverse("pages:contest_dashboard_listing"),
+            {"contest": statement.contest_name, "year": statement.contest_year},
+        ),
+        "picker": (reverse("solutions:problem_solution_create"), {}),
+    }[entry]
+    response = client.get(url, params)
+    assert response.status_code == HTTPStatus.OK
+    assert not ProblemSolveRecord.objects.exists()
+    form = StartFormParser(response.content.decode(), start_url(statement))
+    assert form.method == "post"
+    assert form.fields["csrfmiddlewaretoken"]
+
+    editor = client.post(start_url(statement), form.fields, follow=True)
+
+    assert editor.status_code == HTTPStatus.OK
+    assert "solution-writing-area" in editor.content.decode()
+    assert "Prove" in editor.content.decode()
+    statement.refresh_from_db()
+    assert statement.linked_problem.problem_uuid == statement.problem_uuid
+    assert not ProblemSolution.objects.exists()
+
+
+def test_library_exposes_start_for_new_statement_and_preserves_statement_completion(workspace):
+    client, user, statement = workspace
+    UserProblemCompletion.objects.create(user=user, statement=statement, completion_date=None)
+
+    response = client.get(reverse("pages:problem_statement_list"))
+
+    row = response.context["statement_table_rows"][0]
+    assert row["solution_start_url"] == start_url(statement)
+    assert row["user_completion_state_kind"] == "unknown"
+    assert row["user_completion_display"] == "Unknown date"
+    assert not ProblemSolveRecord.objects.exists()
+    assert not ProblemSolution.objects.exists()
+
+
+def test_picker_excludes_inactive_statements_and_keeps_unknown_metadata_unknown(workspace):
+    client, _user, statement = workspace
+    ContestProblemStatement.objects.create(
+        contest_name="Retired contest", contest_year=2026, problem_code="P2", problem_number=2,
+        statement_latex="Hidden statement.", is_active=False,
+    )
+
+    response = client.get(reverse("solutions:problem_solution_create"))
+
+    assert [row["problem_label"] for row in response.context["statement_problem_rows"]] == [
+        statement.contest_year_problem,
+    ]
+    html = response.content.decode()
+    assert "Retired contest" not in html
+    assert "Uncategorized" in html
+    assert "MOHS None" not in html
 
 
 def test_start_uses_existing_statement_identity_and_preserves_unknown_metadata(workspace):

@@ -330,7 +330,7 @@
                 <a href="{{ problem.solution_editor_url }}" class="btn btn-outline-primary btn-sm btn-icon" title="{% if problem.has_my_solution %}Edit my draft{% else %}Start my draft{% endif %}" aria-label="{% if problem.has_my_solution %}Edit my draft{% else %}Start my draft{% endif %} for {{ problem.label }}"><i class="ti ti-pencil-plus" aria-hidden="true"></i></a>
               </div>
               {% else %}
-              <span class="text-muted fs-xs">Unlinked</span>
+              {% include 'solutions/partials/statement-solution-start.html' with solution_start_url=problem.solution_start_url problem_label=problem.label %}
               {% endif %}
             </td>
             <td class="js-status-cell js-solved-date-cell" data-sort-value="{% if problem.completion_known %}2-{{ problem.completion_date|date:'Y-m-d' }}{% elif problem.is_completed %}1-unknown{% else %}0-unsolved{% endif %}">

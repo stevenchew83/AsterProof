@@ -127,14 +127,14 @@
     <div class="card-header border-bottom d-flex flex-wrap align-items-center justify-content-between gap-2">
       <div>
         <h4 class="header-title mb-0">Pick a problem statement</h4>
-        <p class="text-muted fs-xs mb-0">Choose from linked statement rows, then start writing your solution.</p>
+        <p class="text-muted fs-xs mb-0">Choose a problem statement, then start writing your solution.</p>
       </div>
       <a href="{% url 'solutions:my_solution_list' %}" class="btn btn-outline-secondary btn-sm">Back to my solutions</a>
     </div>
     <div class="card-body">
       {% if statement_problem_list_is_capped %}
       <div class="alert alert-info py-2 mb-3" role="alert">
-        Showing the latest {{ statement_problem_list_limit }} statement-backed problems (by most recently updated link). Use the table search to narrow this list.
+        Showing the latest {{ statement_problem_list_limit }} updated statements. Use the table search to filter these loaded rows, or <a href="{% url 'pages:problem_statement_list' %}" class="alert-link">search the full problem library</a>.
       </div>
       {% endif %}
       {% if statement_problem_rows %}
@@ -152,7 +152,7 @@
           <tr>
             <td>
               <span class="fw-semibold">{{ row.problem_label }}</span>
-              <span class="text-muted fs-12 app-table-meta">{{ row.problem_topic }} · MOHS {{ row.problem_mohs }}</span>
+              <span class="text-muted fs-12 app-table-meta">{{ row.problem_topic|default:"Uncategorized" }}{% if row.problem_mohs is not None %} · MOHS {{ row.problem_mohs }}{% endif %}</span>
             </td>
             <td>
               <span class="fw-semibold">{{ row.statement_label }}</span>
@@ -164,8 +164,12 @@
             </td>
             <td class="text-end">
               <div class="app-table-actions d-inline-flex justify-content-end gap-2">
+                {% if row.solution_start_url %}
+                {% include 'solutions/partials/statement-solution-start.html' with solution_start_url=row.solution_start_url problem_label=row.problem_label button_label=row.editor_button_label %}
+                {% else %}
                 <a href="{{ row.editor_url }}" class="btn btn-primary btn-sm">{{ row.editor_button_label }}</a>
-                <a href="{{ row.problem_url }}" class="btn btn-outline-secondary btn-sm">Solution page</a>
+                {% endif %}
+                {% if row.problem_url %}<a href="{{ row.problem_url }}" class="btn btn-outline-secondary btn-sm">Solution page</a>{% endif %}
                 {% if row.contest_archive_url %}
                 <a href="{{ row.contest_archive_url }}" class="btn btn-outline-secondary btn-sm">Archive</a>
                 {% endif %}
@@ -177,9 +181,7 @@
       </table>
       {% else %}
       <div class="alert alert-info mb-0" role="alert">
-        No linked problem statements are available yet. Import statements and link them to tracked problems from
-        <a href="{% url 'pages:problem_statement_list' %}" class="alert-link">Problem statements</a>
-        before creating a solution from this workflow.
+        No active problem statements are available yet. Once a statement is uploaded, you can start writing here.
       </div>
       {% endif %}
     </div>

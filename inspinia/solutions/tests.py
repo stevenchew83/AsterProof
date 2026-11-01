@@ -61,7 +61,7 @@ EXPECTED_DEFAULT_BLOCK_TYPES = {
     "remark",
 }
 EXPECTED_VISIBLE_SOLUTION_TOTAL = 2
-EXPECTED_STATEMENT_BACKED_PROBLEM_TOTAL = 2
+EXPECTED_STATEMENT_BACKED_PROBLEM_TOTAL = 3
 EXPECTED_DIFFICULTY_RATING_COUNT = 2
 EXPECTED_USER_DIFFICULTY_RATING = 37
 OTHER_USER_DIFFICULTY_RATING = 17
@@ -307,12 +307,13 @@ def test_problem_solution_create_view_lists_only_statement_backed_problems(clien
     assert response.context["statement_problem_list_is_capped"] is False
     assert response.context["create_stats"]["statement_problem_total"] == EXPECTED_STATEMENT_BACKED_PROBLEM_TOTAL
     assert response.context["create_stats"]["started_total"] == 1
-    assert response.context["create_stats"]["ready_total"] == 1
+    assert response.context["create_stats"]["ready_total"] == 2  # noqa: PLR2004
     assert [row["problem_label"] for row in response.context["statement_problem_rows"]] == [
         "IMO 2026 P1",
         "USAMO 2025 P2",
+        "Unlinked contest 2025 P3",
     ]
-    first_row, second_row = response.context["statement_problem_rows"]
+    first_row, second_row, unlinked_row = response.context["statement_problem_rows"]
     assert first_row["editor_button_label"] == "Continue solution"
     assert first_row["solution_status_label"] == "Draft"
     assert second_row["editor_button_label"] == "Start solution"
@@ -322,10 +323,13 @@ def test_problem_solution_create_view_lists_only_statement_backed_problems(clien
     second_editor_url = reverse("solutions:problem_solution_edit", args=[linked_problem_without_solution.problem_uuid])
     assert first_editor_url in response_html
     assert second_editor_url in response_html
-    assert "Unlinked contest" not in response_html
+    assert unlinked_row["solution_start_url"] in response_html
+    assert unlinked_row["editor_url"] == ""
+    assert 'method="post"' in response_html
+    assert "Unlinked contest" in response_html
 
 
-def test_problem_solution_create_view_shows_empty_state_without_linked_statements(client):
+def test_problem_solution_create_view_shows_empty_state_without_active_statements(client):
     user = UserFactory()
     client.force_login(user)
 
@@ -334,7 +338,7 @@ def test_problem_solution_create_view_shows_empty_state_without_linked_statement
     assert response.status_code == HTTPStatus.OK
     assert response.context["create_stats"]["statement_problem_total"] == 0
     assert response.context["statement_problem_list_is_capped"] is False
-    assert "No linked problem statements are available yet." in response.content.decode("utf-8")
+    assert "No active problem statements are available yet." in response.content.decode("utf-8")
 
 
 def test_problem_solution_create_view_caps_statement_rows_at_100(client):
