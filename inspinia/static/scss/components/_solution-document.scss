@@ -39,4 +39,5 @@
   .solution-source-editor .cm-editor, .solution-document-source-surface textarea { font-size: 16px !important; }
   .solution-source-tools { gap: .1rem; padding: .5rem; }
   .solution-source-tools button { padding: .4rem .5rem; }
+  .solution-workspace-page .solution-source-tools button { min-height: 44px; min-width: 44px; }
 }

@@ -38,6 +38,7 @@
   .solution-actions-dropdown > * { display: block; width: 100%; text-align: left; padding: .5rem .65rem; font-size: .8rem; border: 0; background: transparent; color: var(--ins-body-color); text-decoration: none; border-radius: var(--ins-border-radius); }
   .solution-actions-dropdown > *:hover { background: var(--ins-tertiary-bg); }
   .solution-editor-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, .95fr); gap: 1.25rem; align-items: start; }
+  #solution-editor-workspace { scroll-margin-top: calc(var(--ins-topbar-height, 64px) + 6rem); }
   .solution-editor-grid[data-view="write"], .solution-editor-grid[data-view="preview"] { grid-template-columns: minmax(0, 1fr); }
   .solution-editor-grid[data-view="write"] .solution-preview-pane, .solution-editor-grid[data-view="preview"] .solution-write-pane { display: none; }
   .solution-write-pane, .solution-preview-pane { min-width: 0; }
@@ -97,9 +98,14 @@
   @media (max-width: 991.98px) { .solution-context-grid { grid-template-columns: minmax(0, 1fr); } }
   @media (max-width: 575.98px) {
     .solution-workspace-toolbar { gap: .65rem; padding: .65rem; top: var(--ins-topbar-height, 64px); }
-    .solution-toolbar-state { flex-basis: 100%; justify-content: space-between; }
+    .solution-toolbar-state { flex-basis: 100%; justify-content: space-between; flex-wrap: wrap; gap: .5rem !important; }
+    .solution-view-switch button { padding-inline: .45rem; }
     .solution-toolbar-actions { width: 100%; }
     #solution-save { flex-grow: 1; }
+    .solution-workspace-toolbar .btn, .solution-view-switch button, .solution-actions-dropdown > * { min-height: 44px; }
+    .solution-actions-menu > summary { min-width: 44px; display: inline-flex; align-items: center; justify-content: center; }
+    .solution-workspace-page .app-page-header-actions .btn, #solution-completion-panel .btn { min-height: 44px; }
+    #solution-editor-workspace { scroll-margin-top: calc(var(--ins-topbar-height, 64px) + 10rem); }
     .solution-reference-body { font-size: .9rem; }
   }
   @media (prefers-reduced-motion: reduce) { .solution-view-switch button { transition: none; } }
