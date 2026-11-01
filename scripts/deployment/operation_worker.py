@@ -14,6 +14,7 @@ from pathlib import Path
 from typing import Any
 
 from scripts.deployment import catalogue_schema
+from scripts.deployment import community_schema
 from scripts.deployment import curated_collections_schema
 from scripts.deployment import newsletter_automation_schema
 from scripts.deployment import newsletter_schema
@@ -285,6 +286,21 @@ class WorkerBackend:
         catalogue_schema.validate_candidate(release)
         self._run_candidate(contract, release, ["shell", "--command", catalogue_schema.PLAN_CHECK])
 
+    def check_community_schema(self, contract: TargetContract, release: Path) -> None:
+        community_schema.validate_candidate(release)
+        self._run_candidate(contract, release, ["shell", "--command", community_schema.PLAN_CHECK])
+
+    def migrate_community_schema(self, contract: TargetContract, release: Path) -> None:
+        self._run_candidate(
+            contract, release, ["shell", "--command", community_schema.MIGRATION_APPLY], migration=True,
+        )
+
+    def initialize_community_index(self, contract: TargetContract, release: Path) -> None:
+        self._run_candidate(contract, release, ["refresh_statement_similarity_index"], runtime_seconds=600)
+        self._run_candidate(
+            contract, release, ["shell", "--command", community_schema.INDEX_CHECK], runtime_seconds=60,
+        )
+
     def check_statement_authoring_schema(self, contract: TargetContract, release: Path) -> None:
         statement_authoring_schema.validate_candidate(release)
         self._run_candidate(contract, release, ["shell", "--command", statement_authoring_schema.PLAN_CHECK])
@@ -407,6 +423,23 @@ class WorkerBackend:
                 raise OperationError("catalogue_audit_invalid")
         except (ValueError, TypeError, KeyError) as exc:
             raise OperationError("catalogue_audit_invalid") from exc
+        return {**audit, "behaviour_fingerprint": fingerprint}
+
+    def community_audit(self, contract: TargetContract) -> dict[str, Any]:
+        audit = self.schema_audit(contract)
+        response = subprocess.run(
+            [str(MIGRATION_AUDIT_HELPER), "community-behaviour", "--contract", str(self.contract_path)],
+            check=True, capture_output=True, text=True, timeout=45,
+        )
+        try:
+            behaviour = json.loads(response.stdout)
+            if behaviour["database_identity_hash"] != audit["state"]["database_identity_hash"]:
+                raise OperationError("community_audit_identity_mismatch")
+            fingerprint = behaviour["behaviour_fingerprint"]
+            if not isinstance(fingerprint, str) or not DIGEST_RE.fullmatch(fingerprint):
+                raise OperationError("community_audit_invalid")
+        except (ValueError, TypeError, KeyError) as exc:
+            raise OperationError("community_audit_invalid") from exc
         return {**audit, "behaviour_fingerprint": fingerprint}
 
     def preflight_recovery(self, contract: TargetContract) -> None:
@@ -806,20 +839,25 @@ def _deploy(
         transition(state_path, "prepared")
         if request["migration_class"] == "data-or-non-compatible":
             disclosure = request["schema_disclosure"]
+            maintenance_audit = (
+                backend.community_audit if disclosure["kind"] == community_schema.KIND else backend.catalogue_audit
+            )
             if baseline_sha is None or disclosure["active_sha"] != baseline_sha or not catalogue_schema.audit_matches(
-                disclosure, backend.catalogue_audit(contract), stage="starting",
+                disclosure, maintenance_audit(contract), stage="starting",
             ):
                 raise OperationError("catalogue_starting_state_mismatch")
             try:
                 catalogue_schema.validate_build_evidence(release, disclosure)
-                if disclosure["kind"] == statement_authoring_schema.KIND:
+                if disclosure["kind"] == community_schema.KIND:
+                    backend.check_community_schema(contract, release)
+                elif disclosure["kind"] == statement_authoring_schema.KIND:
                     backend.check_statement_authoring_schema(contract, release)
                 else:
                     backend.check_catalogue_schema(contract, release)
             except (OSError, ValueError) as exc:
                 raise OperationError("catalogue_candidate_invalid") from exc
             backend.preflight_recovery(contract)
-            if not catalogue_schema.audit_matches(disclosure, backend.catalogue_audit(contract), stage="starting"):
+            if not catalogue_schema.audit_matches(disclosure, maintenance_audit(contract), stage="starting"):
                 raise OperationError("catalogue_starting_state_drift")
             transition(state_path, "draining")
             backend.drain(contract, state_path)
@@ -837,19 +875,24 @@ def _deploy(
                 "recovery_archive_sha256": receipt["archive_sha256"],
             })
             atomic_write_json(state_path, state)
-            if not catalogue_schema.audit_matches(disclosure, backend.catalogue_audit(contract), stage="starting"):
+            if not catalogue_schema.audit_matches(disclosure, maintenance_audit(contract), stage="starting"):
                 raise OperationError("catalogue_starting_state_drift")
             backend.assert_database_drained()
             transition(state_path, "migrating")
-            if disclosure["kind"] == statement_authoring_schema.KIND:
+            if disclosure["kind"] == community_schema.KIND:
+                backend.migrate_community_schema(contract, release)
+            elif disclosure["kind"] == statement_authoring_schema.KIND:
                 backend.migrate_statement_authoring_schema(contract, release)
             else:
                 backend.migrate_catalogue_schema(contract, release)
-            if not catalogue_schema.audit_matches(disclosure, backend.catalogue_audit(contract), stage="expected"):
+            if not catalogue_schema.audit_matches(disclosure, maintenance_audit(contract), stage="expected"):
                 raise OperationError("catalogue_ending_state_mismatch")
-            backend.refresh_catalogue(contract, release)
+            if disclosure["kind"] == community_schema.KIND:
+                backend.initialize_community_index(contract, release)
+            else:
+                backend.refresh_catalogue(contract, release)
             backend.verify_catalogue_records(contract, request["run_id"], baseline_sha)
-            if not catalogue_schema.audit_matches(disclosure, backend.catalogue_audit(contract), stage="expected"):
+            if not catalogue_schema.audit_matches(disclosure, maintenance_audit(contract), stage="expected"):
                 raise OperationError("catalogue_ending_behaviour_drift")
         if request["migration_class"] == "backward-compatible-schema":
             disclosure = request.get("schema_disclosure")
@@ -958,7 +1001,7 @@ def _deploy(
         ):
             raise OperationError("activation_state_drift")
         if request["migration_class"] == "data-or-non-compatible" and not catalogue_schema.audit_matches(
-            request["schema_disclosure"], backend.catalogue_audit(contract), stage="expected",
+            request["schema_disclosure"], maintenance_audit(contract), stage="expected",
         ):
             raise OperationError("catalogue_activation_behaviour_drift")
     except Exception as activation_error:

@@ -1,0 +1,1278 @@
+{
+  "columns": [
+    {
+      "collation": "default",
+      "column": "contest_name",
+      "default": null,
+      "nullable": false,
+      "position": 13,
+      "schema": "public",
+      "table": "pages_communityproblem",
+      "type": "character varying(128)"
+    },
+    {
+      "collation": "default",
+      "column": "core_ideas",
+      "default": null,
+      "nullable": false,
+      "position": 7,
+      "schema": "public",
+      "table": "pages_communityproblem",
+      "type": "text"
+    },
+    {
+      "collation": "default",
+      "column": "decision",
+      "default": null,
+      "nullable": false,
+      "position": 3,
+      "schema": "public",
+      "table": "pages_communityproblemreview",
+      "type": "character varying(24)"
+    },
+    {
+      "collation": "default",
+      "column": "error_code",
+      "default": null,
+      "nullable": false,
+      "position": 12,
+      "schema": "public",
+      "table": "pages_statementaireview",
+      "type": "character varying(64)"
+    },
+    {
+      "collation": "default",
+      "column": "input_digest",
+      "default": null,
+      "nullable": false,
+      "position": 5,
+      "schema": "public",
+      "table": "pages_statementaireview",
+      "type": "character varying(64)"
+    },
+    {
+      "collation": "default",
+      "column": "model",
+      "default": null,
+      "nullable": false,
+      "position": 3,
+      "schema": "public",
+      "table": "pages_statementreviewpolicy",
+      "type": "character varying(120)"
+    },
+    {
+      "collation": "default",
+      "column": "model",
+      "default": null,
+      "nullable": false,
+      "position": 6,
+      "schema": "public",
+      "table": "pages_statementaireview",
+      "type": "character varying(120)"
+    },
+    {
+      "collation": "default",
+      "column": "normalized_text",
+      "default": null,
+      "nullable": false,
+      "position": 4,
+      "schema": "public",
+      "table": "pages_statementsimilaritydocument",
+      "type": "text"
+    },
+    {
+      "collation": "default",
+      "column": "notes",
+      "default": null,
+      "nullable": false,
+      "position": 4,
+      "schema": "public",
+      "table": "pages_communityproblemreview",
+      "type": "text"
+    },
+    {
+      "collation": "default",
+      "column": "pitfalls",
+      "default": null,
+      "nullable": false,
+      "position": 9,
+      "schema": "public",
+      "table": "pages_communityproblem",
+      "type": "text"
+    },
+    {
+      "collation": "default",
+      "column": "problem_code",
+      "default": null,
+      "nullable": false,
+      "position": 15,
+      "schema": "public",
+      "table": "pages_communityproblem",
+      "type": "character varying(16)"
+    },
+    {
+      "collation": "default",
+      "column": "provider_request_id",
+      "default": null,
+      "nullable": false,
+      "position": 14,
+      "schema": "public",
+      "table": "pages_statementaireview",
+      "type": "character varying(200)"
+    },
+    {
+      "collation": "default",
+      "column": "provider_response_id",
+      "default": null,
+      "nullable": false,
+      "position": 13,
+      "schema": "public",
+      "table": "pages_statementaireview",
+      "type": "character varying(200)"
+    },
+    {
+      "collation": "default",
+      "column": "rationale",
+      "default": null,
+      "nullable": false,
+      "position": 8,
+      "schema": "public",
+      "table": "pages_communityproblem",
+      "type": "text"
+    },
+    {
+      "collation": "default",
+      "column": "review_notes",
+      "default": null,
+      "nullable": false,
+      "position": 21,
+      "schema": "public",
+      "table": "pages_communityproblem",
+      "type": "text"
+    },
+    {
+      "collation": "default",
+      "column": "solution_outline",
+      "default": null,
+      "nullable": false,
+      "position": 16,
+      "schema": "public",
+      "table": "pages_communityproblem",
+      "type": "text"
+    },
+    {
+      "collation": "default",
+      "column": "source_details",
+      "default": null,
+      "nullable": false,
+      "position": 11,
+      "schema": "public",
+      "table": "pages_communityproblem",
+      "type": "character varying(1000)"
+    },
+    {
+      "collation": "default",
+      "column": "source_kind",
+      "default": null,
+      "nullable": false,
+      "position": 10,
+      "schema": "public",
+      "table": "pages_communityproblem",
+      "type": "character varying(16)"
+    },
+    {
+      "collation": "default",
+      "column": "source_url",
+      "default": null,
+      "nullable": false,
+      "position": 12,
+      "schema": "public",
+      "table": "pages_communityproblem",
+      "type": "character varying(500)"
+    },
+    {
+      "collation": "default",
+      "column": "statement_latex",
+      "default": null,
+      "nullable": false,
+      "position": 3,
+      "schema": "public",
+      "table": "pages_communityproblem",
+      "type": "text"
+    },
+    {
+      "collation": "default",
+      "column": "status",
+      "default": null,
+      "nullable": false,
+      "position": 17,
+      "schema": "public",
+      "table": "pages_communityproblem",
+      "type": "character varying(24)"
+    },
+    {
+      "collation": "default",
+      "column": "status",
+      "default": null,
+      "nullable": false,
+      "position": 3,
+      "schema": "public",
+      "table": "pages_statementaireview",
+      "type": "character varying(16)"
+    },
+    {
+      "collation": "default",
+      "column": "structure_digest",
+      "default": null,
+      "nullable": false,
+      "position": 3,
+      "schema": "public",
+      "table": "pages_statementsimilaritydocument",
+      "type": "character varying(64)"
+    },
+    {
+      "collation": "default",
+      "column": "structure_text",
+      "default": null,
+      "nullable": false,
+      "position": 5,
+      "schema": "public",
+      "table": "pages_statementsimilaritydocument",
+      "type": "text"
+    },
+    {
+      "collation": "default",
+      "column": "term",
+      "default": null,
+      "nullable": false,
+      "position": 2,
+      "schema": "public",
+      "table": "pages_statementsimilarityterm",
+      "type": "character varying(64)"
+    },
+    {
+      "collation": "default",
+      "column": "text_digest",
+      "default": null,
+      "nullable": false,
+      "position": 2,
+      "schema": "public",
+      "table": "pages_statementsimilaritydocument",
+      "type": "character varying(64)"
+    },
+    {
+      "collation": "default",
+      "column": "title",
+      "default": null,
+      "nullable": false,
+      "position": 2,
+      "schema": "public",
+      "table": "pages_communityproblem",
+      "type": "character varying(160)"
+    },
+    {
+      "collation": "default",
+      "column": "topic",
+      "default": null,
+      "nullable": false,
+      "position": 4,
+      "schema": "public",
+      "table": "pages_communityproblem",
+      "type": "character varying(32)"
+    },
+    {
+      "collation": "default",
+      "column": "topic_tags",
+      "default": null,
+      "nullable": false,
+      "position": 6,
+      "schema": "public",
+      "table": "pages_communityproblem",
+      "type": "character varying(1000)"
+    },
+    {
+      "collation": null,
+      "column": "accounted_micros",
+      "default": null,
+      "nullable": false,
+      "position": 9,
+      "schema": "public",
+      "table": "pages_statementaireview",
+      "type": "bigint"
+    },
+    {
+      "collation": null,
+      "column": "author_id",
+      "default": null,
+      "nullable": false,
+      "position": 24,
+      "schema": "public",
+      "table": "pages_communityproblem",
+      "type": "bigint"
+    },
+    {
+      "collation": null,
+      "column": "built_at",
+      "default": null,
+      "nullable": true,
+      "position": 4,
+      "schema": "public",
+      "table": "pages_statementsimilarityindex",
+      "type": "timestamp with time zone"
+    },
+    {
+      "collation": null,
+      "column": "completed_at",
+      "default": null,
+      "nullable": true,
+      "position": 17,
+      "schema": "public",
+      "table": "pages_statementaireview",
+      "type": "timestamp with time zone"
+    },
+    {
+      "collation": null,
+      "column": "content_snapshot",
+      "default": null,
+      "nullable": false,
+      "position": 5,
+      "schema": "public",
+      "table": "pages_communityproblemreview",
+      "type": "jsonb"
+    },
+    {
+      "collation": null,
+      "column": "contest_year",
+      "default": null,
+      "nullable": true,
+      "position": 14,
+      "schema": "public",
+      "table": "pages_communityproblem",
+      "type": "smallint"
+    },
+    {
+      "collation": null,
+      "column": "created_at",
+      "default": null,
+      "nullable": false,
+      "position": 15,
+      "schema": "public",
+      "table": "pages_statementaireview",
+      "type": "timestamp with time zone"
+    },
+    {
+      "collation": null,
+      "column": "created_at",
+      "default": null,
+      "nullable": false,
+      "position": 22,
+      "schema": "public",
+      "table": "pages_communityproblem",
+      "type": "timestamp with time zone"
+    },
+    {
+      "collation": null,
+      "column": "created_at",
+      "default": null,
+      "nullable": false,
+      "position": 6,
+      "schema": "public",
+      "table": "pages_communityproblemreview",
+      "type": "timestamp with time zone"
+    },
+    {
+      "collation": null,
+      "column": "daily_budget_micros",
+      "default": null,
+      "nullable": false,
+      "position": 5,
+      "schema": "public",
+      "table": "pages_statementreviewpolicy",
+      "type": "bigint"
+    },
+    {
+      "collation": null,
+      "column": "daily_request_limit",
+      "default": null,
+      "nullable": false,
+      "position": 10,
+      "schema": "public",
+      "table": "pages_statementreviewpolicy",
+      "type": "smallint"
+    },
+    {
+      "collation": null,
+      "column": "dispatched_at",
+      "default": null,
+      "nullable": true,
+      "position": 16,
+      "schema": "public",
+      "table": "pages_statementaireview",
+      "type": "timestamp with time zone"
+    },
+    {
+      "collation": null,
+      "column": "document_id",
+      "default": null,
+      "nullable": false,
+      "position": 3,
+      "schema": "public",
+      "table": "pages_statementsimilarityterm",
+      "type": "bigint"
+    },
+    {
+      "collation": null,
+      "column": "enabled",
+      "default": null,
+      "nullable": false,
+      "position": 2,
+      "schema": "public",
+      "table": "pages_statementreviewpolicy",
+      "type": "boolean"
+    },
+    {
+      "collation": null,
+      "column": "feedback",
+      "default": null,
+      "nullable": false,
+      "position": 10,
+      "schema": "public",
+      "table": "pages_statementaireview",
+      "type": "jsonb"
+    },
+    {
+      "collation": null,
+      "column": "id",
+      "default": null,
+      "nullable": false,
+      "position": 1,
+      "schema": "public",
+      "table": "pages_communityproblem",
+      "type": "uuid"
+    },
+    {
+      "collation": null,
+      "column": "id",
+      "default": null,
+      "nullable": false,
+      "position": 1,
+      "schema": "public",
+      "table": "pages_communityproblemreview",
+      "type": "bigint"
+    },
+    {
+      "collation": null,
+      "column": "id",
+      "default": null,
+      "nullable": false,
+      "position": 1,
+      "schema": "public",
+      "table": "pages_statementaireview",
+      "type": "uuid"
+    },
+    {
+      "collation": null,
+      "column": "id",
+      "default": null,
+      "nullable": false,
+      "position": 1,
+      "schema": "public",
+      "table": "pages_statementsimilaritydocument",
+      "type": "bigint"
+    },
+    {
+      "collation": null,
+      "column": "id",
+      "default": null,
+      "nullable": false,
+      "position": 1,
+      "schema": "public",
+      "table": "pages_statementsimilarityterm",
+      "type": "bigint"
+    },
+    {
+      "collation": null,
+      "column": "input_price_micros_per_million",
+      "default": null,
+      "nullable": false,
+      "position": 7,
+      "schema": "public",
+      "table": "pages_statementreviewpolicy",
+      "type": "bigint"
+    },
+    {
+      "collation": null,
+      "column": "input_snapshot",
+      "default": null,
+      "nullable": false,
+      "position": 4,
+      "schema": "public",
+      "table": "pages_statementaireview",
+      "type": "jsonb"
+    },
+    {
+      "collation": null,
+      "column": "lease_job_id",
+      "default": null,
+      "nullable": true,
+      "position": 13,
+      "schema": "public",
+      "table": "pages_statementreviewpolicy",
+      "type": "uuid"
+    },
+    {
+      "collation": null,
+      "column": "lease_until",
+      "default": null,
+      "nullable": true,
+      "position": 11,
+      "schema": "public",
+      "table": "pages_statementreviewpolicy",
+      "type": "timestamp with time zone"
+    },
+    {
+      "collation": null,
+      "column": "mohs",
+      "default": null,
+      "nullable": false,
+      "position": 5,
+      "schema": "public",
+      "table": "pages_communityproblem",
+      "type": "smallint"
+    },
+    {
+      "collation": null,
+      "column": "monthly_budget_micros",
+      "default": null,
+      "nullable": false,
+      "position": 6,
+      "schema": "public",
+      "table": "pages_statementreviewpolicy",
+      "type": "bigint"
+    },
+    {
+      "collation": null,
+      "column": "output_price_micros_per_million",
+      "default": null,
+      "nullable": false,
+      "position": 8,
+      "schema": "public",
+      "table": "pages_statementreviewpolicy",
+      "type": "bigint"
+    },
+    {
+      "collation": null,
+      "column": "pricing_snapshot",
+      "default": null,
+      "nullable": false,
+      "position": 7,
+      "schema": "public",
+      "table": "pages_statementaireview",
+      "type": "jsonb"
+    },
+    {
+      "collation": null,
+      "column": "pricing_verified_at",
+      "default": null,
+      "nullable": true,
+      "position": 9,
+      "schema": "public",
+      "table": "pages_statementreviewpolicy",
+      "type": "timestamp with time zone"
+    },
+    {
+      "collation": null,
+      "column": "problem_id",
+      "default": null,
+      "nullable": false,
+      "position": 18,
+      "schema": "public",
+      "table": "pages_statementaireview",
+      "type": "uuid"
+    },
+    {
+      "collation": null,
+      "column": "problem_id",
+      "default": null,
+      "nullable": false,
+      "position": 7,
+      "schema": "public",
+      "table": "pages_communityproblemreview",
+      "type": "uuid"
+    },
+    {
+      "collation": null,
+      "column": "request_budget_micros",
+      "default": null,
+      "nullable": false,
+      "position": 4,
+      "schema": "public",
+      "table": "pages_statementreviewpolicy",
+      "type": "bigint"
+    },
+    {
+      "collation": null,
+      "column": "requested_by_id",
+      "default": null,
+      "nullable": false,
+      "position": 19,
+      "schema": "public",
+      "table": "pages_statementaireview",
+      "type": "bigint"
+    },
+    {
+      "collation": null,
+      "column": "reserved_micros",
+      "default": null,
+      "nullable": false,
+      "position": 8,
+      "schema": "public",
+      "table": "pages_statementaireview",
+      "type": "bigint"
+    },
+    {
+      "collation": null,
+      "column": "reviewed_at",
+      "default": null,
+      "nullable": true,
+      "position": 20,
+      "schema": "public",
+      "table": "pages_communityproblem",
+      "type": "timestamp with time zone"
+    },
+    {
+      "collation": null,
+      "column": "reviewed_by_id",
+      "default": null,
+      "nullable": true,
+      "position": 25,
+      "schema": "public",
+      "table": "pages_communityproblem",
+      "type": "bigint"
+    },
+    {
+      "collation": null,
+      "column": "reviewer_id",
+      "default": null,
+      "nullable": false,
+      "position": 8,
+      "schema": "public",
+      "table": "pages_communityproblemreview",
+      "type": "bigint"
+    },
+    {
+      "collation": null,
+      "column": "revision",
+      "default": null,
+      "nullable": false,
+      "position": 2,
+      "schema": "public",
+      "table": "pages_statementsimilaritysource",
+      "type": "bigint"
+    },
+    {
+      "collation": null,
+      "column": "signature",
+      "default": null,
+      "nullable": false,
+      "position": 2,
+      "schema": "public",
+      "table": "pages_statementsimilarityindex",
+      "type": "jsonb"
+    },
+    {
+      "collation": null,
+      "column": "similarity_snapshot",
+      "default": null,
+      "nullable": false,
+      "position": 19,
+      "schema": "public",
+      "table": "pages_communityproblem",
+      "type": "jsonb"
+    },
+    {
+      "collation": null,
+      "column": "singleton_key",
+      "default": null,
+      "nullable": false,
+      "position": 1,
+      "schema": "public",
+      "table": "pages_statementreviewpolicy",
+      "type": "smallint"
+    },
+    {
+      "collation": null,
+      "column": "singleton_key",
+      "default": null,
+      "nullable": false,
+      "position": 1,
+      "schema": "public",
+      "table": "pages_statementsimilarityindex",
+      "type": "smallint"
+    },
+    {
+      "collation": null,
+      "column": "singleton_key",
+      "default": null,
+      "nullable": false,
+      "position": 1,
+      "schema": "public",
+      "table": "pages_statementsimilaritysource",
+      "type": "smallint"
+    },
+    {
+      "collation": null,
+      "column": "statement_id",
+      "default": null,
+      "nullable": false,
+      "position": 6,
+      "schema": "public",
+      "table": "pages_statementsimilaritydocument",
+      "type": "bigint"
+    },
+    {
+      "collation": null,
+      "column": "updated_at",
+      "default": null,
+      "nullable": false,
+      "position": 12,
+      "schema": "public",
+      "table": "pages_statementreviewpolicy",
+      "type": "timestamp with time zone"
+    },
+    {
+      "collation": null,
+      "column": "updated_at",
+      "default": null,
+      "nullable": false,
+      "position": 23,
+      "schema": "public",
+      "table": "pages_communityproblem",
+      "type": "timestamp with time zone"
+    },
+    {
+      "collation": null,
+      "column": "usage",
+      "default": null,
+      "nullable": false,
+      "position": 11,
+      "schema": "public",
+      "table": "pages_statementaireview",
+      "type": "jsonb"
+    },
+    {
+      "collation": null,
+      "column": "version",
+      "default": null,
+      "nullable": false,
+      "position": 18,
+      "schema": "public",
+      "table": "pages_communityproblem",
+      "type": "integer"
+    },
+    {
+      "collation": null,
+      "column": "version",
+      "default": null,
+      "nullable": false,
+      "position": 2,
+      "schema": "public",
+      "table": "pages_communityproblemreview",
+      "type": "integer"
+    },
+    {
+      "collation": null,
+      "column": "version",
+      "default": null,
+      "nullable": false,
+      "position": 2,
+      "schema": "public",
+      "table": "pages_statementaireview",
+      "type": "integer"
+    },
+    {
+      "collation": null,
+      "column": "version",
+      "default": null,
+      "nullable": false,
+      "position": 3,
+      "schema": "public",
+      "table": "pages_statementsimilarityindex",
+      "type": "smallint"
+    }
+  ],
+  "constraints": [
+    {
+      "definition": "CHECK (accounted_micros >= 0)",
+      "name": "pages_statementaireview_accounted_micros_check",
+      "schema": "public",
+      "table": "pages_statementaireview",
+      "type": "c"
+    },
+    {
+      "definition": "CHECK (contest_year >= 0)",
+      "name": "pages_communityproblem_contest_year_check",
+      "schema": "public",
+      "table": "pages_communityproblem",
+      "type": "c"
+    },
+    {
+      "definition": "CHECK (daily_budget_micros >= 0)",
+      "name": "pages_statementreviewpolicy_daily_budget_micros_check",
+      "schema": "public",
+      "table": "pages_statementreviewpolicy",
+      "type": "c"
+    },
+    {
+      "definition": "CHECK (daily_request_limit >= 0)",
+      "name": "pages_statementreviewpolicy_daily_request_limit_check",
+      "schema": "public",
+      "table": "pages_statementreviewpolicy",
+      "type": "c"
+    },
+    {
+      "definition": "CHECK (input_price_micros_per_million >= 0)",
+      "name": "pages_statementreviewpolicy_input_price_micros_per_millio_check",
+      "schema": "public",
+      "table": "pages_statementreviewpolicy",
+      "type": "c"
+    },
+    {
+      "definition": "CHECK (mohs >= 0)",
+      "name": "pages_communityproblem_mohs_check",
+      "schema": "public",
+      "table": "pages_communityproblem",
+      "type": "c"
+    },
+    {
+      "definition": "CHECK (monthly_budget_micros >= 0)",
+      "name": "pages_statementreviewpolicy_monthly_budget_micros_check",
+      "schema": "public",
+      "table": "pages_statementreviewpolicy",
+      "type": "c"
+    },
+    {
+      "definition": "CHECK (output_price_micros_per_million >= 0)",
+      "name": "pages_statementreviewpolicy_output_price_micros_per_milli_check",
+      "schema": "public",
+      "table": "pages_statementreviewpolicy",
+      "type": "c"
+    },
+    {
+      "definition": "CHECK (request_budget_micros >= 0)",
+      "name": "pages_statementreviewpolicy_request_budget_micros_check",
+      "schema": "public",
+      "table": "pages_statementreviewpolicy",
+      "type": "c"
+    },
+    {
+      "definition": "CHECK (reserved_micros >= 0)",
+      "name": "pages_statementaireview_reserved_micros_check",
+      "schema": "public",
+      "table": "pages_statementaireview",
+      "type": "c"
+    },
+    {
+      "definition": "CHECK (revision >= 0)",
+      "name": "pages_statementsimilaritysource_revision_check",
+      "schema": "public",
+      "table": "pages_statementsimilaritysource",
+      "type": "c"
+    },
+    {
+      "definition": "CHECK (singleton_key >= 0)",
+      "name": "pages_statementreviewpolicy_singleton_key_check",
+      "schema": "public",
+      "table": "pages_statementreviewpolicy",
+      "type": "c"
+    },
+    {
+      "definition": "CHECK (singleton_key >= 0)",
+      "name": "pages_statementsimilarityindex_singleton_key_check",
+      "schema": "public",
+      "table": "pages_statementsimilarityindex",
+      "type": "c"
+    },
+    {
+      "definition": "CHECK (singleton_key >= 0)",
+      "name": "pages_statementsimilaritysource_singleton_key_check",
+      "schema": "public",
+      "table": "pages_statementsimilaritysource",
+      "type": "c"
+    },
+    {
+      "definition": "CHECK (version >= 0)",
+      "name": "pages_communityproblem_version_check",
+      "schema": "public",
+      "table": "pages_communityproblem",
+      "type": "c"
+    },
+    {
+      "definition": "CHECK (version >= 0)",
+      "name": "pages_communityproblemreview_version_check",
+      "schema": "public",
+      "table": "pages_communityproblemreview",
+      "type": "c"
+    },
+    {
+      "definition": "CHECK (version >= 0)",
+      "name": "pages_statementaireview_version_check",
+      "schema": "public",
+      "table": "pages_statementaireview",
+      "type": "c"
+    },
+    {
+      "definition": "CHECK (version >= 0)",
+      "name": "pages_statementsimilarityindex_version_check",
+      "schema": "public",
+      "table": "pages_statementsimilarityindex",
+      "type": "c"
+    },
+    {
+      "definition": "FOREIGN KEY (author_id) REFERENCES users_user(id) DEFERRABLE INITIALLY DEFERRED",
+      "name": "pages_communityproblem_author_id_da1c4229_fk_users_user_id",
+      "schema": "public",
+      "table": "pages_communityproblem",
+      "type": "f"
+    },
+    {
+      "definition": "FOREIGN KEY (document_id) REFERENCES pages_statementsimilaritydocument(id) DEFERRABLE INITIALLY DEFERRED",
+      "name": "pages_statementsimil_document_id_d4f8de8d_fk_pages_sta",
+      "schema": "public",
+      "table": "pages_statementsimilarityterm",
+      "type": "f"
+    },
+    {
+      "definition": "FOREIGN KEY (problem_id) REFERENCES pages_communityproblem(id) DEFERRABLE INITIALLY DEFERRED",
+      "name": "pages_communityprobl_problem_id_9f0912af_fk_pages_com",
+      "schema": "public",
+      "table": "pages_communityproblemreview",
+      "type": "f"
+    },
+    {
+      "definition": "FOREIGN KEY (problem_id) REFERENCES pages_communityproblem(id) DEFERRABLE INITIALLY DEFERRED",
+      "name": "pages_statementairev_problem_id_cd48d6b0_fk_pages_com",
+      "schema": "public",
+      "table": "pages_statementaireview",
+      "type": "f"
+    },
+    {
+      "definition": "FOREIGN KEY (requested_by_id) REFERENCES users_user(id) DEFERRABLE INITIALLY DEFERRED",
+      "name": "pages_statementairev_requested_by_id_fff531b6_fk_users_use",
+      "schema": "public",
+      "table": "pages_statementaireview",
+      "type": "f"
+    },
+    {
+      "definition": "FOREIGN KEY (reviewed_by_id) REFERENCES users_user(id) DEFERRABLE INITIALLY DEFERRED",
+      "name": "pages_communityproblem_reviewed_by_id_60a826ad_fk_users_user_id",
+      "schema": "public",
+      "table": "pages_communityproblem",
+      "type": "f"
+    },
+    {
+      "definition": "FOREIGN KEY (reviewer_id) REFERENCES users_user(id) DEFERRABLE INITIALLY DEFERRED",
+      "name": "pages_communityprobl_reviewer_id_31cbd834_fk_users_use",
+      "schema": "public",
+      "table": "pages_communityproblemreview",
+      "type": "f"
+    },
+    {
+      "definition": "FOREIGN KEY (statement_id) REFERENCES pages_contestproblemstatement(id) DEFERRABLE INITIALLY DEFERRED",
+      "name": "pages_statementsimil_statement_id_ff2d688a_fk_pages_con",
+      "schema": "public",
+      "table": "pages_statementsimilaritydocument",
+      "type": "f"
+    },
+    {
+      "definition": "PRIMARY KEY (id)",
+      "name": "pages_communityproblem_pkey",
+      "schema": "public",
+      "table": "pages_communityproblem",
+      "type": "p"
+    },
+    {
+      "definition": "PRIMARY KEY (id)",
+      "name": "pages_communityproblemreview_pkey",
+      "schema": "public",
+      "table": "pages_communityproblemreview",
+      "type": "p"
+    },
+    {
+      "definition": "PRIMARY KEY (id)",
+      "name": "pages_statementaireview_pkey",
+      "schema": "public",
+      "table": "pages_statementaireview",
+      "type": "p"
+    },
+    {
+      "definition": "PRIMARY KEY (id)",
+      "name": "pages_statementsimilaritydocument_pkey",
+      "schema": "public",
+      "table": "pages_statementsimilaritydocument",
+      "type": "p"
+    },
+    {
+      "definition": "PRIMARY KEY (id)",
+      "name": "pages_statementsimilarityterm_pkey",
+      "schema": "public",
+      "table": "pages_statementsimilarityterm",
+      "type": "p"
+    },
+    {
+      "definition": "PRIMARY KEY (singleton_key)",
+      "name": "pages_statementreviewpolicy_pkey",
+      "schema": "public",
+      "table": "pages_statementreviewpolicy",
+      "type": "p"
+    },
+    {
+      "definition": "PRIMARY KEY (singleton_key)",
+      "name": "pages_statementsimilarityindex_pkey",
+      "schema": "public",
+      "table": "pages_statementsimilarityindex",
+      "type": "p"
+    },
+    {
+      "definition": "PRIMARY KEY (singleton_key)",
+      "name": "pages_statementsimilaritysource_pkey",
+      "schema": "public",
+      "table": "pages_statementsimilaritysource",
+      "type": "p"
+    },
+    {
+      "definition": "UNIQUE (document_id, term)",
+      "name": "pages_similarity_term_unique",
+      "schema": "public",
+      "table": "pages_statementsimilarityterm",
+      "type": "u"
+    },
+    {
+      "definition": "UNIQUE (problem_id, version)",
+      "name": "pages_statement_review_version",
+      "schema": "public",
+      "table": "pages_statementaireview",
+      "type": "u"
+    },
+    {
+      "definition": "UNIQUE (statement_id)",
+      "name": "pages_statementsimilaritydocument_statement_id_key",
+      "schema": "public",
+      "table": "pages_statementsimilaritydocument",
+      "type": "u"
+    }
+  ],
+  "extensions": [],
+  "indexes": [
+    {
+      "definition": "CREATE INDEX pages_communityproblem_author_id_da1c4229 ON public.pages_communityproblem USING btree (author_id)",
+      "name": "pages_communityproblem_author_id_da1c4229",
+      "schema": "public",
+      "table": "pages_communityproblem"
+    },
+    {
+      "definition": "CREATE INDEX pages_communityproblem_reviewed_by_id_60a826ad ON public.pages_communityproblem USING btree (reviewed_by_id)",
+      "name": "pages_communityproblem_reviewed_by_id_60a826ad",
+      "schema": "public",
+      "table": "pages_communityproblem"
+    },
+    {
+      "definition": "CREATE INDEX pages_communityproblem_status_6d501cfe ON public.pages_communityproblem USING btree (status)",
+      "name": "pages_communityproblem_status_6d501cfe",
+      "schema": "public",
+      "table": "pages_communityproblem"
+    },
+    {
+      "definition": "CREATE INDEX pages_communityproblem_status_6d501cfe_like ON public.pages_communityproblem USING btree (status varchar_pattern_ops)",
+      "name": "pages_communityproblem_status_6d501cfe_like",
+      "schema": "public",
+      "table": "pages_communityproblem"
+    },
+    {
+      "definition": "CREATE INDEX pages_communityproblemreview_problem_id_9f0912af ON public.pages_communityproblemreview USING btree (problem_id)",
+      "name": "pages_communityproblemreview_problem_id_9f0912af",
+      "schema": "public",
+      "table": "pages_communityproblemreview"
+    },
+    {
+      "definition": "CREATE INDEX pages_communityproblemreview_reviewer_id_31cbd834 ON public.pages_communityproblemreview USING btree (reviewer_id)",
+      "name": "pages_communityproblemreview_reviewer_id_31cbd834",
+      "schema": "public",
+      "table": "pages_communityproblemreview"
+    },
+    {
+      "definition": "CREATE INDEX pages_statementaireview_problem_id_cd48d6b0 ON public.pages_statementaireview USING btree (problem_id)",
+      "name": "pages_statementaireview_problem_id_cd48d6b0",
+      "schema": "public",
+      "table": "pages_statementaireview"
+    },
+    {
+      "definition": "CREATE INDEX pages_statementaireview_requested_by_id_fff531b6 ON public.pages_statementaireview USING btree (requested_by_id)",
+      "name": "pages_statementaireview_requested_by_id_fff531b6",
+      "schema": "public",
+      "table": "pages_statementaireview"
+    },
+    {
+      "definition": "CREATE INDEX pages_statementaireview_status_5538731e ON public.pages_statementaireview USING btree (status)",
+      "name": "pages_statementaireview_status_5538731e",
+      "schema": "public",
+      "table": "pages_statementaireview"
+    },
+    {
+      "definition": "CREATE INDEX pages_statementaireview_status_5538731e_like ON public.pages_statementaireview USING btree (status varchar_pattern_ops)",
+      "name": "pages_statementaireview_status_5538731e_like",
+      "schema": "public",
+      "table": "pages_statementaireview"
+    },
+    {
+      "definition": "CREATE INDEX pages_statementsimilarit_structure_digest_e72a18c6_like ON public.pages_statementsimilaritydocument USING btree (structure_digest varchar_pattern_ops)",
+      "name": "pages_statementsimilarit_structure_digest_e72a18c6_like",
+      "schema": "public",
+      "table": "pages_statementsimilaritydocument"
+    },
+    {
+      "definition": "CREATE INDEX pages_statementsimilaritydocument_structure_digest_e72a18c6 ON public.pages_statementsimilaritydocument USING btree (structure_digest)",
+      "name": "pages_statementsimilaritydocument_structure_digest_e72a18c6",
+      "schema": "public",
+      "table": "pages_statementsimilaritydocument"
+    },
+    {
+      "definition": "CREATE INDEX pages_statementsimilaritydocument_text_digest_339e3cae ON public.pages_statementsimilaritydocument USING btree (text_digest)",
+      "name": "pages_statementsimilaritydocument_text_digest_339e3cae",
+      "schema": "public",
+      "table": "pages_statementsimilaritydocument"
+    },
+    {
+      "definition": "CREATE INDEX pages_statementsimilaritydocument_text_digest_339e3cae_like ON public.pages_statementsimilaritydocument USING btree (text_digest varchar_pattern_ops)",
+      "name": "pages_statementsimilaritydocument_text_digest_339e3cae_like",
+      "schema": "public",
+      "table": "pages_statementsimilaritydocument"
+    },
+    {
+      "definition": "CREATE INDEX pages_statementsimilarityterm_document_id_d4f8de8d ON public.pages_statementsimilarityterm USING btree (document_id)",
+      "name": "pages_statementsimilarityterm_document_id_d4f8de8d",
+      "schema": "public",
+      "table": "pages_statementsimilarityterm"
+    },
+    {
+      "definition": "CREATE INDEX pages_statementsimilarityterm_term_68dc9235 ON public.pages_statementsimilarityterm USING btree (term)",
+      "name": "pages_statementsimilarityterm_term_68dc9235",
+      "schema": "public",
+      "table": "pages_statementsimilarityterm"
+    },
+    {
+      "definition": "CREATE INDEX pages_statementsimilarityterm_term_68dc9235_like ON public.pages_statementsimilarityterm USING btree (term varchar_pattern_ops)",
+      "name": "pages_statementsimilarityterm_term_68dc9235_like",
+      "schema": "public",
+      "table": "pages_statementsimilarityterm"
+    },
+    {
+      "definition": "CREATE UNIQUE INDEX pages_communityproblem_pkey ON public.pages_communityproblem USING btree (id)",
+      "name": "pages_communityproblem_pkey",
+      "schema": "public",
+      "table": "pages_communityproblem"
+    },
+    {
+      "definition": "CREATE UNIQUE INDEX pages_communityproblemreview_pkey ON public.pages_communityproblemreview USING btree (id)",
+      "name": "pages_communityproblemreview_pkey",
+      "schema": "public",
+      "table": "pages_communityproblemreview"
+    },
+    {
+      "definition": "CREATE UNIQUE INDEX pages_similarity_term_unique ON public.pages_statementsimilarityterm USING btree (document_id, term)",
+      "name": "pages_similarity_term_unique",
+      "schema": "public",
+      "table": "pages_statementsimilarityterm"
+    },
+    {
+      "definition": "CREATE UNIQUE INDEX pages_statement_review_version ON public.pages_statementaireview USING btree (problem_id, version)",
+      "name": "pages_statement_review_version",
+      "schema": "public",
+      "table": "pages_statementaireview"
+    },
+    {
+      "definition": "CREATE UNIQUE INDEX pages_statementaireview_pkey ON public.pages_statementaireview USING btree (id)",
+      "name": "pages_statementaireview_pkey",
+      "schema": "public",
+      "table": "pages_statementaireview"
+    },
+    {
+      "definition": "CREATE UNIQUE INDEX pages_statementreviewpolicy_pkey ON public.pages_statementreviewpolicy USING btree (singleton_key)",
+      "name": "pages_statementreviewpolicy_pkey",
+      "schema": "public",
+      "table": "pages_statementreviewpolicy"
+    },
+    {
+      "definition": "CREATE UNIQUE INDEX pages_statementsimilaritydocument_pkey ON public.pages_statementsimilaritydocument USING btree (id)",
+      "name": "pages_statementsimilaritydocument_pkey",
+      "schema": "public",
+      "table": "pages_statementsimilaritydocument"
+    },
+    {
+      "definition": "CREATE UNIQUE INDEX pages_statementsimilaritydocument_statement_id_key ON public.pages_statementsimilaritydocument USING btree (statement_id)",
+      "name": "pages_statementsimilaritydocument_statement_id_key",
+      "schema": "public",
+      "table": "pages_statementsimilaritydocument"
+    },
+    {
+      "definition": "CREATE UNIQUE INDEX pages_statementsimilarityindex_pkey ON public.pages_statementsimilarityindex USING btree (singleton_key)",
+      "name": "pages_statementsimilarityindex_pkey",
+      "schema": "public",
+      "table": "pages_statementsimilarityindex"
+    },
+    {
+      "definition": "CREATE UNIQUE INDEX pages_statementsimilaritysource_pkey ON public.pages_statementsimilaritysource USING btree (singleton_key)",
+      "name": "pages_statementsimilaritysource_pkey",
+      "schema": "public",
+      "table": "pages_statementsimilaritysource"
+    },
+    {
+      "definition": "CREATE UNIQUE INDEX pages_statementsimilarityterm_pkey ON public.pages_statementsimilarityterm USING btree (id)",
+      "name": "pages_statementsimilarityterm_pkey",
+      "schema": "public",
+      "table": "pages_statementsimilarityterm"
+    }
+  ],
+  "tables": [
+    {
+      "kind": "r",
+      "schema": "public",
+      "table": "pages_communityproblem"
+    },
+    {
+      "kind": "r",
+      "schema": "public",
+      "table": "pages_communityproblemreview"
+    },
+    {
+      "kind": "r",
+      "schema": "public",
+      "table": "pages_statementaireview"
+    },
+    {
+      "kind": "r",
+      "schema": "public",
+      "table": "pages_statementreviewpolicy"
+    },
+    {
+      "kind": "r",
+      "schema": "public",
+      "table": "pages_statementsimilaritydocument"
+    },
+    {
+      "kind": "r",
+      "schema": "public",
+      "table": "pages_statementsimilarityindex"
+    },
+    {
+      "kind": "r",
+      "schema": "public",
+      "table": "pages_statementsimilaritysource"
+    },
+    {
+      "kind": "r",
+      "schema": "public",
+      "table": "pages_statementsimilarityterm"
+    }
+  ]
+}

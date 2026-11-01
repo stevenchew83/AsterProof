@@ -35,16 +35,15 @@ The function does not update the existing statement rows. Updates that leave the
 statement text and active status unchanged do not advance the revision. Existing
 catalogue triggers and functions must remain byte-for-byte equivalent.
 
-## Deployment gate and required separate authorization
+## Bounded deployment allowance
 
-The existing installed worker admits specific frozen schema plans. It does not
-admit this two-migration plan. An application deployment request does not install
-new root-owned deployment authority.
+The `community-problems-maintenance-v1` allowance admits only the two frozen
+migrations above, after reporting migration 0041 is already applied. Both migration
+bytes and the index/model/management-command initialization sources are hash-bound.
+The separate trusted-worker installation and application deployment remain distinct
+operations through the existing bootstrap and protected Actions paths.
 
-Before production can accept this feature, a separately authorized authority
-update must be prepared and reviewed using the existing frozen maintenance path.
-Its scope must be limited to these exact migration hashes and initial derived
-index materialization. The reviewed change must include:
+The allowance preserves the existing frozen maintenance path and includes:
 
 1. An exact two-migration disclosure, with no unrelated pending operation.
 2. PostgreSQL 17.9 schema and trigger/function deltas, previous-record/sequence
@@ -52,8 +51,9 @@ index materialization. The reviewed change must include:
 3. The unchanged existing drain, encrypted RPO0 backup, isolated restore proof,
    lock/statement bounds, identity checks, attestation, and protected-environment
    approval gates.
-4. A bounded first refresh_statement_similarity_index execution after migration,
-   followed by read-only index readiness and authenticated route checks.
+4. A first refresh_statement_similarity_index execution bounded to 600 seconds,
+   followed by a 60-second index/AI-off check. The isolated rehearsal verifies
+   authenticated routes, trigger invalidation and preserved reporting records.
 5. A separate bootstrap installation from a reviewed immutable revision, preserving
    existing marker, target, users, database roles, credentials, key restrictions,
    network settings, application/proxy/scheduler configuration, and data.
@@ -65,8 +65,16 @@ bootstrap installer. It must not restart the app, migrate the database, change
 credentials or roles, enable AI review, or dispatch the application release as an
 installation side effect.
 
-This document is a release-readiness proposal, not an installed allowance,
-production authorization, PostgreSQL 17.9 attestation, or proof of deployment.
+The pinned PostgreSQL 17.9 rehearsal binds the additive eight-table delta
+`5207935ea199048e58e8e7796ca79a39757826e976fe139bc1eb33e9178970da`
+and the combined catalogue/community trigger metadata
+`5d0c68e538f93cc53c865d7e06b18042a5c4e240651f04fb4b8399fa6fd3d698`.
+Normal build proof must match both exact source and active release SHAs.
+
+Both plan validation and post-index verification require
+`PROBLEM_STATEMENT_AI_REVIEW_ENABLED` to be false. Initialization also rejects
+an enabled review policy or any review job. No provider call or review worker
+is part of this release. This document does not itself prove installation or deployment.
 
 ## Application verification
 
@@ -76,5 +84,7 @@ deduplication and daily limits. Desktop and phone layouts were inspected using
 synthetic posts. Paid provider calls were not used.
 
 Final CI must run against the exact merged application revision. Production
-deployment remains blocked until the separate authority scope above is authorized,
-implemented, rehearsed, reviewed, and installed.
+deployment uses the separately authorized authority scope above only after it is
+rehearsed, reviewed, and installed. Data-class failures remain recovery-required;
+inspect the existing operation and recovery receipt before any separately
+authorized recovery action. Never automatically retry or roll back.
