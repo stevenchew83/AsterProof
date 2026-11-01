@@ -6,10 +6,12 @@ from __future__ import annotations
 import copy
 import hashlib
 import json
+import sys
 from pathlib import Path
 from types import SimpleNamespace
 
 import pytest
+import yaml
 
 from scripts.deployment import additive_schema
 from scripts.deployment import assessment_prototype_schema as schema
@@ -88,6 +90,47 @@ def test_router_preserves_existing_allowances_and_only_admits_exact_assessment_p
         migration_class="backward-compatible-schema",
         initial_adoption=False,
     )
+
+
+@pytest.mark.parametrize("change", ["none", "missing_second", "extra", "reordered"])
+def test_production_disclosure_accepts_only_the_complete_frozen_two_migration_bundle(tmp_path, monkeypatch, change):
+    workflow = yaml.safe_load((ROOT / ".github/workflows/production-deploy.yml").read_text())
+    step = next(
+        step
+        for step in workflow["jobs"]["disclose"]["steps"]
+        if step["name"] == "Derive reviewed migration disclosure"
+    )
+    snippet = step["run"].split("<<'PY'\n", 1)[1].rsplit("\nPY", 1)[0]
+    migrations = [
+        {"migration": f"{app}.{name}", "classification": "backward-compatible-schema"}
+        for app, name in schema.MIGRATIONS
+    ]
+    if change == "missing_second":
+        migrations.pop()
+    elif change == "extra":
+        migrations.append({"migration": "solutions.0013_unapproved", "classification": "backward-compatible-schema"})
+    elif change == "reordered":
+        migrations.reverse()
+    path = tmp_path / "disclosure.json"
+    path.write_text(
+        json.dumps(
+            {
+                "active_sha": OLD_SHA,
+                "target_sha": NEW_SHA,
+                "classification": "backward-compatible-schema",
+                "migrations": migrations,
+            }
+        )
+    )
+    monkeypatch.setenv("SCHEMA_DISCLOSURE", json.dumps(disclosure()))
+    monkeypatch.setattr(sys, "argv", ["disclosure", str(path)])
+    command = compile(snippet, "<production-disclosure>", "exec", optimize=2)
+    if change == "none":
+        exec(command, {})  # noqa: S102 - Execute the exact checked-in workflow's Python contract.
+        assert json.loads(path.read_text())["schema_disclosure"] == disclosure()
+    else:
+        with pytest.raises(SystemExit, match="outside the approved migrations"):
+            exec(command, {})  # noqa: S102 - Execute the exact checked-in workflow's Python contract.
 
 
 def test_assessment_prototype_schema_is_bound_to_the_oidc_request_and_cannot_be_used_for_rollback():
