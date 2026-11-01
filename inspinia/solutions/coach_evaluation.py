@@ -197,4 +197,7 @@ def evaluate_reports(dataset, reports, *, split="held_out"):
         "reports_digest": canonical_digest(reports),
         "release_gate_passed": split == "held_out" and agreement >= MIN_AGREEMENT and not critical_false_clears,
         "labels": "coach_approved",
+        "evidence_origin": "unverified_import",
+        "model_readiness": False,
+        "activation_authorized": False,
     }

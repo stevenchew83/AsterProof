@@ -9,6 +9,7 @@ from inspinia.solutions.public_views import public_collection_view
 from inspinia.solutions.public_views import public_solution_image_view
 from inspinia.solutions.public_views import public_solution_view
 from inspinia.solutions.review_views import solution_review_create_view
+from inspinia.solutions.review_views import solution_review_reveal_view
 from inspinia.solutions.review_views import solution_review_status_view
 from inspinia.solutions.statement_authoring import statement_solution_start_view
 from inspinia.solutions.views import admin_problem_solution_pdf_view
@@ -21,9 +22,60 @@ from inspinia.solutions.views import problem_solution_share_view
 from inspinia.solutions.views import solution_body_image_upload_view
 from inspinia.solutions.views import solution_guide_preference_view
 
+from . import evaluation_views as evaluation
+from .evaluation_consent_views import solution_reuse_consent_create_view
+from .evaluation_consent_views import solution_reuse_consent_withdraw_view
+
 app_name = "solutions"
 
 urlpatterns = [
+    path(
+        "problems/<uuid:problem_uuid>/benchmark-consent/",
+        solution_reuse_consent_create_view,
+        name="solution_reuse_consent_create",
+    ),
+    path(
+        "benchmark-consents/<uuid:consent_id>/withdraw/",
+        solution_reuse_consent_withdraw_view,
+        name="solution_reuse_consent_withdraw",
+    ),
+    path("evaluation/", evaluation.evaluation_workspace, name="evaluation_workspace"),
+    path("evaluation/families/new/", evaluation.evaluation_family_create, name="evaluation_family_create"),
+    path(
+        "evaluation/families/<uuid:family_id>/cases/new/",
+        evaluation.evaluation_case_create,
+        name="evaluation_case_create",
+    ),
+    path("evaluation/cases/<uuid:case_id>/", evaluation.evaluation_case_detail, name="evaluation_case_detail"),
+    path("evaluation/cases/<uuid:case_id>/judge/", evaluation.evaluation_judgment, name="evaluation_judgment"),
+    path(
+        "evaluation/cases/<uuid:case_id>/adjudicate/",
+        evaluation.evaluation_adjudication,
+        name="evaluation_adjudication",
+    ),
+    path(
+        "evaluation/cases/<uuid:case_id>/assets/<uuid:asset_id>/",
+        evaluation.evaluation_asset,
+        name="evaluation_asset",
+    ),
+    path("evaluation/snapshots/new/", evaluation.evaluation_snapshot_create, name="evaluation_snapshot_create"),
+    path("evaluation/profiles/new/", evaluation.evaluation_profile_create, name="evaluation_profile_create"),
+    path(
+        "evaluation/snapshots/<uuid:snapshot_id>/import/",
+        evaluation.evaluation_run_import,
+        name="evaluation_run_import",
+    ),
+    path("evaluation/runs/<uuid:run_id>/", evaluation.evaluation_run_detail, name="evaluation_run_detail"),
+    path(
+        "evaluation/runs/<uuid:run_id>/cases/<uuid:case_id>/judge/",
+        evaluation.evaluation_finding_judgment,
+        name="evaluation_finding_judgment",
+    ),
+    path(
+        "evaluation/runs/<uuid:run_id>/cases/<uuid:case_id>/adjudicate/",
+        evaluation.evaluation_finding_adjudication,
+        name="evaluation_finding_adjudication",
+    ),
     path("admin/collections/", admin_collections_view, name="admin_collections"),
     path("admin/collections/selection/", admin_collection_selection_view, name="admin_collection_selection"),
     path("admin/collections/new/", admin_collection_edit_view, name="admin_collection_create"),
@@ -46,8 +98,16 @@ urlpatterns = [
     ),
     path("problems/<uuid:problem_uuid>/draft/", problem_solution_edit_view, name="problem_solution_edit"),
     path("problems/<uuid:problem_uuid>/reviews/", solution_review_create_view, name="solution_review_create"),
-    path("problems/<uuid:problem_uuid>/reviews/<uuid:review_id>/", solution_review_status_view,
-         name="solution_review_status"),
+    path(
+        "problems/<uuid:problem_uuid>/reviews/<uuid:review_id>/",
+        solution_review_status_view,
+        name="solution_review_status",
+    ),
+    path(
+        "problems/<uuid:problem_uuid>/reviews/<uuid:review_id>/findings/<str:finding_id>/reveal/",
+        solution_review_reveal_view,
+        name="solution_review_reveal",
+    ),
     path("problems/<uuid:problem_uuid>/share/", problem_solution_share_view, name="problem_solution_share"),
     path(
         "problems/<uuid:problem_uuid>/draft/pdf/",

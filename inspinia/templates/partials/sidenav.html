@@ -102,6 +102,9 @@
             {% if show_solution_workspace_link %}
             {% include 'partials/sidenav-link.html' with route_name='solutions:my_solution_list' label='My solutions' icon='file-pencil' only %}
             {% endif %}
+            {% if evaluation_workspace_available %}
+            {% include 'partials/sidenav-link.html' with route_name='solutions:evaluation_workspace' label='Coach evaluation' icon='clipboard-check' only %}
+            {% endif %}
             {% include 'partials/sidenav-link.html' with route_name='pages:user_activity_dashboard' label='My activity' icon='activity' only %}
             {% if shared_progress_links or show_problem_import_link or show_analytics_dashboard_link %}
             <li class="side-nav-item">

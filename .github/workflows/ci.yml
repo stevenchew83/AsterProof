@@ -76,6 +76,57 @@ jobs:
           uv venv .ci-quality --python "${PYTHON_VERSION}"
           uv pip install --python .ci-quality/bin/python -r requirements/local.txt
 
+      - name: Prepare dependency-only offline evaluation image
+        id: offline-image
+        if: steps.checks.outputs.runtime == 'true'
+        run: |
+          docker build --file scripts/offline/Dockerfile \
+            --iidfile "$RUNNER_TEMP/offline-dependencies.iid" requirements
+          image_id="$(cat "$RUNNER_TEMP/offline-dependencies.iid")"
+          echo "image_id=$image_id" >> "$GITHUB_OUTPUT"
+          docker run --rm --pull=never --network=none --read-only --cap-drop=ALL --user=65534:65534 \
+            --entrypoint cat "$image_id" /dependency-freeze.txt > "$RUNNER_TEMP/offline-dependencies.txt"
+          docker pull postgres:17.9-bookworm@sha256:47f917f7409eacd22fc5dfb1dee634e1b55cf0c01d1a7eb701be2227a03e0641
+
+      - name: Verify offline evaluation isolation and PostgreSQL races
+        if: steps.checks.outputs.runtime == 'true'
+        env:
+          OFFLINE_IMAGE_ID: ${{ steps.offline-image.outputs.image_id }}
+        run: |
+          set -o pipefail
+          offline_targets=(
+            --test-target inspinia/solutions/test_coach_evaluation.py
+            --test-target inspinia/solutions/test_reviews.py
+            --test-target inspinia/solutions/test_evaluation_contract.py
+            --test-target inspinia/solutions/test_evaluation_assistance.py
+            --test-target inspinia/solutions/test_evaluation_consent_views.py
+            --test-target inspinia/solutions/test_evaluation_retention.py
+            --test-target inspinia/solutions/test_evaluation_finding_adjudication.py
+            --test-target inspinia/solutions/test_evaluation_execution.py
+            --test-target inspinia/solutions/test_evaluation_governance.py
+            --test-target inspinia/solutions/test_evaluation_scoring.py
+            --test-target inspinia/solutions/test_evaluation_views.py
+            --test-target inspinia/solutions/test_evaluation_concurrency.py
+            --test-target inspinia/solutions/test_evaluation_security.py
+            --test-target scripts/tests/test_offline_evaluation.py
+          )
+          .ci-quality/bin/python -m scripts.offline_evaluation --image "$OFFLINE_IMAGE_ID" \
+            "${offline_targets[@]}" | tee "$RUNNER_TEMP/offline-evaluation-none.log"
+          .ci-quality/bin/python -m scripts.offline_evaluation --image "$OFFLINE_IMAGE_ID" \
+            --postgres "${offline_targets[@]}" | tee "$RUNNER_TEMP/offline-evaluation-postgres.log"
+
+      - name: Save offline evaluation engineering evidence
+        if: always() && steps.offline-image.outcome == 'success'
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
+        with:
+          name: offline-evaluation-${{ github.run_id }}
+          path: |
+            ${{ runner.temp }}/offline-dependencies.iid
+            ${{ runner.temp }}/offline-dependencies.txt
+            ${{ runner.temp }}/offline-evaluation-*.log
+          if-no-files-found: error
+          retention-days: 7
+
       - name: Validate production lock
         if: steps.checks.outputs.locks == 'true'
         run: python scripts/deployment/check_production_lock.py --verify-resolution
@@ -90,7 +141,10 @@ jobs:
           DATABASE_URL: postgres://postgres@127.0.0.1:5432/asterproof_schema_rehearsal
         run: |
           rehearsal_args=()
-          if ! git diff --quiet "$BASE_SHA" HEAD -- scripts/deployment/solution_document_schema.py scripts/deployment/solution_document_schema_rehearsal.py scripts/deployment/tests/fixtures/solution-document-schema-delta.json inspinia/solutions/migrations/0009_problemsolution_edit_version_solutionreviewpolicy_and_more.py; then
+          if ! git diff --quiet "$BASE_SHA" HEAD -- scripts/deployment/evaluation_schema.py inspinia/solutions/migrations/0010_offline_evaluation_contract.py; then
+            rehearsal=scripts.deployment.evaluation_schema
+            active_sha="$BASE_SHA"
+          elif ! git diff --quiet "$BASE_SHA" HEAD -- scripts/deployment/solution_document_schema.py scripts/deployment/solution_document_schema_rehearsal.py scripts/deployment/tests/fixtures/solution-document-schema-delta.json inspinia/solutions/migrations/0009_problemsolution_edit_version_solutionreviewpolicy_and_more.py; then
             rehearsal=scripts.deployment.solution_document_schema_rehearsal
             active_sha="$BASE_SHA"
           elif ! git diff --quiet "$BASE_SHA" HEAD -- scripts/deployment/curated_collections_schema.py scripts/deployment/curated_collections_schema_rehearsal.py scripts/deployment/tests/fixtures/curated-collections-schema-delta.json inspinia/solutions/migrations/0008_solutioncollection_kind_and_nullable_owner.py; then

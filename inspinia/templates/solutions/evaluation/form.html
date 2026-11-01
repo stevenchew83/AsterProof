@@ -1,0 +1,37 @@
+{% extends 'solutions/evaluation/base.html' %}
+{% block workspace_content %}
+<div class="row g-3"><div class="col-xl-9">
+  <div class="card"><div class="card-body">
+    {% if introduction %}<p class="text-muted">{{ introduction }}</p>{% endif %}
+    {% if frozen_input %}{% include 'solutions/evaluation/input.html' with bundle=frozen_input assets=assets only %}{% endif %}
+    {% include 'solutions/evaluation/judgments.html' %}
+    {% if inspected_report %}{% include 'solutions/evaluation/report.html' with report=inspected_report only %}{% endif %}
+    {% if ground_truth %}<section class="mb-4"><h2 class="h5">Approved mathematical ground truth</h2><p>{{ ground_truth.explanation|linebreaksbr }}</p>{% for defect in ground_truth.defects %}<p><code>{{ defect.id }}</code> · {{ defect.significance }}: {{ defect.explanation }}</p>{% endfor %}</section>{% endif %}
+    {% include 'solutions/evaluation/finding_judgments.html' %}
+    <form method="post" enctype="multipart/form-data">
+      {% csrf_token %}
+      {% include 'solutions/evaluation/form_fields.html' %}
+      {% for group in formsets %}
+      <fieldset class="mb-4"><legend class="h5">{{ group.title }}</legend>
+        <p class="text-muted fs-sm">{{ group.help }}</p>
+        {{ group.forms.management_form }}
+        {% if group.forms.non_form_errors %}<div class="alert alert-danger" role="alert">{{ group.forms.non_form_errors }}</div>{% endif %}
+        {% for child in group.forms %}
+          <details class="app-table-details mb-3" {% if child.errors or forloop.first %}open{% endif %}>
+            <summary class="fw-semibold py-2">{{ group.item_label }} {{ forloop.counter }}</summary>
+            <div class="app-table-details-body pt-2">{% include 'solutions/evaluation/form_fields.html' with form=child only %}</div>
+          </details>
+        {% endfor %}
+      </fieldset>
+      {% endfor %}
+      <div class="d-flex flex-wrap gap-2"><button class="btn btn-primary" type="submit">{{ submit_label|default:'Save' }}</button><a href="{{ cancel_url }}" class="btn btn-outline-secondary">Cancel</a></div>
+    </form>
+  </div></div>
+</div><aside class="col-xl-3">
+  <div class="card"><div class="card-body">
+    <h2 class="h5">Review boundaries</h2>
+    <p class="text-muted fs-sm">Assess the reasoning in the frozen input. An unfamiliar method is not an error. Record uncertainty and missing context explicitly.</p>
+    <p class="text-muted fs-sm mb-0">A submitted judgment is preserved. Corrections require a new supported decision.</p>
+  </div></div>
+</aside></div>
+{% endblock workspace_content %}

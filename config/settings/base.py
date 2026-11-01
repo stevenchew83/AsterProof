@@ -212,6 +212,7 @@ TEMPLATES = [
                 "django.contrib.messages.context_processors.messages",
                 "inspinia.users.context_processors.allauth_settings",
                 "inspinia.users.context_processors.app_roles",
+                "inspinia.solutions.evaluation_navigation.evaluation_workspace",
             ],
         },
     },
@@ -299,6 +300,7 @@ REDIS_SSL = REDIS_URL.startswith("rediss://")
 # Coaching is opt-in twice: this kill switch and an enabled, funded pilot policy.
 SOLUTION_DOCUMENT_WRITES_ENABLED = env.bool("SOLUTION_DOCUMENT_WRITES_ENABLED", default=False)
 SOLUTION_AI_REVIEW_ENABLED = env.bool("SOLUTION_AI_REVIEW_ENABLED", default=False)
+SOLUTION_AI_EXECUTION_MODE = "offline"
 OPENAI_API_KEY = env("OPENAI_API_KEY", default="")
 
 
