@@ -27,7 +27,7 @@ def documentation_only(path: str) -> bool:
     )
 
 
-def select_checks(paths: list[str]) -> dict:  # noqa: C901 - Explicit bounded path ownership rules.
+def select_checks(paths: list[str]) -> dict:  # noqa: C901, PLR0912 - Explicit bounded path ownership rules.
     changed = [path for path in paths if not documentation_only(path)]
     apps: set[str] = set()
     tests = set(CORE_TESTS) if changed else set()
@@ -65,6 +65,8 @@ def select_checks(paths: list[str]) -> dict:  # noqa: C901 - Explicit bounded pa
     for app in tuple(apps):
         apps.update(DEPENDENTS.get(app, set()))
     tests.update(f"inspinia/{app}" for app in apps if app != "users")
+    if apps == APPS:
+        tests.add("inspinia/test_page_loading.py")
     # An explicit descendant makes pytest collect only that file under this directory.
     # Keep the directory target so deployment and other script contracts still run.
     if "scripts" in tests:
