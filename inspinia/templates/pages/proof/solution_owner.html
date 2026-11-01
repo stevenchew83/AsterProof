@@ -1,0 +1,73 @@
+{% extends 'layouts/vertical.html' %}
+
+{% block title %}
+  Your community solution
+{% endblock title %}
+{% block extra_css %}
+  {% include 'pages/partials/community-styles.html' %}
+{% endblock extra_css %}
+{% block page_content %}
+  <div class="container-fluid">
+    <header class="page-title-head app-page-header">
+      {% include 'partials/page-header-intro.html' with title='Your community solution' subtitle='Community Proof Library' page_icon='ti-notes' only %}
+    </header>
+    {% include 'pages/proof/partials/messages.html' %}
+    <div class="d-flex flex-wrap align-items-center gap-2 mb-3">
+      <span class="badge bg-primary-subtle text-primary">{{ solution.get_status_display }}</span><span class="text-muted fs-sm">Published-copy revision {{ proof_revision.number }} · Statement version {{ revision.number }}</span>
+      {% if solution.is_held %}<span class="badge bg-warning-subtle text-warning">External access on hold</span>{% endif %}
+    </div>
+    <div class="row g-3">
+      <div class="col-lg-8">
+        <article class="card">
+          <div class="card-body">
+            <h2 class="fs-20">{{ proof_revision.title }}</h2>
+            <p class="text-muted fs-sm">Public credit: {{ proof_revision.public_credit }}</p>
+            {% if proof_revision.summary %}<p>{{ proof_revision.summary }}</p>{% endif %}
+            <div class="community-problem-text tex2jax_ignore"
+                 data-proof-source
+                 data-proof-media-prefix="{{ proof_revision.media_prefix }}">{{ proof_revision.body_source }}</div>
+          </div>
+        </article>
+        <details class="card mt-3">
+          <summary class="card-body fw-semibold">Statement this proof answers</summary>
+          <div class="card-body pt-0">
+            <h2 class="fs-16">{{ snapshot.title }}</h2>
+            {% include 'pages/proof/partials/statement.html' %}
+          </div>
+        </details>
+      </div>
+      <aside class="col-lg-4">
+        <section class="card">
+          <div class="card-body">
+            <h2 class="header-title fs-16">Your contribution</h2>
+            <p class="text-muted fs-sm">
+              Saving your private draft does not change this submitted copy. A new proof version needs a fresh publication review.
+            </p>
+            {% if proof_revision.source_attempt_id %}
+              <a class="btn btn-outline-primary w-100 mb-2"
+                 href="{% url 'pages:proof_attempt_edit' attempt_id=proof_revision.source_attempt_id %}">Open your private attempt</a>
+              <a class="btn btn-outline-primary w-100 mb-2"
+                 href="{% url 'pages:proof_solution_publish' attempt_id=proof_revision.source_attempt_id %}?solution={{ solution.pk }}">Review updated proof copy</a>
+            {% endif %}
+            {% if solution.status != 'withdrawn' %}
+              <form method="post">
+                {% csrf_token %}
+                <input type="hidden" name="version" value="{{ solution.version }}" />
+                <button type="submit"
+                        name="action"
+                        value="withdraw"
+                        class="btn btn-outline-danger w-100">Withdraw this proof</button>
+              </form>
+            {% endif %}
+            <p class="text-muted fs-xs mt-3 mb-0">
+              Withdrawal removes public access to this contribution and preserves your private work.
+            </p>
+          </div>
+        </section>
+      </aside>
+    </div>
+  </div>
+{% endblock page_content %}
+{% block extra_javascript %}
+  {% include 'pages/proof/partials/render-scripts.html' %}
+{% endblock extra_javascript %}

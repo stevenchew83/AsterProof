@@ -66,9 +66,12 @@ from inspinia.pages.views import topic_tag_analytics_view
 from inspinia.pages.views import user_activity_dashboard_view
 from inspinia.pages.views import user_solution_record_list_view
 
+from .proof_urls import urlpatterns as proof_urlpatterns
+
 app_name = "pages"
 
 urlpatterns = [
+    *proof_urlpatterns,
     path("community/problems/", community_problem_list, name="community_problem_list"),
     path("community/problems/new/", community_problem_create, name="community_problem_create"),
     path("community/problems/<uuid:problem_id>/", community_problem_detail, name="community_problem_detail"),

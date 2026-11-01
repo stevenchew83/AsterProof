@@ -1,0 +1,198 @@
+{% extends 'website/base.html' %}
+
+{% load static %}
+
+{% block public_stylesheet %}
+  {% static 'css/public-community.min.css' %}
+{% endblock public_stylesheet %}
+{% block public_content %}
+  <div class="website-container proof-public">
+    <nav class="proof-breadcrumb" aria-label="Community navigation">
+      <a href="{% url 'pages:proof_public_list' %}"><span aria-hidden="true">←</span> Community Proof Library</a>
+      <span class="proof-visibility">
+        {% if publication.visibility == 'unlisted' %}
+          Unlisted · Anyone with this link
+        {% else %}
+          Public problem
+        {% endif %}
+      </span>
+    </nav>
+    <header class="proof-heading">
+      <p class="website-kicker">{{ snapshot.topic_label|default:snapshot.topic }} · Community problem</p>
+      <h1>{{ snapshot.title }}</h1>
+      <div class="proof-byline">
+        <span class="proof-contributor">Shared by {{ publication.public_credit|default:'Community contributor' }}</span>
+        <span class="proof-review-status">Reviewed for sharing</span>
+      </div>
+    </header>
+    <div class="proof-layout">
+      <article class="proof-statement-card" aria-labelledby="statement-heading">
+        <div class="proof-statement-heading">
+          <h2 id="statement-heading">Problem statement</h2>
+          <span>Version {{ revision.number }}</span>
+        </div>
+        <div class="proof-statement" data-community-math>{{ snapshot.statement_latex }}</div>
+        <div class="proof-statement-footer">
+          <p class="proof-meta">
+            Proposed difficulty
+            {% if snapshot.mohs == None %}
+              <strong>Unknown</strong>
+            {% else %}
+              <strong>{{ snapshot.mohs }} MOHS</strong>
+            {% endif %}
+          </p>
+          {% if snapshot.source_details %}
+            <details class="proof-attribution">
+              <summary>
+                Source &amp; attribution <span aria-hidden="true">⌄</span>
+              </summary>
+              <div>
+                <p>{{ snapshot.source_details }}</p>
+                {% if snapshot.source_url %}
+                  <a href="{{ snapshot.source_url }}"
+                     rel="noopener noreferrer"
+                     target="_blank">Original source ↗<span class="visually-hidden">(opens in a new tab)</span></a>
+                {% endif %}
+              </div>
+            </details>
+          {% endif %}
+        </div>
+      </article>
+      <section class="proof-workspace" aria-labelledby="workspace-heading">
+        <p class="website-kicker">Your approach</p>
+        <h2 id="workspace-heading">Start with a fresh page.</h2>
+        <p>Work through the problem in your own private draft.</p>
+        <a href="{% url 'pages:proof_attempt' token=token %}"
+           class="website-button">Solve this problem <span aria-hidden="true">↗</span></a>
+        <p class="proof-privacy">Your draft stays private. Sharing is separate.</p>
+      </section>
+      <div class="proof-explore">
+        <details class="proof-disclosure">
+          <summary>
+            <span class="proof-disclosure-copy"><span class="proof-disclosure-title">Hints and classification</span><span class="proof-meta">A nudge when you need one</span></span>
+            <span class="proof-expand" aria-hidden="true">+</span>
+          </summary>
+          <div class="proof-disclosure-body">
+            <p class="proof-meta">Area and concept classification: awaiting review.</p>
+            {% if snapshot.topic_tags %}
+              <p class="proof-small">Contributor-suggested techniques: {{ snapshot.topic_tags }}</p>
+            {% endif %}
+            {% if snapshot.public_hint %}
+              <div class="proof-statement" data-community-math>{{ snapshot.public_hint }}</div>
+            {% else %}
+              <p class="proof-small">No public hint yet. Try your approach or compare the solutions below.</p>
+            {% endif %}
+          </div>
+        </details>
+        <details class="proof-disclosure" id="community-solutions">
+          <summary>
+            <span class="proof-disclosure-copy"><span class="proof-disclosure-title">Reveal community solutions <span class="proof-count">{{ solution_count }}</span></span><span class="proof-meta">Compare approaches when you’re ready</span></span>
+            <span class="proof-expand" aria-hidden="true">+</span>
+          </summary>
+          <div class="proof-disclosure-body">
+            <p class="proof-notice">Reviewed for publication, not mathematical correctness.</p>
+            {% for solution in solutions %}
+              <article class="proof-solution" id="solution-{{ solution.pk }}">
+                <div class="proof-toolbar">
+                  <h2>{{ solution.current_revision.title|default:'A community proof' }}</h2>
+                  <a class="proof-quiet-link"
+                     href="{% url 'pages:proof_solution_report' token=token solution_id=solution.pk %}">Report this proof</a>
+                </div>
+                <p class="proof-meta">
+                  {{ solution.current_revision.public_credit|default:'Community contributor' }} · {{ solution.current_revision.created_at|date:'j M Y' }}
+                </p>
+                {% if solution.current_revision.summary %}
+                  <p class="proof-small proof-solution-summary">{{ solution.current_revision.summary }}</p>
+                {% endif %}
+                <div class="proof-source tex2jax_ignore"
+                     data-proof-source
+                     data-proof-media-prefix="{{ solution.current_revision.media_prefix }}">
+                  {{ solution.current_revision.body_source }}
+                </div>
+              </article>
+            {% empty %}
+              <div class="proof-empty">
+                <h2>The first approach could be yours.</h2>
+                <p>Save a private draft, then share your argument when you’re ready.</p>
+              </div>
+            {% endfor %}
+            {% if solutions_page.paginator.num_pages > 1 %}
+              <nav class="proof-pagination"
+                   aria-label="Current statement solution pages">
+                <span class="proof-meta">Page {{ solutions_page.number }} of {{ solutions_page.paginator.num_pages }}</span>
+                <div>
+                  {% if solutions_page.has_previous %}
+                    <a class="website-text-link"
+                       href="?solutions_page={{ solutions_page.previous_page_number }}&amp;historical_page={{ historical_page.number|default:1 }}#community-solutions">Previous solutions</a>
+                  {% endif %}
+                  {% if solutions_page.has_next %}
+                    <a class="website-text-link"
+                       href="?solutions_page={{ solutions_page.next_page_number }}&amp;historical_page={{ historical_page.number|default:1 }}#community-solutions">Next solutions</a>
+                  {% endif %}
+                </div>
+              </nav>
+            {% endif %}
+            {% if historical_solutions %}
+              <details class="proof-disclosure proof-history">
+                <summary>
+                  <span class="proof-disclosure-title">Proofs for earlier statement versions</span><span class="proof-expand" aria-hidden="true">+</span>
+                </summary>
+                <div class="proof-disclosure-body">
+                  {% for solution in historical_solutions %}
+                    <article class="proof-solution">
+                      <h2>{{ solution.current_revision.title|default:'A community proof' }}</h2>
+                      <p class="proof-meta">
+                        {{ solution.current_revision.public_credit|default:'Community contributor' }} · Answers statement version {{ solution.current_revision.statement_revision.number }}
+                      </p>
+                      <p class="proof-small">The statement has changed. This proof answers its original version.</p>
+                      <div class="proof-source tex2jax_ignore"
+                           data-proof-source
+                           data-proof-media-prefix="{{ solution.current_revision.media_prefix }}">
+                        {{ solution.current_revision.body_source }}
+                      </div>
+                    </article>
+                  {% endfor %}
+                  {% if historical_page.paginator.num_pages > 1 %}
+                    <nav class="proof-pagination"
+                         aria-label="Earlier statement solution pages">
+                      <span class="proof-meta">Page {{ historical_page.number }} of {{ historical_page.paginator.num_pages }}</span>
+                      <div>
+                        {% if historical_page.has_previous %}
+                          <a class="website-text-link"
+                             href="?historical_page={{ historical_page.previous_page_number }}&amp;solutions_page={{ solutions_page.number|default:1 }}#community-solutions">Previous earlier proofs</a>
+                        {% endif %}
+                        {% if historical_page.has_next %}
+                          <a class="website-text-link"
+                             href="?historical_page={{ historical_page.next_page_number }}&amp;solutions_page={{ solutions_page.number|default:1 }}#community-solutions">Next earlier proofs</a>
+                        {% endif %}
+                      </div>
+                    </nav>
+                  {% endif %}
+                </div>
+              </details>
+            {% endif %}
+          </div>
+        </details>
+      </div>
+      <section class="proof-sharing" aria-labelledby="sharing-heading">
+        <h2 id="sharing-heading">Invite another perspective</h2>
+        <div class="proof-share-actions">
+          <button type="button" data-proof-copy="{{ canonical_url }}">
+            Copy problem link <span aria-hidden="true">↗</span>
+          </button>
+          {% if whatsapp_url %}
+            <a href="{{ whatsapp_url }}" target="_blank" rel="noopener noreferrer">Share on WhatsApp <span aria-hidden="true">↗</span><span class="visually-hidden">(opens in a new tab)</span></a>
+          {% endif %}
+        </div>
+        <p class="proof-meta proof-copy-feedback"
+           role="status"
+           data-copy-feedback></p>
+      </section>
+      <a href="{% url 'pages:proof_report' token=token %}"
+         class="proof-quiet-link proof-report-link">Report a concern <span aria-hidden="true">↗</span></a>
+    </div>
+  </div>
+{% endblock public_content %}
+{% block javascript %}
+  {% include 'pages/proof/partials/render-scripts.html' %}
+{% endblock javascript %}

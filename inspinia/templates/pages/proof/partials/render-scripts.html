@@ -1,0 +1,24 @@
+{% load static %}
+
+{% include 'pages/partials/community-math.html' %}
+<script defer src="{% static 'js/solution-document-preview.bundle.js' %}"></script>
+<script>
+  document.addEventListener('DOMContentLoaded', () => {
+    document.querySelectorAll('[data-proof-source]').forEach(element => {
+      if (window.AsterProofSolutionDocument) {
+        window.AsterProofSolutionDocument.renderInto(element, element.textContent, {
+          mediaUrlPrefix: element.dataset.proofMediaPrefix || ''
+        });
+      }
+    });
+    document.querySelectorAll('[data-proof-copy]').forEach(button => button.addEventListener('click', async () => {
+      const feedback = document.querySelector('[data-copy-feedback]');
+      try {
+        await navigator.clipboard.writeText(button.dataset.proofCopy);
+        if (feedback) feedback.textContent = 'Link copied.';
+      } catch (_) {
+        if (feedback) feedback.textContent = 'Copy the problem URL from your browser’s address bar.';
+      }
+    }));
+  });
+</script>

@@ -2,12 +2,16 @@ from __future__ import annotations
 
 import typing
 from email.mime.image import MIMEImage
+from urllib.parse import urlsplit
 
 from allauth.account.adapter import DefaultAccountAdapter
 from allauth.socialaccount.adapter import DefaultSocialAccountAdapter
 from django.conf import settings
 from django.core.mail import EmailMultiAlternatives
 from django.template.loader import render_to_string
+from django.urls import Resolver404
+from django.urls import resolve
+from django.utils.http import url_has_allowed_host_and_scheme
 
 if typing.TYPE_CHECKING:
     from allauth.socialaccount.models import SocialLogin
@@ -21,6 +25,23 @@ def _apply_signup_auto_approval(user: User) -> None:
 
     if UserAccessSettings.get_solo().auto_approve_new_users:
         user.is_approved = True
+
+
+def _community_return_path(request):
+    target = request.POST.get("next") or request.GET.get("next") or ""
+    if not target.startswith("/") or target.startswith("//"):
+        return None
+    if not url_has_allowed_host_and_scheme(target, {request.get_host()}, require_https=request.is_secure()):
+        return None
+    try:
+        match = resolve(urlsplit(target).path)
+    except (Resolver404, ValueError):
+        return None
+    allowed = {
+        "pages:proof_attempt", "pages:proof_attempt_edit", "pages:proof_report", "pages:proof_solution_report",
+        "pages:proof_sharing", "pages:proof_solution_owner", "pages:proof_solution_publish",
+    }
+    return target if match.view_name in allowed else None
 
 
 class AccountAdapter(DefaultAccountAdapter):
@@ -70,7 +91,9 @@ class AccountAdapter(DefaultAccountAdapter):
         from inspinia.solutions.writer_drafts import get_writer_draft
         from inspinia.solutions.writer_drafts import writer_handoff_url
 
-        redirect_url = writer_handoff_url() if get_writer_draft(request) else user.get_login_redirect_url()
+        redirect_url = _community_return_path(request) or (
+            writer_handoff_url() if get_writer_draft(request) else user.get_login_redirect_url()
+        )
         return super().post_login(
             request,
             user,
