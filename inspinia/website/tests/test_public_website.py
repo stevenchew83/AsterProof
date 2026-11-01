@@ -1,3 +1,4 @@
+from html.parser import HTMLParser
 from http import HTTPStatus
 
 import pytest
@@ -107,12 +108,33 @@ def test_problem_solving_links_approved_users_to_the_problem_library(client):
 
 
 def test_problem_solving_example_uses_one_continuous_solution_document(client):
+    class DocumentSourceParser(HTMLParser):
+        def __init__(self):
+            super().__init__()
+            self.in_document = False
+            self.parts = []
+
+        def handle_starttag(self, tag, attrs):
+            if tag == "textarea":
+                self.in_document = dict(attrs).get("data-demo-source") == "document"
+
+        def handle_endtag(self, tag):
+            if tag == "textarea":
+                self.in_document = False
+
+        def handle_data(self, data):
+            if self.in_document:
+                self.parts.append(data)
+
     response = client.get(reverse("website:problem_solving"))
     html = response.content.decode()
-    source = response.context["example_document"]
+    parser = DocumentSourceParser()
+    parser.feed(html)
+    source = "".join(parser.parts)
 
     assert html.count("data-demo-source=") == 1
-    assert 'id="demo-document" data-demo-source="document"' in html
+    assert 'for="demo-document"' in html
+    assert 'data-demo-source="document"' in html
     assert html.count('data-demo-preview="document"') == 1
     assert "One document." in html
     assert "write your whole argument in one document" in html

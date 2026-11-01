@@ -18,5 +18,3 @@ INEQUALITY_BLOCKS = (
         "body": "Equality holds if and only if all three squares vanish, which is equivalent to $a=b=c$.",
     },
 )
-
-INEQUALITY_SOLUTION = "\n\n".join(block["body"] for block in INEQUALITY_BLOCKS)
