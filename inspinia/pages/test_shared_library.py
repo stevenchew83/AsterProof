@@ -216,6 +216,18 @@ def test_record_only_search_and_metadata_filters_apply_before_cap(client):
         assert rows_by_uuid(response)[str(target.problem_uuid)]["concept_coverage"][0]["id"] == "am-gm"
 
 
+def test_record_only_difficulty_link_keeps_the_problem_in_the_shared_library(client):
+    client.force_login(UserFactory())
+    older = problem()
+    statement(2)
+    row = rows_by_uuid(library(client))[str(older.problem_uuid)]
+
+    filtered = client.get(row["linked_problem_mohs_url"])
+
+    assert filtered.status_code == HTTPStatus.OK
+    assert set(rows_by_uuid(filtered)) == {str(older.problem_uuid)}
+
+
 def test_future_upload_is_immediately_in_the_shared_library_and_start_reuses_uuid(client):
     viewer = UserFactory()
     client.force_login(viewer)

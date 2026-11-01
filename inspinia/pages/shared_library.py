@@ -16,7 +16,6 @@ from django.utils import timezone
 
 from inspinia.pages.algebra_tag_search import tag_token_query
 from inspinia.pages.completion_record_fields import SOLVED_STATUSES
-from inspinia.pages.contest_links import contest_dashboard_listing_url
 from inspinia.pages.models import ContestProblemStatement
 from inspinia.pages.models import ProblemSolveRecord
 from inspinia.pages.models import ProblemTopicTechnique
@@ -195,7 +194,9 @@ def problem_rows(problems, *, viewer, progress_user):
             ),
             "linked_problem_topic": display_topic_label(problem.topic), "linked_problem_mohs": problem.mohs,
             "linked_problem_mohs_url": (
-                contest_dashboard_listing_url(problem.contest, mohs=problem.mohs) if problem.mohs is not None else ""
+                reverse("pages:problem_statement_list") + "?" + urlencode({
+                    "q": problem.contest, "mohs_min": problem.mohs, "mohs_max": problem.mohs,
+                }) if problem.mohs is not None else ""
             ),
             "linked_problem_confidence": problem.confidence or "", "linked_problem_confidence_url": "",
             "linked_problem_imo_slot_guess_value": problem.imo_slot_guess_value or "",
