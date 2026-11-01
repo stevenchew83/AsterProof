@@ -91,7 +91,7 @@ def test_editor_uses_problem_tags_without_creating_a_statement_or_solution(edito
     response = client.get(url)
     assert response.status_code == HTTPStatus.OK
     assert [c["id"] for c in response.context["editor_coverage"]["concept_coverage"]] == ["substitution"]
-    assert "No linked statement is available" in response.content.decode()
+    assert "Statement missing." in response.content.decode()
     assert not ContestProblemStatement.objects.exists()
     assert not ProblemSolution.objects.exists()
 

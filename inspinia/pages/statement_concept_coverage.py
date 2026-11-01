@@ -191,6 +191,30 @@ def statement_coverage_payloads(statements: list, *, resolver=None) -> dict:
     }
 
 
+def problem_coverage_payloads(problems: list) -> dict:
+    """Use the same reviewed coverage rules for library entries without statements."""
+    from inspinia.pages.concept_assignment_service import projection_enabled
+    from inspinia.pages.concept_assignment_service import projection_payloads
+    from inspinia.pages.concept_assignment_trace import load_sources
+
+    if projection_enabled():
+        payloads = projection_payloads(load_sources(str(p.problem_uuid) for p in problems))
+        return {p.pk: payloads[str(p.problem_uuid)] for p in problems}
+    tags, seen = defaultdict(list), set()
+    for tag in ProblemTopicTechnique.objects.filter(record_id__in=[p.pk for p in problems]).order_by(
+        "technique", "id",
+    ).values("record_id", *TAG_FIELDS):
+        key = (tag["record_id"], caption_key(tag["technique"]))
+        if key not in seen:
+            seen.add(key)
+            tags[tag["record_id"]].append(tag)
+    resolver = TagCoverageResolver()
+    return {
+        p.pk: _coverage(tags[p.pk], topic=p.topic, active=p.is_active, resolver=resolver)
+        for p in problems
+    }
+
+
 def _captions(field: str, captions) -> Q:
     # Whole serialized JSON elements retain punctuation and domain qualifiers.
     values = sorted(set(captions))
@@ -293,3 +317,31 @@ def statement_concept_search(token: str) -> Q:
         _coverage_linked_topic=ExpressionWrapper(OuterRef("linked_problem__topic"), output_field=CharField()),
     ).filter(problem_match & valid, record_id=OuterRef("linked_problem_id"))
     return Q(is_active=True) & (Q(Exists(own)) | (~Q(Exists(any_own)) & Q(Exists(linked))))
+
+
+def problem_concept_search(token: str) -> Q:
+    """Search canonical coverage for a library problem with no statement row."""
+    from inspinia.pages.concept_assignment_registry import REGISTRY
+    from inspinia.pages.concept_assignment_service import accepted_problem_ids
+    from inspinia.pages.concept_assignment_service import projection_enabled
+
+    if projection_enabled():
+        ids = {
+            cid for cid, definition in REGISTRY.definitions.items()
+            if caption_key(token) in caption_key(" ".join([
+                definition["label"], *(a["label"] for a in definition["area_memberships"]),
+            ]))
+        }
+        return Q(problem_uuid__in=accepted_problem_ids(ids))
+    by_subject = defaultdict(set)
+    for cid, definition in CONCEPTS.items():
+        if caption_key(token) in caption_key(f"{definition['label']} {definition['area_label']}"):
+            by_subject[definition.get("subject", "Algebra")].add(cid)
+    match = Q(pk__in=[])
+    for subject, ids in by_subject.items():
+        match |= _subject_search(subject, ids) & _subject_scope(subject, parent="problem")
+    tags = ProblemTopicTechnique.objects.alias(
+        _coverage_topic=ExpressionWrapper(OuterRef("topic"), output_field=CharField()),
+        _coverage_linked_topic=ExpressionWrapper(OuterRef("topic"), output_field=CharField()),
+    ).filter(match, record_id=OuterRef("pk")).exclude(normalization_status__iregex="^(?:invalid|corrupt|metadata)$")
+    return Q(is_active=True) & Q(Exists(tags))

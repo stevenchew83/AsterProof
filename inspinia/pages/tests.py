@@ -5538,7 +5538,7 @@ def test_contest_advanced_analytics_view_renders_selected_contest_breakdown(clie
         day_label="Day 1",
         statement_latex="Statement one",
     )
-    ContestProblemStatement.objects.create(
+    standalone_statement = ContestProblemStatement.objects.create(
         contest_year=2025,
         contest_name="USAMO",
         problem_number=2,
@@ -5597,7 +5597,9 @@ def test_contest_advanced_analytics_view_renders_selected_contest_breakdown(clie
     assert heatmap_2025_p1["state"] == "empty"
     assert heatmap_2025_p2["state"] == "unsolved"
     assert heatmap_2025_p2["display"] == "•"
-    assert heatmap_2025_p2["solution_url"] == ""
+    assert heatmap_2025_p2["solution_url"] == reverse(
+        "pages:problem_statement_detail", args=[standalone_statement.statement_uuid],
+    )
     assert heatmap["chart"]["max_value"] == 3
     assert heatmap["chart"]["series"] == [
         {
@@ -5637,7 +5639,9 @@ def test_contest_advanced_analytics_view_renders_selected_contest_breakdown(clie
                 },
                 {
                     "display": "•",
-                    "solution_url": "",
+                    "solution_url": reverse(
+                        "pages:problem_statement_detail", args=[standalone_statement.statement_uuid],
+                    ),
                     "state": "unsolved",
                     "title": "USAMO 2025 P2: 0 of 1 statement completed by you",
                     "x": "P2",
@@ -5695,8 +5699,8 @@ def test_contest_advanced_analytics_view_renders_selected_contest_breakdown(clie
     assert '<option value="USAMO" label="2 statements">' in response_html
     assert '<select id="contest-advanced-selector"' not in response_html
     assert "Years" in response_html
-    assert "Linked" in response_html
-    assert "Solved" in response_html
+    assert "Needs classification" in response_html
+    assert "My solved" in response_html
     assert reverse("pages:completion_quick_update") + "?contest=USAMO&amp;year=2026" in response_html
     assert reverse("pages:contest_dashboard_listing") not in response_html
     assert "Open contest listing" not in response_html
@@ -6277,7 +6281,7 @@ def test_contest_dashboard_listing_view_filters_selected_contest_and_year_for_ad
     assert '<nav class="app-page-header-context" aria-label="Breadcrumb">' in response_html
     assert '<dl class="app-page-header-stats" aria-label="Contest overview">' in response_html
     assert re.search(r"Visible problems\s*</dt>\s*<dd>\s*1\s*</dd>", response_html)
-    assert re.search(r"Solved\s*</dt>\s*<dd>\s*1\s*</dd>", response_html)
+    assert re.search(r"My solved\s*</dt>\s*<dd>\s*1\s*</dd>", response_html)
     assert "contest-dashboard-filter-toolbar" in response_html
     assert "contest-dashboard-bulk-bar" in response_html
     assert "Bulk selection" not in response_html
@@ -6999,7 +7003,7 @@ def test_problem_statement_list_keeps_average_difficulty_without_user_editor(cli
     assert "js-statement-difficulty-save" not in response_html
     assert "statement-difficulty-editor" not in response_html
     assert response.context["statement_copy_tsv"].splitlines()[0] == (
-        "Year\tContest\tTopic\tProblem code\tDay\tSolved\tArea\tCoverage\tMapping status\tMOHS\t"
+        "Year\tContest\tTopic\tProblem code\tDay\tMy progress\tArea\tCoverage\tMapping status\tMOHS\t"
         "Avg difficulty\tDifficulty ratings\tConfidence\tIMO slot\tUpdated\tReview labels\tOriginal tags"
     )
 
@@ -10054,7 +10058,7 @@ def test_page_view_analytics_tracks_core_archive_surfaces_for_admin(client):
     assert response.context["page_view_top_solutions"][0]["view_total"] == 1
     assert {row["label"] for row in response.context["page_view_top_lists"]} == {
         "Geometry warmups",
-        "Problem statement list",
+        "Problem library",
     }
     assert response.context["page_view_top_contests"][0]["contest_name"] == "IMO"
     assert response.context["page_view_top_contests"][0]["view_total"] == 1
@@ -18633,7 +18637,7 @@ def test_problem_statement_list_shows_statement_rows_and_link_counts(client):
     assert response.context["statement_has_active_filters"] is False
     assert response.context["statement_active_filter_chips"] == []
     assert response.context["statement_loaded_summary"] == "Loaded 2 matching rows"
-    assert "Problem statements" in response_html
+    assert "Problem library" in response_html
     assert 'id="statement-year-filter"' in response_html
     assert 'id="statement-topic-filter"' in response_html
     assert 'id="statement-confidence-filter"' in response_html
@@ -18644,7 +18648,7 @@ def test_problem_statement_list_shows_statement_rows_and_link_counts(client):
     assert 'id="problem-statements-copy-status"' in response_html
     assert 'id="problem-statements-loaded-status"' in response_html
     assert "Copy loaded rows" in response_html
-    assert 'role="search" aria-label="Statement library"' in response_html
+    assert 'role="search" aria-label="Problem library"' in response_html
     assert "Search library" in response_html
     assert "Open statement" in response_html
     assert "Loaded 2 matching rows" in response_html
@@ -19186,8 +19190,8 @@ def test_problem_statement_list_recheck_links_updates_matching_rows_for_admin(cl
     assert response.context["statement_stats"]["linked_total"] == EXPECTED_RECORD_COUNT
     assert response.context["statement_stats"]["unlinked_total"] == 0
     response_html = response.content.decode("utf-8")
-    assert 'id="problem-statements-recheck-links"' in response_html
-    assert "Recheck links" in response_html
+    assert 'id="problem-statements-recheck-links"' not in response_html
+    assert "Recheck links" not in response_html
     assert (
         "Rechecked 1 statement row(s): 1 linked, 1 newly linked, 0 skipped, "
         "0 still unlinked, 1 updated."

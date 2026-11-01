@@ -84,7 +84,7 @@
                 {% if problem_data.statement_entry %}
                 Statement imported as {{ problem_data.statement_entry.problem_code }}{% if problem_data.statement_entry.day_label %} · {{ problem_data.statement_entry.day_label }}{% endif %}.
                 {% else %}
-                No linked statement imported yet.
+                Statement missing. Existing progress and solutions are retained.
                 {% endif %}
               </p>
             </div>
@@ -111,7 +111,7 @@
           </div>
           {% else %}
           <div class="alert alert-light border mb-0" role="alert">
-            A linked statement is not available for this problem yet.
+            A statement has not been uploaded for this problem yet.
           </div>
           {% endif %}
           <section class="solution-guide-panel mt-3" aria-labelledby="solution-hints-title">

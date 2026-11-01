@@ -540,9 +540,6 @@
                   <td class="completion-board-row-progress text-center">
                     <div class="completion-board-row-progress-count">{{ row.solved_total }} / {{ row.problem_total }}</div>
                     <div class="completion-board-row-progress-rate">{{ row.completion_rate|floatformat:0 }}% complete</div>
-                    {% if row.unlinked_total %}
-                    <div class="completion-board-row-progress-rate">{{ row.unlinked_total }} unlinked</div>
-                    {% endif %}
                   </td>
                   {% for cell in row.cells %}
                   <td class="completion-board-cell-wrap">
