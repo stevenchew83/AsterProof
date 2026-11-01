@@ -74,6 +74,24 @@ manifest, guarded-file and process-bound checks before schema application.
 Automatic and explicit recovery retain the reader floor. Do not relabel an old
 manifest, invent a recovery target, drop tables, or bypass a required check.
 
+## PostgreSQL restore comparison
+
+The Training identity constraint `learning_document_canonical_identity` has one
+observed PostgreSQL 17.9 dump/restore representation difference: its array-wide
+`varchar[]` to `text[]` cast is distributed over the three literal elements.
+The complete OR expression, its null predicates and its permitted document kinds
+are unchanged. The recovery comparison recognizes only that exact full definition
+for the named public-table CHECK, including its constraint type. It preserves
+every other definition and object identity for strict comparison.
+
+A local PostgreSQL 17.9 schema-only dump/restore checked all 119 new constraints,
+including 24 CHECKs. This was the sole additional Training mismatch; the two
+Assessment CHECK differences are handled by the preceding recovery fix.
+Regression coverage rejects changed names, schemas, tables, types, literals,
+operators and null predicates. This schema-only proof does not establish record
+preservation; the populated migration rehearsal remains a separate required check.
+No migration bytes or production schema fingerprints are changed by this comparison.
+
 ## Evidence for the new baseline
 
 Existing Training PostgreSQL validation reports describe the earlier prerequisite
