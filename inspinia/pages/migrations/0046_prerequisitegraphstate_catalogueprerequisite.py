@@ -8,7 +8,7 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ("pages", "0044_learning_page_activity"),
+        ("pages", "0045_community_proof_library"),
         migrations.swappable_dependency(settings.AUTH_USER_MODEL),
     ]
 

@@ -1,0 +1,35 @@
+{% extends 'layouts/vertical.html' %}
+
+{% block title %}
+  Report a concern
+{% endblock title %}
+{% block page_content %}
+  <div class="container-fluid">
+    <header class="page-title-head app-page-header">
+      {% include 'partials/page-header-intro.html' with title='Report a concern' subtitle='Community Proof Library' page_icon='ti-flag' only %}
+    </header>
+    {% include 'pages/proof/partials/messages.html' %}
+    <div class="row g-3">
+      <div class="col-lg-7">
+        <section class="card">
+          <div class="card-body">
+            <h2 class="fs-18">{{ snapshot.title }}</h2>
+            {% if solution %}<p class="text-muted fs-sm">About a published community proof.</p>{% endif %}
+            <p class="text-muted fs-sm">
+              Describe a possible gap, copied material, or inappropriate content. Reports are visible to authorized admins, not other readers.
+            </p>
+            <form method="post">
+              {% csrf_token %}
+              {% include 'pages/proof/partials/fields.html' %}
+              <button type="submit" class="btn btn-primary">Send report</button>
+              {% if token %}
+                <a class="btn btn-outline-secondary ms-2"
+                   href="{% url 'pages:proof_public_problem' token=token %}">Back to problem</a>
+              {% endif %}
+            </form>
+          </div>
+        </section>
+      </div>
+    </div>
+  </div>
+{% endblock page_content %}

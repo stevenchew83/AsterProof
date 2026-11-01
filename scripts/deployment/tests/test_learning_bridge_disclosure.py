@@ -8,6 +8,7 @@ from types import SimpleNamespace
 
 import pytest
 
+from scripts.deployment import community_proof_schema
 from scripts.deployment import learning_bridge
 from scripts.deployment import learning_schema
 from scripts.deployment.validate_dispatch import DispatchValidationError
@@ -53,7 +54,7 @@ def history(tmp_path, monkeypatch):
     write(learning_bridge.PRODUCTION_SETTINGS, NORMAL_PRODUCTION)
     baseline = commit("Synthetic old baseline")
     calls = {"bridge": [], "schema": []}
-    # Full 92-migration/28-reader byte validation is independently covered. These
+    # Full historical-migration/28-reader byte validation is independently covered. These
     # captures retain real Git history and real static production-hash detection.
     monkeypatch.setattr(learning_bridge, "validate_bridge_source", lambda path: calls["bridge"].append(path))
     monkeypatch.setattr(learning_schema, "validate_candidate", lambda path: calls["schema"].append(path))
@@ -124,6 +125,59 @@ def test_successor_synthesizes_the_four_pending_migrations_despite_no_migration_
         "learning_reader_successor": True,
     }
     assert history.calls == {"bridge": [], "schema": [history.root]}
+
+
+def test_community_qualification_bridge_and_successor_keep_separate_exact_plans(history, monkeypatch):
+    proof_validated = []
+    monkeypatch.setattr(community_proof_schema, "validate_candidate", proof_validated.append)
+    for relative in community_proof_schema.INPUT_HASHES:
+        history.write(relative, (ROOT / relative).read_bytes())
+    community_sha = history.commit("Synthetic Community proof release")
+    proof = disclose(history, history.baseline, community_sha, "data-or-non-compatible")
+    assert proof["migrations"] == [
+        {"migration": "pages.0045_community_proof_library", "classification": "data-or-non-compatible"},
+    ]
+    assert "learning_reader_preparation" not in proof
+    assert proof_validated == [history.root]
+    assert history.calls == {"bridge": [], "schema": []}
+
+    history.write("docs/synthetic-qualification.md", b"Synthetic no-schema baseline qualification.\n")
+    qualification_sha = history.commit("Synthetic source-identical documentation qualification")
+    qualification = disclose(history, community_sha, qualification_sha, "none")
+    assert qualification["classification"] == "none"
+    assert qualification["migrations"] == []
+    assert history.git("diff", "--name-only", f"{community_sha}..{qualification_sha}") == (
+        "docs/synthetic-qualification.md"
+    )
+
+    bridge_sha = commit_bridge(history)
+    preparation = disclose(history, qualification_sha, bridge_sha, "none")
+    assert preparation["migrations"] == learning_plan()
+    assert preparation["learning_reader_preparation"] == {
+        "deferred_migrations": learning_plan(), "database_changes": False,
+    }
+
+    history.write(learning_bridge.PRODUCTION_SETTINGS, NORMAL_PRODUCTION)
+    successor_sha = history.commit("Synthetic Training schema successor after Community")
+    successor = disclose(history, bridge_sha, successor_sha, "backward-compatible-schema")
+    assert successor["migrations"] == learning_plan()
+    assert successor["learning_reader_successor"] is True
+    assert proof_validated == [history.root]
+    assert history.calls == {"bridge": [history.root], "schema": [history.root]}
+
+
+def test_bridge_cannot_defer_the_community_proof_migration(history, monkeypatch):
+    proof_validated = []
+    monkeypatch.setattr(community_proof_schema, "validate_candidate", proof_validated.append)
+    for relative in community_proof_schema.INPUT_HASHES:
+        history.write(relative, (ROOT / relative).read_bytes())
+    bridge_sha = commit_bridge(history)
+
+    with pytest.raises(DispatchValidationError, match="exact four migrations"):
+        disclose(history, history.baseline, bridge_sha, "none")
+
+    assert proof_validated == []
+    assert history.calls == {"bridge": [], "schema": []}
 
 
 @pytest.mark.parametrize("include_learning", [False, True])

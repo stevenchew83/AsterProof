@@ -5,6 +5,7 @@ import copy
 import hashlib
 import json
 import os
+import sqlite3
 import subprocess
 import sys
 from pathlib import Path
@@ -290,7 +291,9 @@ def plan_executor(monkeypatch, *, changed=False, content=False, floor=True):
     operations = [
         (
             SimpleNamespace(
-                app_label=app, name=name, operations=[type(operation, (), {})() for operation in sequence],
+                app_label=app,
+                name=name,
+                operations=[type(operation, (), {})() for operation in sequence],
             ),
             False,
         )
@@ -388,3 +391,101 @@ def test_sqlite_upgrade_preserves_sources_progress_solutions_and_subscribers(tmp
     assert evidence["empty_schema_reader_floor"] is True
     assert evidence["historical_tables_checked"] > len(evidence["new_tables"])
     assert "learning_contentdocument" in evidence["new_tables"]
+    with sqlite3.connect(database) as connection:
+        counts = {
+            table: connection.execute('SELECT count(*) FROM "' + table + '"').fetchone()[0]  # noqa: S608
+            for table in COMMUNITY_TABLES
+        }
+        assert counts == {
+            "pages_communityproblem": 5,
+            "pages_communityattempt": 5,
+            "pages_communitycontentreport": 5,
+            "pages_communityprivateasset": 5,
+            "pages_communityproblemrevision": 10,
+            "pages_communitysolution": 5,
+            "pages_communitysolutionasset": 10,
+            "pages_communitysolutionrevision": 10,
+            "pages_moderationevent": 21,
+            "pages_problempublication": 5,
+        }
+    # Run the exact source-smoke checks too; SQLite remains explicitly non-release evidence.
+    smoke = subprocess.run(
+        [sys.executable, "-c", schema.smoke_command({"ENGINE": "django.db.backends.sqlite3", "NAME": str(database)})],
+        cwd=ROOT,
+        env={**os.environ, "DJANGO_READ_DOT_ENV_FILE": "false", "DJANGO_SETTINGS_MODULE": "config.settings.test"},
+        check=False,
+        capture_output=True,
+        text=True,
+        timeout=90,
+    )
+    assert smoke.returncode == 0, smoke.stderr[-6000:]
+
+
+COMMUNITY_TABLES = {
+    "pages_communityproblem",
+    "pages_communityattempt",
+    "pages_communitycontentreport",
+    "pages_communityprivateasset",
+    "pages_communityproblemrevision",
+    "pages_communitysolution",
+    "pages_communitysolutionasset",
+    "pages_communitysolutionrevision",
+    "pages_moderationevent",
+    "pages_problempublication",
+}
+
+
+def refresh_starting_fingerprints(start):
+    start["state"] = {
+        "schema": schema_state(start["catalog_snapshot"]),
+        "migration": migration_state(start["migration_rows"]),
+    }
+    start["state_fingerprint"] = hashlib.sha256(canonical_json(start["state"])).hexdigest()
+
+
+def test_learning_baseline_requires_community_before_its_four_migrations():
+    assert schema.BASE_TARGETS[0] == ("pages", "0045_community_proof_library")
+    assert schema.MIGRATIONS[0] == ("pages", "0046_prerequisitegraphstate_catalogueprerequisite")
+    assert schema.PRIOR_MIGRATION_SOURCE_COUNT == 93
+    assert COMMUNITY_TABLES <= schema.REQUIRED_BASE_TABLES
+    assert not COMMUNITY_TABLES & schema.TABLES
+
+
+@pytest.mark.parametrize("table", sorted(COMMUNITY_TABLES))
+def test_learning_start_rejects_each_missing_community_table_even_with_valid_fingerprints(table):
+    start = starting_audit()
+    start["catalog_snapshot"]["tables"] = [row for row in start["catalog_snapshot"]["tables"] if row["table"] != table]
+    refresh_starting_fingerprints(start)
+    with pytest.raises(schema.LearningSchemaError, match="required preserved tables"):
+        schema.expected_catalog_audit(start, frozen_delta())
+
+
+def test_learning_start_rejects_missing_community_migration_even_with_community_tables():
+    start = starting_audit()
+    start["migration_rows"].remove(["pages", "0045_community_proof_library"])
+    refresh_starting_fingerprints(start)
+    with pytest.raises(schema.LearningSchemaError, match="previous migration baseline"):
+        schema.expected_catalog_audit(start, frozen_delta())
+
+
+def test_community_migration_is_an_immutable_historical_learning_input(tmp_path):
+    copy_candidate(tmp_path)
+    path = tmp_path / "inspinia/pages/migrations/0045_community_proof_library.py"
+    path.write_bytes(path.read_bytes() + b"\n")
+    with pytest.raises(schema.LearningSchemaError, match="Historical migration sources"):
+        schema.validate_candidate(tmp_path)
+
+
+def test_binary_preservation_digest_accounts_for_blob_bytes():
+    from scripts.deployment.learning_schema_rehearsal import _rows_digest
+
+    assert _rows_digest([(b"private original",)]) == _rows_digest([(memoryview(b"private original"),)])
+    assert _rows_digest([(b"private original",)]) != _rows_digest([(b"public replacement",)])
+
+
+def test_reviewed_smoke_and_actual_rehearsal_share_exact_read_only_checks():
+    from scripts.deployment.learning_schema_rehearsal import old_reader_smoke
+
+    assert old_reader_smoke() == schema.smoke_command()
+    assert "CommunityPrivateAsset" in schema.smoke_command()
+    assert "Previous Community held/withdrawn proof visibility changed" in schema.smoke_command()

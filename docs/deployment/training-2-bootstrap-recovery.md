@@ -7,7 +7,11 @@ This record describes the scoped sequence; it is not standing operational author
 ## Community-first baseline
 
 The owner subsequently ordered Community deployment before Training. Preserve that
-order and all Community source, schema, privacy and AI-off controls. If its actual
+order and all Community source, schema, privacy and AI-off controls. Community
+includes `pages.0045_community_proof_library`; Training prerequisites therefore use
+`pages.0046_prerequisitegraphstate_catalogueprerequisite`. The Training bundle stays
+at four migrations and 20 new tables, with 93 historical migration sources.
+This ordering is a release gate, not a claim that Community is already deployed. If its actual
 data-class release remains ineligible for automatic rollback, establish eligibility
 through an ordinary protected `none` release first. Its packaged application,
 settings, locks, workflows and static bytes must be identical to the healthy
@@ -16,7 +20,10 @@ Require an empty pending migration plan, unchanged database fingerprints and ful
 postflight. Do not flip an eligibility flag or add another recovery selector.
 
 This initial qualification has no automatic fallback while its baseline is
-ineligible. Keep the operator available, and reconcile any failure under its exact
+ineligible. The strict bridge gate requires the actual active Community baseline
+to be rollback-eligible before bridge preparation or activation; a compatible source
+checkout or healthy endpoint alone cannot supply eligibility. Keep the operator
+available, and reconcile any failure under its exact
 operation ID; the approval does not authorize an unspecified database restore or
 manual rollback. The Training bridge itself rejects an ineligible baseline.
 
@@ -26,8 +33,11 @@ The first release contains the shared reader and the exact four future migration
 but its frozen production settings force the module, contributions and publication
 off. The installed worker may defer those migrations only for this byte-verified
 bridge, for migration class `none`, without a schema disclosure. It validates the
-28 reader files, the exact four migrations and all 92 historical migration sources.
-The bridge's production settings file is frozen in `learning_bridge.py`.
+28 reader files, the exact four migrations and all 93 historical migration sources
+after Community 0045.
+The bridge's production settings file is frozen in `learning_bridge.py`. Its exact
+pending plan is prerequisite 0046, learning 0001/0002 and training 0006; no Community
+migration may remain pending or be silently deferred with it.
 
 Before activation, the candidate runs as the application account with PostgreSQL
 transactions forced read-only and bounded timeouts. It must use production
@@ -56,8 +66,19 @@ and guarded files to verify as a compatible reader. Build and attestation repeat
 the exact PostgreSQL rehearsal. Starting and expected fingerprints bind the actual
 production target. Apply only the four frozen migrations, retain empty new content
 tables, verify the ending audit and activate through the protected workflow.
+The actual active bridge must remain rollback-eligible and pass its verified
+manifest, guarded-file and process-bound checks before schema application.
 Automatic and explicit recovery retain the reader floor. Do not relabel an old
 manifest, invent a recovery target, drop tables, or bypass a required check.
+
+## Evidence for the new baseline
+
+Existing Training PostgreSQL validation reports describe the earlier prerequisite
+0045 bundle and 92 historical sources. Keep those reports unchanged as historical
+evidence. They cannot qualify the Community-first 0046/93 bundle. A fresh proof,
+including full Community preservation, remains pending until the exact qualified
+baseline and bridge/successor source identities are known and release-bound. The
+frozen delta and packaged evidence must then match that actual rehearsal.
 
 ## Bootstrap and activation boundaries
 
@@ -72,7 +93,9 @@ Enable the module only after schema and recovery verification. Authoring also
 requires persistent private assets, the configured existing Steven account and the
 reviewed rights-retained contributor agreement. Keep `LEARNING_PUBLICATION_ENABLED`
 false and `LEARNING_CONTENT_PACK_ROOT` empty. No starter manuscripts are shipped,
-imported or published by either release. No lecture announcements are sent.
+imported or published by either release. No lecture announcements are sent. The 103 private originals and their local
+review ZIP remain outside Git; their source bytes are unchanged by this release
+ordering and migration renumbering.
 
 Complete immediate checks and short stabilization for each activation. No delayed
 monitoring is scheduled. Retain command/run IDs, exact SHAs, artifact digests,

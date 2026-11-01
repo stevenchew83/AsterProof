@@ -77,11 +77,21 @@ def test_truthy_values_are_not_rehearsal_proof(field):
         schema.validate_rehearsal_evidence(proof, release_sha=NEW_SHA, active_sha=OLD_SHA)
 
 
-def test_all_migration_and_index_sources_and_packaged_proof_are_bound(tmp_path):
+@pytest.fixture
+def initial_candidate(tmp_path):
     for name in {**schema.INPUT_HASHES, **schema.INITIALIZATION_HASHES}:
         target = tmp_path / name
         target.parent.mkdir(parents=True, exist_ok=True)
-        shutil.copyfile(ROOT / name, target)
+        source = ROOT / name
+        if name == "inspinia/pages/community_models.py":
+            # The initial 0042/0043 allowance retains its exact historical model contract.
+            source = Path(__file__).parent / "fixtures/community-initial-models.txt"
+        shutil.copyfile(source, target)
+    return tmp_path
+
+
+def test_all_migration_and_index_sources_and_packaged_proof_are_bound(initial_candidate):
+    tmp_path = initial_candidate
     schema.validate_candidate(tmp_path)
     proof = tmp_path / schema.EVIDENCE_PATH
     proof.write_bytes(schema.evidence_bytes(release_sha=NEW_SHA, active_sha=OLD_SHA))
@@ -93,6 +103,11 @@ def test_all_migration_and_index_sources_and_packaged_proof_are_bound(tmp_path):
     proof.write_text("{}")
     with pytest.raises(ValueError, match="digest"):
         schema.validate_build_evidence(tmp_path, disclosure())
+
+
+def test_phase_one_models_cannot_reuse_the_initial_community_allowance():
+    with pytest.raises(ValueError, match="frozen hash"):
+        schema.validate_candidate(ROOT)
 
 
 def test_expected_catalog_preserves_starting_schema_and_requires_reporting():
@@ -225,13 +240,13 @@ def test_invalid_preflight_never_drains(tmp_path, failure):
     assert "drain" not in backend.events
 
 
-def test_backend_commands_keep_ai_off_and_initialization_bounded(monkeypatch):
+def test_backend_commands_keep_ai_off_and_initialization_bounded(monkeypatch, initial_candidate):
     calls = []
     monkeypatch.setattr(WorkerBackend, "_run_candidate", lambda *args, **kwargs: calls.append((args, kwargs)))
     backend = WorkerBackend()
-    backend.check_community_schema(None, ROOT)
-    backend.migrate_community_schema(None, ROOT)
-    backend.initialize_community_index(None, ROOT)
+    backend.check_community_schema(None, initial_candidate)
+    backend.migrate_community_schema(None, initial_candidate)
+    backend.initialize_community_index(None, initial_candidate)
     assert calls[0][0][-1] == ["shell", "--command", schema.PLAN_CHECK]
     assert "PROBLEM_STATEMENT_AI_REVIEW_ENABLED" in schema.PLAN_CHECK
     assert calls[1][1] == {"migration": True}
@@ -241,7 +256,7 @@ def test_backend_commands_keep_ai_off_and_initialization_bounded(monkeypatch):
     assert calls[3][1] == {"runtime_seconds": 60}
 
 
-def test_dispatch_admits_only_two_exact_migrations(monkeypatch):
+def test_dispatch_admits_only_two_exact_migrations(monkeypatch, initial_candidate):
     # This fixture models an ordinary maintenance source, not the reader bridge.
     monkeypatch.setattr("scripts.deployment.learning_bridge.is_bridge_source", lambda root: False)
     monkeypatch.setattr(validate_dispatch, "_active_learning_bridge", lambda *args: False)
@@ -252,7 +267,7 @@ def test_dispatch_admits_only_two_exact_migrations(monkeypatch):
         lambda *a, **kw: SimpleNamespace(stdout="\n".join(changes)),
     )
     args = {
-        "repository": ROOT,
+        "repository": initial_candidate,
         "active_sha": OLD_SHA,
         "target_sha": NEW_SHA,
         "registry_path": ROOT / "deployment/migration-classifications.yml",

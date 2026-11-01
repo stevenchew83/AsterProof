@@ -27,6 +27,31 @@ Steven/coach content decisions, learner evaluation and production release are no
 marked complete by local implementation. No public content or production state
 was changed.
 
+## Community-first release baseline — 1 November 2026
+
+Community deploys and qualifies before Training. Preserve its source, privacy,
+public-proof visibility, schema and AI-off controls. The historical Community
+migration is `pages.0045_community_proof_library`; the Training prerequisite
+migration is now `pages.0046_prerequisitegraphstate_catalogueprerequisite`.
+Training still adds four migrations and 20 new tables, with 93 historical migration
+sources frozen against the Community-qualified baseline.
+
+If the healthy Community data-class release is not rollback-eligible, qualify it
+through the ordinary protected `none` release before attempting the Training bridge.
+The strict bridge gate requires that actual active eligible baseline; never flip
+an eligibility flag or invent a recovery target. The exact hard-off bridge defers
+only prerequisite 0046, learning 0001/0002 and training 0006 without DDL or fake
+migration records. The schema successor then requires that real, verified bridge
+as its eligible compatible recovery baseline.
+
+Earlier PostgreSQL reports retain their historical prerequisite 0045/92-source
+claims. Fresh Community-preservation and Training proof for the 0046/93 baseline
+is pending until the exact qualified release/source identities are bound to the
+actual rehearsal and packaged evidence. Do not reuse the earlier proof as approval
+of this changed baseline. See the [current release sequence](../deployment/training-2-bootstrap-recovery.md).
+The 103 starter manuscripts and their local review ZIP remain private and outside
+Git. Their source bytes do not change with this software migration renumbering.
+
 ## Overview and Scope
 
 Redesign the whole Training module for **Algebra, Geometry, Number Theory,
@@ -1138,7 +1163,9 @@ limited to the requested immediate checks unless delayed follow-up is explicitly
    U10 delivers Foundations and reusable packages; U11 delivers M2b–M2e; U12 delivers
    M3/M4; U13 qualifies M5. Use the complete area assignment rather than stopping
    implementation planning after Inequalities.
-3. Before a production proposal: revalidate actual active/target revisions, verified
+3. Deploy and qualify Community first, including its 0045 migration, then satisfy
+   the strict eligible-baseline and hard-off bridge gates described above. Before
+   a production proposal: revalidate actual active/target revisions, verified
    owner binding, private-root persistence/ownership/recovery, content mappings,
    rights agreement/young-contributor handling, feature settings and migration proof.
    Application deployment, protected schema-allowance installation and privileged

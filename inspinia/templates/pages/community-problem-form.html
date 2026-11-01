@@ -22,7 +22,9 @@
       {% endif %}
     </header>
     <div class="community-compose-intro">
-      <p class="text-muted mb-0">Share a clear statement, the ideas behind it, and its source.</p>
+      <p class="text-muted mb-0">
+        Submit a clear statement and its source. You can invite solutions without knowing the answer.
+      </p>
       <ol class="community-compose-flow" aria-label="Submission process">
         <li class="is-current">
           <span>1</span> Write
@@ -88,8 +90,14 @@
                 <span class="community-section-number" aria-hidden="true">02</span>
                 <div>
                   <h2 id="library-details-heading">Library details</h2>
-                  <p>Help readers understand the ideas and level.</p>
+                  <p>Add what you know. Difficulty, techniques, and an approach can stay unknown.</p>
                 </div>
+              </div>
+              <div class="form-check mb-3">
+                {{ form.solution_known }}
+                <label class="form-check-label" for="{{ form.solution_known.id_for_label }}">{{ form.solution_known.label }}</label>
+                <div class="form-text">Leave this unchecked if you do not know a solution yet.</div>
+                {{ form.solution_known.errors }}
               </div>
               <div class="row g-3">
                 <div class="col-sm-6">{% include 'pages/partials/community-form-field.html' with field=form.topic only %}</div>
@@ -117,7 +125,7 @@
                 </div>
               </div>
               <details class="community-form-extra"
-                       {% if form.source_url.value or form.contest_name.value or form.contest_year.value or form.problem_code.value or form.source_url.errors or form.contest_name.errors or form.contest_year.errors or form.problem_code.errors %} open{% endif %}>
+                       {% if form.source_url.value or form.contest_name.value or form.contest_year.value or form.problem_code.value or form.source_url.errors or form.contest_name.errors or form.contest_year.errors or form.problem_code.errors or form.embargo_until.value or form.embargo_until.errors %} open{% endif %}>
                 <summary>
                   <i class="ti ti-link" aria-hidden="true"></i><span>Link or contest reference</span><span class="community-field-note">Optional</span><i class="ti ti-chevron-down community-disclosure-chevron"
    aria-hidden="true"></i>
@@ -132,6 +140,20 @@
                     {% include 'pages/partials/community-form-field.html' with field=form.problem_code only %}
                   </div>
                   <p class="form-text mb-0">For a contest problem, include the name, year, and problem code together.</p>
+                  <div class="col-12">{% include 'pages/partials/community-form-field.html' with field=form.embargo_until only %}</div>
+                </div>
+              </details>
+              <details class="community-form-extra"
+                       {% if form.public_hint.value or form.public_hint.errors %}open{% endif %}>
+                <summary>
+                  <i class="ti ti-bulb" aria-hidden="true"></i><span>Optional public hint</span><span class="community-field-note">Deliberate publication</span><i class="ti ti-chevron-down community-disclosure-chevron"
+   aria-hidden="true"></i>
+                </summary>
+                <div class="pt-3">
+                  {% include 'pages/partials/community-form-field.html' with field=form.public_hint only %}
+                  <p class="form-text mb-0">
+                    This hint can appear on a shared problem only after a reader chooses to reveal it. Your private outline is never used as a hint.
+                  </p>
                 </div>
               </details>
               <details class="community-form-extra"
@@ -202,7 +224,7 @@
                   </div>
                 {% endif %}
                 <p class="text-muted fs-sm" data-check-state>
-                  Details checked. Admins may use ChatGPT to review your statement, metadata, and optional private solution outline.
+                  Details checked. Publication requires human review. AI review is disabled.
                 </p>
                 <button type="submit"
                         name="action"
@@ -228,14 +250,14 @@
                    data-completion-count
                    aria-live="polite">Required details</p>
                 <progress value="0"
-                          max="9"
+                          max="1"
                           aria-label="Required details completed"
                           data-completion-progress></progress>
               </div>
               <nav class="community-compose-checklist" aria-label="Problem details">
-                <a href="#problem-content" data-section-link="problem-content"><span class="community-check-icon"><i class="ti ti-pencil" aria-hidden="true"></i></span><span>The problem<small>Title and complete statement</small></span><span class="community-check-status" data-section-count>0/2</span></a>
-                <a href="#library-details" data-section-link="library-details"><span class="community-check-icon"><i class="ti ti-books" aria-hidden="true"></i></span><span>Library details<small>Subject, difficulty, and ideas</small></span><span class="community-check-status" data-section-count>0/5</span></a>
-                <a href="#problem-source" data-section-link="problem-source"><span class="community-check-icon"><i class="ti ti-at" aria-hidden="true"></i></span><span>Attribution<small>Origin and author credit</small></span><span class="community-check-status" data-section-count>0/2</span></a>
+                <a href="#problem-content" data-section-link="problem-content"><span class="community-check-icon"><i class="ti ti-pencil" aria-hidden="true"></i></span><span>The problem<small>Title and complete statement</small></span><span class="community-check-status" data-section-count>—</span></a>
+                <a href="#library-details" data-section-link="library-details"><span class="community-check-icon"><i class="ti ti-books" aria-hidden="true"></i></span><span>Library details<small>Subject, difficulty, and ideas</small></span><span class="community-check-status" data-section-count>—</span></a>
+                <a href="#problem-source" data-section-link="problem-source"><span class="community-check-icon"><i class="ti ti-at" aria-hidden="true"></i></span><span>Attribution<small>Origin and author credit</small></span><span class="community-check-status" data-section-count>—</span></a>
               </nav>
               <button type="submit"
                       form="community-problem-form"
@@ -260,7 +282,7 @@
             <div>
               <strong>A community contribution</strong>
               <p>
-                Your post is visible to signed-in members. Approval keeps it in the community collection, separate from the main library.
+                New submissions stay private to you and authorized reviewers. After approval, choose Private, Unlisted, or Public. Community problems stay separate from the main library.
               </p>
             </div>
           </div>

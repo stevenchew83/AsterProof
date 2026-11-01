@@ -12,7 +12,7 @@ class Migration(migrations.Migration):
     initial = True
 
     dependencies = [
-        ("pages", "0045_prerequisitegraphstate_catalogueprerequisite"),
+        ("pages", "0046_prerequisitegraphstate_catalogueprerequisite"),
         ("training", "0005_subtopic_imo_syllabus_index"),
         ("website", "0003_newsletter_automation"),
         migrations.swappable_dependency(settings.AUTH_USER_MODEL),

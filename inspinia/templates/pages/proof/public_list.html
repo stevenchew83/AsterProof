@@ -1,0 +1,66 @@
+{% extends 'website/base.html' %}
+
+{% load static %}
+
+{% block public_stylesheet %}
+  {% static 'css/public-community.min.css' %}
+{% endblock public_stylesheet %}
+{% block public_content %}
+  <div class="website-container proof-public proof-directory">
+    <header class="proof-directory-heading">
+      <div>
+        <p class="website-kicker">Made for mathematical curiosity</p>
+        <h1>Community Proof Library</h1>
+        <p>Find a question. Try your approach. Discover a different proof.</p>
+      </div>
+      <a class="website-button proof-button-secondary"
+         href="{% url 'pages:community_problem_create' %}">Contribute a problem <span aria-hidden="true">↗</span></a>
+    </header>
+    <div class="proof-directory-toolbar">
+      <h2>{{ publications.paginator.count }} public problem{{ publications.paginator.count|pluralize }}</h2>
+      <p class="proof-meta">Reviewed for sharing · Open to everyone</p>
+    </div>
+    <div class="proof-entries">
+      {% for publication in publications %}
+        <a class="proof-entry"
+           href="{% url 'pages:proof_public_problem' token=publication.token %}">
+          <span class="proof-entry-number" aria-hidden="true">{{ forloop.counter|stringformat:'02d' }}</span>
+          <div class="proof-entry-copy">
+            <p class="website-kicker">
+              {{ publication.statement_revision.snapshot.topic_label|default:publication.statement_revision.snapshot.topic }}
+            </p>
+            <h2>{{ publication.statement_revision.snapshot.title }}</h2>
+            <p class="proof-meta">Shared by {{ publication.public_credit|default:'Community contributor' }}</p>
+          </div>
+          <span class="proof-entry-difficulty">Proposed MOHS <strong>{{ publication.statement_revision.snapshot.mohs|default_if_none:'Unknown' }}</strong></span>
+          <span class="proof-entry-arrow" aria-hidden="true">↗</span>
+        </a>
+      {% empty %}
+        <section class="proof-empty proof-directory-empty">
+          <span class="proof-empty-mark" aria-hidden="true">∴</span>
+          <h2>A new collection is taking shape.</h2>
+          <p>Share a question worth thinking about. Publicly shared, moderated problems will appear here.</p>
+          <a class="website-text-link"
+             href="{% url 'pages:community_problem_create' %}">Contribute the first problem <span aria-hidden="true">↗</span></a>
+        </section>
+      {% endfor %}
+    </div>
+    {% if publications.paginator.num_pages > 1 %}
+      <nav class="proof-pagination" aria-label="Public problem pages">
+        <span class="proof-meta">Page {{ publications.number }} of {{ publications.paginator.num_pages }}</span>
+        <div>
+          {% if publications.has_previous %}
+            <a class="website-text-link"
+               href="?page={{ publications.previous_page_number }}">Previous</a>
+          {% endif %}
+          {% if publications.has_next %}
+            <a class="website-text-link"
+               href="?page={{ publications.next_page_number }}">Next</a>
+          {% endif %}
+        </div>
+      </nav>
+    {% endif %}
+  </div>
+{% endblock public_content %}
+{% block javascript %}
+{% endblock javascript %}

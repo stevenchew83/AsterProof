@@ -35,6 +35,15 @@ from inspinia.pages.contest_names import normalize_contest_name
 from inspinia.pages.contest_names import normalize_text_list
 from inspinia.pages.prerequisite_models import CataloguePrerequisite  # noqa: F401
 from inspinia.pages.prerequisite_models import PrerequisiteGraphState  # noqa: F401
+from inspinia.pages.proof_models import CommunityAttempt  # noqa: F401
+from inspinia.pages.proof_models import CommunityContentReport  # noqa: F401
+from inspinia.pages.proof_models import CommunityPrivateAsset  # noqa: F401
+from inspinia.pages.proof_models import CommunityProblemRevision  # noqa: F401
+from inspinia.pages.proof_models import CommunitySolution  # noqa: F401
+from inspinia.pages.proof_models import CommunitySolutionAsset  # noqa: F401
+from inspinia.pages.proof_models import CommunitySolutionRevision  # noqa: F401
+from inspinia.pages.proof_models import ModerationEvent  # noqa: F401
+from inspinia.pages.proof_models import ProblemPublication  # noqa: F401
 from inspinia.pages.topic_tags_parse import clean_token
 from inspinia.pages.topic_tags_parse import domains_dedup_preserve_order
 from inspinia.pages.topic_tags_parse import normalize_topic_tag

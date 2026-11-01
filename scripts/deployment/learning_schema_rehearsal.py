@@ -1,4 +1,4 @@
-"""Runnable, isolated SQLite preservation rehearsal; never production evidence."""
+"""Isolated populated-state preservation rehearsal; SQLite is never release evidence."""
 
 from __future__ import annotations
 
@@ -46,6 +46,147 @@ def _sequences(connection):
         return dict(cursor.fetchall())
 
 
+def _seed_community(apps, user):
+    """Exercise existing visibility, moderation, revision, and binary-asset records."""
+    from django.utils import timezone
+
+    now = timezone.now()
+    for label in ("private", "unlisted", "public", "held", "withdrawn"):
+        problem = apps.get_model("pages", "CommunityProblem").objects.create(
+            author=user,
+            title=f"Synthetic preserved Community {label}",
+            statement_latex=f"Synthetic current statement {label}.",
+            topic="ALG",
+            mohs=20,
+            source_kind="original",
+            source_details="Synthetic preservation fixture",
+            solution_outline=f"Synthetic private outline {label}.",
+            core_ideas=f"Synthetic private ideas {label}.",
+            public_hint=f"Synthetic public hint {label}.",
+            solution_known=True,
+            legacy_member_visible=False,
+            status="approved",
+            version=2,
+            reviewed_by=user,
+            reviewed_at=now,
+        )
+        revisions = []
+        for number in (1, 2):
+            snapshot = {
+                "title": problem.title,
+                "statement_latex": f"Synthetic fixed statement {label} revision {number}.",
+                "topic": "ALG",
+                "topic_label": "Algebra",
+                "mohs": 20,
+                "topic_tags": "",
+                "source_kind": "original",
+                "source_details": "Synthetic preservation fixture",
+                "source_url": "",
+                "contest_name": "",
+                "contest_year": None,
+                "problem_code": "",
+                "public_hint": f"Synthetic fixed hint {label} revision {number}.",
+            }
+            revision = apps.get_model("pages", "CommunityProblemRevision").objects.create(
+                problem=problem,
+                number=number,
+                snapshot=snapshot,
+                content_digest=hashlib.sha256(json.dumps(snapshot, sort_keys=True).encode()).hexdigest(),
+            )
+            revisions.append(revision)
+            apps.get_model("pages", "ModerationEvent").objects.create(
+                actor=user,
+                problem=problem,
+                statement_revision=revision,
+                action="statement_approved",
+                reason="Synthetic preserved approval",
+            )
+        apps.get_model("pages", "ProblemPublication").objects.create(
+            problem=problem,
+            statement_revision=revisions[-1],
+            visibility=label if label in {"private", "unlisted"} else "public",
+            version=2,
+            public_credit="Synthetic contributor",
+            consented_at=now,
+            is_held=label == "held",
+            hold_reason="Synthetic preserved hold" if label == "held" else "",
+        )
+        attempt = apps.get_model("pages", "CommunityAttempt").objects.create(
+            owner=user,
+            problem=problem,
+            statement_revision=revisions[-1],
+            title=f"Synthetic private attempt {label}",
+            body_source=f"Synthetic private attempt body {label}.",
+            version=3,
+        )
+        private_data = f"Synthetic private image bytes {label}.".encode()
+        apps.get_model("pages", "CommunityPrivateAsset").objects.create(
+            attempt=attempt,
+            name=f"solution_body_images/preserved-private-{label}.png",
+            content_type="image/png",
+            data=private_data,
+            sha256=hashlib.sha256(private_data).hexdigest(),
+        )
+        solution = apps.get_model("pages", "CommunitySolution").objects.create(
+            problem=problem,
+            author=user,
+            status="withdrawn" if label == "withdrawn" else "approved",
+            is_held=label == "held",
+            version=2,
+        )
+        for number, statement_revision in enumerate(revisions, start=1):
+            body = f"Synthetic fixed public proof {label} revision {number}."
+            revision = apps.get_model("pages", "CommunitySolutionRevision").objects.create(
+                solution=solution,
+                source_attempt=attempt if statement_revision == revisions[-1] else None,
+                statement_revision=statement_revision,
+                number=number,
+                title=f"Synthetic preserved proof {label}",
+                summary=f"Synthetic public summary {label}.",
+                body_source=body,
+                public_credit="Synthetic contributor",
+                consented_at=now,
+                content_digest=hashlib.sha256(body.encode()).hexdigest(),
+            )
+            data = f"Synthetic public image bytes {label} revision {number}.".encode()
+            apps.get_model("pages", "CommunitySolutionAsset").objects.create(
+                revision=revision,
+                name=f"preserved-public-{label}.png",
+                content_type="image/png",
+                data=data,
+                sha256=hashlib.sha256(data).hexdigest(),
+            )
+            apps.get_model("pages", "ModerationEvent").objects.create(
+                actor=user,
+                problem=problem,
+                solution=solution,
+                solution_revision=revision,
+                statement_revision=statement_revision,
+                action="solution_approved",
+                reason="Synthetic preserved proof approval",
+            )
+        solution.current_revision = revision
+        solution.save(update_fields=["current_revision"])
+        if label == "withdrawn":
+            apps.get_model("pages", "ModerationEvent").objects.create(
+                actor=user,
+                problem=problem,
+                solution=solution,
+                solution_revision=revision,
+                action="solution_withdrawn",
+                reason="Synthetic preserved withdrawal",
+            )
+        apps.get_model("pages", "CommunityContentReport").objects.create(
+            problem=problem,
+            solution=solution,
+            reporter=user,
+            reason="gap",
+            details=f"Synthetic private report {label}.",
+            status="resolved" if label == "held" else "open",
+            reviewed_by=user if label == "held" else None,
+        )
+
+
 def _seed(apps):
     """Only synthetic records; historical models avoid current write-side hooks."""
     from django.utils import timezone
@@ -54,6 +195,7 @@ def _seed(apps):
         email="synthetic@example.invalid",
         password="!",  # noqa: S106 - Unusable password in an isolated synthetic fixture.
     )
+    _seed_community(apps, user)
     for label in ("algebra", "geometry", "number-theory", "combinatorics", "foundations"):
         topic, _ = apps.get_model("training", "Topic").objects.get_or_create(
             slug=label,
@@ -228,30 +370,7 @@ def old_reader_smoke():
     """The previous release reads preserved material and its fixed public copy."""
     from scripts.deployment.schema_rehearsal import REHEARSAL_DATABASE
 
-    return f"""from django.conf import settings
-settings.DATABASES={{'default': {REHEARSAL_DATABASE!r}}}
-settings.CONCEPT_ASSIGNMENTS_ENABLED=False
-import django
-django.setup()
-from django.core.management import call_command
-from inspinia.training.models import Material,MaterialCompletion,PointLedger,Submission
-from inspinia.solutions.models import ProblemSolution,SolutionPublicShare
-from inspinia.website.models import LibraryLecture,NewsletterSubscriber
-call_command('check')
-if Material.objects.filter(slug__startswith='learning-preserved-').count() != 5:
-    raise RuntimeError('Previous Training reader lost a subject or Foundations')
-if MaterialCompletion.objects.count() != 5 or PointLedger.objects.count() != 5 or Submission.objects.count() != 5:
-    raise RuntimeError('Previous Training progress identity changed')
-if LibraryLecture.objects.filter(slug='learning-preserved',is_published=True).count() != 4:
-    raise RuntimeError('Previous public lecture reader changed')
-solution=ProblemSolution.objects.get(title='Synthetic preserved solution')
-if solution.blocks.get().body_source != 'Synthetic private original proof.':
-    raise RuntimeError('Previous solution reader changed')
-if SolutionPublicShare.objects.get(solution=solution).snapshot.get('body') != 'Synthetic fixed public copy.':
-    raise RuntimeError('Previous public solution snapshot changed')
-if NewsletterSubscriber.objects.get(email='synthetic-subscriber@example.invalid').status != 'confirmed':
-    raise RuntimeError('Previous subscriber state changed')
-"""
+    return schema.smoke_command(REHEARSAL_DATABASE)
 
 
 def rehearse_postgresql(connection, args):  # noqa: C901, PLR0915 - Keep the preservation evidence in one ordered rehearsal.

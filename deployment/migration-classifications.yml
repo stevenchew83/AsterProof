@@ -2,7 +2,7 @@
   "format_version": 1,
   "baseline_sha": null,
   "migrations": {
-    "pages.0045_prerequisitegraphstate_catalogueprerequisite": {
+    "pages.0046_prerequisitegraphstate_catalogueprerequisite": {
       "classification": "backward-compatible-schema",
       "recovery_required": false,
       "code_rollback_permitted": true,
@@ -267,6 +267,19 @@
         "no_provider_or_worker_activation"
       ],
       "rationale": "Creates exactly 19 isolated evaluation/evidence tables with no backfill or changes to existing rows. Requires the separate hash-frozen PostgreSQL 17.9 delta, active-code compatibility proof and installed bounded authority. Existing document-aware code remains compatible; recovery retains evidence and accounting tables. No dataset/model readiness, activation, paid execution or production authority is granted by classification."
+    },
+    "pages.0045_community_proof_library": {
+      "classification": "data-or-non-compatible",
+      "recovery_required": true,
+      "code_rollback_permitted": false,
+      "data_preconditions": [
+        "legacy_community_audience_and_private_content_preserved",
+        "new_publication_attempt_proof_asset_report_audit_tables_absent",
+        "archive_accounts_solutions_progress_and_triggers_preserved",
+        "no_public_publication_consent_or_ai_activation_backfill",
+        "verified_database_recovery_point"
+      ],
+      "rationale": "Adds separate community statement/proof revisions, explicit publication visibility, private attempts, immutable assets, moderation history and reports. The legacy audience flag is added with true only for existing posts, then its application default becomes false; no public publication, consent, proof or attempt rows are created. Community difficulty may become NULL and solution-dependent metadata may be absent. Previous application readers do not enforce new private/publication boundaries, and previous writers omit new required columns, so ordinary code rollback is prohibited. Existing source records and canonical identities are preserved. Requires a separately reviewed frozen deployment allowance, PostgreSQL preservation/privacy rehearsal and recovery proof; classification does not expand production authority."
     }
   }
 }

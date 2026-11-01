@@ -5,17 +5,23 @@ is the first editorial pilot. Installing software, enabling contribution intake,
 publishing reviewed content and qualifying a teaching package are separate steps.
 This document records implemented safeguards; it grants no operational authority.
 
-## Current evidence
+## Current bundle and historical evidence
 
 The exact additive bundle is:
 
-- pages.0045_prerequisitegraphstate_catalogueprerequisite
+- pages.0046_prerequisitegraphstate_catalogueprerequisite
 - learning.0001_initial
 - learning.0002_contentdraft_is_archived
 - training.0006_learningpath_learningpathrevision_learningpathitem_and_more
 
-The learning_schema.py deployment module binds these migration files to their real
-SHA-256 digests. A local SQLite rehearsal upgrades the preceding schema and checks
+Community deploys first, including `pages.0045_community_proof_library`. Training
+then adds exactly these four migrations and 20 new tables. Its allowance must bind
+the renumbered migration files and all 93 historical migration sources, preserving
+Community schema, records, visibility and AI-off controls. This document does not
+claim that the Community production release or its qualification has completed.
+
+The learning_schema.py deployment module binds the accepted migration files to their
+real SHA-256 digests. A local SQLite rehearsal upgrades the preceding schema and checks
 every historical table, existing schema object and sequence. Synthetic fixtures
 cover the four subjects and Foundations, old lecture IDs, completions, points,
 submissions and feedback, private solution content, public solution snapshots and
@@ -31,22 +37,26 @@ Create the parent directory first. Existing database and output files are reject
 The command sets SQLite and the local email backend explicitly, ignores .env,
 disables learning feature flags and uses synthetic data only.
 
-PostgreSQL 17.9 verification now also passes on an isolated source-built runtime.
-See [the PostgreSQL verification record](../validation/training-2-postgresql17-verification.md).
-The actual normalized delta is frozen in `tests/fixtures/learning-schema-delta.json`;
-the four migration files and all 92 historical migration sources are hash-bound.
-The strict allowance validates the exact pending plan, release identities,
-preservation proof, current catalogue fingerprints and required learning reader.
-Precommit evidence remains nondeployable until repeated for a real immutable SHA.
-CI and the protected release build repeat the proof on the existing pinned Linux
-PostgreSQL 17.9 container. This local evidence does not install production authority.
+Historical PostgreSQL 17.9 verification passed for the earlier bundle, where the
+Training prerequisite migration was numbered 0045 and the prior-source count was 92.
+See [the historical PostgreSQL verification record](../validation/training-2-postgresql17-verification.md).
+Those reports retain their original identifiers and proof claims; they do not
+qualify the new Community-first baseline or the renumbered 0046 bundle.
+
+New-baseline proof is pending until the actual Community-qualified source and
+Training bridge/successor identities are bound to a fresh PostgreSQL 17.9 rehearsal.
+Freeze and verify its exact delta, all 93 historical sources, Community preservation,
+release identities and compatible reader before dispatch. Precommit evidence is
+not deployable release proof. CI and the protected release build must repeat the
+proof on the existing pinned Linux PostgreSQL 17.9 container. No local evidence
+installs production authority.
 
 The pre-DDL worker check also requires a real, rollback-eligible compatible baseline
 with verified learning-reader bytes. An ordinary previous reader cannot qualify.
-The currently observed production baseline has no such reader; installation of
-schema support alone does not satisfy this recovery prerequisite.
+A production baseline without that verified reader cannot qualify; installation
+of schema support alone does not satisfy this recovery prerequisite.
 
-The approved [two-stage bootstrap/recovery sequence](training-2-bootstrap-recovery.md)
+The approved [Community-first qualification and two-stage bootstrap/recovery sequence](training-2-bootstrap-recovery.md)
 establishes that baseline through a real no-DDL bridge activation before the schema
 release. It does not waive the pre-DDL recovery check or migration validation.
 
@@ -84,6 +94,9 @@ fixtures only. Set `LEARNING_CONTENT_PACK_ROOT` to an independently provisioned
 private directory to make packs available to the configured publisher; production
 defaults to an empty path. Importing still creates private drafts, never publication.
 The content-publication switch remains disabled until Steven reviews the notes.
+A private local review ZIP and its SHA-256 index retain byte-identical originals
+and exact Markdown copies. That archive is outside Git and has not been uploaded
+or imported; renumbering the software migrations changes no manuscript source.
 
 ## Activation gates
 

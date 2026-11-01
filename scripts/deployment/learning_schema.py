@@ -25,33 +25,33 @@ from scripts.deployment.schema_rehearsal import REHEARSAL_DATABASE
 MIGRATION = "learning.0002_contentdraft_is_archived"
 POSTGRES_VERSION = 170009
 MIGRATIONS = (
-    ("pages", "0045_prerequisitegraphstate_catalogueprerequisite"),
+    ("pages", "0046_prerequisitegraphstate_catalogueprerequisite"),
     ("learning", "0001_initial"),
     ("learning", "0002_contentdraft_is_archived"),
     ("training", "0006_learningpath_learningpathrevision_learningpathitem_and_more"),
 )
 BASE_TARGETS = (
-    ("pages", "0044_learning_page_activity"),
+    ("pages", "0045_community_proof_library"),
     ("training", "0005_subtopic_imo_syllabus_index"),
 )
 MIGRATION_FILES = {
-    "inspinia/pages/migrations/0045_prerequisitegraphstate_catalogueprerequisite.py": (
-        "8cfafa4d52e98e17c3a0930d60251aa3c537f300a32a91bc47b648ab7ef0e4bb"
+    "inspinia/pages/migrations/0046_prerequisitegraphstate_catalogueprerequisite.py": (
+        "39aaefdb7de8a53c2ec37379c9465cbccf3a07f6aeb477a4efcbefbdf47bf173"
     ),
-    "inspinia/learning/migrations/0001_initial.py": "11ce1e1e8c426d5608c974f90d762b218035ad2feed3fda3121f4e1433825521",
+    "inspinia/learning/migrations/0001_initial.py": "2918a6cd85ef8a8fafb28cd1c0ba4ec40969ccba85acdafa02d5c4e20a408656",
     "inspinia/learning/migrations/0002_contentdraft_is_archived.py": (
         "00c085d8ceba6ea39f24b7221512a4bdd0992e90e861d1336c2012d607fb1f29"
     ),
     "inspinia/training/migrations/0006_learningpath_learningpathrevision_learningpathitem_and_more.py": (
-        "7114439e759c0ae8c239c4011b678c9106d33f00543c0e3119fe5566102d432b"
+        "806b3b818aa97ba078e932b29094aed71026f64889b9d70d8d491ddd3caa4b1e"
     ),
 }
 MIGRATION_SHA256 = hashlib.sha256(canonical_json(MIGRATION_FILES)).hexdigest()
 # Freeze only from normalized actual PostgreSQL 17.9 catalog output.
 DELTA_SHA256 = "351ffd6792fc2dfbcd3f670cd78576391f7ebaeced08d7ff317bd3ad19603c24"
 APPROVED_POSTGRESQL_DELTA_SHA256 = DELTA_SHA256
-PRIOR_MIGRATION_SOURCE_SHA256 = "b4e68a1ea6411837d3047545a24d8d885e4969572ce37109a1e72263e7869f67"
-PRIOR_MIGRATION_SOURCE_COUNT = 92
+PRIOR_MIGRATION_SOURCE_SHA256 = "97c7440d16d6e7c258f5681c63c9d078506c3537312c710a0c7466f8bb40038a"
+PRIOR_MIGRATION_SOURCE_COUNT = 93
 MIGRATION_SUPPORT_FILES = {
     "inspinia/learning/migrations/__init__.py": hashlib.sha256(b"").hexdigest(),
 }
@@ -90,6 +90,16 @@ REQUIRED_BASE_MIGRATIONS = (
 )
 REQUIRED_BASE_TABLES = {
     "pages_catalogueconcept",
+    "pages_communityproblem",
+    "pages_communityattempt",
+    "pages_communitycontentreport",
+    "pages_communityprivateasset",
+    "pages_communityproblemrevision",
+    "pages_communitysolution",
+    "pages_communitysolutionasset",
+    "pages_communitysolutionrevision",
+    "pages_moderationevent",
+    "pages_problempublication",
     "training_material",
     "website_librarylecture",
     "solutions_problemsolution",
@@ -118,10 +128,11 @@ class LearningSchemaError(ConceptSchemaError):
     pass
 
 
-def smoke_command():
+def smoke_command(database=None):
     """Preserved legacy reads only; this never declares an old reader activatable."""
+    database = REHEARSAL_DATABASE if database is None else database
     return f"""from django.conf import settings
-settings.DATABASES={{'default': {REHEARSAL_DATABASE!r}}}
+settings.DATABASES={{'default': {database!r}}}
 settings.CONCEPT_ASSIGNMENTS_ENABLED=False
 import django
 django.setup()
@@ -143,6 +154,70 @@ if SolutionPublicShare.objects.get(solution=solution).snapshot.get('body') != 'S
     raise RuntimeError('Previous public solution snapshot changed')
 if NewsletterSubscriber.objects.get(email='synthetic-subscriber@example.invalid').status != 'confirmed':
     raise RuntimeError('Previous subscriber state changed')
+from inspinia.pages.community_models import CommunityProblem
+from inspinia.pages.proof_models import (
+    CommunityAttempt,CommunityContentReport,CommunityPrivateAsset,CommunityProblemRevision,
+    CommunitySolution,CommunitySolutionAsset,CommunitySolutionRevision,ModerationEvent,ProblemPublication,
+)
+from inspinia.pages.proof_library import active_publications,public_solutions
+import hashlib
+labels=('private','unlisted','public','held','withdrawn')
+problems=CommunityProblem.objects.filter(title__startswith='Synthetic preserved Community ')
+if problems.count() != 5:
+    raise RuntimeError('Previous Community reader lost a visibility case')
+active=set(active_publications().values_list('problem__title',flat=True))
+expected_active={{'Synthetic preserved Community '+label for label in ('unlisted','public','withdrawn')}}
+if active != expected_active:
+    raise RuntimeError('Previous Community publication privacy changed')
+listed=set(active_publications().filter(visibility='public').values_list('problem__title',flat=True))
+if listed != {{'Synthetic preserved Community public','Synthetic preserved Community withdrawn'}}:
+    raise RuntimeError('Previous Community public discovery changed')
+for label in labels:
+    problem=problems.get(title='Synthetic preserved Community '+label)
+    if (problem.solution_outline != 'Synthetic private outline '+label+'.'
+            or problem.legacy_member_visible or not problem.solution_known):
+        raise RuntimeError('Previous Community private problem metadata changed')
+    publication=ProblemPublication.objects.get(problem=problem)
+    if publication.version != 2 or publication.is_held != (label=='held'):
+        raise RuntimeError('Previous Community publication hold/version changed')
+    if publication.visibility != (label if label in ('private','unlisted') else 'public'):
+        raise RuntimeError('Previous Community visibility changed')
+    published_statement=publication.statement_revision
+    if (published_statement.number != 2 or published_statement.snapshot['statement_latex']
+            != 'Synthetic fixed statement '+label+' revision 2.'):
+        raise RuntimeError('Previous Community immutable statement changed')
+    attempt=CommunityAttempt.objects.get(problem=problem)
+    if attempt.body_source != 'Synthetic private attempt body '+label+'.' or attempt.version != 3:
+        raise RuntimeError('Previous Community private attempt changed')
+    private_asset=CommunityPrivateAsset.objects.get(attempt=attempt)
+    private_data=('Synthetic private image bytes '+label+'.').encode()
+    if bytes(private_asset.data) != private_data or private_asset.sha256 != hashlib.sha256(private_data).hexdigest():
+        raise RuntimeError('Previous Community private image bytes changed')
+    solution=CommunitySolution.objects.get(problem=problem)
+    if solution.status != ('withdrawn' if label=='withdrawn' else 'approved') or solution.is_held != (label=='held'):
+        raise RuntimeError('Previous Community solution moderation changed')
+    if solution.current_revision.number != 2 or solution.current_revision.source_attempt_id != attempt.pk:
+        raise RuntimeError('Previous Community current revision identity changed')
+    if public_solutions(publication).count() != (0 if label in ('held','withdrawn') else 1):
+        raise RuntimeError('Previous Community held/withdrawn proof visibility changed')
+    if (CommunityProblemRevision.objects.filter(problem=problem).count() != 2
+            or CommunitySolutionRevision.objects.filter(solution=solution).count() != 2):
+        raise RuntimeError('Previous Community immutable revision history changed')
+    for revision in solution.revisions.all():
+        expected_body='Synthetic fixed public proof '+label+' revision '+str(revision.number)+'.'
+        if (revision.body_source != expected_body
+                or revision.content_digest != hashlib.sha256(expected_body.encode()).hexdigest()):
+            raise RuntimeError('Previous Community fixed proof revision changed')
+        asset=CommunitySolutionAsset.objects.get(revision=revision)
+        data=('Synthetic public image bytes '+label+' revision '+str(revision.number)+'.').encode()
+        if bytes(asset.data) != data or asset.sha256 != hashlib.sha256(data).hexdigest():
+            raise RuntimeError('Previous Community fixed public image bytes changed')
+    report=CommunityContentReport.objects.get(problem=problem)
+    if (report.details != 'Synthetic private report '+label+'.'
+            or report.status != ('resolved' if label=='held' else 'open')):
+        raise RuntimeError('Previous Community private report state changed')
+    if ModerationEvent.objects.filter(problem=problem).count() != (5 if label=='withdrawn' else 4):
+        raise RuntimeError('Previous Community moderation history changed')
 """
 
 
