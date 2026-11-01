@@ -35,5 +35,6 @@ TEMPLATES[0]["OPTIONS"]["debug"] = True  # type: ignore[index]
 # https://docs.djangoproject.com/en/dev/ref/settings/#media-url
 MEDIA_URL = "http://media.testserver/"
 SOLUTION_DOCUMENT_WRITES_ENABLED = True
+SYNTHETIC_REVIEW_PROTOTYPE_ENABLED = True
 # Your stuff...
 # ------------------------------------------------------------------------------

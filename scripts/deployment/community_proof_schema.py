@@ -29,10 +29,16 @@ PREREQUISITE_HASHES = {
         "a55e4fe4f34729e7db3f1c4bf67a1deaadeb39f799958b900e2c5d840e9559e2",
     "inspinia/solutions/migrations/0010_offline_evaluation_contract.py":
         "9fee1f590a8cdde9df9d30c201a49caea20a5c31efe2f4b0aa7c92171d4844a8",
+    "inspinia/solutions/migrations/0011_problem_evaluation_packages.py":
+        "84d90530396e51ca2cbd1c2bfb65ebb6c50de0e5af2db912d0d3091592c7dad3",
+    "inspinia/solutions/migrations/0012_synthetic_review_prototype.py":
+        "0b17355ca04f2cc39a2535d52573c0130ea44256d725f813e6bc4cff53952cf4",
 }
 PREREQUISITE_MIGRATIONS = (
     ("pages", "0044_learning_page_activity"),
     ("solutions", "0010_offline_evaluation_contract"),
+    ("solutions", "0011_problem_evaluation_packages"),
+    ("solutions", "0012_synthetic_review_prototype"),
 )
 TABLE = "pages_communityproblem"
 NEW_COLUMNS = ("embargo_until", "legacy_member_visible", "public_hint", "solution_known")
