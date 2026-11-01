@@ -17,6 +17,7 @@ from scripts.deployment.release_state import atomic_write_json
 from scripts.deployment.release_state import read_json
 from scripts.deployment.tests.test_learning_schema import disclosure
 from scripts.deployment.tests.test_learning_worker import write_real_reader_fixture
+from scripts.deployment.tests.test_operation_worker import FINGERPRINT
 from scripts.deployment.tests.test_operation_worker import NEW_SHA
 from scripts.deployment.tests.test_operation_worker import OLD_SHA
 from scripts.deployment.tests.test_operation_worker import FakeBackend
@@ -135,6 +136,73 @@ def test_verified_bridge_can_activate_before_schema_without_any_migration(tmp_pa
     assert backend.trace == ["readonly_exact_plan"]
     assert (contract.release_root / "current").resolve().name == NEW_SHA
     assert read_json(contract.registry_dir / f"releases/{NEW_SHA}.json")["migration_class"] == "none"
+
+
+class RefuseCandidateBackend(BridgeBackend):
+    def candidate_check(self, contract, release):
+        pytest.fail("An ineligible bridge must stop before candidate execution")
+
+    def activate(self, contract, release_sha):
+        pytest.fail("An ineligible bridge must never activate")
+
+
+@pytest.mark.parametrize("eligible", [False, None, 1, "true"])
+def test_bridge_requires_explicitly_eligible_real_baseline(tmp_path, eligible):
+    contract = _contract(tmp_path)
+    _seed(contract)
+    baseline_path = contract.registry_dir / f"releases/{OLD_SHA}.json"
+    baseline = read_json(baseline_path) | {"rollback_eligible": eligible}
+    atomic_write_json(baseline_path, baseline)
+    backend = RefuseCandidateBackend()
+
+    result = run_operation(contract, "42", backend=backend)
+
+    assert result["state"] == "failed"
+    assert result["error_code"] == "learning_bridge_eligible_baseline_required"
+    assert not backend.trace
+    assert (contract.release_root / "current").resolve().name == OLD_SHA
+    assert read_json(baseline_path) == baseline
+    assert not (contract.registry_dir / f"releases/{NEW_SHA}.json").exists()
+
+
+def test_bridge_cannot_use_legacy_adoption_without_real_recovery_baseline(tmp_path):
+    contract = _contract(tmp_path)
+    _seed(contract)
+    (contract.release_root / "current").unlink()
+    adoption_path = contract.registry_dir / "adoption.json"
+    adoption = {
+        "authorized_at": "2026-09-01T00:00:00Z",
+        "legacy_sha": OLD_SHA,
+        "legacy_source_root": "/srv/legacy-asterproof",
+        "state_fingerprint": FINGERPRINT,
+        "repository": contract.repository,
+        "state": "authorized",
+        "target_marker": contract.marker,
+    }
+    atomic_write_json(adoption_path, adoption)
+    backend = RefuseCandidateBackend()
+
+    result = run_operation(contract, "42", backend=backend)
+
+    assert result["state"] == "failed"
+    assert result["error_code"] == "learning_bridge_eligible_baseline_required"
+    assert not backend.trace
+    assert not (contract.release_root / "current").exists()
+    assert read_json(adoption_path) == adoption
+
+
+def test_nonbridge_none_keeps_existing_ineligible_baseline_behavior(tmp_path):
+    contract = _contract(tmp_path)
+    _seed(contract)
+    baseline_path = contract.registry_dir / f"releases/{OLD_SHA}.json"
+    atomic_write_json(baseline_path, read_json(baseline_path) | {"rollback_eligible": False})
+
+    result = run_operation(contract, "42", backend=FakeBackend())
+
+    assert result["state"] == "active"
+    assert (contract.release_root / "current").resolve().name == NEW_SHA
+    assert read_json(baseline_path)["rollback_eligible"] is False
+    assert read_json(contract.registry_dir / f"releases/{NEW_SHA}.json")["rollback_eligible"] is True
 
 
 def test_bridge_retains_normal_health_failure_recovery_before_floor(tmp_path):

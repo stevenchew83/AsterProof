@@ -923,6 +923,8 @@ def _deploy(
                 raise OperationError("learning_bridge_invalid")
             if request["migration_class"] != "none" or "schema_disclosure" in request:
                 raise OperationError("learning_bridge_requires_none")
+            if baseline_sha is None or baseline_record.get("rollback_eligible") is not True:
+                raise OperationError("learning_bridge_eligible_baseline_required")
             try:
                 learning_bridge.validate_bridge_candidate(release)
             except (OSError, ValueError) as exc:

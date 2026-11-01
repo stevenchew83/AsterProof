@@ -4,6 +4,22 @@ The owner explicitly approved the bootstrap/recovery work and deployment on
 2026-11-01, retaining the requirement that all starter notes stay unpublished.
 This record describes the scoped sequence; it is not standing operational authority.
 
+## Community-first baseline
+
+The owner subsequently ordered Community deployment before Training. Preserve that
+order and all Community source, schema, privacy and AI-off controls. If its actual
+data-class release remains ineligible for automatic rollback, establish eligibility
+through an ordinary protected `none` release first. Its packaged application,
+settings, locks, workflows and static bytes must be identical to the healthy
+Community release, with only documentation and expected release identity differing.
+Require an empty pending migration plan, unchanged database fingerprints and full
+postflight. Do not flip an eligibility flag or add another recovery selector.
+
+This initial qualification has no automatic fallback while its baseline is
+ineligible. Keep the operator available, and reconcile any failure under its exact
+operation ID; the approval does not authorize an unspecified database restore or
+manual rollback. The Training bridge itself rejects an ineligible baseline.
+
 ## Stage 1: establish a real compatible recovery release
 
 The first release contains the shared reader and the exact four future migrations,
