@@ -1,9 +1,10 @@
   <div class="solution-workspace-toolbar">
     <div class="d-flex align-items-center gap-3 solution-toolbar-state">
-      <div class="solution-view-switch" role="group" aria-label="Workspace view">
+      <div class="solution-view-switch" data-document-views role="group" aria-label="Workspace view" hidden>
         <button type="button" data-editor-view="write" aria-pressed="false"><i class="ti ti-pencil me-1" aria-hidden="true"></i>Write</button>
         <button type="button" data-editor-view="preview" aria-pressed="false"><i class="ti ti-eye me-1" aria-hidden="true"></i>Preview</button>
         <button type="button" class="solution-split-toggle" data-editor-view="split" aria-pressed="true"><i class="ti ti-layout-columns me-1" aria-hidden="true"></i>Split</button>
+        {% if solution_review_config.visible %}<button type="button" data-editor-view="feedback" aria-pressed="false"><i class="ti ti-message-check me-1" aria-hidden="true"></i>Feedback</button>{% endif %}
       </div>
       <span id="solution-save-status" class="solution-save-status" role="status" aria-live="polite">{% if form.instance.pk %}Saved{% else %}Not saved yet{% endif %}</span>
     </div>

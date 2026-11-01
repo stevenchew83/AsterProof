@@ -24,6 +24,7 @@ window.ASTERPROOF_SOLUTION_MEDIA = {mediaUrlPrefix: '{{ solution_media_url|escap
 </script>
 <script defer src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
 <script src="{% static 'js/solution-latex-hybrid.js' %}"></script>
+<script defer src="{% static 'js/solution-document-preview.bundle.js' %}"></script>
 <script>
 window.asterProofSharedMathReady = window.AsterProofSolutionLatex.initSolutionListBodies(document, '{{ solution_media_url|escapejs }}');
 </script>

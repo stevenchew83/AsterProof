@@ -1,4 +1,4 @@
-"""The public, unsaved block editor and PDF download."""
+"""The public continuous editor: current-text PDF export and private handoff."""
 
 import logging
 import tempfile
@@ -17,11 +17,11 @@ from django.utils import timezone
 from django.utils.text import slugify
 from django.views.decorators.http import require_http_methods
 
+from inspinia.solutions.document_source import legacy_source
 from inspinia.solutions.examples import INEQUALITY_BLOCKS
 from inspinia.solutions.examples import INEQUALITY_STATEMENT
 from inspinia.solutions.examples import INEQUALITY_TITLE
 from inspinia.solutions.forms import PDF_DISPLAY_FIELDS
-from inspinia.solutions.forms import PREVIEW_BLOCK_LIMIT
 from inspinia.solutions.forms import SolutionPreviewBlockFormSet
 from inspinia.solutions.forms import SolutionPreviewForm
 from inspinia.solutions.forms import SolutionWriterHandoffBlockFormSet
@@ -32,9 +32,9 @@ from inspinia.solutions.pdf_latex import SolutionPdfError
 from inspinia.solutions.pdf_latex import SolutionPdfToolError
 from inspinia.solutions.pdf_latex import build_solution_tex_source
 from inspinia.solutions.pdf_latex import compile_solution_tex_to_pdf
-from inspinia.solutions.pdf_latex import latex_escape_plain_text
 from inspinia.solutions.writer_drafts import get_writer_draft
 from inspinia.solutions.writer_drafts import stage_writer_draft
+from inspinia.solutions.writer_drafts import writer_document_source
 from inspinia.solutions.writer_drafts import writer_handoff_url
 
 from .solution_preview_latex import PUBLIC_PDF_CHARACTER_LIMIT
@@ -46,91 +46,102 @@ logger = logging.getLogger(__name__)
 
 
 def solution_preview_context(request):
-    solution = ProblemSolution(updated_at=timezone.now())
-    types = dict(SolutionBlockType.objects.values_list("slug", "pk"))
-    initial = [
-        {"block_type": types.get(block["slug"]), "body_format": "latex", "body_source": block["body"]}
-        for block in INEQUALITY_BLOCKS
-    ]
+    types = {row.slug: row for row in SolutionBlockType.objects.all()}
+    example = legacy_source(
+        [
+            ProblemSolutionBlock(block_type=types.get(block["slug"]), body_format="latex", body_source=block["body"])
+            for block in INEQUALITY_BLOCKS
+        ],
+    )
     resume = request.path == reverse("website:solution_preview") and request.GET.get("resume") == "1"
     draft = get_writer_draft(request) if resume else None
-    document = draft["document"] if draft else {"title": INEQUALITY_TITLE, "problem_statement": INEQUALITY_STATEMENT}
+    document = (
+        dict(draft["document"])
+        if draft
+        else {
+            "title": INEQUALITY_TITLE,
+            "problem_statement": INEQUALITY_STATEMENT,
+            "body_source": example,
+        }
+    )
     if draft:
-        initial = document["blocks"]
-    form = SolutionPreviewForm(
-        request.POST if request.method == "POST" else None,
-        initial=document,
-    )
-    handoff = request.method == "POST" and request.POST.get("action") in {"continue_workspace", "continue_signup"}
-    formset_class = SolutionWriterHandoffBlockFormSet if handoff else SolutionPreviewBlockFormSet
-    formset = formset_class(
-        request.POST if request.method == "POST" else None, instance=solution, prefix="blocks",
-        queryset=ProblemSolutionBlock.objects.none(), initial=initial if request.method == "GET" else None,
-    )
-    if request.method == "GET":
-        formset.extra = len(initial)
+        document["body_source"] = writer_document_source(draft)
+    data = request.POST if request.method == "POST" else None
+    legacy = None
+    if data is not None and "body_source" not in data:
+        handoff = data.get("action") in {"continue_workspace", "continue_signup"}
+        formset_type = SolutionWriterHandoffBlockFormSet if handoff else SolutionPreviewBlockFormSet
+        legacy = formset_type(data, instance=ProblemSolution(), prefix="blocks")
+        if legacy.is_valid():
+            data = data.copy()
+            data["body_source"] = legacy_source([row.save(commit=False) for row in legacy.ordered_forms])
+    form = SolutionPreviewForm(data, initial=document)
+    if legacy is not None and not legacy.is_valid():
+        form.add_error(None, "Check your previous writing. The old block form could not be converted safely.")
     return {
-        "form": form, "formset": formset, "preview_block_limit": PREVIEW_BLOCK_LIMIT,
-        "plain_block_type_id": types.get("plain", ""),
+        "form": form,
+        "formset": legacy,
+        "solution_block_type_slugs": {str(row.pk): {"slug": row.slug, "label": row.label} for row in types.values()},
         "pdf_date_label": timezone.localdate().isoformat(),
         "writer_draft_resumed": bool(draft),
     }
 
 
-def _validate_fragments(form, block_forms):
-    fields = [(form, "problem_statement")]
-    fields.extend(
-        (block_form, field) for block_form in block_forms for field in ("title", "body_source")
-        if block_form.cleaned_data["body_format"] == ProblemSolutionBlock.BodyFormat.LATEX
-    )
+def _validate_fragments(form):
     valid = True
-    for fragment_form, field in fields:
+    for field in ("problem_statement", "body_source"):
         try:
-            validate_public_latex(fragment_form.cleaned_data.get(field) or "")
+            validate_public_latex(form.cleaned_data.get(field) or "")
         except ValidationError as error:
-            fragment_form.add_error(field, error)
+            form.add_error(field, error)
             valid = False
-    total = len(form.cleaned_data.get("problem_statement") or "") + sum(
-        len(block_form.cleaned_data.get("body_source") or "") for block_form in block_forms
-    )
+    total = sum(len(form.cleaned_data.get(field) or "") for field in ("problem_statement", "body_source"))
     if total > PUBLIC_PDF_CHARACTER_LIMIT:
         form.add_error(None, f"Keep this document within {PUBLIC_PDF_CHARACTER_LIMIT:,} characters.")
+        valid = False
+    if not (form.cleaned_data.get("body_source") or "").strip():
+        form.add_error("body_source", "Write your solution before exporting a PDF.")
         valid = False
     return valid
 
 
 def _download_pdf(context):
-    form, formset = context["form"], context["formset"]
+    form = context["form"]
     title = form.cleaned_data["title"] or "My solution"
-    for field in PDF_DISPLAY_FIELDS:
-        setattr(formset.instance, field, form.cleaned_data[field])
-    blocks = [block_form.save(commit=False) for block_form in formset.ordered_forms]
-    for block in blocks:
-        if block.body_format == ProblemSolutionBlock.BodyFormat.PLAIN_TEXT:
-            block.title = latex_escape_plain_text(block.title)
-            block.body_source = latex_escape_plain_text(block.body_source)
+    solution = ProblemSolution(
+        updated_at=timezone.now(), **{name: form.cleaned_data[name] for name in PDF_DISPLAY_FIELDS},
+    )
+    block = ProblemSolutionBlock(position=1, body_format="latex", body_source=form.cleaned_data["body_source"])
+    block.is_continuous_document = True
     with tempfile.TemporaryDirectory(prefix="ap_preview_media_") as media_root:
         tex_source = build_solution_tex_source(
-            solution=formset.instance, blocks=blocks, media_root=Path(media_root), problem_label=title,
+            solution=solution,
+            blocks=[block],
+            media_root=Path(media_root),
+            problem_label=title,
             problem_statement_latex=form.cleaned_data["problem_statement"],
             author_display=form.cleaned_data["author_name"],
         )
         pdf = compile_solution_tex_to_pdf(
-            tex_source, timeout=min(settings.SOLUTION_PDF_LATEX_TIMEOUT, PUBLIC_PDF_TIMEOUT),
-            latex_binary=settings.SOLUTION_PDF_LATEX_BINARY, restrict_file_access=True,
+            tex_source,
+            timeout=min(settings.SOLUTION_PDF_LATEX_TIMEOUT, PUBLIC_PDF_TIMEOUT),
+            latex_binary=settings.SOLUTION_PDF_LATEX_BINARY,
+            restrict_file_access=True,
         )
     return FileResponse(
-        BytesIO(pdf), as_attachment=True,
-        filename=f"{slugify(title) or 'solution'}.pdf", content_type="application/pdf",
+        BytesIO(pdf),
+        as_attachment=True,
+        filename=f"{slugify(title) or 'solution'}.pdf",
+        content_type="application/pdf",
     )
 
 
 def _continue_in_workspace(request, context):
-    form, formset = context["form"], context["formset"]
-    if not (form.is_valid() and formset.is_valid()):
+    form = context["form"]
+    if not form.is_valid():
         return None
     try:
-        stage_writer_draft(request, form, formset)
+        stage_writer_draft(request, form)
     except ValidationError as error:
         form.add_error(None, error)
         return None
@@ -147,15 +158,14 @@ def solution_preview_view(request):
     from .views import _page
 
     context = solution_preview_context(request)
-    form, formset = context["form"], context["formset"]
+    form = context["form"]
     response, status = None, 200
     if request.method == "POST" and request.POST.get("action") in {"continue_workspace", "continue_signup"}:
         response = _continue_in_workspace(request, context)
         if response is None:
             status = 400
     elif request.method == "POST":
-        valid_form, valid_blocks = form.is_valid(), formset.is_valid()
-        if valid_form and valid_blocks and _validate_fragments(form, list(formset.ordered_forms)):
+        if form.is_valid() and _validate_fragments(form):
             with public_pdf_slot(request) as available:
                 if not available:
                     form.add_error(None, "PDF exports are busy. Your writing is still here. Try again in a minute.")
@@ -175,12 +185,18 @@ def solution_preview_view(request):
             status = 400
     if response is None:
         response = _page(
-            request, "solution_preview", page_title="Solution Writer", active_nav="tools",
+            request,
+            "solution_preview",
+            page_title="Solution Writer",
+            active_nav="tools",
             page_description=(
-                "Write a solution in blocks, preview equations as you type, and convert LaTeX to PDF. "
-                "Combine plain text with mathematical notation and download without signing in."
+                "Write a continuous LaTeX solution, preview equations, "
+                "and download a PDF without signing in."
             ),
-            has_math=True, hide_newsletter=True, status=status, **context,
+            has_math=True,
+            hide_newsletter=True,
+            status=status,
+            **context,
         )
     response["Cache-Control"] = "private, no-store"
     if status == HTTPStatus.TOO_MANY_REQUESTS:

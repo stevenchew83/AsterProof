@@ -32,14 +32,14 @@ downarrow updownarrow Uparrow Downarrow Updownarrow hookrightarrow hookleftarrow
 ldots cdots vdots ddots dots dotsc dotsb quad qquad enspace thinspace medspace thickspace
 hat widehat bar vec tilde widetilde dot ddot acute grave breve check mathring boxed cancel phantom hphantom
 vphantom smash strut underleftarrow underrightarrow overleftarrow overrightarrow pmod mod bmod
-begin end item label ref eqref tag notag nonumber limits nolimits
+begin end item label ref eqref tag notag nonumber limits nolimits section subsection paragraph newline
 textbackslash textasciitilde textasciicircum ensuremath
 """.split())  # noqa: SIM905
 _ALLOWED_SYMBOLS = frozenset("\\{}$%&#_ ,:;!|[]()/^~'`\n\r")
 _ALLOWED_ENVIRONMENTS = frozenset({
     "aligned", "alignedat", "gathered", "split", "cases", "matrix", "pmatrix", "bmatrix", "Bmatrix",
     "vmatrix", "Vmatrix", "smallmatrix", "align", "align*", "gather", "gather*", "equation", "equation*",
-    "enumerate", "itemize",
+    "enumerate", "itemize", "claim", "proof", "fact", "remark",
 })
 _COMMAND = re.compile(r"\\([a-zA-Z@]+|[^a-zA-Z@])")
 _ENVIRONMENT = re.compile(r"\s*\{([a-zA-Z*]+)\}")

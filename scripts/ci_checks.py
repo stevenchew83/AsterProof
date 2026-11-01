@@ -16,6 +16,7 @@ DEPENDENTS = {"pages": {"problemsets", "solutions"}, "solutions": {"problemsets"
 CORE_TESTS = {"config/tests", "inspinia/users/tests"}
 DEPENDENCY_FILES = {"pyproject.toml", "uv.lock"}
 STATIC_FILES = {"package.json", "package-lock.json", "gulpfile.js", "scripts/build_and_collectstatic.sh"}
+DOCUMENT_JS_TEST = "scripts/tests/test_solution_document_js.py"
 
 
 def documentation_only(path: str) -> bool:
@@ -26,7 +27,7 @@ def documentation_only(path: str) -> bool:
     )
 
 
-def select_checks(paths: list[str]) -> dict:
+def select_checks(paths: list[str]) -> dict:  # noqa: C901 - Explicit bounded path ownership rules.
     changed = [path for path in paths if not documentation_only(path)]
     apps: set[str] = set()
     tests = set(CORE_TESTS) if changed else set()
@@ -45,6 +46,8 @@ def select_checks(paths: list[str]) -> dict:
             locks |= path == "scripts/deployment/check_production_lock.py"
         elif path in STATIC_FILES or path.startswith("inspinia/static/"):
             static = True
+            if path in STATIC_FILES or path.startswith("inspinia/static/js/"):
+                tests.add(DOCUMENT_JS_TEST)
         elif path.startswith("config/") or path == "manage.py":
             apps.update(APPS)
             static = True
@@ -66,6 +69,7 @@ def select_checks(paths: list[str]) -> dict:
         "runtime": bool(changed),
         "workflows": workflows,
         "static": static,
+        "javascript": static or "scripts" in tests or DOCUMENT_JS_TEST in tests,
         "locks": locks,
         "tests": sorted(tests),
     }

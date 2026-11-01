@@ -20,7 +20,11 @@
     if (editor) {
       // Writer fields contain TeX text, never MathML DOM. Accessibility extensions
       // can still request the MathML parser through MathJax's dependency loader.
-      window.MathJax.loader = {load: ["input/tex", "output/chtml", "ui/menu"]};
+      window.MathJax.loader = {load: ["input/tex", "output/chtml", "ui/menu", "ui/safe"]};
+      window.MathJax.options.safeOptions = {
+        allow: {URLs: "safe", classes: "none", cssIDs: "none", styles: "none"},
+        safeProtocols: {http: true, https: true, file: false, javascript: false, data: false},
+      };
     }
     pending = new Promise(function (resolve, reject) {
       if (editor) window.MathJax.loader.failed = function (error) {

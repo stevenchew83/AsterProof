@@ -95,9 +95,9 @@ def test_save_completes_getting_started_and_sharing_remains_optional(client, sol
     assert "Next: save your solution." in editor.content.decode()
     response = client.post(editor_url, {
         "action": "save", "solution-title": "My first proof", "solution-summary": "",
-        "blocks-TOTAL_FORMS": "1", "blocks-INITIAL_FORMS": "0", "blocks-MIN_NUM_FORMS": "0",
-        "blocks-MAX_NUM_FORMS": "1000", "blocks-0-ORDER": "1", "blocks-0-body_format": "plain_text",
-        "blocks-0-body_source": "A square is nonnegative.",
+        "solution-base_version": editor.context["form"]["base_version"].value(),
+        "solution-editor_context": editor.context["form"]["editor_context"].value(),
+        "solution-body_source": "A square is nonnegative.",
     }, follow=True)
     assert response.status_code == HTTPStatus.OK
     assert "Your solution is saved." in response.content.decode()
@@ -242,9 +242,9 @@ def test_guide_preference_requires_login_approval_csrf_and_known_post_action(cli
 def test_invalid_editor_submission_does_not_advance_saved_step(client, solution):
     response = client.post(
         reverse("solutions:problem_solution_edit", args=[solution.problem.problem_uuid]),
-        saved_editor_data(solution),
+        saved_editor_data(solution, body=""),
     )
-    assert response.context["formset"].non_form_errors()
+    assert response.context["form"].errors
     assert guide(client)["completed_steps"] == 1
 
 

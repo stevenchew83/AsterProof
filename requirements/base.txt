@@ -7,6 +7,7 @@ curl-cffi==0.15.0  # https://github.com/lexiforest/curl_cffi
 bleach==6.3.0  # https://github.com/mozilla/bleach
 markdown==3.10.2  # https://github.com/Python-Markdown/markdown
 cryptography==44.0.3  # https://github.com/pyca/cryptography; deployment OIDC verification
+openai==3.42.0  # Server-side, explicitly enabled solution coaching only
 
 # Django
 # ------------------------------------------------------------------------------

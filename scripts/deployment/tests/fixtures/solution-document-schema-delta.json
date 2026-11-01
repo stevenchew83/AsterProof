@@ -1,0 +1,869 @@
+{
+  "added": {
+    "columns": [
+      {
+        "collation": "default",
+        "column": "body_source",
+        "default": null,
+        "nullable": false,
+        "position": 3,
+        "schema": "public",
+        "table": "solutions_solutionrevision",
+        "type": "text"
+      },
+      {
+        "collation": "default",
+        "column": "error_code",
+        "default": null,
+        "nullable": false,
+        "position": 17,
+        "schema": "public",
+        "table": "solutions_solutionreview",
+        "type": "character varying(64)"
+      },
+      {
+        "collation": "default",
+        "column": "input_digest",
+        "default": null,
+        "nullable": false,
+        "position": 5,
+        "schema": "public",
+        "table": "solutions_solutionreview",
+        "type": "character varying(64)"
+      },
+      {
+        "collation": "default",
+        "column": "model",
+        "default": null,
+        "nullable": false,
+        "position": 4,
+        "schema": "public",
+        "table": "solutions_solutionreviewpolicy",
+        "type": "character varying(120)"
+      },
+      {
+        "collation": "default",
+        "column": "model",
+        "default": null,
+        "nullable": false,
+        "position": 6,
+        "schema": "public",
+        "table": "solutions_solutionreview",
+        "type": "character varying(120)"
+      },
+      {
+        "collation": "default",
+        "column": "prompt_version",
+        "default": null,
+        "nullable": false,
+        "position": 7,
+        "schema": "public",
+        "table": "solutions_solutionreview",
+        "type": "character varying(32)"
+      },
+      {
+        "collation": "default",
+        "column": "provider_request_id",
+        "default": null,
+        "nullable": false,
+        "position": 14,
+        "schema": "public",
+        "table": "solutions_solutionreview",
+        "type": "character varying(200)"
+      },
+      {
+        "collation": "default",
+        "column": "provider_response_id",
+        "default": null,
+        "nullable": false,
+        "position": 15,
+        "schema": "public",
+        "table": "solutions_solutionreview",
+        "type": "character varying(200)"
+      },
+      {
+        "collation": "default",
+        "column": "rubric_version",
+        "default": null,
+        "nullable": false,
+        "position": 8,
+        "schema": "public",
+        "table": "solutions_solutionreview",
+        "type": "character varying(32)"
+      },
+      {
+        "collation": "default",
+        "column": "source_digest",
+        "default": null,
+        "nullable": false,
+        "position": 10,
+        "schema": "public",
+        "table": "solutions_solutionrevision",
+        "type": "character varying(64)"
+      },
+      {
+        "collation": "default",
+        "column": "status",
+        "default": null,
+        "nullable": false,
+        "position": 3,
+        "schema": "public",
+        "table": "solutions_solutionreview",
+        "type": "character varying(20)"
+      },
+      {
+        "collation": "default",
+        "column": "summary",
+        "default": null,
+        "nullable": false,
+        "position": 6,
+        "schema": "public",
+        "table": "solutions_solutionrevision",
+        "type": "text"
+      },
+      {
+        "collation": "default",
+        "column": "title",
+        "default": null,
+        "nullable": false,
+        "position": 5,
+        "schema": "public",
+        "table": "solutions_solutionrevision",
+        "type": "character varying(160)"
+      },
+      {
+        "collation": null,
+        "column": "accounted_micros",
+        "default": null,
+        "nullable": false,
+        "position": 11,
+        "schema": "public",
+        "table": "solutions_solutionreview",
+        "type": "bigint"
+      },
+      {
+        "collation": null,
+        "column": "acknowledged_at",
+        "default": null,
+        "nullable": false,
+        "position": 18,
+        "schema": "public",
+        "table": "solutions_solutionreview",
+        "type": "timestamp with time zone"
+      },
+      {
+        "collation": null,
+        "column": "author_id",
+        "default": null,
+        "nullable": false,
+        "position": 23,
+        "schema": "public",
+        "table": "solutions_solutionreview",
+        "type": "bigint"
+      },
+      {
+        "collation": null,
+        "column": "completed_at",
+        "default": null,
+        "nullable": true,
+        "position": 20,
+        "schema": "public",
+        "table": "solutions_solutionreview",
+        "type": "timestamp with time zone"
+      },
+      {
+        "collation": null,
+        "column": "conversion_version",
+        "default": null,
+        "nullable": false,
+        "position": 11,
+        "schema": "public",
+        "table": "solutions_solutionrevision",
+        "type": "smallint"
+      },
+      {
+        "collation": null,
+        "column": "created_at",
+        "default": null,
+        "nullable": false,
+        "position": 12,
+        "schema": "public",
+        "table": "solutions_solutionrevision",
+        "type": "timestamp with time zone"
+      },
+      {
+        "collation": null,
+        "column": "created_at",
+        "default": null,
+        "nullable": false,
+        "position": 21,
+        "schema": "public",
+        "table": "solutions_solutionreview",
+        "type": "timestamp with time zone"
+      },
+      {
+        "collation": null,
+        "column": "current_revision_id",
+        "default": null,
+        "nullable": true,
+        "position": 15,
+        "schema": "public",
+        "table": "solutions_problemsolution",
+        "type": "uuid"
+      },
+      {
+        "collation": null,
+        "column": "daily_budget_micros",
+        "default": null,
+        "nullable": false,
+        "position": 5,
+        "schema": "public",
+        "table": "solutions_solutionreviewpolicy",
+        "type": "bigint"
+      },
+      {
+        "collation": null,
+        "column": "dispatched_at",
+        "default": null,
+        "nullable": true,
+        "position": 19,
+        "schema": "public",
+        "table": "solutions_solutionreview",
+        "type": "timestamp with time zone"
+      },
+      {
+        "collation": null,
+        "column": "edit_version",
+        "default": "0",
+        "nullable": false,
+        "position": 14,
+        "schema": "public",
+        "table": "solutions_problemsolution",
+        "type": "integer"
+      },
+      {
+        "collation": null,
+        "column": "enabled",
+        "default": null,
+        "nullable": false,
+        "position": 3,
+        "schema": "public",
+        "table": "solutions_solutionreviewpolicy",
+        "type": "boolean"
+      },
+      {
+        "collation": null,
+        "column": "feedback",
+        "default": null,
+        "nullable": false,
+        "position": 13,
+        "schema": "public",
+        "table": "solutions_solutionreview",
+        "type": "jsonb"
+      },
+      {
+        "collation": null,
+        "column": "global_daily_limit",
+        "default": null,
+        "nullable": false,
+        "position": 13,
+        "schema": "public",
+        "table": "solutions_solutionreviewpolicy",
+        "type": "smallint"
+      },
+      {
+        "collation": null,
+        "column": "id",
+        "default": null,
+        "nullable": false,
+        "position": 1,
+        "schema": "public",
+        "table": "solutions_solutionreview",
+        "type": "uuid"
+      },
+      {
+        "collation": null,
+        "column": "id",
+        "default": null,
+        "nullable": false,
+        "position": 1,
+        "schema": "public",
+        "table": "solutions_solutionreviewpolicy",
+        "type": "bigint"
+      },
+      {
+        "collation": null,
+        "column": "id",
+        "default": null,
+        "nullable": false,
+        "position": 1,
+        "schema": "public",
+        "table": "solutions_solutionrevision",
+        "type": "uuid"
+      },
+      {
+        "collation": null,
+        "column": "idempotency_key",
+        "default": null,
+        "nullable": false,
+        "position": 2,
+        "schema": "public",
+        "table": "solutions_solutionreview",
+        "type": "uuid"
+      },
+      {
+        "collation": null,
+        "column": "image_token_bound",
+        "default": null,
+        "nullable": false,
+        "position": 10,
+        "schema": "public",
+        "table": "solutions_solutionreviewpolicy",
+        "type": "integer"
+      },
+      {
+        "collation": null,
+        "column": "input_price_micros_per_million",
+        "default": null,
+        "nullable": false,
+        "position": 8,
+        "schema": "public",
+        "table": "solutions_solutionreviewpolicy",
+        "type": "bigint"
+      },
+      {
+        "collation": null,
+        "column": "input_snapshot",
+        "default": null,
+        "nullable": false,
+        "position": 4,
+        "schema": "public",
+        "table": "solutions_solutionreview",
+        "type": "jsonb"
+      },
+      {
+        "collation": null,
+        "column": "lease_token",
+        "default": null,
+        "nullable": true,
+        "position": 15,
+        "schema": "public",
+        "table": "solutions_solutionreviewpolicy",
+        "type": "uuid"
+      },
+      {
+        "collation": null,
+        "column": "lease_until",
+        "default": null,
+        "nullable": true,
+        "position": 16,
+        "schema": "public",
+        "table": "solutions_solutionreviewpolicy",
+        "type": "timestamp with time zone"
+      },
+      {
+        "collation": null,
+        "column": "monthly_budget_micros",
+        "default": null,
+        "nullable": false,
+        "position": 6,
+        "schema": "public",
+        "table": "solutions_solutionreviewpolicy",
+        "type": "bigint"
+      },
+      {
+        "collation": null,
+        "column": "output_price_micros_per_million",
+        "default": null,
+        "nullable": false,
+        "position": 9,
+        "schema": "public",
+        "table": "solutions_solutionreviewpolicy",
+        "type": "bigint"
+      },
+      {
+        "collation": null,
+        "column": "pdf_show_author",
+        "default": null,
+        "nullable": false,
+        "position": 7,
+        "schema": "public",
+        "table": "solutions_solutionrevision",
+        "type": "boolean"
+      },
+      {
+        "collation": null,
+        "column": "pdf_show_date",
+        "default": null,
+        "nullable": false,
+        "position": 8,
+        "schema": "public",
+        "table": "solutions_solutionrevision",
+        "type": "boolean"
+      },
+      {
+        "collation": null,
+        "column": "pdf_show_footer",
+        "default": null,
+        "nullable": false,
+        "position": 9,
+        "schema": "public",
+        "table": "solutions_solutionrevision",
+        "type": "boolean"
+      },
+      {
+        "collation": null,
+        "column": "pricing_snapshot",
+        "default": null,
+        "nullable": false,
+        "position": 12,
+        "schema": "public",
+        "table": "solutions_solutionreview",
+        "type": "jsonb"
+      },
+      {
+        "collation": null,
+        "column": "pricing_verified_at",
+        "default": null,
+        "nullable": true,
+        "position": 11,
+        "schema": "public",
+        "table": "solutions_solutionreviewpolicy",
+        "type": "timestamp with time zone"
+      },
+      {
+        "collation": null,
+        "column": "request_budget_micros",
+        "default": null,
+        "nullable": false,
+        "position": 7,
+        "schema": "public",
+        "table": "solutions_solutionreviewpolicy",
+        "type": "bigint"
+      },
+      {
+        "collation": null,
+        "column": "reserved_micros",
+        "default": null,
+        "nullable": false,
+        "position": 10,
+        "schema": "public",
+        "table": "solutions_solutionreview",
+        "type": "bigint"
+      },
+      {
+        "collation": null,
+        "column": "revision_id",
+        "default": null,
+        "nullable": false,
+        "position": 24,
+        "schema": "public",
+        "table": "solutions_solutionreview",
+        "type": "uuid"
+      },
+      {
+        "collation": null,
+        "column": "schema_version",
+        "default": null,
+        "nullable": false,
+        "position": 9,
+        "schema": "public",
+        "table": "solutions_solutionreview",
+        "type": "smallint"
+      },
+      {
+        "collation": null,
+        "column": "sequence",
+        "default": null,
+        "nullable": false,
+        "position": 2,
+        "schema": "public",
+        "table": "solutions_solutionrevision",
+        "type": "integer"
+      },
+      {
+        "collation": null,
+        "column": "singleton_key",
+        "default": null,
+        "nullable": false,
+        "position": 2,
+        "schema": "public",
+        "table": "solutions_solutionreviewpolicy",
+        "type": "smallint"
+      },
+      {
+        "collation": null,
+        "column": "solution_id",
+        "default": null,
+        "nullable": false,
+        "position": 13,
+        "schema": "public",
+        "table": "solutions_solutionrevision",
+        "type": "bigint"
+      },
+      {
+        "collation": null,
+        "column": "syntax_version",
+        "default": null,
+        "nullable": false,
+        "position": 4,
+        "schema": "public",
+        "table": "solutions_solutionrevision",
+        "type": "smallint"
+      },
+      {
+        "collation": null,
+        "column": "updated_at",
+        "default": null,
+        "nullable": false,
+        "position": 17,
+        "schema": "public",
+        "table": "solutions_solutionreviewpolicy",
+        "type": "timestamp with time zone"
+      },
+      {
+        "collation": null,
+        "column": "updated_at",
+        "default": null,
+        "nullable": false,
+        "position": 22,
+        "schema": "public",
+        "table": "solutions_solutionreview",
+        "type": "timestamp with time zone"
+      },
+      {
+        "collation": null,
+        "column": "usage",
+        "default": null,
+        "nullable": false,
+        "position": 16,
+        "schema": "public",
+        "table": "solutions_solutionreview",
+        "type": "jsonb"
+      },
+      {
+        "collation": null,
+        "column": "user_daily_limit",
+        "default": null,
+        "nullable": false,
+        "position": 12,
+        "schema": "public",
+        "table": "solutions_solutionreviewpolicy",
+        "type": "smallint"
+      },
+      {
+        "collation": null,
+        "column": "worker_seen_at",
+        "default": null,
+        "nullable": true,
+        "position": 14,
+        "schema": "public",
+        "table": "solutions_solutionreviewpolicy",
+        "type": "timestamp with time zone"
+      }
+    ],
+    "constraints": [
+      {
+        "definition": "CHECK (accounted_micros >= 0)",
+        "name": "solutions_solutionreview_accounted_micros_check",
+        "schema": "public",
+        "table": "solutions_solutionreview",
+        "type": "c"
+      },
+      {
+        "definition": "CHECK (conversion_version >= 0)",
+        "name": "solutions_solutionrevision_conversion_version_check",
+        "schema": "public",
+        "table": "solutions_solutionrevision",
+        "type": "c"
+      },
+      {
+        "definition": "CHECK (daily_budget_micros >= 0)",
+        "name": "solutions_solutionreviewpolicy_daily_budget_micros_check",
+        "schema": "public",
+        "table": "solutions_solutionreviewpolicy",
+        "type": "c"
+      },
+      {
+        "definition": "CHECK (edit_version >= 0)",
+        "name": "solutions_problemsolution_edit_version_check",
+        "schema": "public",
+        "table": "solutions_problemsolution",
+        "type": "c"
+      },
+      {
+        "definition": "CHECK (global_daily_limit >= 0)",
+        "name": "solutions_solutionreviewpolicy_global_daily_limit_check",
+        "schema": "public",
+        "table": "solutions_solutionreviewpolicy",
+        "type": "c"
+      },
+      {
+        "definition": "CHECK (image_token_bound >= 0)",
+        "name": "solutions_solutionreviewpolicy_image_token_bound_check",
+        "schema": "public",
+        "table": "solutions_solutionreviewpolicy",
+        "type": "c"
+      },
+      {
+        "definition": "CHECK (input_price_micros_per_million >= 0)",
+        "name": "solutions_solutionreviewpoli_input_price_micros_per_milli_check",
+        "schema": "public",
+        "table": "solutions_solutionreviewpolicy",
+        "type": "c"
+      },
+      {
+        "definition": "CHECK (monthly_budget_micros >= 0)",
+        "name": "solutions_solutionreviewpolicy_monthly_budget_micros_check",
+        "schema": "public",
+        "table": "solutions_solutionreviewpolicy",
+        "type": "c"
+      },
+      {
+        "definition": "CHECK (output_price_micros_per_million >= 0)",
+        "name": "solutions_solutionreviewpoli_output_price_micros_per_mill_check",
+        "schema": "public",
+        "table": "solutions_solutionreviewpolicy",
+        "type": "c"
+      },
+      {
+        "definition": "CHECK (request_budget_micros >= 0)",
+        "name": "solutions_solutionreviewpolicy_request_budget_micros_check",
+        "schema": "public",
+        "table": "solutions_solutionreviewpolicy",
+        "type": "c"
+      },
+      {
+        "definition": "CHECK (reserved_micros >= 0)",
+        "name": "solutions_solutionreview_reserved_micros_check",
+        "schema": "public",
+        "table": "solutions_solutionreview",
+        "type": "c"
+      },
+      {
+        "definition": "CHECK (schema_version >= 0)",
+        "name": "solutions_solutionreview_schema_version_check",
+        "schema": "public",
+        "table": "solutions_solutionreview",
+        "type": "c"
+      },
+      {
+        "definition": "CHECK (sequence >= 0)",
+        "name": "solutions_solutionrevision_sequence_check",
+        "schema": "public",
+        "table": "solutions_solutionrevision",
+        "type": "c"
+      },
+      {
+        "definition": "CHECK (sequence >= 1)",
+        "name": "solution_revision_positive_sequence",
+        "schema": "public",
+        "table": "solutions_solutionrevision",
+        "type": "c"
+      },
+      {
+        "definition": "CHECK (singleton_key = 1)",
+        "name": "solutions_review_policy_singleton",
+        "schema": "public",
+        "table": "solutions_solutionreviewpolicy",
+        "type": "c"
+      },
+      {
+        "definition": "CHECK (singleton_key >= 0)",
+        "name": "solutions_solutionreviewpolicy_singleton_key_check",
+        "schema": "public",
+        "table": "solutions_solutionreviewpolicy",
+        "type": "c"
+      },
+      {
+        "definition": "CHECK (syntax_version >= 0)",
+        "name": "solutions_solutionrevision_syntax_version_check",
+        "schema": "public",
+        "table": "solutions_solutionrevision",
+        "type": "c"
+      },
+      {
+        "definition": "CHECK (user_daily_limit >= 0)",
+        "name": "solutions_solutionreviewpolicy_user_daily_limit_check",
+        "schema": "public",
+        "table": "solutions_solutionreviewpolicy",
+        "type": "c"
+      },
+      {
+        "definition": "FOREIGN KEY (author_id) REFERENCES users_user(id) DEFERRABLE INITIALLY DEFERRED",
+        "name": "solutions_solutionreview_author_id_c2deeefd_fk_users_user_id",
+        "schema": "public",
+        "table": "solutions_solutionreview",
+        "type": "f"
+      },
+      {
+        "definition": "FOREIGN KEY (current_revision_id) REFERENCES solutions_solutionrevision(id) DEFERRABLE INITIALLY DEFERRED",
+        "name": "solutions_problemsol_current_revision_id_99773415_fk_solutions",
+        "schema": "public",
+        "table": "solutions_problemsolution",
+        "type": "f"
+      },
+      {
+        "definition": "FOREIGN KEY (revision_id) REFERENCES solutions_solutionrevision(id) DEFERRABLE INITIALLY DEFERRED",
+        "name": "solutions_solutionre_revision_id_58d712ca_fk_solutions",
+        "schema": "public",
+        "table": "solutions_solutionreview",
+        "type": "f"
+      },
+      {
+        "definition": "FOREIGN KEY (solution_id) REFERENCES solutions_problemsolution(id) DEFERRABLE INITIALLY DEFERRED",
+        "name": "solutions_solutionre_solution_id_cb75c127_fk_solutions",
+        "schema": "public",
+        "table": "solutions_solutionrevision",
+        "type": "f"
+      },
+      {
+        "definition": "PRIMARY KEY (id)",
+        "name": "solutions_solutionreview_pkey",
+        "schema": "public",
+        "table": "solutions_solutionreview",
+        "type": "p"
+      },
+      {
+        "definition": "PRIMARY KEY (id)",
+        "name": "solutions_solutionreviewpolicy_pkey",
+        "schema": "public",
+        "table": "solutions_solutionreviewpolicy",
+        "type": "p"
+      },
+      {
+        "definition": "PRIMARY KEY (id)",
+        "name": "solutions_solutionrevision_pkey",
+        "schema": "public",
+        "table": "solutions_solutionrevision",
+        "type": "p"
+      },
+      {
+        "definition": "UNIQUE (author_id, idempotency_key)",
+        "name": "solutions_review_idempotency",
+        "schema": "public",
+        "table": "solutions_solutionreview",
+        "type": "u"
+      },
+      {
+        "definition": "UNIQUE (singleton_key)",
+        "name": "solutions_solutionreviewpolicy_singleton_key_key",
+        "schema": "public",
+        "table": "solutions_solutionreviewpolicy",
+        "type": "u"
+      },
+      {
+        "definition": "UNIQUE (solution_id, sequence)",
+        "name": "solution_revision_unique_sequence",
+        "schema": "public",
+        "table": "solutions_solutionrevision",
+        "type": "u"
+      }
+    ],
+    "extensions": [],
+    "indexes": [
+      {
+        "definition": "CREATE INDEX solutions_problemsolution_current_revision_id_99773415 ON public.solutions_problemsolution USING btree (current_revision_id)",
+        "name": "solutions_problemsolution_current_revision_id_99773415",
+        "schema": "public",
+        "table": "solutions_problemsolution"
+      },
+      {
+        "definition": "CREATE INDEX solutions_s_author__29f6f1_idx ON public.solutions_solutionreview USING btree (author_id, created_at)",
+        "name": "solutions_s_author__29f6f1_idx",
+        "schema": "public",
+        "table": "solutions_solutionreview"
+      },
+      {
+        "definition": "CREATE INDEX solutions_solutionreview_author_id_c2deeefd ON public.solutions_solutionreview USING btree (author_id)",
+        "name": "solutions_solutionreview_author_id_c2deeefd",
+        "schema": "public",
+        "table": "solutions_solutionreview"
+      },
+      {
+        "definition": "CREATE INDEX solutions_solutionreview_revision_id_58d712ca ON public.solutions_solutionreview USING btree (revision_id)",
+        "name": "solutions_solutionreview_revision_id_58d712ca",
+        "schema": "public",
+        "table": "solutions_solutionreview"
+      },
+      {
+        "definition": "CREATE INDEX solutions_solutionreview_status_c91a9453 ON public.solutions_solutionreview USING btree (status)",
+        "name": "solutions_solutionreview_status_c91a9453",
+        "schema": "public",
+        "table": "solutions_solutionreview"
+      },
+      {
+        "definition": "CREATE INDEX solutions_solutionreview_status_c91a9453_like ON public.solutions_solutionreview USING btree (status varchar_pattern_ops)",
+        "name": "solutions_solutionreview_status_c91a9453_like",
+        "schema": "public",
+        "table": "solutions_solutionreview"
+      },
+      {
+        "definition": "CREATE INDEX solutions_solutionrevision_solution_id_cb75c127 ON public.solutions_solutionrevision USING btree (solution_id)",
+        "name": "solutions_solutionrevision_solution_id_cb75c127",
+        "schema": "public",
+        "table": "solutions_solutionrevision"
+      },
+      {
+        "definition": "CREATE UNIQUE INDEX solution_revision_unique_sequence ON public.solutions_solutionrevision USING btree (solution_id, sequence)",
+        "name": "solution_revision_unique_sequence",
+        "schema": "public",
+        "table": "solutions_solutionrevision"
+      },
+      {
+        "definition": "CREATE UNIQUE INDEX solutions_review_idempotency ON public.solutions_solutionreview USING btree (author_id, idempotency_key)",
+        "name": "solutions_review_idempotency",
+        "schema": "public",
+        "table": "solutions_solutionreview"
+      },
+      {
+        "definition": "CREATE UNIQUE INDEX solutions_solutionreview_pkey ON public.solutions_solutionreview USING btree (id)",
+        "name": "solutions_solutionreview_pkey",
+        "schema": "public",
+        "table": "solutions_solutionreview"
+      },
+      {
+        "definition": "CREATE UNIQUE INDEX solutions_solutionreviewpolicy_pkey ON public.solutions_solutionreviewpolicy USING btree (id)",
+        "name": "solutions_solutionreviewpolicy_pkey",
+        "schema": "public",
+        "table": "solutions_solutionreviewpolicy"
+      },
+      {
+        "definition": "CREATE UNIQUE INDEX solutions_solutionreviewpolicy_singleton_key_key ON public.solutions_solutionreviewpolicy USING btree (singleton_key)",
+        "name": "solutions_solutionreviewpolicy_singleton_key_key",
+        "schema": "public",
+        "table": "solutions_solutionreviewpolicy"
+      },
+      {
+        "definition": "CREATE UNIQUE INDEX solutions_solutionrevision_pkey ON public.solutions_solutionrevision USING btree (id)",
+        "name": "solutions_solutionrevision_pkey",
+        "schema": "public",
+        "table": "solutions_solutionrevision"
+      }
+    ],
+    "tables": [
+      {
+        "kind": "r",
+        "schema": "public",
+        "table": "solutions_solutionreview"
+      },
+      {
+        "kind": "r",
+        "schema": "public",
+        "table": "solutions_solutionreviewpolicy"
+      },
+      {
+        "kind": "r",
+        "schema": "public",
+        "table": "solutions_solutionrevision"
+      }
+    ]
+  },
+  "removed": {
+    "columns": [],
+    "constraints": [],
+    "extensions": [],
+    "indexes": [],
+    "tables": []
+  }
+}

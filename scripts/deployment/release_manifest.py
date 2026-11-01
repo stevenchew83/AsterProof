@@ -38,6 +38,7 @@ class ReleaseManifest:
     python_abi: str
     files: tuple[dict[str, Any], ...]
     format_version: int = RELEASE_FORMAT_VERSION
+    solution_document_reader: int = 0
 
     def validate(self) -> None:
         if self.format_version != RELEASE_FORMAT_VERSION:
@@ -71,6 +72,13 @@ class ReleaseManifest:
             if not isinstance(size, int) or size < 0:
                 raise ManifestError("invalid file size")
             seen.add(path)
+        if type(self.solution_document_reader) is not int or self.solution_document_reader not in {0, 1}:
+            raise ManifestError("invalid solution document reader capability")
+        if self.solution_document_reader:
+            from scripts.deployment.solution_document_compat import reader_sources_match
+
+            if not reader_sources_match(self.files):
+                raise ManifestError("solution document reader bytes do not match the reviewed capability")
 
     def to_json_bytes(self) -> bytes:
         self.validate()
@@ -85,6 +93,8 @@ class ReleaseManifest:
             "run_id": self.run_id,
             "target_platform": self.target_platform,
         }
+        if self.solution_document_reader:
+            payload["solution_document_reader"] = self.solution_document_reader
         return (json.dumps(payload, sort_keys=True, separators=(",", ":")) + "\n").encode()
 
     @classmethod
@@ -103,6 +113,7 @@ class ReleaseManifest:
                 target_platform=data["target_platform"],
                 python_abi=data["python_abi"],
                 files=tuple(data["files"]),
+                solution_document_reader=data.get("solution_document_reader", 0),
             )
         except (KeyError, TypeError, ValueError, json.JSONDecodeError) as exc:
             raise ManifestError("malformed release manifest") from exc
