@@ -2994,6 +2994,28 @@ textarea.form-control-lg {
     text-align: left;
   }
 }
+.website-prose .learning-managed-image {
+  display: block;
+  margin: 1.5rem 0;
+}
+
+.website-prose .learning-managed-image img {
+  display: block;
+  max-width: 100%;
+  height: auto;
+}
+
+.website-prose .learning-image-caption {
+  display: block;
+  margin-top: 0.5rem;
+  font-size: 0.875rem;
+  color: var(--bs-secondary-color);
+}
+
+.website-reading-width {
+  max-width: 78rem;
+}
+
 .problem-solving .solving-hero {
   display: grid;
   grid-template-columns: 1fr 1fr;

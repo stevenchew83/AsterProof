@@ -3,6 +3,7 @@ With these settings, tests run faster.
 """
 
 from .base import *  # noqa: F403
+from .base import BASE_DIR
 from .base import TEMPLATES
 from .base import env
 
@@ -35,5 +36,11 @@ TEMPLATES[0]["OPTIONS"]["debug"] = True  # type: ignore[index]
 # https://docs.djangoproject.com/en/dev/ref/settings/#media-url
 MEDIA_URL = "http://media.testserver/"
 SOLUTION_DOCUMENT_WRITES_ENABLED = True
+LEARNING_MODULE_ENABLED = False
+LEARNING_CONTRIBUTIONS_ENABLED = True
+LEARNING_PUBLICATION_ENABLED = True
+LEARNING_PRIVATE_ASSET_ROOT = str(BASE_DIR / ".test-learning-assets")
+LEARNING_AGREEMENT_VERSION = "synthetic-rights-retained-v1"
+LEARNING_AGREEMENT_APPROVED = True
 # Your stuff...
 # ------------------------------------------------------------------------------

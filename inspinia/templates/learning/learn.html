@@ -1,0 +1,69 @@
+{% extends 'learning/base.html' %}
+
+{% block learning_content %}
+  <header class="mb-4">
+    <p class="text-uppercase text-primary fw-semibold fs-xs">Mathematical ideas, connected</p>
+    <h1>Find your next insight.</h1>
+    <p class="text-muted fs-lg">Follow a learning pathway, or explore the areas and concepts behind a problem.</p>
+  </header>
+  <div class="row g-3">
+    <div class="col-lg-8">
+      <section class="card h-100">
+        <div class="card-body">
+          <h2 class="h4">Guided learning</h2>
+          <p class="text-muted">
+            Read explanations, work through examples and practise. Reading and practice are recorded separately.
+          </p>
+          {% for path in paths %}
+            <a class="d-block border-top py-3 text-decoration-none"
+               href="{% url 'learning:pathway' path.slug %}"><strong>{{ path.current_revision.title }}</strong>
+              <p class="text-muted mb-0">{{ path.current_revision.summary }}</p>
+            </a>{% empty %}
+            <div class="alert alert-light border">
+              The first reviewed pathway will appear here. Inequalities is our first pilot; every topic is already available to explore.
+            </div>
+          {% endfor %}
+          {% if learning_is_publisher %}
+            <a href="{% url 'learning:pathway_editor' %}"
+               class="btn btn-outline-primary">Curate a pathway</a>
+          {% endif %}
+        </div>
+      </section>
+    </div>
+    <div class="col-lg-4">
+      <section class="card bg-primary-subtle h-100">
+        <div class="card-body">
+          <span class="text-uppercase fs-xs fw-semibold">Across every topic</span>
+          <h2 class="h3 mt-2">Foundations</h2>
+          <p>Proof writing, induction, parity, invariants and the habits that make mathematical arguments work.</p>
+          {% if foundations %}
+            <a class="btn btn-primary"
+               href="{% url 'learning:pathway' foundations.slug %}">Study Foundations</a>
+          {% else %}
+            <p class="mb-0">The Foundations pathway is being prepared for review.</p>
+          {% endif %}
+        </div>
+      </section>
+    </div>
+  </div>
+  <section class="mt-4">
+    <div class="d-flex justify-content-between flex-wrap gap-2 mb-3">
+      <h2 class="h4 mb-0">Explore all topics</h2>
+      <span class="text-muted">{{ area_total }} areas · {{ concept_total }} canonical concepts</span>
+    </div>
+    <div class="row g-3">
+      {% for subject in subjects %}
+        <div class="col-md-6 col-xl-3">
+          <a class="card h-100 text-reset text-decoration-none"
+             href="{{ subject.explore_url }}">
+            <div class="card-body">
+              <i class="ti ti-books text-primary fs-24" aria-hidden="true"></i>
+              <h3 class="h4 mt-3">{{ subject.name }}</h3>
+              <p class="text-muted mb-0">{{ subject.area_total }} areas · {{ subject.concept_total }} concepts</p>
+            </div>
+          </a>
+        </div>
+      {% endfor %}
+    </div>
+  </section>
+{% endblock %}

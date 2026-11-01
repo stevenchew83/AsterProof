@@ -101,6 +101,7 @@ LOCAL_APPS = [
     "inspinia.rankings",
     "inspinia.training",
     "inspinia.website",
+    "inspinia.learning",
     # Your stuff: custom apps go here
 ]
 # https://docs.djangoproject.com/en/dev/ref/settings/#installed-apps
@@ -214,6 +215,7 @@ TEMPLATES = [
                 "inspinia.users.context_processors.app_roles",
                 "inspinia.solutions.evaluation_navigation.evaluation_workspace",
                 "inspinia.pages.learning_activity.learning_activity_context",
+                "inspinia.learning.context_processors.learning_navigation",
             ],
         },
     },
@@ -302,6 +304,14 @@ REDIS_SSL = REDIS_URL.startswith("rediss://")
 
 # Coaching is opt-in twice: this kill switch and an enabled, funded pilot policy.
 SOLUTION_DOCUMENT_WRITES_ENABLED = env.bool("SOLUTION_DOCUMENT_WRITES_ENABLED", default=False)
+LEARNING_MODULE_ENABLED = env.bool("LEARNING_MODULE_ENABLED", default=False)
+LEARNING_CONTRIBUTIONS_ENABLED = env.bool("LEARNING_CONTRIBUTIONS_ENABLED", default=False)
+LEARNING_PUBLICATION_ENABLED = env.bool("LEARNING_PUBLICATION_ENABLED", default=False)
+LEARNING_PUBLISHER_USER_ID = env.int("LEARNING_PUBLISHER_USER_ID", default=0)
+LEARNING_PRIVATE_ASSET_ROOT = env("LEARNING_PRIVATE_ASSET_ROOT", default="")
+LEARNING_CONTENT_PACK_ROOT = env("LEARNING_CONTENT_PACK_ROOT", default="")
+LEARNING_AGREEMENT_VERSION = env("LEARNING_AGREEMENT_VERSION", default="")
+LEARNING_AGREEMENT_APPROVED = env.bool("LEARNING_AGREEMENT_APPROVED", default=False)
 SOLUTION_AI_REVIEW_ENABLED = env.bool("SOLUTION_AI_REVIEW_ENABLED", default=False)
 SOLUTION_AI_EXECUTION_MODE = "offline"
 PROBLEM_STATEMENT_AI_REVIEW_ENABLED = env.bool("PROBLEM_STATEMENT_AI_REVIEW_ENABLED", default=False)

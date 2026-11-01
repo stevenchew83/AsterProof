@@ -1,0 +1,52 @@
+{% extends 'learning/base.html' %}
+
+{% block learning_content %}
+  <h1 class="h2">Whole-module rollout</h1>
+  <p class="lead">Four topics and Foundations. Inequalities is the first pilot.</p>
+  <p class="text-muted">
+    These original starter packs are unreviewed. Importing creates private drafts only; mathematical review, practice links and publication permission remain separate gates.
+  </p>
+  <div class="row g-3">
+    {% for pack in packs %}
+      <div class="col-lg-4">
+        <a class="card card-body h-100 text-reset text-decoration-none"
+           href="{% url 'learning:pack' pack.file_key %}">
+          <h2 class="h5">{{ pack.title }}</h2>
+          <p class="text-muted">{{ pack.notes|length }} unreviewed drafts</p>
+          <span>Preview pack →</span></a>
+      </div>
+    {% empty %}
+      <p class="text-muted">No private teaching packs are configured. Unreviewed manuscripts are kept outside the public application source.</p>
+    {% endfor %}
+  </div>
+  <h2 class="h4 mt-4">Rollout milestones</h2>
+  <div class="list-group mb-4">
+    {% for milestone in manifest.milestones %}
+      <div class="list-group-item">
+        <strong>{{ milestone.id }}</strong> · {{ milestone.title }}
+      </div>
+    {% endfor %}
+  </div>
+  <div class="table-responsive">
+    <table class="table">
+      <thead>
+        <tr>
+          <th>Area</th>
+          <th>Topic</th>
+          <th>Milestone</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for area in manifest.areas %}
+          <tr>
+            <td>
+              <a href="{% url 'learning:area' area.id %}">{{ area.name }}</a>
+            </td>
+            <td>{{ area.subject }}</td>
+            <td>{{ area.milestone }}</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+{% endblock %}

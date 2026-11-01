@@ -7,6 +7,12 @@ from django.db import models
 from django.db.models import Q
 from django.utils.text import slugify
 
+from inspinia.training.pathway_models import ContentPackImport  # noqa: F401
+from inspinia.training.pathway_models import LearningPath  # noqa: F401
+from inspinia.training.pathway_models import LearningPathItem  # noqa: F401
+from inspinia.training.pathway_models import LearningPathRevision  # noqa: F401
+from inspinia.training.pathway_models import PathReading  # noqa: F401
+
 
 def _submission_attachment_upload_to(instance, filename: str) -> str:
     extension = filename.rsplit(".", 1)[-1].lower() if "." in filename else "upload"

@@ -9,6 +9,7 @@ import subprocess
 from pathlib import Path
 
 from scripts.deployment.archive_safety import safe_extract
+from scripts.deployment.learning_compat import verified_reader_release as verified_learning_reader
 
 
 def _materialize_internal_symlinks(destination: Path) -> None:
@@ -91,6 +92,8 @@ def prepare_release(
         or manifest.target_platform != target_platform
     ):
         raise ValueError("release metadata does not match the target contract")
+    if manifest.learning_reader and not verified_learning_reader(destination, manifest=manifest):
+        raise ValueError("prepared learning reader bytes do not match the reviewed capability")
     venv = destination / ".venv"
     subprocess.run([str(python_executable), "-m", "venv", "--copies", str(venv)], check=True)
     env = os.environ.copy()
