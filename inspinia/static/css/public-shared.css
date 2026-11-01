@@ -3154,7 +3154,7 @@ textarea.form-control-lg {
 .public-shared-block {
   margin-bottom: 28px;
 }
-.public-shared-block h2, .public-shared-block .h2, .public-shared-block h3, .public-shared-block .h3 {
+.public-shared-block h3, .public-shared-block .h3, .public-shared-block h4, .public-shared-block .h4 {
   margin-bottom: 10px;
 }
 
@@ -3286,7 +3286,7 @@ textarea.form-control-lg {
   margin-top: 4px;
 }
 
-.public-shared-paper h3, .public-shared-paper .h3 {
+.public-shared-paper h3, .public-shared-paper .h3, .public-shared-block h4, .public-shared-block .h4 {
   font: 600 14px/1.6 var(--ins-body-font-family);
   color: var(--shared-accent);
   letter-spacing: 0;
