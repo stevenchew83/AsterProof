@@ -3694,6 +3694,10 @@ textarea.form-control-lg {
   .solution-source-tools button {
     padding: 0.4rem 0.5rem;
   }
+  .solution-workspace-page .solution-source-tools button {
+    min-height: 44px;
+    min-width: 44px;
+  }
 }
 .public-solution-tool, .public-solution-tool .solution-document-rendered {
   --document-surface: #fffefa;

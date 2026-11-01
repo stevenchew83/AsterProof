@@ -24672,6 +24672,10 @@ html.solution-share-open {
   .solution-source-tools button {
     padding: 0.4rem 0.5rem;
   }
+  .solution-workspace-page .solution-source-tools button {
+    min-height: 44px;
+    min-width: 44px;
+  }
 }
 .solution-workspace-page {
   --se-surface: var(--ins-secondary-bg);
@@ -24992,6 +24996,10 @@ html.solution-share-open {
   -webkit-box-align: start;
       -ms-flex-align: start;
           align-items: start;
+}
+
+#solution-editor-workspace {
+  scroll-margin-top: calc(var(--ins-topbar-height, 64px) + 6rem);
 }
 
 .solution-editor-grid[data-view=write], .solution-editor-grid[data-view=preview] {
@@ -25356,6 +25364,12 @@ html.solution-share-open {
     -webkit-box-pack: justify;
         -ms-flex-pack: justify;
             justify-content: space-between;
+    -ms-flex-wrap: wrap;
+        flex-wrap: wrap;
+    gap: 0.5rem !important;
+  }
+  .solution-view-switch button {
+    padding-inline: 0.45rem;
   }
   .solution-toolbar-actions {
     width: 100%;
@@ -25364,6 +25378,27 @@ html.solution-share-open {
     -webkit-box-flex: 1;
         -ms-flex-positive: 1;
             flex-grow: 1;
+  }
+  .solution-workspace-toolbar .btn, .solution-view-switch button, .solution-actions-dropdown > * {
+    min-height: 44px;
+  }
+  .solution-actions-menu > summary {
+    min-width: 44px;
+    display: -webkit-inline-box;
+    display: -ms-inline-flexbox;
+    display: inline-flex;
+    -webkit-box-align: center;
+        -ms-flex-align: center;
+            align-items: center;
+    -webkit-box-pack: center;
+        -ms-flex-pack: center;
+            justify-content: center;
+  }
+  .solution-workspace-page .app-page-header-actions .btn, #solution-completion-panel .btn {
+    min-height: 44px;
+  }
+  #solution-editor-workspace {
+    scroll-margin-top: calc(var(--ins-topbar-height, 64px) + 10rem);
   }
   .solution-reference-body {
     font-size: 0.9rem;
