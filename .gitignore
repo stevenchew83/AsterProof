@@ -110,7 +110,6 @@ build/Release
 
 # Dependency directories
 node_modules/
-/node_modules
 jspm_packages/
 
 # Typescript v1 declaration files
@@ -298,8 +297,6 @@ vendors.js
 
 # Ruff (see pyproject.toml)
 .ruff_cache/
-.learning-private/
-.test-learning-assets/
 
 # JetBrains
 .idea/
@@ -310,6 +307,3 @@ vendors.js
 # Celery beat schedule (if used later)
 celerybeat-schedule
 celerybeat-schedule.*
-
-# Unreviewed teaching manuscripts and exercise pathways stay local.
-/.learning-content-packs/

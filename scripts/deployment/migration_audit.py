@@ -283,40 +283,17 @@ def collect_document_reader_floor(config: AuditConfig, *, runner: Any = subproce
     return {"format_version": 1, **identity, "reader_required": rows[0][0] == "t"}
 
 
-def collect_learning_reader_floor(config: AuditConfig, *, runner: Any = subprocess.run) -> dict[str, Any]:
-    """Inspect only schema metadata; empty and withdrawn libraries retain the floor."""
-    from scripts.deployment.learning_compat import FLOOR_SQL
-    from scripts.deployment.learning_compat import READER_VERSION
-
-    identity = collect_identity(config, runner=runner)
-    if identity["database_identity_hash"] != config.expected_database_identity_hash:
-        raise MigrationAuditError("learning compatibility audit database identity mismatch")
-    rows = _parse_csv(_run_query(config, FLOOR_SQL, runner=runner), 1)
-    if len(rows) != 1 or rows[0][0] not in {"t", "f"}:
-        raise MigrationAuditError("learning compatibility audit returned an invalid schema flag")
-    required = rows[0][0] == "t"
-    return {
-        "format_version": 1,
-        **identity,
-        "reader_required": required,
-        "minimum_reader_version": READER_VERSION if required else 0,
-    }
-
-
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("command", choices=(
         "fingerprint", "identity", "catalog-snapshot", "catalogue-behaviour",
-        "community-behaviour", "document-reader-floor", "learning-reader-floor",
+        "community-behaviour", "document-reader-floor",
     ))
     parser.add_argument("--config", type=Path, default=DEFAULT_CONFIG)
     parser.add_argument("--contract", type=Path)
     args = parser.parse_args()
     del args.contract
     config = AuditConfig.load(args.config)
-    if args.command == "learning-reader-floor":
-        print(json.dumps(collect_learning_reader_floor(config), sort_keys=True, separators=(",", ":")))
-        return 0
     if args.command == "community-behaviour":
         print(json.dumps(collect_community_behaviour(config), sort_keys=True, separators=(",", ":")))
         return 0

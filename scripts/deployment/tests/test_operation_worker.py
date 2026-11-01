@@ -131,10 +131,6 @@ class FakeBackend(WorkerBackend):
     def document_reader_required(self, contract: TargetContract) -> bool:
         return False
 
-    def learning_reader_required(self, contract: TargetContract) -> bool:
-        # This synthetic baseline predates the additive shared-learning schema.
-        return False
-
     def legacy_service_matches(self, contract: TargetContract, source_root: Path) -> bool:
         return source_root == Path("/srv/legacy-asterproof")
 

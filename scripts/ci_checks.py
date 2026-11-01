@@ -10,20 +10,13 @@ import subprocess
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-APPS = {"learning", "pages", "problemsets", "rankings", "solutions", "training", "users", "website"}
+APPS = {"pages", "problemsets", "rankings", "solutions", "training", "users", "website"}
 # These apps consume the shared problem identity and statement/solution helpers.
-DEPENDENTS = {
-    "pages": {"problemsets", "solutions", "learning", "training", "website"},
-    "solutions": {"problemsets", "learning"},
-    "learning": {"training", "website"},
-    "training": {"learning", "website"},
-    "website": {"learning", "training"},
-}
+DEPENDENTS = {"pages": {"problemsets", "solutions"}, "solutions": {"problemsets"}}
 CORE_TESTS = {"config/tests", "inspinia/users/tests"}
 DEPENDENCY_FILES = {"pyproject.toml", "uv.lock"}
 STATIC_FILES = {"package.json", "package-lock.json", "gulpfile.js", "scripts/build_and_collectstatic.sh"}
 DOCUMENT_JS_TEST = "scripts/tests/test_solution_document_js.py"
-LEARNING_JS_TEST = "scripts/tests/test_learning_editor_js.py"
 
 
 def documentation_only(path: str) -> bool:
@@ -55,7 +48,6 @@ def select_checks(paths: list[str]) -> dict:  # noqa: C901, PLR0912 - Explicit b
             static = True
             if path in STATIC_FILES or path.startswith("inspinia/static/js/"):
                 tests.add(DOCUMENT_JS_TEST)
-                tests.add(LEARNING_JS_TEST)
         elif path.startswith("config/") or path == "manage.py":
             apps.update(APPS)
             static = True
@@ -79,7 +71,6 @@ def select_checks(paths: list[str]) -> dict:  # noqa: C901, PLR0912 - Explicit b
     # Keep the directory target so deployment and other script contracts still run.
     if "scripts" in tests:
         tests.discard(DOCUMENT_JS_TEST)
-        tests.discard(LEARNING_JS_TEST)
     return {
         "runtime": bool(changed),
         "workflows": workflows,
