@@ -23,7 +23,7 @@ def drain(tmp_path, monkeypatch):
     clock = SimpleNamespace(value=0.0)
     commands, observations, writers = [], [], []
     states = {
-        unit: {"ActiveState": "inactive", "MainPID": "0", "ControlGroup": ""}
+        unit: {"ActiveState": "inactive", "MainPID": "0", "ControlGroup": "", "Job": ""}
         for unit in (timer, contract.scheduler_service, contract.service)
     }
 
@@ -75,6 +75,37 @@ def test_pending_unit_hits_one_frozen_five_minute_deadline(drain, active_state):
         drain.backend.drain(drain.contract, drain.path)
     assert drain.clock.value == 300
     assert len(drain.commands) == 1
+    assert drain.writers == []
+
+
+def test_inactive_unit_with_queued_job_does_not_advance_early(drain, monkeypatch):
+    drain.states["app.service"]["Job"] = "123"
+
+    def observe(unit, names, *, timeout):
+        if drain.clock.value >= 0.5:
+            drain.states["app.service"]["Job"] = ""
+        return drain.observe(unit, names, timeout=timeout)
+
+    monkeypatch.setattr(drain.backend, "_unit_properties", observe)
+    drain.backend.drain(drain.contract, drain.path)
+    assert drain.writers == [0.5]
+    assert len(drain.commands) == 1
+
+
+@pytest.mark.parametrize("unit", ["scheduler.timer", "scheduler.service", "app.service"])
+def test_persistent_job_blocks_even_inactive_unit(drain, unit):
+    drain.states[unit]["Job"] = "123"
+    with pytest.raises(worker.OperationError, match="^maintenance_drain_timeout$"):
+        drain.backend.drain(drain.contract, drain.path)
+    assert drain.clock.value == 300
+    assert drain.writers == []
+    assert len(drain.commands) == 1
+
+
+def test_missing_job_observation_fails_closed(drain):
+    del drain.states["app.service"]["Job"]
+    with pytest.raises(worker.OperationError, match="^maintenance_drain_incomplete$"):
+        drain.backend.drain(drain.contract, drain.path)
     assert drain.writers == []
 
 

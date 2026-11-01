@@ -367,11 +367,11 @@ def test_real_drain_accepts_only_a_fully_stopped_scheduler_after_sigterm(tmp_pat
     contract = _contract(tmp_path)
     timer = contract.scheduler_service.removesuffix(".service") + ".timer"
     properties = {
-        timer: {"ActiveState": "inactive"},
-        contract.service: {"ActiveState": "inactive", "MainPID": "0", "ControlGroup": ""},
+        timer: {"ActiveState": "inactive", "Job": ""},
+        contract.service: {"ActiveState": "inactive", "MainPID": "0", "ControlGroup": "", "Job": ""},
         contract.scheduler_service: {
             "ActiveState": "inactive", "MainPID": "0", "ControlGroup": "/scheduler",
-            "Result": "success", "ExecMainCode": "1", "ExecMainStatus": "0",
+            "Result": "success", "ExecMainCode": "1", "ExecMainStatus": "0", "Job": "",
         },
     }
     scheduler = properties[contract.scheduler_service]

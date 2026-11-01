@@ -210,6 +210,7 @@ def test_ordered_stops_finish_before_drain_advances_in_production_sandbox(tmp_pa
         # systemd may garbage-collect inactive units and reset their timestamps.
         assert outcome["observed_units"][app]["ActiveState"] == "inactive"
         assert all(outcome["observed_units"][unit].get("MainPID", "0") == "0" for unit in (timer, scheduler, app))
+        assert all(outcome["observed_units"][unit]["Job"] == "" for unit in (timer, scheduler, app))
     finally:
         if created:
             systemctl("stop", controller, *(path.name for path in created), check=False)

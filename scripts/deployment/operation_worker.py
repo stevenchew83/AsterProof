@@ -580,7 +580,7 @@ class WorkerBackend:
                     raise OperationError("maintenance_drain_timeout")
                 try:
                     properties = self._unit_properties(
-                        unit, "ActiveState,MainPID,ControlGroup,Result,ExecMainCode,ExecMainStatus",
+                        unit, "ActiveState,MainPID,ControlGroup,Result,ExecMainCode,ExecMainStatus,Job",
                         timeout=min(15, remaining),
                     )
                 except subprocess.TimeoutExpired as exc:
@@ -589,7 +589,13 @@ class WorkerBackend:
                     raise OperationError("maintenance_drain_observation_failed") from exc
                 if time.monotonic() >= deadline:
                     raise OperationError("maintenance_drain_timeout")
-                if properties.get("ActiveState") in {"active", "activating", "deactivating", "reloading"}:
+                if "Job" not in properties:
+                    raise OperationError("maintenance_drain_incomplete")
+                # systemd 255 reports an empty Job when the stop transaction is
+                # complete. Even an inactive unit can still have a queued job.
+                if properties["Job"] or properties.get("ActiveState") in {
+                    "active", "activating", "deactivating", "reloading",
+                }:
                     stopped = False
                     continue
                 # Only the scheduler's exact stopped SIGTERM outcome is permitted.
