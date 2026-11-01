@@ -45,6 +45,7 @@ pytestmark = pytest.mark.django_db
 @pytest.fixture
 def coach(settings):
     settings.SOLUTION_AI_REVIEW_ENABLED = True
+    settings.SOLUTION_AI_EXECUTION_MODE = "fixture"
     user = UserFactory()
     user.groups.add(Group.objects.create(name="solution-ai-pilot"))
     problem = ProblemSolveRecord.objects.create(contest="COACH", year=2026, problem="A1", topic="ALG")
@@ -276,8 +277,14 @@ def test_success_reconciles_usage_and_hides_hints(coach):
     hidden = review_payload(review)
     assert "hints" not in hidden["feedback"]["findings"][0]
     assert hidden["feedback"]["findings"][0]["anchor"] == {"line": 2, "end_line": 2}
-    assert review_payload(review, 1)["feedback"]["findings"][0]["hints"] == ["Use the sign of a product."]
-    assert len(review_payload(review, 2)["feedback"]["findings"][0]["hints"]) == 2
+    from .evaluation_execution import reveal_hint
+
+    finding = hidden["feedback"]["findings"][0]
+    assert "hints" not in review_payload(review, 2)["feedback"]["findings"][0]
+    reveal_hint(coach.user, review, finding["id"], 1)
+    assert review_payload(review)["feedback"]["findings"][0]["hints"] == ["Use the sign of a product."]
+    reveal_hint(coach.user, review, finding["id"], 2)
+    assert len(review_payload(review)["feedback"]["findings"][0]["hints"]) == 2
     assert process_next_review(provider)["state"] == "idle"
     coach.solution.refresh_from_db()
     assert coach.solution.status == ProblemSolution.Status.DRAFT
@@ -513,7 +520,10 @@ def test_create_status_endpoints_are_owner_only_and_filter_hints(coach, client):
     status_url = response.json()["status_url"]
     payload = client.get(status_url).json()
     assert "hints" not in payload["feedback"]["findings"][0]
-    assert client.get(status_url + "?hint_level=2").json()["feedback"]["findings"][0]["hints"]
+    assert "hints" not in client.get(status_url + "?hint_level=2").json()["feedback"]["findings"][0]
+    reveal_url = payload["feedback"]["findings"][0]["reveal_url"]
+    assert client.post(reveal_url, {"level": 1}, content_type="application/json").status_code == 200
+    assert client.get(status_url).json()["feedback"]["findings"][0]["hints"]
     client.force_login(UserFactory())
     assert client.get(status_url).status_code == 404
     assert client.get(status_url)["Cache-Control"].find("no-store") >= 0
@@ -563,7 +573,7 @@ def test_provider_boundary_has_no_tools_storage_or_retries(coach, monkeypatch, s
             APIStatusError=FakeAPIError,
         ),
     )
-    result = generate_review(review, [])
+    result = generate_review(review, [], fake_client_factory=Client)
     assert result.response_id == "resp"
     assert result.usage["model"] == "gpt-6-astra"
     assert captured["client"]["max_retries"] == 0

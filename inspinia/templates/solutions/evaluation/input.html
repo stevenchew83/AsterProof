@@ -1,0 +1,13 @@
+<section aria-label="Frozen mathematical input" class="mb-4">
+  <h2 class="h5">Frozen mathematical input</h2>
+  {% if bundle.limitations %}<div class="alert alert-warning">{{ bundle.limitations }}</div>{% endif %}
+  <div class="mb-3"><label for="frozen-statement" class="form-label">Problem statement</label><textarea id="frozen-statement" class="form-control font-monospace" rows="5" readonly>{{ bundle.statement }}</textarea></div>
+  {% if bundle.conditions %}<p><strong>Conditions and permitted methods:</strong> {{ bundle.conditions }}</p>{% endif %}
+  <div class="mb-3"><label for="frozen-source" class="form-label">Proof source</label><textarea id="frozen-source" class="form-control font-monospace" rows="12" readonly>{{ bundle.source }}</textarea></div>
+  {% if assets %}
+    <h3 class="h6">Frozen images</h3><ul class="list-unstyled">
+    {% for asset in assets %}<li class="mb-2"><a href="{{ asset.url }}" target="_blank" rel="noopener noreferrer">{{ asset.description|default:'Open frozen image' }}</a> <span class="text-muted fs-sm">{{ asset.role }}</span></li>{% endfor %}
+    </ul>
+  {% endif %}
+  <p class="text-muted fs-sm">Language: {{ bundle.language|default:'Unspecified' }} · Input completeness: {{ bundle.completeness|default:'Unconfirmed' }}</p>
+</section>

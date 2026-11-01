@@ -1,0 +1,23 @@
+{% extends 'solutions/evaluation/base.html' %}
+{% block workspace_content %}
+<div class="card"><div class="card-body">
+  <div class="d-flex justify-content-between gap-2 flex-wrap mb-3"><h2 class="h5 mb-0">Evidence and coverage</h2><span class="badge bg-warning-subtle text-warning">{{ run_data.origin }} · Model readiness untested</span></div>
+  {% if run_data.annotation_pending %}<div class="alert alert-warning" role="status">{{ run_data.annotation_pending }} case assessments remain. Quality metrics are unavailable until the required mathematical annotations are complete.</div>{% endif %}
+  {% if metric_rows %}
+  <div class="app-table-region table-responsive" tabindex="0" role="region" aria-label="Evaluation metric denominators">
+    <table class="table table-striped app-table-compact align-middle"><thead><tr><th>Metric</th><th>Numerator</th><th>Denominator</th><th>Rate</th></tr></thead><tbody>
+      {% for item in metric_rows %}<tr><td>{{ item.label }}</td><td>{{ item.numerator }}</td><td>{{ item.denominator }}</td><td>{% if item.value is None %}<span class="text-muted">Not estimable</span>{% else %}{{ item.value|floatformat:3 }}{% endif %}</td></tr>{% endfor %}
+    </tbody></table>
+  </div>
+  {% endif %}
+  {% if metrics_json %}<details class="app-table-details"><summary class="py-2">Inspect aggregate evidence and limitations</summary><div class="app-table-details-body"><label class="visually-hidden" for="aggregate-evidence">Aggregate evidence</label><textarea id="aggregate-evidence" class="form-control font-monospace" rows="15" readonly>{{ metrics_json }}</textarea></div></details>{% endif %}
+</div></div>
+{% if case_reports %}<section class="card"><div class="card-body"><h2 class="h5">Case reports</h2>
+  {% for item in case_reports %}<details class="app-table-details mb-3"><summary class="py-2 fw-semibold">Case {{ item.case_id }} · {{ item.report.assessment|default:item.report.status }}</summary><div class="app-table-details-body">
+    {% include 'solutions/evaluation/report.html' with report=item.report only %}
+    {% if item.can_assess %}<a href="{% url 'solutions:evaluation_finding_judgment' item.run_id item.case_id %}" class="btn btn-outline-primary btn-sm mb-3">Assess each finding</a>{% endif %}
+    {% if item.can_adjudicate %}<a href="{% url 'solutions:evaluation_finding_adjudication' item.run_id item.case_id %}" class="btn btn-outline-secondary btn-sm mb-3">Adjudicate findings</a>{% endif %}
+    <label class="form-label" for="report-{{ forloop.counter }}">Complete imported report</label><textarea class="form-control font-monospace" id="report-{{ forloop.counter }}" rows="10" readonly>{{ item.report_json }}</textarea>
+  </div></details>{% endfor %}
+</div></section>{% endif %}
+{% endblock workspace_content %}

@@ -22,6 +22,8 @@ from inspinia.solutions.models import SolutionRevision
 from inspinia.solutions.review_models import SolutionReview
 from inspinia.solutions.review_models import SolutionReviewPolicy
 
+from .evaluation import EvaluationError
+
 PILOT_GROUP = "solution-ai-pilot"
 MAX_SOURCE = 64_000
 MAX_STATEMENT = 12_000
@@ -31,6 +33,7 @@ MAX_IMAGE_PIXELS = 16_000_000
 MAX_OUTPUT_TOKENS = 16_000
 MIN_IMAGE_TOKEN_BOUND = 16_384
 MAX_FINDINGS = 8
+CURRENT_REVIEW_SCHEMA = 2
 USER_DAILY_LIMIT = 3
 GLOBAL_DAILY_LIMIT = 20
 PRICED_MODEL = "gpt-6-astra"
@@ -103,6 +106,7 @@ def _configured(policy):
     )
     return bool(
         getattr(settings, "SOLUTION_AI_REVIEW_ENABLED", False)
+        and getattr(settings, "SOLUTION_AI_EXECUTION_MODE", "offline") == "fixture"
         and policy
         and policy.enabled
         and policy.daily_budget_micros > 0
@@ -256,25 +260,37 @@ def _reservation(policy, snapshot):
 
 
 def _token_cost(input_tokens, output_tokens, pricing):
-    long_context = input_tokens > LONG_CONTEXT_THRESHOLD
-    input_weight, output_weight = (4, 3) if long_context else (2, 2)
+    long_context = input_tokens > pricing.get("long_context_threshold", LONG_CONTEXT_THRESHOLD)
+    input_weight, output_weight = (
+        (pricing.get("long_input_weight", 4), pricing.get("long_output_weight", 3)) if long_context else (2, 2)
+    )
     numerator = input_tokens * pricing["input"] * input_weight + output_tokens * pricing["output"] * output_weight
     # Two in the denominator represents the 1.5x long-context output multiplier.
     return (numerator + 1_999_999) // 2_000_000
 
 
 def _reserve_budget(policy, user, amount):
+    from .evaluation_execution import accepted_request_counts
+    from .evaluation_execution import ledger_totals
+
     now = timezone.now().astimezone(UTC)
     day = now.replace(hour=0, minute=0, second=0, microsecond=0)
     month = day.replace(day=1)
     active = SolutionReview.objects.exclude(status=SolutionReview.Status.EXPIRED)
     day_jobs = active.filter(created_at__gte=day)
-    if day_jobs.filter(author=user).count() >= min(policy.user_daily_limit, USER_DAILY_LIMIT):
+    user_requests, global_requests = accepted_request_counts(user, day)
+    legacy = day_jobs.filter(execution__isnull=True)
+    if legacy.filter(author=user).count() + user_requests >= min(policy.user_daily_limit, USER_DAILY_LIMIT):
         raise ReviewError(code="user_daily_limit", status=429)
-    if day_jobs.count() >= min(policy.global_daily_limit, GLOBAL_DAILY_LIMIT):
+    if legacy.count() + global_requests >= min(policy.global_daily_limit, GLOBAL_DAILY_LIMIT):
         raise ReviewError(code="global_daily_limit", status=429)
-    daily = day_jobs.aggregate(total=Sum("accounted_micros"))["total"] or 0
-    monthly = active.filter(created_at__gte=month).aggregate(total=Sum("accounted_micros"))["total"] or 0
+    daily = day_jobs.filter(execution__isnull=True).aggregate(total=Sum("accounted_micros"))["total"] or 0
+    monthly = (
+        active.filter(created_at__gte=month, execution__isnull=True).aggregate(total=Sum("accounted_micros"))["total"]
+        or 0
+    )
+    daily += ledger_totals(day)
+    monthly += ledger_totals(month)
     if daily + amount > policy.daily_budget_micros or monthly + amount > policy.monthly_budget_micros:
         raise ReviewError(code="review_budget", status=429)
     if active.filter(author=user, status__in=[SolutionReview.Status.QUEUED, SolutionReview.Status.RUNNING]).exists():
@@ -307,6 +323,9 @@ def enqueue_review(  # noqa: PLR0913 - explicit immutable inputs form the public
                 raise ReviewError(code="idempotency_conflict", status=409)
             return existing, False
         policy = _require_policy(user)
+        from .evaluation_execution import assert_assistance
+
+        assert_assistance(user, problem_uuid)
         # The policy lock serializes competing enqueues, including duplicate
         # requests which were not visible before waiting for that lock.
         existing = SolutionReview.objects.filter(author=user, idempotency_key=key).first()
@@ -348,8 +367,16 @@ def enqueue_review(  # noqa: PLR0913 - explicit immutable inputs form the public
                 "input": policy.input_price_micros_per_million,
                 "output": policy.output_price_micros_per_million,
                 "image_token_bound": policy.image_token_bound,
+                "long_context_threshold": LONG_CONTEXT_THRESHOLD,
+                "long_input_weight": 4,
+                "long_output_weight": 3,
+                "currency": "USD",
             },
+            schema_version=2,
         )
+        from .evaluation_execution import bind_review
+
+        bind_review(review)
     return review, True
 
 
@@ -428,6 +455,12 @@ def _validate_finding(finding, source):
 
 
 def review_payload(review, hint_level=0):
+    from .evaluation import digest
+    from .evaluation_execution import assert_assistance
+    from .evaluation_execution import finding_identity
+    from .evaluation_models import HintRevealEvent
+
+    assert_assistance(review.author, review.revision.solution.problem.problem_uuid, delivery=True, review=review)
     snapshot = review.input_snapshot
     solution = review.revision.solution
     current_statement = _statement(solution.problem_id)
@@ -450,17 +483,46 @@ def review_payload(review, hint_level=0):
     }
     if review.status == SolutionReview.Status.COMPLETED:
         feedback = {**review.feedback, "findings": []}
-        for finding in review.feedback["findings"]:
+        for index, finding in enumerate(review.feedback["findings"]):
             row = {key: value for key, value in finding.items() if key != "hints"}
+            identity = finding_identity(review, finding, index)
+            row["id"] = identity
+            from .evaluation_assistance import repair_state
+
+            row["repair_state"] = repair_state(review, identity)
+            from django.urls import reverse
+
+            row["reveal_url"] = reverse(
+                "solutions:solution_review_reveal",
+                args=[
+                    solution.problem.problem_uuid,
+                    review.pk,
+                    identity,
+                ],
+            )
             row["hint_count"] = len(finding["hints"])
-            if hint_level:
-                row["hints"] = finding["hints"][: min(hint_level, 2)]
+            levels = list(
+                HintRevealEvent.objects.filter(
+                    review=review, finding_id=identity, content_digest=digest(finding),
+                ).values_list("level", flat=True),
+            )
+            released = max(levels, default=0)
+            row["released_level"] = released
+            if released:
+                row["hints"] = finding["hints"][:released]
             feedback["findings"].append(row)
+        result["hint_exposure_history"] = (
+            "recorded" if review.schema_version >= CURRENT_REVIEW_SCHEMA else "historical_unknown"
+        )
         result["feedback"] = feedback
     return result
 
 
 def _expire_jobs(now):
+    from .evaluation_execution import cancel_undispatched
+
+    for expired in SolutionReview.objects.filter(status=SolutionReview.Status.QUEUED, created_at__lt=now - QUEUE_TTL):
+        cancel_undispatched(expired, "queue_expired")
     SolutionReview.objects.filter(status=SolutionReview.Status.QUEUED, created_at__lt=now - QUEUE_TTL).update(
         status=SolutionReview.Status.EXPIRED,
         accounted_micros=0,
@@ -474,6 +536,10 @@ def _expire_jobs(now):
 
 
 def _claim(*, require_provider=False):
+    if require_provider:
+        from .evaluation_execution import require_offline_provider
+
+        require_offline_provider()
     with transaction.atomic():
         policy = SolutionReviewPolicy.objects.select_for_update().filter(singleton_key=1).first()
         if not _configured(policy):
@@ -502,6 +568,9 @@ def _claim(*, require_provider=False):
             policy.save(update_fields=["lease_token", "lease_until", "updated_at"])
             return None
         if not review.author.groups.filter(name=PILOT_GROUP).exists():
+            from .evaluation_execution import cancel_undispatched
+
+            cancel_undispatched(review, "pilot_access_removed")
             review.status = SolutionReview.Status.EXPIRED
             review.accounted_micros = 0
             review.error_code = "pilot_access_removed"
@@ -534,6 +603,11 @@ def review_image_inputs(review):
             stream = BytesIO()
             picture.convert("RGB").save(stream, format="PNG")
             images.append(stream.getvalue())
+    if hasattr(review, "execution"):
+        from .evaluation import verify_bundle
+
+        verify_bundle(review.execution.bundle)
+        return [bytes(asset.normalized) for asset in review.execution.bundle.assets.order_by("created_at", "id")]
     return images
 
 
@@ -542,16 +616,28 @@ def _account_usage(review, usage):
         return
     returned_model = usage.get("model")
     review.usage = {"model": returned_model[:120]} if isinstance(returned_model, str) and returned_model else {}
+    for key in ("input_tokens_details", "output_tokens_details"):
+        details = usage.get(key)
+        if isinstance(details, dict):
+            review.usage[key] = {name: value for name, value in details.items()
+                                 if isinstance(name, str) and type(value) is int and value >= 0}
     input_tokens, output_tokens = usage.get("input_tokens"), usage.get("output_tokens")
     if type(input_tokens) is int and type(output_tokens) is int and min(input_tokens, output_tokens) >= 0:
         pricing = review.pricing_snapshot
         review.accounted_micros = _token_cost(input_tokens, output_tokens, pricing)
         review.usage.update(input_tokens=input_tokens, output_tokens=output_tokens)
+        if review.usage.get("input_tokens_details", {}).get("cached_tokens", 0):
+            # Preserve the real usage; the current profile has no approved cached-rate settlement policy.
+            review.usage["cost_unreconciled"] = True
+            review.accounted_micros = review.reserved_micros
 
 
 def _finish(review):
     """Finish the existing attempt, without recreating a deleted private job."""
     with transaction.atomic():
+        from .evaluation_execution import finish_attempt
+
+        finish_attempt(review)
         policy = SolutionReviewPolicy.objects.select_for_update().filter(singleton_key=1).first()
         changed = SolutionReview.objects.filter(
             pk=review.pk,
@@ -589,12 +675,16 @@ def process_next_review(provider=None):
             return {"state": "expired", "id": str(review.pk)}
         try:
             images = review_image_inputs(review)
+            from .evaluation_execution import start_attempt
+
+            attempt = start_attempt(review)
+            review.execution_attempt_id = attempt.pk
             result = (provider or generate_review)(review, images)
             review.provider_response_id = result.response_id[:200]
             review.provider_request_id = result.request_id[:200]
             _account_usage(review, result.usage)
             feedback = validate_feedback(result.feedback, review.input_snapshot["body_source"])
-            if review.input_snapshot["diagram_source_only"]:
+            if review.input_snapshot["diagram_source_only"] or attempt.bundle.payload["completeness"] != "present":
                 feedback["limitations"] = [
                     *feedback["limitations"][:4],
                     "The diagram was supplied as source text, not a rendered image.",
@@ -609,7 +699,7 @@ def process_next_review(provider=None):
             review.provider_request_id = error.request_id[:200]
             review.provider_response_id = error.response_id[:200]
             _account_usage(review, error.usage)
-        except ReviewError as error:
+        except (ReviewError, EvaluationError) as error:
             review.status = SolutionReview.Status.FAILED
             review.error_code = error.code
         except Exception:  # noqa: BLE001 - unknown dispatch outcomes must remain claimed, never retried

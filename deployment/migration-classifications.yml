@@ -2,6 +2,16 @@
   "format_version": 1,
   "baseline_sha": null,
   "migrations": {
+    "pages.0044_learning_page_activity": {
+      "classification": "backward-compatible-schema",
+      "recovery_required": false,
+      "code_rollback_permitted": true,
+      "data_preconditions": [
+        "learning_activity_tables_absent",
+        "existing_accounts_learning_records_and_page_views_preserved"
+      ],
+      "rationale": "Creates only signed-in learning-visit and per-visit action-count tables with user/visit foreign keys, a visit/user date index, and a unique visit/action constraint. No backfill, existing-record changes, new roles, or permissions. Account deletion cascades through the new telemetry. Production application requires the normal separately reviewed frozen additive-schema allowance and preservation proof; this classification does not authorize installation or activation."
+    },
     "pages.0041_statement_issue_reports": {
       "classification": "backward-compatible-schema",
       "recovery_required": false,
@@ -192,7 +202,21 @@
       ],
       "rationale": "Creates the isolated similarity-source table, seeds its singleton revision, and installs an invoker-security trigger function on ContestProblemStatement. The trigger increments only the new revision when statement text or active status changes, or on insertion/deletion; existing source records are preserved. RunPython is data-class under the established protocol, requiring an exact frozen allowance, PostgreSQL rehearsal, trigger/function audits, verified recovery and separately authorized installed authority. Ordinary rollback is not permitted by this classification."
     },
-    "pages.0044_community_proof_library": {
+    "solutions.0010_offline_evaluation_contract": {
+      "classification": "backward-compatible-schema",
+      "recovery_required": false,
+      "code_rollback_permitted": true,
+      "data_preconditions": [
+        "evaluation_tables_absent",
+        "document_compatible_baseline_already_applied",
+        "existing_content_and_database_objects_preserved",
+        "student_and_statement_ai_review_disabled",
+        "review_policy_disabled_and_unfunded",
+        "no_provider_or_worker_activation"
+      ],
+      "rationale": "Creates exactly 19 isolated evaluation/evidence tables with no backfill or changes to existing rows. Requires the separate hash-frozen PostgreSQL 17.9 delta, active-code compatibility proof and installed bounded authority. Existing document-aware code remains compatible; recovery retains evidence and accounting tables. No dataset/model readiness, activation, paid execution or production authority is granted by classification."
+    },
+    "pages.0045_community_proof_library": {
       "classification": "data-or-non-compatible",
       "recovery_required": true,
       "code_rollback_permitted": false,

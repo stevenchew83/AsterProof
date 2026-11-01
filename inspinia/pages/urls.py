@@ -13,6 +13,7 @@ from inspinia.pages.concept_assignment_views import concept_assignment_review_de
 from inspinia.pages.concept_assignment_views import concept_assignment_review_list
 from inspinia.pages.concept_assignment_views import concept_assignment_review_preview
 from inspinia.pages.contest_papers import contest_papers_view
+from inspinia.pages.learning_activity import learning_activity_collect
 from inspinia.pages.shared_progress_views import shared_progress_comparison_view
 from inspinia.pages.shared_progress_views import shared_progress_view
 from inspinia.pages.statement_reports import statement_report_create
@@ -72,6 +73,7 @@ app_name = "pages"
 
 urlpatterns = [
     *proof_urlpatterns,
+    path("activity/collect/", learning_activity_collect, name="learning_activity_collect"),
     path("community/problems/", community_problem_list, name="community_problem_list"),
     path("community/problems/new/", community_problem_create, name="community_problem_create"),
     path("community/problems/<uuid:problem_id>/", community_problem_detail, name="community_problem_detail"),

@@ -103,7 +103,7 @@ Existing solution-coach configuration and provider credentials are not changed.
 
 ## Schema and verification
 
-Migration `pages.0044_community_proof_library` adds separate revisions, publications,
+Migration `pages.0045_community_proof_library` adds separate revisions, publications,
 attempts, public contributions, private/public asset copies, moderation events, and
 reports. It preserves existing UUIDs, records, outlines, review notes, and trigger
 definitions. The legacy audience column is added as true for existing rows, then

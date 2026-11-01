@@ -17,7 +17,7 @@
     const details = coach.querySelector("[data-review-source-details]");
     const csrf = form.querySelector('[name="csrfmiddlewaretoken"]');
     if (!source || !csrf) return;
-    let busy = false, last = null, statusUrl = "", hintLevel = 0, timer, pollGeneration = 0, errorMessage = false;
+    let busy = false, last = null, statusUrl = "", timer, pollGeneration = 0, errorMessage = false;
     let requestKey = "", requestRevision = "", requestPending = false;
     const scope = form.closest("[data-solution-document-editor]") || form;
     const recoveryKey = "asterproof.solution-review:" + (scope.dataset.owner || "") + ":" + config.createUrl;
@@ -120,22 +120,38 @@
           section.appendChild(jump);
         }
         (finding.hints || []).forEach((hint, index) => paragraph(section, "Hint " + (index + 1) + ": " + hint, "fs-sm"));
+        if (finding.reveal_url && finding.hint_count > (finding.released_level || 0)) {
+          const more = document.createElement("button"); more.type = "button";
+          more.className = "btn btn-outline-secondary btn-sm";
+          more.textContent = finding.released_level ? "Reveal hint 2" : "Reveal hint 1";
+          more.addEventListener("click", async () => {
+            const generation = pollGeneration, target = statusUrl;
+            more.disabled = true;
+            try {
+              const next = await json(await fetch(finding.reveal_url, {method: "POST", credentials: "same-origin",
+                headers: {"Content-Type": "application/json", "X-CSRFToken": csrf.value},
+                body: JSON.stringify({level: (finding.released_level || 0) + 1})}));
+              if (generation !== pollGeneration || target !== statusUrl) return;
+              show(next);
+            } catch (error) {
+              if (generation !== pollGeneration || target !== statusUrl) return;
+              message(error.message, true); more.disabled = false;
+            }
+          });
+          section.appendChild(more);
+        }
         report.appendChild(section);
       });
       if (feedback.next_step) paragraph(report, feedback.next_step);
       (feedback.limitations || []).forEach(value => paragraph(report, value, "text-muted fs-sm"));
-      if (hintLevel < 2 && (feedback.findings || []).some(finding => finding.hint_count > hintLevel)) {
-        const more = document.createElement("button"); more.type = "button"; more.className = "btn btn-outline-secondary btn-sm mb-3";
-        more.textContent = hintLevel ? "Reveal the next hints" : "Reveal a hint";
-        more.addEventListener("click", () => { hintLevel += 1; poll(); }); report.appendChild(more);
-      }
+
     }
     async function poll() {
       if (!statusUrl) return;
       clearTimeout(timer);
-      const generation = ++pollGeneration, target = statusUrl, level = hintLevel;
+      const generation = ++pollGeneration, target = statusUrl;
       try {
-        const data = await json(await fetch(target + "?hint_level=" + level, {credentials: "same-origin", cache: "no-store"}));
+        const data = await json(await fetch(target, {credentials: "same-origin", cache: "no-store"}));
         if (generation !== pollGeneration || target !== statusUrl) return;
         show(data);
         if (["queued", "running"].includes(data.status)) {
@@ -181,7 +197,7 @@
         const data = await json(await fetch(config.createUrl, {method: "POST", credentials: "same-origin",
           headers: {"Content-Type": "application/json", "X-CSRFToken": csrf.value}, body: JSON.stringify(body)}));
         config.acknowledged = true; requestPending = false;
-        remember(data.status_url); hintLevel = 0; await poll();
+        remember(data.status_url); await poll();
       } catch (error) { busy = false; message(error.message, true); update(); }
     });
     form.addEventListener("input", update);

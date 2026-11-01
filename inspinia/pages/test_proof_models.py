@@ -197,7 +197,7 @@ import django
 django.setup()
 from django.db import connection
 from django.db.migrations.executor import MigrationExecutor
-old = ('pages', '0043_statement_similarity_source')
+old = ('pages', '0044_learning_page_activity')
 executor = MigrationExecutor(connection)
 executor.migrate([old])
 apps = executor.loader.project_state([old]).apps
@@ -225,7 +225,7 @@ before = {name:list(apps.get_model(app,name).objects.order_by('pk').values(*fiel
 with connection.cursor() as cursor:
     cursor.execute("SELECT name,sql FROM sqlite_master WHERE type='trigger' ORDER BY name")
     triggers = cursor.fetchall()
-new = ('pages', '0044_community_proof_library')
+new = ('pages', '0045_community_proof_library')
 executor = MigrationExecutor(connection)
 executor.migrate([new])
 apps = executor.loader.project_state([new]).apps

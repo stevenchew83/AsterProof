@@ -52,5 +52,9 @@
 
 {% endblock javascript %}
 
+{% if learning_activity_config %}
+{{ learning_activity_config|json_script:'learning-activity-config' }}
+<script src="{% static 'js/learning-activity.js' %}" defer></script>
+{% endif %}
 </body>
 </html>

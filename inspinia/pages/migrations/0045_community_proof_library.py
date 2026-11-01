@@ -12,7 +12,7 @@ from django.db import models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ("pages", "0043_statement_similarity_source"),
+        ("pages", "0044_learning_page_activity"),
         migrations.swappable_dependency(settings.AUTH_USER_MODEL),
     ]
 
