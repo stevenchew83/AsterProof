@@ -271,6 +271,7 @@ function setup(root) {
     if (view) view.requestMeasure();
   }
   scope.querySelectorAll("[data-editor-view]").forEach(button => button.addEventListener("click", () => setPane(button.dataset.editorView)));
+  scope.querySelectorAll("[data-start-writing]").forEach(link => link.addEventListener("click", () => setPane("write")));
   if (wide.addEventListener) wide.addEventListener("change", () => { if (!wide.matches && workspace?.dataset.view === "split") setPane("write"); });
   setPane(wide.matches ? "split" : "write");
   root.querySelectorAll("[data-insert-source]").forEach(button => button.addEventListener("click", () => insert({inline: "$${}$", display: "\\[\n${}\n\\]", fraction: "\\frac{${}}{}", claim: "\\begin{claim}\n${}\n\\end{claim}", proof: "\\begin{proof}\n${}\n\\end{proof}", align: "\\begin{align*}\n${}\n\\end{align*}", matrix: "\\begin{pmatrix}\n${}\n\\end{pmatrix}"}[button.dataset.insertSource])));

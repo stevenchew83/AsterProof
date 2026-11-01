@@ -95,12 +95,19 @@
       .contest-papers .paper-header-actions { width: 100%; gap: .4rem; }
       .contest-papers .paper-year-form .form-select { width: 5.5rem; }
       .contest-papers .paper-header-actions .btn,
-      .contest-papers .paper-year-form .form-select { min-height: 34px; }
+      .contest-papers .paper-year-form .form-select { min-height: 44px; }
+      .contest-papers #contest-paper-print { min-width: 44px; }
       .contest-papers .paper-header-actions .paper-open-latest { min-height: 44px; }
       .contest-papers .paper-reading { padding-inline: 1rem; }
       .contest-papers .paper-jump-nav { padding: .5rem .75rem; }
       .contest-papers .paper-problem { padding-block: .85rem; }
-      .contest-papers .paper-write-button { min-height: 34px; padding-inline: .55rem; }
+      .contest-papers .paper-write-button { min-height: 44px; padding-inline: .55rem; }
+    }
+    @media (max-width: 359.98px) {
+      .contest-papers .paper-year-form { width: 100%; }
+      .contest-papers .paper-year-form .form-select { flex: 1; width: auto; }
+      .contest-papers .paper-year-form .btn { min-width: 5rem; }
+      .contest-papers .paper-header-actions > a { flex: 1; justify-content: center; }
     }
     @media (prefers-reduced-motion: reduce) {
       .contest-papers .paper-jump-nav a, .contest-papers .paper-contest-row, .contest-papers .paper-year-link { transition: none; }
