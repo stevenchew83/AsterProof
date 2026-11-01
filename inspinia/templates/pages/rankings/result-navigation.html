@@ -1,0 +1,5 @@
+<nav class="app-table-toolbar d-flex flex-wrap gap-2 mb-3" aria-label="Results navigation">
+  <a href="{% url 'rankings:assessment_results' %}" class="btn btn-sm {% if current == 'results' %}btn-primary{% else %}btn-outline-primary{% endif %}" {% if current == 'results' %}aria-current="page"{% endif %}><i class="ti ti-trophy me-1" aria-hidden="true"></i>Assessment results</a>
+  <a href="{% url 'rankings:result_history' %}" class="btn btn-sm {% if current == 'history' %}btn-primary{% else %}btn-outline-primary{% endif %}" {% if current == 'history' %}aria-current="page"{% endif %}><i class="ti ti-history me-1" aria-hidden="true"></i>Student history</a>
+  <a href="{% url 'rankings:olympiad_sheet_import' %}" class="btn btn-sm {% if current == 'import' %}btn-primary{% else %}btn-outline-secondary{% endif %}" {% if current == 'import' %}aria-current="page"{% endif %}><i class="ti ti-upload me-1" aria-hidden="true"></i>Import olympiad sheet</a>
+</nav>

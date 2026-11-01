@@ -1,5 +1,8 @@
 from django.urls import path
 
+from inspinia.rankings.result_views import assessment_results_view
+from inspinia.rankings.result_views import olympiad_sheet_import_view
+from inspinia.rankings.result_views import result_history_view
 from inspinia.rankings.views import assessments_list_view
 from inspinia.rankings.views import formulas_list_view
 from inspinia.rankings.views import import_center_view
@@ -14,6 +17,9 @@ app_name = "rankings"
 
 urlpatterns = [
     path("", ranking_table_view, name="ranking_table"),
+    path("results/", assessment_results_view, name="assessment_results"),
+    path("history/", result_history_view, name="result_history"),
+    path("imports/olympiad/", olympiad_sheet_import_view, name="olympiad_sheet_import"),
     path("export/csv/", ranking_export_csv_view, name="ranking_export_csv"),
     path("export/xlsx/", ranking_export_xlsx_view, name="ranking_export_xlsx"),
     path("dashboard/", ranking_dashboard_view, name="dashboard"),

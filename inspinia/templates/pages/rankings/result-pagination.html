@@ -1,0 +1,10 @@
+<div class="app-table-toolbar d-flex flex-wrap align-items-center justify-content-between gap-2 mt-3">
+  <p class="text-muted fs-sm mb-0">{% if page_obj.paginator.count %}{{ page_obj.start_index }}–{{ page_obj.end_index }} of {{ page_obj.paginator.count }}{% else %}0{% endif %} {{ item_label|default:'result' }}{{ page_obj.paginator.count|pluralize }}</p>
+  {% if page_obj.has_other_pages %}
+  <nav class="d-flex align-items-center gap-2" aria-label="Result pages">
+    {% if page_obj.has_previous %}<a class="btn btn-sm btn-outline-secondary" href="?{{ pagination_query }}{% if pagination_query %}&amp;{% endif %}page={{ page_obj.previous_page_number }}">Previous</a>{% endif %}
+    <span class="text-muted fs-sm">Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
+    {% if page_obj.has_next %}<a class="btn btn-sm btn-outline-secondary" href="?{{ pagination_query }}{% if pagination_query %}&amp;{% endif %}page={{ page_obj.next_page_number }}">Next</a>{% endif %}
+  </nav>
+  {% endif %}
+</div>

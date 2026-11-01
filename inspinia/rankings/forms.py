@@ -2,10 +2,48 @@ from __future__ import annotations
 
 from django import forms
 
+from inspinia.rankings.imports.olympiad_sheet import MAX_SHEET_BYTES
 from inspinia.rankings.models import Assessment
 from inspinia.rankings.models import StudentSelectionStatus
 
 _EXCEL_ACCEPT = ".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+
+
+class OlympiadSheetImportForm(forms.Form):
+    file = forms.FileField(
+        required=False,
+        label="Text or CSV file",
+        widget=forms.ClearableFileInput(attrs={"class": "form-control", "accept": ".txt,.tsv,.csv"}),
+    )
+    text = forms.CharField(
+        required=False,
+        max_length=MAX_SHEET_BYTES,
+        strip=False,
+        label="Or paste the sheet, including its header",
+        widget=forms.Textarea(attrs={"class": "form-control", "rows": 8, "spellcheck": "false"}),
+    )
+
+    def clean(self):
+        cleaned = super().clean()
+        upload = cleaned.get("file")
+        pasted = cleaned.get("text") or ""
+        if bool(upload) == bool(pasted.strip()):
+            msg = "Upload one file or paste one sheet, including the header."
+            raise forms.ValidationError(msg)
+        if upload:
+            if not upload.name.lower().endswith((".txt", ".tsv", ".csv")) or upload.size > MAX_SHEET_BYTES:
+                msg = "Upload a .txt, .tsv or .csv file no larger than 2 MB."
+                raise forms.ValidationError(msg)
+            try:
+                cleaned["source_text"] = upload.read().decode("utf-8-sig")
+            except UnicodeDecodeError as exc:
+                msg = "Save the file as UTF-8 text or CSV."
+                raise forms.ValidationError(msg) from exc
+            cleaned["source_name"] = upload.name
+        else:
+            cleaned["source_text"] = pasted
+            cleaned["source_name"] = "pasted-olympiad-sheet.txt"
+        return cleaned
 
 
 class RankingTableFilterForm(forms.Form):
