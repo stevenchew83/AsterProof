@@ -359,7 +359,7 @@ def test_expected_audit_uses_the_verified_public_schema_delta_and_exact_migratio
         ("scheduler_pid_present", "maintenance_drain_incomplete"),
         ("scheduler_cgroup_present", "maintenance_cgroup_not_empty"),
         ("app_sigterm", "maintenance_drain_incomplete"),
-        ("timer_active", "maintenance_drain_incomplete"),
+        ("timer_active", "maintenance_drain_timeout"),
         ("writers_present", "maintenance_database_writers_present"),
     ],
 )
@@ -389,6 +389,7 @@ def test_real_drain_accepts_only_a_fully_stopped_scheduler_after_sigterm(tmp_pat
         )
     if scenario == "timer_active":
         properties[timer]["ActiveState"] = "active"
+        monkeypatch.setattr("scripts.deployment.operation_worker.DRAIN_TIMEOUT_SECONDS", 0.001)
     group = tmp_path / "cgroups/scheduler"
     group.mkdir(parents=True)
     (group / "cgroup.procs").write_text("123\n" if scenario == "scheduler_cgroup_present" else "")
@@ -401,7 +402,7 @@ def test_real_drain_accepts_only_a_fully_stopped_scheduler_after_sigterm(tmp_pat
     atomic_write_json(state_path, {"state": "draining"})
     backend = WorkerBackend()
     monkeypatch.setattr(backend, "_scheduler_plan", lambda _contract: (timer, True))
-    monkeypatch.setattr(backend, "_unit_properties", lambda unit, _names: properties[unit])
+    monkeypatch.setattr(backend, "_unit_properties", lambda unit, _names, **_kwargs: properties[unit])
     commands = []
     monkeypatch.setattr(
         "scripts.deployment.operation_worker.subprocess.run", lambda args, **kwargs: commands.append((args, kwargs)),
@@ -422,5 +423,7 @@ def test_real_drain_accepts_only_a_fully_stopped_scheduler_after_sigterm(tmp_pat
         backend.drain(contract, state_path)
         assert writer_checks == [True]
         assert read_json(state_path)["maintenance_scheduler_stop_result"] == scheduler
-    assert commands[0][0] == ["/usr/bin/systemctl", "stop", timer, contract.scheduler_service, contract.service]
-    assert commands[0][1]["timeout"] == 90
+    assert commands[0][0] == [
+        "/usr/bin/systemctl", "stop", "--no-block", timer, contract.scheduler_service, contract.service,
+    ]
+    assert commands[0][1]["timeout"] == 30

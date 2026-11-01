@@ -9,6 +9,7 @@ import pwd
 import shutil
 import stat
 import subprocess
+import time
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
@@ -71,6 +72,9 @@ SYSTEMD_RUN = Path("/usr/bin/systemd-run")
 MAX_RETAINED_RELEASES = 5
 MIN_RETAINED_RELEASES = 2
 BRIDGE_PGOPTIONS = "-c default_transaction_read_only=on -c lock_timeout=2s -c statement_timeout=30s"
+DRAIN_TIMEOUT_SECONDS = 300
+STOP_REQUEST_TIMEOUT_SECONDS = 30
+DRAIN_POLL_SECONDS = 0.25
 
 
 class OperationError(RuntimeError):
@@ -560,10 +564,10 @@ class WorkerBackend:
         except Exception as exc:
             raise OperationError("community_original_records_changed") from exc
 
-    def _unit_properties(self, unit: str, names: str) -> dict[str, str]:
+    def _unit_properties(self, unit: str, names: str, *, timeout: float = 15) -> dict[str, str]:
         response = subprocess.run(
             ["/usr/bin/systemctl", "show", unit, "--property=" + names],
-            check=True, capture_output=True, text=True, timeout=15,
+            check=True, capture_output=True, text=True, timeout=timeout,
         )
         return dict(line.split("=", 1) for line in response.stdout.splitlines() if "=" in line)
 
@@ -578,36 +582,72 @@ class WorkerBackend:
         return timer, timer_state["ActiveState"] == "active"
 
     def drain(self, contract: TargetContract, state_path: Path) -> None:
-        timer, was_active = self._scheduler_plan(contract)
+        try:
+            timer, was_active = self._scheduler_plan(contract)
+        except subprocess.TimeoutExpired as exc:
+            raise OperationError("maintenance_drain_observation_timeout") from exc
+        except (OSError, subprocess.SubprocessError) as exc:
+            raise OperationError("maintenance_drain_observation_failed") from exc
         state = read_json(state_path)
         state["maintenance_scheduler_was_active"] = was_active
         atomic_write_json(state_path, state)
-        subprocess.run(
-            ["/usr/bin/systemctl", "stop", timer, contract.scheduler_service, contract.service],
-            check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=90,
-        )
-        for unit in (timer, contract.scheduler_service, contract.service):
-            properties = self._unit_properties(
-                unit, "ActiveState,MainPID,ControlGroup,Result,ExecMainCode,ExecMainStatus",
+        # Queue one stop transaction. Ordered units can each consume their own stop
+        # grace period, so the client request must not own the shutdown lifecycle.
+        deadline = time.monotonic() + DRAIN_TIMEOUT_SECONDS
+        try:
+            subprocess.run(
+                ["/usr/bin/systemctl", "stop", "--no-block", timer, contract.scheduler_service, contract.service],
+                check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=STOP_REQUEST_TIMEOUT_SECONDS,
             )
-            # A stopped oneshot scheduler can retain failed/signal after our SIGTERM.
-            # Accept only that exact scheduler outcome; PID/cgroup/writer guards still apply.
-            stopped_scheduler = unit == contract.scheduler_service and (
-                properties.get("ActiveState"), properties.get("Result"),
-                properties.get("ExecMainCode"), properties.get("ExecMainStatus"),
-            ) == ("failed", "signal", "2", "15")
-            if (properties.get("ActiveState") != "inactive" and not stopped_scheduler) or (
-                properties.get("MainPID", "0") != "0"
-            ):
-                raise OperationError("maintenance_drain_incomplete")
-            group = properties.get("ControlGroup", "")
-            if group:
-                path = Path("/sys/fs/cgroup") / group.lstrip("/") / "cgroup.procs"
-                if path.exists() and path.read_text().strip():
-                    raise OperationError("maintenance_cgroup_not_empty")
-
-            if unit == contract.scheduler_service:
-                state["maintenance_scheduler_stop_result"] = properties
+        except subprocess.TimeoutExpired as exc:
+            raise OperationError("maintenance_stop_request_timeout") from exc
+        except (OSError, subprocess.SubprocessError) as exc:
+            raise OperationError("maintenance_stop_request_failed") from exc
+        while True:
+            stopped = True
+            for unit in (timer, contract.scheduler_service, contract.service):
+                remaining = deadline - time.monotonic()
+                if remaining <= 0:
+                    raise OperationError("maintenance_drain_timeout")
+                try:
+                    properties = self._unit_properties(
+                        unit, "ActiveState,MainPID,ControlGroup,Result,ExecMainCode,ExecMainStatus",
+                        timeout=min(15, remaining),
+                    )
+                except subprocess.TimeoutExpired as exc:
+                    raise OperationError("maintenance_drain_observation_timeout") from exc
+                except (OSError, subprocess.SubprocessError) as exc:
+                    raise OperationError("maintenance_drain_observation_failed") from exc
+                if time.monotonic() >= deadline:
+                    raise OperationError("maintenance_drain_timeout")
+                if properties.get("ActiveState") in {"active", "activating", "deactivating", "reloading"}:
+                    stopped = False
+                    continue
+                # Only the scheduler's exact stopped SIGTERM outcome is permitted.
+                stopped_scheduler = unit == contract.scheduler_service and (
+                    properties.get("ActiveState"), properties.get("Result"),
+                    properties.get("ExecMainCode"), properties.get("ExecMainStatus"),
+                ) == ("failed", "signal", "2", "15")
+                if (properties.get("ActiveState") != "inactive" and not stopped_scheduler) or (
+                    properties.get("MainPID", "0") != "0"
+                ):
+                    raise OperationError("maintenance_drain_incomplete")
+                group = properties.get("ControlGroup", "")
+                if group:
+                    path = Path("/sys/fs/cgroup") / group.lstrip("/") / "cgroup.procs"
+                    try:
+                        populated = path.exists() and bool(path.read_text().strip())
+                    except OSError as exc:
+                        raise OperationError("maintenance_drain_observation_failed") from exc
+                    if populated:
+                        raise OperationError("maintenance_cgroup_not_empty")
+                if unit == contract.scheduler_service:
+                    state["maintenance_scheduler_stop_result"] = properties
+            if time.monotonic() >= deadline:
+                raise OperationError("maintenance_drain_timeout")
+            if stopped:
+                break
+            time.sleep(max(0, min(DRAIN_POLL_SECONDS, deadline - time.monotonic())))
         atomic_write_json(state_path, state)
         self.assert_database_drained()
 
