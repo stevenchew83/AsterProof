@@ -43,11 +43,31 @@ Actions artifacts expire after seven days; the reviewed frozen schema delta is
 retained in the repository. Artifact archive digests are distinct from normalized
 schema fingerprints and from an individual evidence file's digest.
 
-These runs establish engineering evidence, not authenticated model output. The
-schema-capture run did not run active-code compatibility; the separate production
-allowance adds that check and requires a new green PR run on its final source.
-Its proof is uploaded by the same CI workflow and must be checked before merge.
-The required check remains `verify`; no merge or deployment is performed here.
+[Release-contract CI 41290974336](https://github.com/stevenchew83/AsterProof/actions/runs/41290974336)
+passed on PR head `77d203ac8b77df1f5df0964a87d09978340c6b5d`, testing merge
+`e01c8df93c4a275538da3aacf9790399166869c6`. The tested tree and head tree were
+identical (`c4b2df60ec7efde2f99ef4d02db7bf94a2b71974`). The separate release
+rehearsal passed active-code compatibility against main
+`0f3ad3a46734a51b757bbfb2d3fdc3276a25cfaf`; source/schema/sequence/trigger
+preservation, empty evidence tables and disabled/unfunded AI were explicit true.
+
+- Isolation archive ID 13077352313, SHA-256: `de2bba45251236953356723f704d86be14fa5decaf89727abf9fa86fd2a2ab17`.
+- Schema archive ID 13076588754, SHA-256: `340dfc894602be6e99fb9f4a8af4fb7bceed3485e9ada250f1838cf382534107`.
+- Individual schema evidence file SHA-256: `e6153ce07337e8adbbe1a1cbc808e2e56571f516e727fa24ce1588530f29c023`.
+
+The application totals above do not count the full deployment-script suite. An
+existing overlapping directory/file pytest target selected only the explicit
+JavaScript file under `scripts/`. The selector is corrected in this PR so the
+whole directory, including all deployment regressions, is collected in subsequent
+CI runs. Local deployment regressions were independently executed. No omitted
+test is represented as a pass.
+
+Main subsequently advanced to `2fae98fcdb74d3eb6e4141598c02f00c5f59d9e7`
+(learning-activity tracking). Both exact allowances are retained separately.
+The final head requires a new green PR run against that base, including the full
+script suite and active-code rehearsal. The required check remains `verify`.
+These are engineering artifacts, not model executions, final merged production
+proofs or deployment authority. No merge or deployment is performed here.
 
 ## Earlier local evidence
 

@@ -16,6 +16,7 @@ from typing import Any
 from scripts.deployment import catalogue_schema
 from scripts.deployment import community_schema
 from scripts.deployment import curated_collections_schema
+from scripts.deployment import learning_activity_schema
 from scripts.deployment import maintenance_schema
 from scripts.deployment import newsletter_automation_schema
 from scripts.deployment import newsletter_schema
@@ -368,6 +369,15 @@ class WorkerBackend:
     def migrate_solution_evaluation_schema(self, contract: TargetContract, release: Path) -> None:
         self._run_candidate(
             contract, release, ["shell", "--command", solution_evaluation_schema.MIGRATION_APPLY], migration=True,
+        )
+
+    def check_learning_activity_schema(self, contract: TargetContract, release: Path) -> None:
+        learning_activity_schema.validate_candidate(release)
+        self._run_candidate(contract, release, ["shell", "--command", learning_activity_schema.PLAN_CHECK])
+
+    def migrate_learning_activity_schema(self, contract: TargetContract, release: Path) -> None:
+        self._run_candidate(
+            contract, release, ["shell", "--command", learning_activity_schema.MIGRATION_APPLY], migration=True,
         )
 
     def check_statement_reports_schema(self, contract: TargetContract, release: Path) -> None:
@@ -919,6 +929,9 @@ def _deploy(
                 if disclosure["migration"] == solution_evaluation_schema.MIGRATION:
                     solution_evaluation_schema.validate_build_evidence(release, disclosure)
                     backend.check_solution_evaluation_schema(contract, release)
+                elif disclosure["migration"] == learning_activity_schema.MIGRATION:
+                    learning_activity_schema.validate_build_evidence(release, disclosure)
+                    backend.check_learning_activity_schema(contract, release)
                 elif disclosure["migration"] == statement_reports_schema.MIGRATION:
                     statement_reports_schema.validate_build_evidence(release, disclosure)
                     backend.check_statement_reports_schema(contract, release)
@@ -963,6 +976,8 @@ def _deploy(
             transition(state_path, "migrating")
             if disclosure["migration"] == solution_evaluation_schema.MIGRATION:
                 backend.migrate_solution_evaluation_schema(contract, release)
+            elif disclosure["migration"] == learning_activity_schema.MIGRATION:
+                backend.migrate_learning_activity_schema(contract, release)
             elif disclosure["migration"] == statement_reports_schema.MIGRATION:
                 backend.migrate_statement_reports_schema(contract, release)
             elif disclosure["migration"] == solution_document_schema.MIGRATION:

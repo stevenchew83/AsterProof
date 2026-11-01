@@ -65,6 +65,10 @@ def select_checks(paths: list[str]) -> dict:  # noqa: C901 - Explicit bounded pa
     for app in tuple(apps):
         apps.update(DEPENDENTS.get(app, set()))
     tests.update(f"inspinia/{app}" for app in apps if app != "users")
+    # An explicit descendant makes pytest collect only that file under this directory.
+    # Keep the directory target so deployment and other script contracts still run.
+    if "scripts" in tests:
+        tests.discard(DOCUMENT_JS_TEST)
     return {
         "runtime": bool(changed),
         "workflows": workflows,

@@ -54,6 +54,12 @@ def test_workflow_changes_run_deployment_contracts_and_actionlint():
     assert "inspinia/pages" not in checks["tests"]
 
 
+def test_combined_workflow_and_editor_changes_keep_all_script_contracts_collectable():
+    checks = select_checks([".github/workflows/ci.yml", "inspinia/static/js/solution-document-editor.js"])
+    assert "scripts" in checks["tests"]
+    assert not any(target.startswith("scripts/") for target in checks["tests"])
+
+
 def test_ci_runs_real_curated_source_locks_on_the_pinned_disposable_postgresql():
     workflow = yaml.safe_load((ROOT / ".github/workflows/ci.yml").read_text())
     step = next(

@@ -147,6 +147,9 @@ jobs:
           elif ! git diff --quiet "$BASE_SHA" HEAD -- scripts/deployment/evaluation_schema.py inspinia/solutions/migrations/0010_offline_evaluation_contract.py; then
             rehearsal=scripts.deployment.evaluation_schema
             active_sha="$BASE_SHA"
+          elif ! git diff --quiet "$BASE_SHA" HEAD -- scripts/deployment/learning_activity_schema.py scripts/deployment/learning_activity_schema_rehearsal.py scripts/deployment/tests/fixtures/learning-activity-schema-delta.json inspinia/pages/migrations/0044_learning_page_activity.py; then
+            rehearsal=scripts.deployment.learning_activity_schema_rehearsal
+            active_sha="$BASE_SHA"
           elif ! git diff --quiet "$BASE_SHA" HEAD -- scripts/deployment/community_schema.py scripts/deployment/community_schema_rehearsal.py scripts/deployment/tests/fixtures/community-schema-delta.json inspinia/pages/migrations/0042_community_problems.py inspinia/pages/migrations/0043_statement_similarity_source.py; then
             rehearsal=scripts.deployment.community_schema_rehearsal
             active_sha="$BASE_SHA"

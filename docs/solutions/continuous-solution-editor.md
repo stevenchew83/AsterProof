@@ -30,6 +30,10 @@ Public compilation keeps its existing restricted command/file/time/resource gate
 
 ## AI coach
 
+The following describes the legacy provider design and future activation prerequisites.
+The offline evaluation release hard-blocks real-provider execution independently of
+flags or funded policies; see the current offline architecture section below.
+
 Review is an explicit owner action. Unsaved writing is saved first, then a
 revision-bound request enters a database queue. The worker calls the OpenAI
 Responses API with structured output, no tools, `store=false`, and automatic SDK
