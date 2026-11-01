@@ -119,8 +119,8 @@ def test_production_disclosure_accepts_only_the_complete_frozen_two_migration_bu
                 "target_sha": NEW_SHA,
                 "classification": "backward-compatible-schema",
                 "migrations": migrations,
-            }
-        )
+            },
+        ),
     )
     monkeypatch.setenv("SCHEMA_DISCLOSURE", json.dumps(disclosure()))
     monkeypatch.setattr(sys, "argv", ["disclosure", str(path)])
