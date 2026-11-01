@@ -52,6 +52,11 @@ function field(form, name) {
   return Array.from(form.elements).find(element => element.name === name || element.name.endsWith("-" + name));
 }
 
+function createEditorState(doc, extensions = []) {
+  // Repeated snippet fields use simultaneous selections to keep their text linked.
+  return EditorState.create({doc, extensions: [EditorState.allowMultipleSelections.of(true), extensions]});
+}
+
 function setup(root) {
   if (instances.has(root)) return instances.get(root);
   const form = root.matches("form") ? root : root.querySelector("form");
@@ -138,7 +143,7 @@ function setup(root) {
     const host = document.createElement("div");
     host.className = "solution-source-editor";
     textarea.before(host);
-    view = new EditorView({parent: host, state: EditorState.create({doc: textarea.value, extensions: [
+    view = new EditorView({parent: host, state: createEditorState(textarea.value, [
       lineNumbers(), highlightActiveLineGutter(), drawSelection(), history(), language,
       syntaxHighlighting(defaultHighlightStyle, {fallback: true}), bracketMatching(), closeBrackets(),
       language.data.of({closeBrackets: {brackets: ["(", "[", "{"]}}),
@@ -149,7 +154,7 @@ function setup(root) {
       highlightSelectionMatches(), theme,
       EditorView.domEventHandlers({paste(event) { return paste(event); }}),
       EditorView.updateListener.of(update => { if (update.docChanged) { mapPending(update.changes); sync(); } }),
-    ]})});
+    ])});
     textarea.hidden = true;
     textarea.setAttribute("aria-hidden", "true");
     textarea.tabIndex = -1;
@@ -299,4 +304,4 @@ if (typeof window !== "undefined") {
   else init();
 }
 
-module.exports = {completionSpec, completions};
+module.exports = {completionSpec, completions, createEditorState};
