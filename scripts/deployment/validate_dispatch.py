@@ -15,6 +15,7 @@ from pathlib import Path
 from typing import Any
 
 from scripts.deployment import catalogue_schema
+from scripts.deployment import community_proof_schema
 from scripts.deployment import community_schema
 from scripts.deployment import maintenance_schema
 from scripts.deployment import statement_authoring_schema
@@ -342,6 +343,12 @@ def build_migration_disclosure(
     elif migrations:
         derived = "backward-compatible-schema"
     if declared_class == "data-or-non-compatible":
+        proof_plan = [
+            {"migration": "pages." + name, "classification": classification}
+            for name, classification in zip(
+                community_proof_schema.MIGRATIONS, community_proof_schema.MIGRATION_CLASSES, strict=True,
+            )
+        ]
         community_plan = [
             {"migration": "pages." + name, "classification": classification}
             for name, classification in zip(
@@ -356,10 +363,12 @@ def build_migration_disclosure(
             }
             for i, name in enumerate(catalogue_schema.MIGRATIONS)
         ]
-        if migrations not in (expected, authoring_plan, community_plan):
+        if migrations not in (expected, authoring_plan, community_plan, proof_plan):
             raise DispatchValidationError("Data-class deployment requires an exact frozen maintenance plan")
         try:
-            if migrations == community_plan:
+            if migrations == proof_plan:
+                community_proof_schema.validate_candidate(repository)
+            elif migrations == community_plan:
                 community_schema.validate_candidate(repository)
             elif migrations == authoring_plan:
                 statement_authoring_schema.validate_candidate(repository)

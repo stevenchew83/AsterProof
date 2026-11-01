@@ -1,0 +1,14 @@
+{% extends 'website/base.html' %}
+
+{% block public_content %}
+  <section class="website-container website-page-hero">
+    <p class="website-kicker">Community Proof Library</p>
+    <h1>
+      This page is unavailable<em>.</em>
+    </h1>
+    <p>The link may no longer be active, or the contribution may not be available for public reading.</p>
+    <a href="{% url 'pages:proof_public_list' %}" class="website-button">Explore public problems <span aria-hidden="true">↗</span></a>
+  </section>
+{% endblock public_content %}
+{% block javascript %}
+{% endblock javascript %}

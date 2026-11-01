@@ -1,0 +1,1516 @@
+{
+  "add": {
+    "columns": [
+      {
+        "collation": "default",
+        "column": "action",
+        "default": null,
+        "nullable": false,
+        "position": 3,
+        "schema": "public",
+        "table": "pages_moderationevent",
+        "type": "character varying(40)"
+      },
+      {
+        "collation": "default",
+        "column": "body_source",
+        "default": null,
+        "nullable": false,
+        "position": 3,
+        "schema": "public",
+        "table": "pages_communityattempt",
+        "type": "text"
+      },
+      {
+        "collation": "default",
+        "column": "body_source",
+        "default": null,
+        "nullable": false,
+        "position": 6,
+        "schema": "public",
+        "table": "pages_communitysolutionrevision",
+        "type": "text"
+      },
+      {
+        "collation": "default",
+        "column": "content_digest",
+        "default": null,
+        "nullable": false,
+        "position": 5,
+        "schema": "public",
+        "table": "pages_communityproblemrevision",
+        "type": "character varying(64)"
+      },
+      {
+        "collation": "default",
+        "column": "content_digest",
+        "default": null,
+        "nullable": false,
+        "position": 9,
+        "schema": "public",
+        "table": "pages_communitysolutionrevision",
+        "type": "character varying(64)"
+      },
+      {
+        "collation": "default",
+        "column": "content_type",
+        "default": null,
+        "nullable": false,
+        "position": 4,
+        "schema": "public",
+        "table": "pages_communityprivateasset",
+        "type": "character varying(64)"
+      },
+      {
+        "collation": "default",
+        "column": "content_type",
+        "default": null,
+        "nullable": false,
+        "position": 4,
+        "schema": "public",
+        "table": "pages_communitysolutionasset",
+        "type": "character varying(64)"
+      },
+      {
+        "collation": "default",
+        "column": "details",
+        "default": null,
+        "nullable": false,
+        "position": 3,
+        "schema": "public",
+        "table": "pages_communitycontentreport",
+        "type": "text"
+      },
+      {
+        "collation": "default",
+        "column": "hold_reason",
+        "default": null,
+        "nullable": false,
+        "position": 9,
+        "schema": "public",
+        "table": "pages_problempublication",
+        "type": "text"
+      },
+      {
+        "collation": "default",
+        "column": "name",
+        "default": null,
+        "nullable": false,
+        "position": 3,
+        "schema": "public",
+        "table": "pages_communityprivateasset",
+        "type": "character varying(200)"
+      },
+      {
+        "collation": "default",
+        "column": "name",
+        "default": null,
+        "nullable": false,
+        "position": 3,
+        "schema": "public",
+        "table": "pages_communitysolutionasset",
+        "type": "character varying(200)"
+      },
+      {
+        "collation": "default",
+        "column": "public_credit",
+        "default": null,
+        "nullable": false,
+        "position": 6,
+        "schema": "public",
+        "table": "pages_problempublication",
+        "type": "character varying(128)"
+      },
+      {
+        "collation": "default",
+        "column": "public_credit",
+        "default": null,
+        "nullable": false,
+        "position": 7,
+        "schema": "public",
+        "table": "pages_communitysolutionrevision",
+        "type": "character varying(128)"
+      },
+      {
+        "collation": "default",
+        "column": "public_hint",
+        "default": null,
+        "nullable": false,
+        "position": 28,
+        "schema": "public",
+        "table": "pages_communityproblem",
+        "type": "text"
+      },
+      {
+        "collation": "default",
+        "column": "reason",
+        "default": null,
+        "nullable": false,
+        "position": 2,
+        "schema": "public",
+        "table": "pages_communitycontentreport",
+        "type": "character varying(16)"
+      },
+      {
+        "collation": "default",
+        "column": "reason",
+        "default": null,
+        "nullable": false,
+        "position": 4,
+        "schema": "public",
+        "table": "pages_moderationevent",
+        "type": "text"
+      },
+      {
+        "collation": "default",
+        "column": "sha256",
+        "default": null,
+        "nullable": false,
+        "position": 6,
+        "schema": "public",
+        "table": "pages_communityprivateasset",
+        "type": "character varying(64)"
+      },
+      {
+        "collation": "default",
+        "column": "sha256",
+        "default": null,
+        "nullable": false,
+        "position": 6,
+        "schema": "public",
+        "table": "pages_communitysolutionasset",
+        "type": "character varying(64)"
+      },
+      {
+        "collation": "default",
+        "column": "status",
+        "default": null,
+        "nullable": false,
+        "position": 2,
+        "schema": "public",
+        "table": "pages_communitysolution",
+        "type": "character varying(24)"
+      },
+      {
+        "collation": "default",
+        "column": "status",
+        "default": null,
+        "nullable": false,
+        "position": 4,
+        "schema": "public",
+        "table": "pages_communitycontentreport",
+        "type": "character varying(16)"
+      },
+      {
+        "collation": "default",
+        "column": "summary",
+        "default": null,
+        "nullable": false,
+        "position": 5,
+        "schema": "public",
+        "table": "pages_communitysolutionrevision",
+        "type": "character varying(500)"
+      },
+      {
+        "collation": "default",
+        "column": "title",
+        "default": null,
+        "nullable": false,
+        "position": 2,
+        "schema": "public",
+        "table": "pages_communityattempt",
+        "type": "character varying(160)"
+      },
+      {
+        "collation": "default",
+        "column": "title",
+        "default": null,
+        "nullable": false,
+        "position": 4,
+        "schema": "public",
+        "table": "pages_communitysolutionrevision",
+        "type": "character varying(160)"
+      },
+      {
+        "collation": "default",
+        "column": "visibility",
+        "default": null,
+        "nullable": false,
+        "position": 2,
+        "schema": "public",
+        "table": "pages_problempublication",
+        "type": "character varying(16)"
+      },
+      {
+        "collation": null,
+        "column": "actor_id",
+        "default": null,
+        "nullable": false,
+        "position": 5,
+        "schema": "public",
+        "table": "pages_moderationevent",
+        "type": "bigint"
+      },
+      {
+        "collation": null,
+        "column": "attempt_id",
+        "default": null,
+        "nullable": false,
+        "position": 7,
+        "schema": "public",
+        "table": "pages_communityprivateasset",
+        "type": "uuid"
+      },
+      {
+        "collation": null,
+        "column": "author_id",
+        "default": null,
+        "nullable": false,
+        "position": 7,
+        "schema": "public",
+        "table": "pages_communitysolution",
+        "type": "bigint"
+      },
+      {
+        "collation": null,
+        "column": "consented_at",
+        "default": null,
+        "nullable": false,
+        "position": 8,
+        "schema": "public",
+        "table": "pages_communitysolutionrevision",
+        "type": "timestamp with time zone"
+      },
+      {
+        "collation": null,
+        "column": "consented_at",
+        "default": null,
+        "nullable": true,
+        "position": 7,
+        "schema": "public",
+        "table": "pages_problempublication",
+        "type": "timestamp with time zone"
+      },
+      {
+        "collation": null,
+        "column": "created_at",
+        "default": null,
+        "nullable": false,
+        "position": 2,
+        "schema": "public",
+        "table": "pages_communityprivateasset",
+        "type": "timestamp with time zone"
+      },
+      {
+        "collation": null,
+        "column": "created_at",
+        "default": null,
+        "nullable": false,
+        "position": 2,
+        "schema": "public",
+        "table": "pages_communityproblemrevision",
+        "type": "timestamp with time zone"
+      },
+      {
+        "collation": null,
+        "column": "created_at",
+        "default": null,
+        "nullable": false,
+        "position": 2,
+        "schema": "public",
+        "table": "pages_communitysolutionasset",
+        "type": "timestamp with time zone"
+      },
+      {
+        "collation": null,
+        "column": "created_at",
+        "default": null,
+        "nullable": false,
+        "position": 2,
+        "schema": "public",
+        "table": "pages_communitysolutionrevision",
+        "type": "timestamp with time zone"
+      },
+      {
+        "collation": null,
+        "column": "created_at",
+        "default": null,
+        "nullable": false,
+        "position": 2,
+        "schema": "public",
+        "table": "pages_moderationevent",
+        "type": "timestamp with time zone"
+      },
+      {
+        "collation": null,
+        "column": "created_at",
+        "default": null,
+        "nullable": false,
+        "position": 5,
+        "schema": "public",
+        "table": "pages_communityattempt",
+        "type": "timestamp with time zone"
+      },
+      {
+        "collation": null,
+        "column": "created_at",
+        "default": null,
+        "nullable": false,
+        "position": 5,
+        "schema": "public",
+        "table": "pages_communitycontentreport",
+        "type": "timestamp with time zone"
+      },
+      {
+        "collation": null,
+        "column": "created_at",
+        "default": null,
+        "nullable": false,
+        "position": 5,
+        "schema": "public",
+        "table": "pages_communitysolution",
+        "type": "timestamp with time zone"
+      },
+      {
+        "collation": null,
+        "column": "current_revision_id",
+        "default": null,
+        "nullable": true,
+        "position": 9,
+        "schema": "public",
+        "table": "pages_communitysolution",
+        "type": "uuid"
+      },
+      {
+        "collation": null,
+        "column": "data",
+        "default": null,
+        "nullable": false,
+        "position": 5,
+        "schema": "public",
+        "table": "pages_communityprivateasset",
+        "type": "bytea"
+      },
+      {
+        "collation": null,
+        "column": "data",
+        "default": null,
+        "nullable": false,
+        "position": 5,
+        "schema": "public",
+        "table": "pages_communitysolutionasset",
+        "type": "bytea"
+      },
+      {
+        "collation": null,
+        "column": "embargo_until",
+        "default": null,
+        "nullable": true,
+        "position": 26,
+        "schema": "public",
+        "table": "pages_communityproblem",
+        "type": "timestamp with time zone"
+      },
+      {
+        "collation": null,
+        "column": "generation",
+        "default": null,
+        "nullable": false,
+        "position": 4,
+        "schema": "public",
+        "table": "pages_problempublication",
+        "type": "uuid"
+      },
+      {
+        "collation": null,
+        "column": "id",
+        "default": null,
+        "nullable": false,
+        "position": 1,
+        "schema": "public",
+        "table": "pages_communityattempt",
+        "type": "uuid"
+      },
+      {
+        "collation": null,
+        "column": "id",
+        "default": null,
+        "nullable": false,
+        "position": 1,
+        "schema": "public",
+        "table": "pages_communitycontentreport",
+        "type": "uuid"
+      },
+      {
+        "collation": null,
+        "column": "id",
+        "default": null,
+        "nullable": false,
+        "position": 1,
+        "schema": "public",
+        "table": "pages_communityprivateasset",
+        "type": "uuid"
+      },
+      {
+        "collation": null,
+        "column": "id",
+        "default": null,
+        "nullable": false,
+        "position": 1,
+        "schema": "public",
+        "table": "pages_communityproblemrevision",
+        "type": "uuid"
+      },
+      {
+        "collation": null,
+        "column": "id",
+        "default": null,
+        "nullable": false,
+        "position": 1,
+        "schema": "public",
+        "table": "pages_communitysolution",
+        "type": "uuid"
+      },
+      {
+        "collation": null,
+        "column": "id",
+        "default": null,
+        "nullable": false,
+        "position": 1,
+        "schema": "public",
+        "table": "pages_communitysolutionasset",
+        "type": "uuid"
+      },
+      {
+        "collation": null,
+        "column": "id",
+        "default": null,
+        "nullable": false,
+        "position": 1,
+        "schema": "public",
+        "table": "pages_communitysolutionrevision",
+        "type": "uuid"
+      },
+      {
+        "collation": null,
+        "column": "id",
+        "default": null,
+        "nullable": false,
+        "position": 1,
+        "schema": "public",
+        "table": "pages_moderationevent",
+        "type": "uuid"
+      },
+      {
+        "collation": null,
+        "column": "id",
+        "default": null,
+        "nullable": false,
+        "position": 1,
+        "schema": "public",
+        "table": "pages_problempublication",
+        "type": "bigint"
+      },
+      {
+        "collation": null,
+        "column": "is_held",
+        "default": null,
+        "nullable": false,
+        "position": 4,
+        "schema": "public",
+        "table": "pages_communitysolution",
+        "type": "boolean"
+      },
+      {
+        "collation": null,
+        "column": "is_held",
+        "default": null,
+        "nullable": false,
+        "position": 8,
+        "schema": "public",
+        "table": "pages_problempublication",
+        "type": "boolean"
+      },
+      {
+        "collation": null,
+        "column": "legacy_member_visible",
+        "default": null,
+        "nullable": false,
+        "position": 27,
+        "schema": "public",
+        "table": "pages_communityproblem",
+        "type": "boolean"
+      },
+      {
+        "collation": null,
+        "column": "mohs",
+        "default": null,
+        "nullable": true,
+        "position": 5,
+        "schema": "public",
+        "table": "pages_communityproblem",
+        "type": "smallint"
+      },
+      {
+        "collation": null,
+        "column": "number",
+        "default": null,
+        "nullable": false,
+        "position": 3,
+        "schema": "public",
+        "table": "pages_communityproblemrevision",
+        "type": "integer"
+      },
+      {
+        "collation": null,
+        "column": "number",
+        "default": null,
+        "nullable": false,
+        "position": 3,
+        "schema": "public",
+        "table": "pages_communitysolutionrevision",
+        "type": "integer"
+      },
+      {
+        "collation": null,
+        "column": "owner_id",
+        "default": null,
+        "nullable": false,
+        "position": 7,
+        "schema": "public",
+        "table": "pages_communityattempt",
+        "type": "bigint"
+      },
+      {
+        "collation": null,
+        "column": "problem_id",
+        "default": null,
+        "nullable": false,
+        "position": 11,
+        "schema": "public",
+        "table": "pages_problempublication",
+        "type": "uuid"
+      },
+      {
+        "collation": null,
+        "column": "problem_id",
+        "default": null,
+        "nullable": false,
+        "position": 6,
+        "schema": "public",
+        "table": "pages_communityproblemrevision",
+        "type": "uuid"
+      },
+      {
+        "collation": null,
+        "column": "problem_id",
+        "default": null,
+        "nullable": false,
+        "position": 6,
+        "schema": "public",
+        "table": "pages_moderationevent",
+        "type": "uuid"
+      },
+      {
+        "collation": null,
+        "column": "problem_id",
+        "default": null,
+        "nullable": false,
+        "position": 7,
+        "schema": "public",
+        "table": "pages_communitycontentreport",
+        "type": "uuid"
+      },
+      {
+        "collation": null,
+        "column": "problem_id",
+        "default": null,
+        "nullable": false,
+        "position": 8,
+        "schema": "public",
+        "table": "pages_communityattempt",
+        "type": "uuid"
+      },
+      {
+        "collation": null,
+        "column": "problem_id",
+        "default": null,
+        "nullable": false,
+        "position": 8,
+        "schema": "public",
+        "table": "pages_communitysolution",
+        "type": "uuid"
+      },
+      {
+        "collation": null,
+        "column": "reporter_id",
+        "default": null,
+        "nullable": false,
+        "position": 8,
+        "schema": "public",
+        "table": "pages_communitycontentreport",
+        "type": "bigint"
+      },
+      {
+        "collation": null,
+        "column": "reviewed_by_id",
+        "default": null,
+        "nullable": true,
+        "position": 9,
+        "schema": "public",
+        "table": "pages_communitycontentreport",
+        "type": "bigint"
+      },
+      {
+        "collation": null,
+        "column": "revision_id",
+        "default": null,
+        "nullable": false,
+        "position": 7,
+        "schema": "public",
+        "table": "pages_communitysolutionasset",
+        "type": "uuid"
+      },
+      {
+        "collation": null,
+        "column": "snapshot",
+        "default": null,
+        "nullable": false,
+        "position": 4,
+        "schema": "public",
+        "table": "pages_communityproblemrevision",
+        "type": "jsonb"
+      },
+      {
+        "collation": null,
+        "column": "solution_id",
+        "default": null,
+        "nullable": false,
+        "position": 10,
+        "schema": "public",
+        "table": "pages_communitysolutionrevision",
+        "type": "uuid"
+      },
+      {
+        "collation": null,
+        "column": "solution_id",
+        "default": null,
+        "nullable": true,
+        "position": 10,
+        "schema": "public",
+        "table": "pages_communitycontentreport",
+        "type": "uuid"
+      },
+      {
+        "collation": null,
+        "column": "solution_id",
+        "default": null,
+        "nullable": true,
+        "position": 7,
+        "schema": "public",
+        "table": "pages_moderationevent",
+        "type": "uuid"
+      },
+      {
+        "collation": null,
+        "column": "solution_known",
+        "default": null,
+        "nullable": false,
+        "position": 29,
+        "schema": "public",
+        "table": "pages_communityproblem",
+        "type": "boolean"
+      },
+      {
+        "collation": null,
+        "column": "solution_revision_id",
+        "default": null,
+        "nullable": true,
+        "position": 8,
+        "schema": "public",
+        "table": "pages_moderationevent",
+        "type": "uuid"
+      },
+      {
+        "collation": null,
+        "column": "source_attempt_id",
+        "default": null,
+        "nullable": true,
+        "position": 11,
+        "schema": "public",
+        "table": "pages_communitysolutionrevision",
+        "type": "uuid"
+      },
+      {
+        "collation": null,
+        "column": "statement_revision_id",
+        "default": null,
+        "nullable": false,
+        "position": 12,
+        "schema": "public",
+        "table": "pages_communitysolutionrevision",
+        "type": "uuid"
+      },
+      {
+        "collation": null,
+        "column": "statement_revision_id",
+        "default": null,
+        "nullable": false,
+        "position": 9,
+        "schema": "public",
+        "table": "pages_communityattempt",
+        "type": "uuid"
+      },
+      {
+        "collation": null,
+        "column": "statement_revision_id",
+        "default": null,
+        "nullable": true,
+        "position": 12,
+        "schema": "public",
+        "table": "pages_problempublication",
+        "type": "uuid"
+      },
+      {
+        "collation": null,
+        "column": "statement_revision_id",
+        "default": null,
+        "nullable": true,
+        "position": 9,
+        "schema": "public",
+        "table": "pages_moderationevent",
+        "type": "uuid"
+      },
+      {
+        "collation": null,
+        "column": "token",
+        "default": null,
+        "nullable": false,
+        "position": 3,
+        "schema": "public",
+        "table": "pages_problempublication",
+        "type": "uuid"
+      },
+      {
+        "collation": null,
+        "column": "updated_at",
+        "default": null,
+        "nullable": false,
+        "position": 10,
+        "schema": "public",
+        "table": "pages_problempublication",
+        "type": "timestamp with time zone"
+      },
+      {
+        "collation": null,
+        "column": "updated_at",
+        "default": null,
+        "nullable": false,
+        "position": 6,
+        "schema": "public",
+        "table": "pages_communityattempt",
+        "type": "timestamp with time zone"
+      },
+      {
+        "collation": null,
+        "column": "updated_at",
+        "default": null,
+        "nullable": false,
+        "position": 6,
+        "schema": "public",
+        "table": "pages_communitycontentreport",
+        "type": "timestamp with time zone"
+      },
+      {
+        "collation": null,
+        "column": "updated_at",
+        "default": null,
+        "nullable": false,
+        "position": 6,
+        "schema": "public",
+        "table": "pages_communitysolution",
+        "type": "timestamp with time zone"
+      },
+      {
+        "collation": null,
+        "column": "version",
+        "default": null,
+        "nullable": false,
+        "position": 3,
+        "schema": "public",
+        "table": "pages_communitysolution",
+        "type": "integer"
+      },
+      {
+        "collation": null,
+        "column": "version",
+        "default": null,
+        "nullable": false,
+        "position": 4,
+        "schema": "public",
+        "table": "pages_communityattempt",
+        "type": "integer"
+      },
+      {
+        "collation": null,
+        "column": "version",
+        "default": null,
+        "nullable": false,
+        "position": 5,
+        "schema": "public",
+        "table": "pages_problempublication",
+        "type": "integer"
+      }
+    ],
+    "constraints": [
+      {
+        "definition": "CHECK (number >= 0)",
+        "name": "pages_communityproblemrevision_number_check",
+        "schema": "public",
+        "table": "pages_communityproblemrevision",
+        "type": "c"
+      },
+      {
+        "definition": "CHECK (number >= 0)",
+        "name": "pages_communitysolutionrevision_number_check",
+        "schema": "public",
+        "table": "pages_communitysolutionrevision",
+        "type": "c"
+      },
+      {
+        "definition": "CHECK (number >= 1)",
+        "name": "pages_cpr_number_positive",
+        "schema": "public",
+        "table": "pages_communityproblemrevision",
+        "type": "c"
+      },
+      {
+        "definition": "CHECK (number >= 1)",
+        "name": "pages_csr_number_positive",
+        "schema": "public",
+        "table": "pages_communitysolutionrevision",
+        "type": "c"
+      },
+      {
+        "definition": "CHECK (version >= 0)",
+        "name": "pages_communityattempt_version_check",
+        "schema": "public",
+        "table": "pages_communityattempt",
+        "type": "c"
+      },
+      {
+        "definition": "CHECK (version >= 0)",
+        "name": "pages_communitysolution_version_check",
+        "schema": "public",
+        "table": "pages_communitysolution",
+        "type": "c"
+      },
+      {
+        "definition": "CHECK (version >= 0)",
+        "name": "pages_problempublication_version_check",
+        "schema": "public",
+        "table": "pages_problempublication",
+        "type": "c"
+      },
+      {
+        "definition": "FOREIGN KEY (actor_id) REFERENCES users_user(id) DEFERRABLE INITIALLY DEFERRED",
+        "name": "pages_moderationevent_actor_id_a3a08f76_fk_users_user_id",
+        "schema": "public",
+        "table": "pages_moderationevent",
+        "type": "f"
+      },
+      {
+        "definition": "FOREIGN KEY (attempt_id) REFERENCES pages_communityattempt(id) DEFERRABLE INITIALLY DEFERRED",
+        "name": "pages_communitypriva_attempt_id_cc5d2301_fk_pages_com",
+        "schema": "public",
+        "table": "pages_communityprivateasset",
+        "type": "f"
+      },
+      {
+        "definition": "FOREIGN KEY (author_id) REFERENCES users_user(id) DEFERRABLE INITIALLY DEFERRED",
+        "name": "pages_communitysolution_author_id_e6611d87_fk_users_user_id",
+        "schema": "public",
+        "table": "pages_communitysolution",
+        "type": "f"
+      },
+      {
+        "definition": "FOREIGN KEY (current_revision_id) REFERENCES pages_communitysolutionrevision(id) DEFERRABLE INITIALLY DEFERRED",
+        "name": "pages_communitysolut_current_revision_id_3d16e168_fk_pages_com",
+        "schema": "public",
+        "table": "pages_communitysolution",
+        "type": "f"
+      },
+      {
+        "definition": "FOREIGN KEY (owner_id) REFERENCES users_user(id) DEFERRABLE INITIALLY DEFERRED",
+        "name": "pages_communityattempt_owner_id_fabad324_fk_users_user_id",
+        "schema": "public",
+        "table": "pages_communityattempt",
+        "type": "f"
+      },
+      {
+        "definition": "FOREIGN KEY (problem_id) REFERENCES pages_communityproblem(id) DEFERRABLE INITIALLY DEFERRED",
+        "name": "pages_communityattem_problem_id_c3e9af39_fk_pages_com",
+        "schema": "public",
+        "table": "pages_communityattempt",
+        "type": "f"
+      },
+      {
+        "definition": "FOREIGN KEY (problem_id) REFERENCES pages_communityproblem(id) DEFERRABLE INITIALLY DEFERRED",
+        "name": "pages_communityconte_problem_id_941e4138_fk_pages_com",
+        "schema": "public",
+        "table": "pages_communitycontentreport",
+        "type": "f"
+      },
+      {
+        "definition": "FOREIGN KEY (problem_id) REFERENCES pages_communityproblem(id) DEFERRABLE INITIALLY DEFERRED",
+        "name": "pages_communityprobl_problem_id_0976acba_fk_pages_com",
+        "schema": "public",
+        "table": "pages_communityproblemrevision",
+        "type": "f"
+      },
+      {
+        "definition": "FOREIGN KEY (problem_id) REFERENCES pages_communityproblem(id) DEFERRABLE INITIALLY DEFERRED",
+        "name": "pages_communitysolut_problem_id_eaddf79a_fk_pages_com",
+        "schema": "public",
+        "table": "pages_communitysolution",
+        "type": "f"
+      },
+      {
+        "definition": "FOREIGN KEY (problem_id) REFERENCES pages_communityproblem(id) DEFERRABLE INITIALLY DEFERRED",
+        "name": "pages_moderationeven_problem_id_a74131f3_fk_pages_com",
+        "schema": "public",
+        "table": "pages_moderationevent",
+        "type": "f"
+      },
+      {
+        "definition": "FOREIGN KEY (problem_id) REFERENCES pages_communityproblem(id) DEFERRABLE INITIALLY DEFERRED",
+        "name": "pages_problempublica_problem_id_65b0b22e_fk_pages_com",
+        "schema": "public",
+        "table": "pages_problempublication",
+        "type": "f"
+      },
+      {
+        "definition": "FOREIGN KEY (reporter_id) REFERENCES users_user(id) DEFERRABLE INITIALLY DEFERRED",
+        "name": "pages_communityconte_reporter_id_7e13cc9e_fk_users_use",
+        "schema": "public",
+        "table": "pages_communitycontentreport",
+        "type": "f"
+      },
+      {
+        "definition": "FOREIGN KEY (reviewed_by_id) REFERENCES users_user(id) DEFERRABLE INITIALLY DEFERRED",
+        "name": "pages_communityconte_reviewed_by_id_229dff2e_fk_users_use",
+        "schema": "public",
+        "table": "pages_communitycontentreport",
+        "type": "f"
+      },
+      {
+        "definition": "FOREIGN KEY (revision_id) REFERENCES pages_communitysolutionrevision(id) DEFERRABLE INITIALLY DEFERRED",
+        "name": "pages_communitysolut_revision_id_d130e720_fk_pages_com",
+        "schema": "public",
+        "table": "pages_communitysolutionasset",
+        "type": "f"
+      },
+      {
+        "definition": "FOREIGN KEY (solution_id) REFERENCES pages_communitysolution(id) DEFERRABLE INITIALLY DEFERRED",
+        "name": "pages_communityconte_solution_id_c7e17e84_fk_pages_com",
+        "schema": "public",
+        "table": "pages_communitycontentreport",
+        "type": "f"
+      },
+      {
+        "definition": "FOREIGN KEY (solution_id) REFERENCES pages_communitysolution(id) DEFERRABLE INITIALLY DEFERRED",
+        "name": "pages_communitysolut_solution_id_f7f327d9_fk_pages_com",
+        "schema": "public",
+        "table": "pages_communitysolutionrevision",
+        "type": "f"
+      },
+      {
+        "definition": "FOREIGN KEY (solution_id) REFERENCES pages_communitysolution(id) DEFERRABLE INITIALLY DEFERRED",
+        "name": "pages_moderationeven_solution_id_036c7501_fk_pages_com",
+        "schema": "public",
+        "table": "pages_moderationevent",
+        "type": "f"
+      },
+      {
+        "definition": "FOREIGN KEY (solution_revision_id) REFERENCES pages_communitysolutionrevision(id) DEFERRABLE INITIALLY DEFERRED",
+        "name": "pages_moderationeven_solution_revision_id_5a5100bc_fk_pages_com",
+        "schema": "public",
+        "table": "pages_moderationevent",
+        "type": "f"
+      },
+      {
+        "definition": "FOREIGN KEY (source_attempt_id) REFERENCES pages_communityattempt(id) DEFERRABLE INITIALLY DEFERRED",
+        "name": "pages_communitysolut_source_attempt_id_e42c840c_fk_pages_com",
+        "schema": "public",
+        "table": "pages_communitysolutionrevision",
+        "type": "f"
+      },
+      {
+        "definition": "FOREIGN KEY (statement_revision_id) REFERENCES pages_communityproblemrevision(id) DEFERRABLE INITIALLY DEFERRED",
+        "name": "pages_communityattem_statement_revision_i_a305df8f_fk_pages_com",
+        "schema": "public",
+        "table": "pages_communityattempt",
+        "type": "f"
+      },
+      {
+        "definition": "FOREIGN KEY (statement_revision_id) REFERENCES pages_communityproblemrevision(id) DEFERRABLE INITIALLY DEFERRED",
+        "name": "pages_communitysolut_statement_revision_i_5d716fad_fk_pages_com",
+        "schema": "public",
+        "table": "pages_communitysolutionrevision",
+        "type": "f"
+      },
+      {
+        "definition": "FOREIGN KEY (statement_revision_id) REFERENCES pages_communityproblemrevision(id) DEFERRABLE INITIALLY DEFERRED",
+        "name": "pages_moderationeven_statement_revision_i_2870e65a_fk_pages_com",
+        "schema": "public",
+        "table": "pages_moderationevent",
+        "type": "f"
+      },
+      {
+        "definition": "FOREIGN KEY (statement_revision_id) REFERENCES pages_communityproblemrevision(id) DEFERRABLE INITIALLY DEFERRED",
+        "name": "pages_problempublica_statement_revision_i_0626733a_fk_pages_com",
+        "schema": "public",
+        "table": "pages_problempublication",
+        "type": "f"
+      },
+      {
+        "definition": "PRIMARY KEY (id)",
+        "name": "pages_communityattempt_pkey",
+        "schema": "public",
+        "table": "pages_communityattempt",
+        "type": "p"
+      },
+      {
+        "definition": "PRIMARY KEY (id)",
+        "name": "pages_communitycontentreport_pkey",
+        "schema": "public",
+        "table": "pages_communitycontentreport",
+        "type": "p"
+      },
+      {
+        "definition": "PRIMARY KEY (id)",
+        "name": "pages_communityprivateasset_pkey",
+        "schema": "public",
+        "table": "pages_communityprivateasset",
+        "type": "p"
+      },
+      {
+        "definition": "PRIMARY KEY (id)",
+        "name": "pages_communityproblemrevision_pkey",
+        "schema": "public",
+        "table": "pages_communityproblemrevision",
+        "type": "p"
+      },
+      {
+        "definition": "PRIMARY KEY (id)",
+        "name": "pages_communitysolution_pkey",
+        "schema": "public",
+        "table": "pages_communitysolution",
+        "type": "p"
+      },
+      {
+        "definition": "PRIMARY KEY (id)",
+        "name": "pages_communitysolutionasset_pkey",
+        "schema": "public",
+        "table": "pages_communitysolutionasset",
+        "type": "p"
+      },
+      {
+        "definition": "PRIMARY KEY (id)",
+        "name": "pages_communitysolutionrevision_pkey",
+        "schema": "public",
+        "table": "pages_communitysolutionrevision",
+        "type": "p"
+      },
+      {
+        "definition": "PRIMARY KEY (id)",
+        "name": "pages_moderationevent_pkey",
+        "schema": "public",
+        "table": "pages_moderationevent",
+        "type": "p"
+      },
+      {
+        "definition": "PRIMARY KEY (id)",
+        "name": "pages_problempublication_pkey",
+        "schema": "public",
+        "table": "pages_problempublication",
+        "type": "p"
+      },
+      {
+        "definition": "UNIQUE (name)",
+        "name": "pages_communityprivateasset_name_key",
+        "schema": "public",
+        "table": "pages_communityprivateasset",
+        "type": "u"
+      },
+      {
+        "definition": "UNIQUE (owner_id, problem_id, statement_revision_id)",
+        "name": "pages_ca_owner_problem_revision_unique",
+        "schema": "public",
+        "table": "pages_communityattempt",
+        "type": "u"
+      },
+      {
+        "definition": "UNIQUE (problem_id)",
+        "name": "pages_problempublication_problem_id_key",
+        "schema": "public",
+        "table": "pages_problempublication",
+        "type": "u"
+      },
+      {
+        "definition": "UNIQUE (problem_id, number)",
+        "name": "pages_cpr_problem_number_unique",
+        "schema": "public",
+        "table": "pages_communityproblemrevision",
+        "type": "u"
+      },
+      {
+        "definition": "UNIQUE (revision_id, name)",
+        "name": "pages_csa_revision_name_unique",
+        "schema": "public",
+        "table": "pages_communitysolutionasset",
+        "type": "u"
+      },
+      {
+        "definition": "UNIQUE (solution_id, number)",
+        "name": "pages_csr_solution_number_unique",
+        "schema": "public",
+        "table": "pages_communitysolutionrevision",
+        "type": "u"
+      },
+      {
+        "definition": "UNIQUE (token)",
+        "name": "pages_problempublication_token_key",
+        "schema": "public",
+        "table": "pages_problempublication",
+        "type": "u"
+      }
+    ],
+    "extensions": [],
+    "indexes": [
+      {
+        "definition": "CREATE INDEX pages_communityattempt_owner_id_fabad324 ON public.pages_communityattempt USING btree (owner_id)",
+        "name": "pages_communityattempt_owner_id_fabad324",
+        "schema": "public",
+        "table": "pages_communityattempt"
+      },
+      {
+        "definition": "CREATE INDEX pages_communityattempt_problem_id_c3e9af39 ON public.pages_communityattempt USING btree (problem_id)",
+        "name": "pages_communityattempt_problem_id_c3e9af39",
+        "schema": "public",
+        "table": "pages_communityattempt"
+      },
+      {
+        "definition": "CREATE INDEX pages_communityattempt_statement_revision_id_a305df8f ON public.pages_communityattempt USING btree (statement_revision_id)",
+        "name": "pages_communityattempt_statement_revision_id_a305df8f",
+        "schema": "public",
+        "table": "pages_communityattempt"
+      },
+      {
+        "definition": "CREATE INDEX pages_communitycontentreport_problem_id_941e4138 ON public.pages_communitycontentreport USING btree (problem_id)",
+        "name": "pages_communitycontentreport_problem_id_941e4138",
+        "schema": "public",
+        "table": "pages_communitycontentreport"
+      },
+      {
+        "definition": "CREATE INDEX pages_communitycontentreport_reporter_id_7e13cc9e ON public.pages_communitycontentreport USING btree (reporter_id)",
+        "name": "pages_communitycontentreport_reporter_id_7e13cc9e",
+        "schema": "public",
+        "table": "pages_communitycontentreport"
+      },
+      {
+        "definition": "CREATE INDEX pages_communitycontentreport_reviewed_by_id_229dff2e ON public.pages_communitycontentreport USING btree (reviewed_by_id)",
+        "name": "pages_communitycontentreport_reviewed_by_id_229dff2e",
+        "schema": "public",
+        "table": "pages_communitycontentreport"
+      },
+      {
+        "definition": "CREATE INDEX pages_communitycontentreport_solution_id_c7e17e84 ON public.pages_communitycontentreport USING btree (solution_id)",
+        "name": "pages_communitycontentreport_solution_id_c7e17e84",
+        "schema": "public",
+        "table": "pages_communitycontentreport"
+      },
+      {
+        "definition": "CREATE INDEX pages_communitycontentreport_status_45d7c0cc ON public.pages_communitycontentreport USING btree (status)",
+        "name": "pages_communitycontentreport_status_45d7c0cc",
+        "schema": "public",
+        "table": "pages_communitycontentreport"
+      },
+      {
+        "definition": "CREATE INDEX pages_communitycontentreport_status_45d7c0cc_like ON public.pages_communitycontentreport USING btree (status varchar_pattern_ops)",
+        "name": "pages_communitycontentreport_status_45d7c0cc_like",
+        "schema": "public",
+        "table": "pages_communitycontentreport"
+      },
+      {
+        "definition": "CREATE INDEX pages_communityprivateasset_attempt_id_cc5d2301 ON public.pages_communityprivateasset USING btree (attempt_id)",
+        "name": "pages_communityprivateasset_attempt_id_cc5d2301",
+        "schema": "public",
+        "table": "pages_communityprivateasset"
+      },
+      {
+        "definition": "CREATE INDEX pages_communityprivateasset_name_f66ae9b5_like ON public.pages_communityprivateasset USING btree (name varchar_pattern_ops)",
+        "name": "pages_communityprivateasset_name_f66ae9b5_like",
+        "schema": "public",
+        "table": "pages_communityprivateasset"
+      },
+      {
+        "definition": "CREATE INDEX pages_communityproblemrevision_problem_id_0976acba ON public.pages_communityproblemrevision USING btree (problem_id)",
+        "name": "pages_communityproblemrevision_problem_id_0976acba",
+        "schema": "public",
+        "table": "pages_communityproblemrevision"
+      },
+      {
+        "definition": "CREATE INDEX pages_communitysolution_author_id_e6611d87 ON public.pages_communitysolution USING btree (author_id)",
+        "name": "pages_communitysolution_author_id_e6611d87",
+        "schema": "public",
+        "table": "pages_communitysolution"
+      },
+      {
+        "definition": "CREATE INDEX pages_communitysolution_current_revision_id_3d16e168 ON public.pages_communitysolution USING btree (current_revision_id)",
+        "name": "pages_communitysolution_current_revision_id_3d16e168",
+        "schema": "public",
+        "table": "pages_communitysolution"
+      },
+      {
+        "definition": "CREATE INDEX pages_communitysolution_problem_id_eaddf79a ON public.pages_communitysolution USING btree (problem_id)",
+        "name": "pages_communitysolution_problem_id_eaddf79a",
+        "schema": "public",
+        "table": "pages_communitysolution"
+      },
+      {
+        "definition": "CREATE INDEX pages_communitysolution_status_b9433fce ON public.pages_communitysolution USING btree (status)",
+        "name": "pages_communitysolution_status_b9433fce",
+        "schema": "public",
+        "table": "pages_communitysolution"
+      },
+      {
+        "definition": "CREATE INDEX pages_communitysolution_status_b9433fce_like ON public.pages_communitysolution USING btree (status varchar_pattern_ops)",
+        "name": "pages_communitysolution_status_b9433fce_like",
+        "schema": "public",
+        "table": "pages_communitysolution"
+      },
+      {
+        "definition": "CREATE INDEX pages_communitysolutionasset_revision_id_d130e720 ON public.pages_communitysolutionasset USING btree (revision_id)",
+        "name": "pages_communitysolutionasset_revision_id_d130e720",
+        "schema": "public",
+        "table": "pages_communitysolutionasset"
+      },
+      {
+        "definition": "CREATE INDEX pages_communitysolutionrevision_solution_id_f7f327d9 ON public.pages_communitysolutionrevision USING btree (solution_id)",
+        "name": "pages_communitysolutionrevision_solution_id_f7f327d9",
+        "schema": "public",
+        "table": "pages_communitysolutionrevision"
+      },
+      {
+        "definition": "CREATE INDEX pages_communitysolutionrevision_source_attempt_id_e42c840c ON public.pages_communitysolutionrevision USING btree (source_attempt_id)",
+        "name": "pages_communitysolutionrevision_source_attempt_id_e42c840c",
+        "schema": "public",
+        "table": "pages_communitysolutionrevision"
+      },
+      {
+        "definition": "CREATE INDEX pages_communitysolutionrevision_statement_revision_id_5d716fad ON public.pages_communitysolutionrevision USING btree (statement_revision_id)",
+        "name": "pages_communitysolutionrevision_statement_revision_id_5d716fad",
+        "schema": "public",
+        "table": "pages_communitysolutionrevision"
+      },
+      {
+        "definition": "CREATE INDEX pages_moderationevent_actor_id_a3a08f76 ON public.pages_moderationevent USING btree (actor_id)",
+        "name": "pages_moderationevent_actor_id_a3a08f76",
+        "schema": "public",
+        "table": "pages_moderationevent"
+      },
+      {
+        "definition": "CREATE INDEX pages_moderationevent_problem_id_a74131f3 ON public.pages_moderationevent USING btree (problem_id)",
+        "name": "pages_moderationevent_problem_id_a74131f3",
+        "schema": "public",
+        "table": "pages_moderationevent"
+      },
+      {
+        "definition": "CREATE INDEX pages_moderationevent_solution_id_036c7501 ON public.pages_moderationevent USING btree (solution_id)",
+        "name": "pages_moderationevent_solution_id_036c7501",
+        "schema": "public",
+        "table": "pages_moderationevent"
+      },
+      {
+        "definition": "CREATE INDEX pages_moderationevent_solution_revision_id_5a5100bc ON public.pages_moderationevent USING btree (solution_revision_id)",
+        "name": "pages_moderationevent_solution_revision_id_5a5100bc",
+        "schema": "public",
+        "table": "pages_moderationevent"
+      },
+      {
+        "definition": "CREATE INDEX pages_moderationevent_statement_revision_id_2870e65a ON public.pages_moderationevent USING btree (statement_revision_id)",
+        "name": "pages_moderationevent_statement_revision_id_2870e65a",
+        "schema": "public",
+        "table": "pages_moderationevent"
+      },
+      {
+        "definition": "CREATE INDEX pages_problempublication_statement_revision_id_0626733a ON public.pages_problempublication USING btree (statement_revision_id)",
+        "name": "pages_problempublication_statement_revision_id_0626733a",
+        "schema": "public",
+        "table": "pages_problempublication"
+      },
+      {
+        "definition": "CREATE UNIQUE INDEX pages_ca_owner_problem_revision_unique ON public.pages_communityattempt USING btree (owner_id, problem_id, statement_revision_id)",
+        "name": "pages_ca_owner_problem_revision_unique",
+        "schema": "public",
+        "table": "pages_communityattempt"
+      },
+      {
+        "definition": "CREATE UNIQUE INDEX pages_communityattempt_pkey ON public.pages_communityattempt USING btree (id)",
+        "name": "pages_communityattempt_pkey",
+        "schema": "public",
+        "table": "pages_communityattempt"
+      },
+      {
+        "definition": "CREATE UNIQUE INDEX pages_communitycontentreport_pkey ON public.pages_communitycontentreport USING btree (id)",
+        "name": "pages_communitycontentreport_pkey",
+        "schema": "public",
+        "table": "pages_communitycontentreport"
+      },
+      {
+        "definition": "CREATE UNIQUE INDEX pages_communityprivateasset_name_key ON public.pages_communityprivateasset USING btree (name)",
+        "name": "pages_communityprivateasset_name_key",
+        "schema": "public",
+        "table": "pages_communityprivateasset"
+      },
+      {
+        "definition": "CREATE UNIQUE INDEX pages_communityprivateasset_pkey ON public.pages_communityprivateasset USING btree (id)",
+        "name": "pages_communityprivateasset_pkey",
+        "schema": "public",
+        "table": "pages_communityprivateasset"
+      },
+      {
+        "definition": "CREATE UNIQUE INDEX pages_communityproblemrevision_pkey ON public.pages_communityproblemrevision USING btree (id)",
+        "name": "pages_communityproblemrevision_pkey",
+        "schema": "public",
+        "table": "pages_communityproblemrevision"
+      },
+      {
+        "definition": "CREATE UNIQUE INDEX pages_communitysolution_pkey ON public.pages_communitysolution USING btree (id)",
+        "name": "pages_communitysolution_pkey",
+        "schema": "public",
+        "table": "pages_communitysolution"
+      },
+      {
+        "definition": "CREATE UNIQUE INDEX pages_communitysolutionasset_pkey ON public.pages_communitysolutionasset USING btree (id)",
+        "name": "pages_communitysolutionasset_pkey",
+        "schema": "public",
+        "table": "pages_communitysolutionasset"
+      },
+      {
+        "definition": "CREATE UNIQUE INDEX pages_communitysolutionrevision_pkey ON public.pages_communitysolutionrevision USING btree (id)",
+        "name": "pages_communitysolutionrevision_pkey",
+        "schema": "public",
+        "table": "pages_communitysolutionrevision"
+      },
+      {
+        "definition": "CREATE UNIQUE INDEX pages_cpr_problem_number_unique ON public.pages_communityproblemrevision USING btree (problem_id, number)",
+        "name": "pages_cpr_problem_number_unique",
+        "schema": "public",
+        "table": "pages_communityproblemrevision"
+      },
+      {
+        "definition": "CREATE UNIQUE INDEX pages_csa_revision_name_unique ON public.pages_communitysolutionasset USING btree (revision_id, name)",
+        "name": "pages_csa_revision_name_unique",
+        "schema": "public",
+        "table": "pages_communitysolutionasset"
+      },
+      {
+        "definition": "CREATE UNIQUE INDEX pages_csr_solution_number_unique ON public.pages_communitysolutionrevision USING btree (solution_id, number)",
+        "name": "pages_csr_solution_number_unique",
+        "schema": "public",
+        "table": "pages_communitysolutionrevision"
+      },
+      {
+        "definition": "CREATE UNIQUE INDEX pages_moderationevent_pkey ON public.pages_moderationevent USING btree (id)",
+        "name": "pages_moderationevent_pkey",
+        "schema": "public",
+        "table": "pages_moderationevent"
+      },
+      {
+        "definition": "CREATE UNIQUE INDEX pages_problempublication_pkey ON public.pages_problempublication USING btree (id)",
+        "name": "pages_problempublication_pkey",
+        "schema": "public",
+        "table": "pages_problempublication"
+      },
+      {
+        "definition": "CREATE UNIQUE INDEX pages_problempublication_problem_id_key ON public.pages_problempublication USING btree (problem_id)",
+        "name": "pages_problempublication_problem_id_key",
+        "schema": "public",
+        "table": "pages_problempublication"
+      },
+      {
+        "definition": "CREATE UNIQUE INDEX pages_problempublication_token_key ON public.pages_problempublication USING btree (token)",
+        "name": "pages_problempublication_token_key",
+        "schema": "public",
+        "table": "pages_problempublication"
+      }
+    ],
+    "tables": [
+      {
+        "kind": "r",
+        "schema": "public",
+        "table": "pages_communityattempt"
+      },
+      {
+        "kind": "r",
+        "schema": "public",
+        "table": "pages_communitycontentreport"
+      },
+      {
+        "kind": "r",
+        "schema": "public",
+        "table": "pages_communityprivateasset"
+      },
+      {
+        "kind": "r",
+        "schema": "public",
+        "table": "pages_communityproblemrevision"
+      },
+      {
+        "kind": "r",
+        "schema": "public",
+        "table": "pages_communitysolution"
+      },
+      {
+        "kind": "r",
+        "schema": "public",
+        "table": "pages_communitysolutionasset"
+      },
+      {
+        "kind": "r",
+        "schema": "public",
+        "table": "pages_communitysolutionrevision"
+      },
+      {
+        "kind": "r",
+        "schema": "public",
+        "table": "pages_moderationevent"
+      },
+      {
+        "kind": "r",
+        "schema": "public",
+        "table": "pages_problempublication"
+      }
+    ]
+  },
+  "remove": {
+    "columns": [
+      {
+        "collation": null,
+        "column": "mohs",
+        "default": null,
+        "nullable": false,
+        "position": 5,
+        "schema": "public",
+        "table": "pages_communityproblem",
+        "type": "smallint"
+      }
+    ],
+    "constraints": [],
+    "extensions": [],
+    "indexes": [],
+    "tables": []
+  }
+}

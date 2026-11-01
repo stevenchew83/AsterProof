@@ -1,5 +1,14 @@
 # Community problems
 
+The adopted direction is the
+[Community Proof Library](plans/2026-11-01-community-proof-library-requirements.md):
+moderated Private/Unlisted/Public publication, separate private attempts and public
+proofs, one preferred-explanation vote per member/problem, and independent human
+verification. [Phase 1 is now implemented locally](community-proof-library.md),
+with AI disabled and no production deployment. The original submission release
+described below remains historical context; use the Phase 1 guide for the new
+visibility, optional metadata, moderation, and publication behavior.
+
 Signed-in, approved users can browse `/community/problems/` and post at
 `/community/problems/new/`. These posts never create or modify
 `ContestProblemStatement` or `ProblemSolveRecord` rows, including on approval.

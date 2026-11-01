@@ -1,0 +1,15 @@
+<div class="proof-statement community-problem-text lh-lg"
+     data-community-math>{{ snapshot.statement_latex }}</div>
+<p class="proof-meta text-muted fs-sm mt-3 mb-0">
+  {{ snapshot.topic_label|default:snapshot.topic }} · Proposed MOHS {{ snapshot.mohs|default_if_none:'Unknown' }} · Statement version {{ revision.number }}
+</p>
+{% if snapshot.source_details %}
+  <p class="proof-meta text-muted fs-sm mt-2 mb-0">
+    {{ snapshot.source_details }}
+    {% if snapshot.source_url %}
+      · <a href="{{ snapshot.source_url }}"
+    rel="noopener noreferrer"
+    target="_blank">Original source <span class="visually-hidden">(opens in a new tab)</span></a>
+    {% endif %}
+  </p>
+{% endif %}

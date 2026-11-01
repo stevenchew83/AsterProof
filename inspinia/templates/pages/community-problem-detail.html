@@ -3,7 +3,9 @@
 {% block title %}
   {{ problem.title }}
 {% endblock title %}
-{% block extra_css %}{% include 'pages/partials/community-styles.html' %}{% endblock extra_css %}
+{% block extra_css %}
+  {% include 'pages/partials/community-styles.html' %}
+{% endblock extra_css %}
 {% block page_content %}
   <div class="container-fluid">
     {% include 'partials/page-title.html' with title=problem.title subtitle='Community problems' page_icon='ti-messages' %}
@@ -14,21 +16,35 @@
         <a href="{% url 'pages:community_problem_edit' problem.pk %}"
            class="btn btn-outline-primary btn-sm">Edit and resubmit</a>
       {% endif %}
+      {% if request.user.pk == problem.author_id %}
+        <a href="{% url 'pages:proof_sharing' problem_id=problem.pk %}"
+           class="btn btn-primary btn-sm"><i class="ti ti-share me-1" aria-hidden="true"></i>Share &amp; invite solutions</a>
+      {% endif %}
+      {% if is_admin %}
+        <a href="{% url 'pages:proof_moderation' problem_id=problem.pk %}"
+           class="btn btn-outline-primary btn-sm">Publication moderation</a>
+      {% endif %}
       {% include 'pages/partials/community-status.html' %}
     </div>
+    <p class="text-muted fs-sm">
+      {% if problem.legacy_member_visible %}
+        Member-visible legacy post. Public sharing requires separate approval and consent.
+      {% else %}
+        Your submission workspace. Public sharing requires separate approval and consent.
+      {% endif %}
+    </p>
     <div class="row g-3">
       <div class="col-xl-8">
         <article class="card">
           <div class="card-body">
             <p class="text-muted fs-sm">
-              {{ problem.get_topic_display }} · Proposed MOHS {{ problem.mohs }} · {{ problem.author.name|default:'Community member' }} · Version {{ problem.version }}
+              {{ problem.get_topic_display }} · Proposed MOHS {{ problem.mohs|default_if_none:'Unknown' }} · {{ problem.author.name|default:'Community member' }} · Version {{ problem.version }}
             </p>
             {% if problem.status != 'approved' %}
               <div class="alert alert-warning py-2">This version has not been approved by an admin.</div>
             {% endif %}
             <h2 class="header-title fs-16">Problem statement</h2>
-            <div class="community-problem-text lh-lg"
-                 data-community-math>{{ problem.statement_latex }}</div>
+            <div class="community-problem-text lh-lg" data-community-math>{{ problem.statement_latex }}</div>
           </div>
         </article>
         <section class="card mt-3">
@@ -40,9 +56,13 @@
                 {{ problem.topic_tags }}
               </dd>
               <dt class="col-sm-3">Core ideas</dt>
-              <dd class="col-sm-9 community-problem-text" data-community-math>{{ problem.core_ideas }}</dd>
+              <dd class="col-sm-9 community-problem-text" data-community-math>
+                {{ problem.core_ideas }}
+              </dd>
               <dt class="col-sm-3">Difficulty rationale</dt>
-              <dd class="col-sm-9 community-problem-text" data-community-math>{{ problem.rationale }}</dd>
+              <dd class="col-sm-9 community-problem-text" data-community-math>
+                {{ problem.rationale }}
+              </dd>
               <dt class="col-sm-3">Pitfalls</dt>
               <dd class="col-sm-9 text-break" data-community-math>
                 {{ problem.pitfalls|default:'Not supplied' }}
@@ -87,7 +107,7 @@
                 {{ problem.reviewed_by.name|default:'Admin' }} · {{ problem.reviewed_at|date:'Y-m-d H:i T' }}
               </p>
             {% endif %}
-            {% if problem.review_notes %}
+            {% if problem.review_notes and show_review_notes %}
               <p class="community-problem-text">{{ problem.review_notes }}</p>
             {% endif %}
             {% if can_review %}
@@ -109,78 +129,59 @@
             <p class="text-muted fs-xs mt-3 mb-0">An approved post remains separate from the main library.</p>
           </div>
         </section>
-        {% if is_admin %}
-          <section class="card mt-3">
-            <div class="card-body">
-              <h2 class="header-title fs-16">ChatGPT statement review</h2>
-              <p class="text-muted fs-sm">
-                Check wording, mathematical assumptions, metadata, difficulty, attribution, and possible library matches. Feedback is advisory.
+        <section class="card mt-3">
+          <div class="card-body">
+            <h2 class="header-title fs-16">Private work &amp; contributions</h2>
+            {% for attempt in own_attempts %}
+              <p class="mb-2">
+                <a href="{% url 'pages:proof_attempt_edit' attempt_id=attempt.pk %}">Private attempt · Statement version {{ attempt.statement_revision.number }}</a>
               </p>
-              {% if ai_review %}
-                <p>
-                  <span class="badge bg-info-subtle text-info">{{ ai_review.get_status_display }}</span> · Version {{ ai_review.version }}
+            {% endfor %}
+            {% for solution in own_solutions %}
+              <p class="mb-2">
+                <a href="{% url 'pages:proof_solution_owner' solution_id=solution.pk %}">Your proof · {{ solution.get_status_display }}</a>
+              </p>
+            {% endfor %}
+            <p class="text-muted fs-sm mb-0">
+              AI review is disabled. Private attempts and published proofs are separate records.
+            </p>
+            {% if is_admin and ai_review %}
+              <details class="mt-3">
+                <summary class="fw-semibold fs-sm">Historical AI report · Admin only</summary>
+                <p class="text-muted fs-xs mt-2">
+                  Read-only history for version {{ ai_review.version }}. No new AI review is requested.
                 </p>
-                {% if ai_review.status == 'queued' or ai_review.status == 'running' %}
-                  <p class="fs-sm">The review worker processes this request. Refresh to check its result.</p>
+                {% if ai_review.status == 'completed' %}
+                  <p class="community-problem-text mt-2">{{ ai_review.feedback.summary }}</p>
+                  {% if ai_review.feedback.issues %}
+                    <h3 class="fs-sm">Statement issues</h3>
+                    <ul>
+                      {% for issue in ai_review.feedback.issues %}<li>{{ issue }}</li>{% endfor %}
+                    </ul>
+                  {% endif %}
+                  {% if ai_review.feedback.metadata_suggestions %}
+                    <h3 class="fs-sm">Metadata suggestions</h3>
+                    <ul>
+                      {% for item in ai_review.feedback.metadata_suggestions %}<li>{{ item }}</li>{% endfor %}
+                    </ul>
+                  {% endif %}
+                  {% if ai_review.feedback.similarity_assessment %}
+                    <h3 class="fs-sm">Similarity assessment</h3>
+                    <p class="community-problem-text">{{ ai_review.feedback.similarity_assessment }}</p>
+                  {% endif %}
+                  {% if ai_review.feedback.limitations %}
+                    <h3 class="fs-sm">Limitations</h3>
+                    <ul>
+                      {% for item in ai_review.feedback.limitations %}<li>{{ item }}</li>{% endfor %}
+                    </ul>
+                  {% endif %}
+                {% else %}
+                  <p class="text-muted fs-sm mt-2 mb-0">{{ ai_review.get_status_display }}</p>
                 {% endif %}
-                {% if ai_review.error_code %}
-                  <div class="alert alert-warning fs-sm">
-                    Review could not be completed ({{ ai_review.error_code }}). This request will not be automatically retried.
-                  </div>
-                {% endif %}
-                {% if ai_review.feedback %}
-                  <p class="fw-semibold text-break">{{ ai_review.feedback.summary }}</p>
-                  <h3 class="fs-sm">Statement issues</h3>
-                  <ul>
-                    {% for issue in ai_review.feedback.issues %}
-                      <li class="text-break">{{ issue }}</li>
-                    {% empty %}
-                      <li>No issues reported; this is not a correctness guarantee.</li>
-                    {% endfor %}
-                  </ul>
-                  <h3 class="fs-sm">Metadata suggestions</h3>
-                  <ul>
-                    {% for suggestion in ai_review.feedback.metadata_suggestions %}
-                      <li class="text-break">{{ suggestion }}</li>
-                    {% empty %}
-                      <li>No changes suggested.</li>
-                    {% endfor %}
-                  </ul>
-                  <h3 class="fs-sm">Similarity assessment</h3>
-                  <p class="text-break">{{ ai_review.feedback.similarity_assessment }}</p>
-                  <h3 class="fs-sm">Limitations</h3>
-                  <ul>
-                    {% for limitation in ai_review.feedback.limitations %}<li class="text-break">{{ limitation }}</li>{% endfor %}
-                  </ul>
-                {% endif %}
-              {% elif can_review and ai_ready %}
-                <form method="post"
-                      action="{% url 'pages:community_problem_ai_review' problem.pk %}">
-                  {% csrf_token %}
-                  <input type="hidden" name="version" value="{{ problem.version }}" />
-                  <div class="form-check mb-3">
-                    <input class="form-check-input"
-                           type="checkbox"
-                           name="acknowledged"
-                           value="1"
-                           id="ai-acknowledged"
-                           required />
-                    <label class="form-check-label fs-sm" for="ai-acknowledged">
-                      Send this saved statement, details, private solution outline, and library candidates to OpenAI for a paid review.
-                    </label>
-                  </div>
-                  <button class="btn btn-outline-primary" type="submit">
-                    <i class="ti ti-sparkles me-1"></i>Request ChatGPT review
-                  </button>
-                </form>
-              {% else %}
-                <p class="text-muted fs-sm mb-0">
-                  AI review needs an enabled statement-review policy with a model, verified pricing, and budgets. Human review is available independently.
-                </p>
-              {% endif %}
-            </div>
-          </section>
-        {% endif %}
+              </details>
+            {% endif %}
+          </div>
+        </section>
       </aside>
     </div>
   </div>

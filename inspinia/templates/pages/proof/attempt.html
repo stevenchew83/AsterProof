@@ -1,0 +1,194 @@
+{% extends 'layouts/vertical.html' %}
+
+{% load static %}
+
+{% block title %}
+  Your private attempt
+{% endblock title %}
+{% block extra_css %}
+  {% include 'pages/partials/community-styles.html' %}
+  <style>
+    .proof-attempt-workspace {
+      max-width: 1500px
+    }
+
+    .proof-attempt-workspace .solution-document-settings {
+      padding: 1rem
+    }
+
+    .proof-attempt-workspace .solution-write-pane,
+    .proof-attempt-workspace .solution-preview-pane {
+      min-width: 0
+    }
+
+    .proof-attempt-workspace .solution-source-editor {
+      min-height: 420px
+    }
+
+    .proof-attempt-workspace .solution-preview-paper {
+      min-height: 420px
+    }
+
+    @media(max-width:575.98px) {
+      .proof-attempt-workspace .form-control {
+        font-size: 16px
+      }
+
+      .proof-attempt-workspace .solution-source-editor {
+        min-height: 330px
+      }
+    }
+  </style>
+{% endblock extra_css %}
+{% block page_content %}
+  <div class="container-fluid solution-workspace-page proof-attempt-workspace">
+    <header class="page-title-head app-page-header">
+      {% include 'partials/page-header-intro.html' with title='Your private attempt' subtitle='Community Proof Library' page_icon='ti-lock' only %}
+      <div class="app-page-header-actions">
+        <span id="solution-save-status" class="text-muted fs-sm" role="status">
+          {% if attempt %}
+            Saved
+          {% else %}
+            Not saved yet
+          {% endif %}
+        </span>
+        <button type="submit"
+                form="community-attempt-form"
+                id="solution-save"
+                name="action"
+                value="save"
+                class="btn btn-primary">Save private draft</button>
+      </div>
+    </header>
+    {% include 'pages/proof/partials/messages.html' %}
+    <div class="alert alert-info py-2">
+      Only you can read this attempt. Publishing a community proof is a separate action; saving does not mark a library problem solved.
+    </div>
+    <details class="card mb-3">
+      <summary class="card-body fw-semibold">Problem statement · Version {{ revision.number }}</summary>
+      <div class="card-body pt-0">
+        <h2 class="fs-16">{{ snapshot.title }}</h2>
+        {% include 'pages/proof/partials/statement.html' %}
+      </div>
+    </details>
+    <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-3">
+      <div class="btn-group"
+           role="group"
+           aria-label="Editor layout"
+           data-document-views
+           hidden>
+        <button type="button"
+                class="btn btn-outline-secondary btn-sm"
+                data-editor-view="write">Write</button>
+        <button type="button"
+                class="btn btn-outline-secondary btn-sm"
+                data-editor-view="preview">Preview</button>
+        <button type="button"
+                class="btn btn-outline-secondary btn-sm d-none d-xl-inline-block"
+                data-editor-view="split">Side by side</button>
+      </div>
+      {% if attempt %}
+        <a href="{% url 'pages:proof_solution_publish' attempt_id=attempt.pk %}"
+           class="btn btn-outline-primary btn-sm">Publish a separate solution</a>
+      {% endif %}
+    </div>
+    <form method="post"
+          id="community-attempt-form"
+          novalidate
+          data-solution-document-editor
+          data-owner="{{ request.user.pk }}"
+          data-problem="community-{{ problem.pk }}-{{ attempt.pk|default:'new' }}"
+          data-bound="{{ form.is_bound|yesno:'true,false' }}"
+          data-saved="{{ attempt|yesno:'true,false' }}"
+          {% if upload_url %}data-upload-url="{{ upload_url }}"{% endif %}>
+      {% csrf_token %}{{ form.version }}{{ form.statement_revision }}
+      {% if form.non_field_errors %}
+        <div class="alert alert-danger" role="alert">{{ form.non_field_errors }}</div>
+      {% endif %}
+      <div id="solution-upload-feedback"
+           class="alert alert-danger"
+           role="alert"
+           data-upload-feedback
+           hidden></div>
+      <div class="solution-editor-grid" data-editor-workspace data-view="write">
+        <section class="solution-write-pane" aria-labelledby="private-writing-heading">
+          <div class="solution-pane-label">
+            <span id="private-writing-heading">Your argument</span><span data-writing-stats></span>
+          </div>
+          <div class="solution-document-settings">
+            <label class="form-label" for="{{ form.title.id_for_label }}">
+              Draft title <span class="text-muted fs-sm">Optional</span>
+            </label>
+            {{ form.title }}{{ form.title.errors }}
+          </div>
+          <div class="solution-document-source-surface"
+               id="solution-writing-area"
+               tabindex="-1">{% include 'solutions/partials/solution-source-controls.html' %}</div>
+          <p class="form-text p-3">
+            Use text and LaTeX.
+            {% if upload_url %}
+              Paste an image to add it to this private draft.
+            {% else %}
+              Save your draft first to enable private image uploads.
+            {% endif %}
+            AI review is disabled.
+          </p>
+        </section>
+        <section class="solution-preview-pane"
+                 aria-labelledby="private-preview-heading">
+          <div class="solution-preview-shell">
+            <div class="solution-pane-label">
+              <span id="private-preview-heading">Live preview</span><span data-preview-status role="status">Updates as you write</span>
+            </div>
+            <div class="solution-preview-paper">
+              <p class="se-eyebrow">Private attempt</p>
+              <h2 class="solution-preview-title" data-preview-title>My solution</h2>
+              <div data-document-preview></div>
+            </div>
+          </div>
+        </section>
+      </div>
+      <noscript>
+        <p class="alert alert-info mt-3">
+          You can write and save without JavaScript. Enable JavaScript for autocomplete and a formatted live preview.
+        </p>
+      </noscript>
+      <div class="d-flex flex-wrap gap-2 mt-3 mb-3">
+        <button type="submit" name="action" value="save" class="btn btn-primary">Save private draft</button>
+        <button type="submit"
+                name="action"
+                value="preview"
+                class="btn btn-outline-secondary">Save and preview</button>
+      </div>
+    </form>
+    {% if attempt.body_source %}
+      <section class="card mt-3">
+        <div class="card-body">
+          <h2 class="header-title fs-16">Last saved draft</h2>
+          <div class="community-problem-text tex2jax_ignore"
+               data-proof-source
+               data-proof-media-prefix="{{ attempt_media_prefix }}">{{ attempt.body_source }}</div>
+        </div>
+      </section>
+    {% endif %}
+  </div>
+{% endblock page_content %}
+{% block extra_javascript %}
+  <script>
+    window.ASTERPROOF_SOLUTION_MEDIA = {
+      mediaUrlPrefix: '{{ attempt_media_prefix|escapejs }}'
+    };
+  </script>
+  {% include 'pages/partials/community-math.html' %}
+  <script defer src="{% static 'js/solution-document-editor.bundle.js' %}"></script>
+  <script defer src="{% static 'js/solution-document-preview.bundle.js' %}"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      document.querySelectorAll('[data-proof-source]').forEach(element => {
+        if (window.AsterProofSolutionDocument) window.AsterProofSolutionDocument.renderInto(element, element.textContent, {
+          mediaUrlPrefix: element.dataset.proofMediaPrefix || ''
+        });
+      });
+    });
+  </script>
+{% endblock extra_javascript %}
