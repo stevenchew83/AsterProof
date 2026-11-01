@@ -11,6 +11,7 @@ import pytest
 
 from scripts.deployment import catalogue_schema
 from scripts.deployment import community_schema as schema
+from scripts.deployment import maintenance_schema
 from scripts.deployment import validate_dispatch
 from scripts.deployment.migration_audit import AuditConfig
 from scripts.deployment.migration_audit import MigrationAuditError
@@ -51,7 +52,7 @@ def disclosure():
 
 def test_exact_disclosure_uses_existing_protected_validation():
     value = disclosure()
-    assert catalogue_schema.validate_disclosure(value, target_sha=NEW_SHA) == value
+    assert maintenance_schema.validate_disclosure(value, target_sha=NEW_SHA) == value
     validate_dispatch.validate_schema_input(
         json.dumps(value),
         release_sha=NEW_SHA,
@@ -84,7 +85,7 @@ def test_all_migration_and_index_sources_and_packaged_proof_are_bound(tmp_path):
     schema.validate_candidate(tmp_path)
     proof = tmp_path / schema.EVIDENCE_PATH
     proof.write_bytes(schema.evidence_bytes(release_sha=NEW_SHA, active_sha=OLD_SHA))
-    catalogue_schema.validate_build_evidence(tmp_path, disclosure())
+    maintenance_schema.validate_build_evidence(tmp_path, disclosure())
     target = tmp_path / next(iter(schema.INITIALIZATION_HASHES))
     target.write_text("altered initialization")
     with pytest.raises(ValueError, match="frozen hash"):

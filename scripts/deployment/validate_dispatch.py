@@ -16,6 +16,7 @@ from typing import Any
 
 from scripts.deployment import catalogue_schema
 from scripts.deployment import community_schema
+from scripts.deployment import maintenance_schema
 from scripts.deployment import statement_authoring_schema
 from scripts.deployment.additive_schema import validate_disclosure
 from scripts.deployment.concept_schema import ConceptSchemaError
@@ -83,7 +84,7 @@ def validate_schema_input(value: str, *, release_sha: str, migration_class: str,
         if initial_adoption or len(value) > 8192:
             raise DispatchValidationError("Catalogue maintenance cannot use adoption or an oversized disclosure")
         try:
-            catalogue_schema.validate_disclosure(json.loads(value), target_sha=release_sha)
+            maintenance_schema.validate_disclosure(json.loads(value), target_sha=release_sha)
         except (ValueError, TypeError) as exc:
             raise DispatchValidationError("Catalogue maintenance requires its exact frozen disclosure") from exc
         return

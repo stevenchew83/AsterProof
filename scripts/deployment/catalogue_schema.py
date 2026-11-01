@@ -168,11 +168,7 @@ def rehearsal_digest(*, release_sha: str, active_sha: str) -> str:
     ).hexdigest()
 
 
-def validate_disclosure(value: object, *, target_sha: str) -> dict:  # noqa: C901 - literal frozen allowances only
-    if isinstance(value, dict) and value.get("kind") == "community-problems-maintenance-v1":
-        from scripts.deployment import community_schema
-
-        return community_schema.validate_disclosure(value, target_sha=target_sha)
+def validate_disclosure(value: object, *, target_sha: str) -> dict:
     if isinstance(value, dict) and value.get("kind") == "statement-authoring-maintenance-v1":
         from scripts.deployment import statement_authoring_schema
 
@@ -222,11 +218,6 @@ def validate_disclosure(value: object, *, target_sha: str) -> dict:  # noqa: C90
 
 
 def validate_build_evidence(release: Path, disclosure: dict) -> None:
-    if disclosure.get("kind") == "community-problems-maintenance-v1":
-        from scripts.deployment import community_schema
-
-        community_schema.validate_build_evidence(release, disclosure)
-        return
     if disclosure.get("kind") == "statement-authoring-maintenance-v1":
         from scripts.deployment import statement_authoring_schema
 

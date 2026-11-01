@@ -381,7 +381,7 @@ jobs:
           import os
           if os_disclosure := os.environ.get('SCHEMA_DISCLOSURE'):
               if value['classification'] == 'data-or-non-compatible':
-                  from scripts.deployment.catalogue_schema import validate_disclosure
+                  from scripts.deployment.maintenance_schema import validate_disclosure
                   if json.loads(os_disclosure).get('kind') == 'statement-authoring-maintenance-v1':
                       from scripts.deployment.statement_authoring_schema import MIGRATION
                       expected = [{'migration': MIGRATION, 'classification': 'data-or-non-compatible'}]

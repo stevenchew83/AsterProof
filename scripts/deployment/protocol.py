@@ -8,7 +8,7 @@ from dataclasses import dataclass
 from typing import Any
 from typing import BinaryIO
 
-from scripts.deployment import catalogue_schema
+from scripts.deployment import maintenance_schema
 from scripts.deployment.additive_schema import validate_disclosure
 from scripts.deployment.concept_schema import ConceptSchemaError
 
@@ -139,7 +139,7 @@ class OperationEnvelope:
             if self.operation != "deploy" or self.schema_disclosure is None:
                 raise ProtocolError("Catalogue maintenance requires its exact frozen disclosure")
             try:
-                catalogue_schema.validate_disclosure(self.schema_disclosure, target_sha=self.release_sha)
+                maintenance_schema.validate_disclosure(self.schema_disclosure, target_sha=self.release_sha)
             except ValueError as exc:
                 raise ProtocolError(str(exc)) from exc
             return

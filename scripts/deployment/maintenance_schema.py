@@ -1,0 +1,17 @@
+"""Literal dispatch for independently frozen maintenance allowances."""
+
+from scripts.deployment import catalogue_schema
+from scripts.deployment import community_schema
+
+
+def validate_disclosure(value, *, target_sha):
+    if isinstance(value, dict) and value.get("kind") == community_schema.KIND:
+        return community_schema.validate_disclosure(value, target_sha=target_sha)
+    return catalogue_schema.validate_disclosure(value, target_sha=target_sha)
+
+
+def validate_build_evidence(release, disclosure):
+    if disclosure.get("kind") == community_schema.KIND:
+        community_schema.validate_build_evidence(release, disclosure)
+    else:
+        catalogue_schema.validate_build_evidence(release, disclosure)

@@ -16,6 +16,7 @@ from typing import Any
 from scripts.deployment import catalogue_schema
 from scripts.deployment import community_schema
 from scripts.deployment import curated_collections_schema
+from scripts.deployment import maintenance_schema
 from scripts.deployment import newsletter_automation_schema
 from scripts.deployment import newsletter_schema
 from scripts.deployment import onboarding_schema
@@ -732,7 +733,7 @@ def _validate_request(request: dict[str, Any], run_id: str) -> None:
             raise OperationError("request_invalid")
         try:
             validator = (
-                catalogue_schema.validate_disclosure
+                maintenance_schema.validate_disclosure
                 if request["migration_class"] == "data-or-non-compatible"
                 else validate_disclosure
             )
@@ -847,7 +848,7 @@ def _deploy(
             ):
                 raise OperationError("catalogue_starting_state_mismatch")
             try:
-                catalogue_schema.validate_build_evidence(release, disclosure)
+                maintenance_schema.validate_build_evidence(release, disclosure)
                 if disclosure["kind"] == community_schema.KIND:
                     backend.check_community_schema(contract, release)
                 elif disclosure["kind"] == statement_authoring_schema.KIND:
