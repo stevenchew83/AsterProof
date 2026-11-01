@@ -141,7 +141,11 @@ jobs:
           DATABASE_URL: postgres://postgres@127.0.0.1:5432/asterproof_schema_rehearsal
         run: |
           rehearsal_args=()
-          if ! git diff --quiet "$BASE_SHA" HEAD -- scripts/deployment/solution_evaluation_schema.py scripts/deployment/solution_evaluation_schema_rehearsal.py scripts/deployment/tests/fixtures/solution-evaluation-schema-delta.json inspinia/solutions/migrations/0010_offline_evaluation_contract.py; then
+          if ! git diff --quiet "$BASE_SHA" HEAD -- scripts/deployment/community_proof_schema.py scripts/deployment/community_proof_schema_rehearsal.py scripts/deployment/tests/fixtures/community-proof-schema-delta.json inspinia/pages/migrations/0045_community_proof_library.py; then
+            rehearsal=scripts.deployment.community_proof_schema_rehearsal
+            active_sha="$BASE_SHA"
+            rehearsal_args=(--discover-delta --delta-output "$RUNNER_TEMP/community-proof-schema-delta.json")
+          elif ! git diff --quiet "$BASE_SHA" HEAD -- scripts/deployment/solution_evaluation_schema.py scripts/deployment/solution_evaluation_schema_rehearsal.py scripts/deployment/tests/fixtures/solution-evaluation-schema-delta.json inspinia/solutions/migrations/0010_offline_evaluation_contract.py; then
             rehearsal=scripts.deployment.solution_evaluation_schema_rehearsal
             active_sha="$BASE_SHA"
           elif ! git diff --quiet "$BASE_SHA" HEAD -- scripts/deployment/evaluation_schema.py inspinia/solutions/migrations/0010_offline_evaluation_contract.py; then
@@ -223,6 +227,7 @@ jobs:
           path: |
             ${{ runner.temp }}/website-schema-evidence.json
             ${{ runner.temp }}/evaluation-schema-delta.json
+            ${{ runner.temp }}/community-proof-schema-delta.json
           if-no-files-found: error
           retention-days: 7
 

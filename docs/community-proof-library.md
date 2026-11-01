@@ -110,8 +110,8 @@ definitions. The legacy audience column is added as true for existing rows, then
 defaults to false for new rows; it creates no publication/consent rows.
 
 The migration is classified data-or-non-compatible and is not admitted by the old
-0042/0043 deployment allowance. No deployment authority has been expanded. A future
-release needs its own reviewed migration/compatibility and recovery procedure;
+0042/0043 deployment allowance. The [separate release procedure](deployment/community-proof-library-release.md)
+defines its frozen migration, compatibility, preservation, and recovery checks;
 older code does not enforce the new private-post boundary and is not a safe ordinary
 rollback target. Historical allowance tests retain the original hash-bound model
 fixture and explicitly reject the current model under that old allowance.

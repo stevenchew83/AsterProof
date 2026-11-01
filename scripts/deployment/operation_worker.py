@@ -14,6 +14,7 @@ from pathlib import Path
 from typing import Any
 
 from scripts.deployment import catalogue_schema
+from scripts.deployment import community_proof_schema
 from scripts.deployment import community_schema
 from scripts.deployment import curated_collections_schema
 from scripts.deployment import learning_activity_schema
@@ -304,6 +305,20 @@ class WorkerBackend:
             contract, release, ["shell", "--command", community_schema.INDEX_CHECK], runtime_seconds=60,
         )
 
+    def check_community_proof_schema(self, contract: TargetContract, release: Path) -> None:
+        community_proof_schema.validate_candidate(release)
+        self._run_candidate(contract, release, ["shell", "--command", community_proof_schema.PLAN_CHECK])
+
+    def migrate_community_proof_schema(self, contract: TargetContract, release: Path) -> None:
+        self._run_candidate(
+            contract, release, ["shell", "--command", community_proof_schema.MIGRATION_APPLY], migration=True,
+        )
+
+    def check_community_proof_ai_disabled(self, contract: TargetContract, release: Path) -> None:
+        self._run_candidate(
+            contract, release, ["shell", "--command", community_proof_schema.AI_OFF_CHECK], runtime_seconds=60,
+        )
+
     def check_statement_authoring_schema(self, contract: TargetContract, release: Path) -> None:
         statement_authoring_schema.validate_candidate(release)
         self._run_candidate(contract, release, ["shell", "--command", statement_authoring_schema.PLAN_CHECK])
@@ -495,6 +510,14 @@ class WorkerBackend:
             verify_preserved_records(contract, run_id, active_sha)
         except Exception as exc:
             raise OperationError("catalogue_original_records_changed") from exc
+
+    def verify_community_proof_records(self, contract: TargetContract, run_id: str, active_sha: str) -> None:
+        from scripts.deployment.community_proof_preservation import verify_preserved_records
+
+        try:
+            verify_preserved_records(contract, run_id, active_sha)
+        except Exception as exc:
+            raise OperationError("community_original_records_changed") from exc
 
     def _unit_properties(self, unit: str, names: str) -> dict[str, str]:
         response = subprocess.run(
@@ -861,7 +884,9 @@ def _deploy(
         if request["migration_class"] == "data-or-non-compatible":
             disclosure = request["schema_disclosure"]
             maintenance_audit = (
-                backend.community_audit if disclosure["kind"] == community_schema.KIND else backend.catalogue_audit
+                backend.community_audit
+                if disclosure["kind"] in {community_schema.KIND, community_proof_schema.KIND}
+                else backend.catalogue_audit
             )
             if baseline_sha is None or disclosure["active_sha"] != baseline_sha or not catalogue_schema.audit_matches(
                 disclosure, maintenance_audit(contract), stage="starting",
@@ -871,6 +896,8 @@ def _deploy(
                 maintenance_schema.validate_build_evidence(release, disclosure)
                 if disclosure["kind"] == community_schema.KIND:
                     backend.check_community_schema(contract, release)
+                elif disclosure["kind"] == community_proof_schema.KIND:
+                    backend.check_community_proof_schema(contract, release)
                 elif disclosure["kind"] == statement_authoring_schema.KIND:
                     backend.check_statement_authoring_schema(contract, release)
                 else:
@@ -902,6 +929,8 @@ def _deploy(
             transition(state_path, "migrating")
             if disclosure["kind"] == community_schema.KIND:
                 backend.migrate_community_schema(contract, release)
+            elif disclosure["kind"] == community_proof_schema.KIND:
+                backend.migrate_community_proof_schema(contract, release)
             elif disclosure["kind"] == statement_authoring_schema.KIND:
                 backend.migrate_statement_authoring_schema(contract, release)
             else:
@@ -910,9 +939,14 @@ def _deploy(
                 raise OperationError("catalogue_ending_state_mismatch")
             if disclosure["kind"] == community_schema.KIND:
                 backend.initialize_community_index(contract, release)
+            elif disclosure["kind"] == community_proof_schema.KIND:
+                backend.check_community_proof_ai_disabled(contract, release)
             else:
                 backend.refresh_catalogue(contract, release)
-            backend.verify_catalogue_records(contract, request["run_id"], baseline_sha)
+            if disclosure["kind"] == community_proof_schema.KIND:
+                backend.verify_community_proof_records(contract, request["run_id"], baseline_sha)
+            else:
+                backend.verify_catalogue_records(contract, request["run_id"], baseline_sha)
             if not catalogue_schema.audit_matches(disclosure, maintenance_audit(contract), stage="expected"):
                 raise OperationError("catalogue_ending_behaviour_drift")
         if request["migration_class"] == "backward-compatible-schema":
