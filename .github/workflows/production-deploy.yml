@@ -184,6 +184,11 @@ jobs:
               --active-source "$RUNNER_TEMP/active-catalogue-smoke" \
               --active-sha "$active_sha" --release-sha "$RELEASE_SHA" \
               --output "$RUNNER_TEMP/schema-evidence.json"
+          elif [ "$(python -c 'import json,os; print(json.loads(os.environ["SCHEMA_DISCLOSURE"]).get("kind", ""))')" = 'community-proof-library-maintenance-v1' ]; then
+            .release-runtime/bin/python -m scripts.deployment.community_proof_schema_rehearsal \
+              --active-source "$RUNNER_TEMP/active-catalogue-smoke" \
+              --active-sha "$active_sha" --release-sha "$RELEASE_SHA" \
+              --output "$RUNNER_TEMP/schema-evidence.json"
           elif [ "$(python -c 'import json,os; print(json.loads(os.environ["SCHEMA_DISCLOSURE"]).get("kind", ""))')" = 'community-problems-maintenance-v1' ]; then
             .release-runtime/bin/python -m scripts.deployment.community_schema_rehearsal \
               --active-source "$RUNNER_TEMP/active-catalogue-smoke" \
@@ -385,6 +390,12 @@ jobs:
                   if json.loads(os_disclosure).get('kind') == 'statement-authoring-maintenance-v1':
                       from scripts.deployment.statement_authoring_schema import MIGRATION
                       expected = [{'migration': MIGRATION, 'classification': 'data-or-non-compatible'}]
+                  elif json.loads(os_disclosure).get('kind') == 'community-proof-library-maintenance-v1':
+                      from scripts.deployment.community_proof_schema import MIGRATIONS, MIGRATION_CLASSES
+                      expected = [
+                          {'migration': 'pages.' + name, 'classification': classification}
+                          for name, classification in zip(MIGRATIONS, MIGRATION_CLASSES, strict=True)
+                      ]
                   elif json.loads(os_disclosure).get('kind') == 'community-problems-maintenance-v1':
                       from scripts.deployment.community_schema import MIGRATIONS, MIGRATION_CLASSES
                       expected = [

@@ -1,0 +1,128 @@
+{% extends 'layouts/vertical.html' %}
+
+{% block title %}
+  Share & invite solutions
+{% endblock title %}
+{% block extra_css %}
+  {% include 'pages/partials/community-styles.html' %}
+{% endblock extra_css %}
+{% block page_content %}
+  <div class="container-fluid">
+    {% url 'pages:community_problem_detail' problem_id=problem.pk as detail_url %}
+    <header class="page-title-head app-page-header">
+      {% include 'partials/page-header-intro.html' with title='Share & invite solutions' subtitle='Community Proof Library' back_url=detail_url back_label='Your problem' page_icon='ti-share' only %}
+    </header>
+    {% include 'pages/proof/partials/messages.html' %}
+    <div class="row g-3">
+      <div class="col-lg-8">
+        <section class="card">
+          <div class="card-body">
+            <p class="text-muted fs-xs text-uppercase fw-semibold">
+              Public preview · Statement version {{ revision.number|default:problem.version }}
+            </p>
+            <h2 class="fs-20">{{ snapshot.title }}</h2>
+            <p class="text-muted fs-sm">Public credit: {{ form.public_credit.value|default:'Community contributor' }}</p>
+            {% include 'pages/proof/partials/statement.html' %}
+            {% if snapshot.public_hint %}
+              <details class="mt-3">
+                <summary>Deliberately published hint</summary>
+                <div class="community-problem-text mt-2" data-community-math>{{ snapshot.public_hint }}</div>
+              </details>
+            {% endif %}
+            <p class="text-muted fs-sm mt-3 mb-0">
+              Private attempts, solution outlines, review notes, and AI assessments are excluded.
+            </p>
+          </div>
+        </section>
+        <section class="card mt-3">
+          <div class="card-body">
+            <h2 class="header-title fs-16 mb-3">Choose your audience</h2>
+            {% if not can_publish %}
+              <div class="alert alert-info" role="status">
+                Sharing becomes available after this statement version passes publication review. Your problem remains private until you explicitly share it.
+              </div>
+            {% endif %}
+            <form method="post">
+              {% csrf_token %}
+              {% include 'pages/proof/partials/fields.html' %}
+              {% if review_token %}<input type="hidden" name="review_token" value="{{ review_token }}" />{% endif %}
+              <div class="d-flex flex-wrap gap-2">
+                <button type="submit"
+                        name="action"
+                        value="preview"
+                        class="btn btn-outline-primary"
+                        formnovalidate>Preview sharing settings</button>
+                {% if review_token and can_publish %}
+                  <button type="submit" name="action" value="publish" class="btn btn-primary">Confirm sharing settings</button>
+                {% endif %}
+              </div>
+            </form>
+          </div>
+        </section>
+      </div>
+      <aside class="col-lg-4">
+        <section class="card">
+          <div class="card-body">
+            <h2 class="header-title fs-16 mb-3">Sharing controls</h2>
+            <dl class="fs-sm">
+              <dt>Private</dt>
+              <dd>
+                Only you and authorized publication reviewers.
+              </dd>
+              <dt>Unlisted</dt>
+              <dd>
+                Anyone with the link. Excluded from public discovery.
+              </dd>
+              <dt>Public</dt>
+              <dd>
+                Anyone can read and discover the problem.
+              </dd>
+            </dl>
+            {% if publication.is_held %}
+              <div class="alert alert-warning mb-0">External sharing is on hold while an admin reviews a concern.</div>
+            {% endif %}
+            {% if public_url %}
+              <label class="form-label" for="proof-public-link">Current public link</label>
+              <input type="url"
+                     id="proof-public-link"
+                     class="form-control mb-2"
+                     value="{{ public_url }}"
+                     readonly />
+              <div class="d-flex flex-wrap gap-2">
+                <button type="button"
+                        class="btn btn-sm btn-outline-primary"
+                        data-proof-copy="{{ public_url }}">Copy link</button>
+                <a class="btn btn-sm btn-outline-secondary"
+                   href="{{ public_url }}"
+                   target="_blank"
+                   rel="noopener noreferrer">Open public page</a>
+                {% if whatsapp_url %}
+                  <a class="btn btn-sm btn-outline-secondary"
+                     href="{{ whatsapp_url }}"
+                     target="_blank"
+                     rel="noopener noreferrer">WhatsApp</a>
+                {% endif %}
+              </div>
+              <p class="form-text" role="status" data-copy-feedback></p>
+              <form method="post" class="mt-3">
+                {% csrf_token %}
+                <input type="hidden" name="version" value="{{ publication.version }}" />
+                <button type="submit"
+                        name="action"
+                        value="stop"
+                        class="btn btn-outline-danger w-100">Stop sharing</button>
+              </form>
+            {% else %}
+              <p class="text-muted fs-sm mb-0">
+                No active public link. Saving or approving a problem does not publish it automatically.
+              </p>
+            {% endif %}
+          </div>
+        </section>
+      </aside>
+    </div>
+  </div>
+{% endblock page_content %}
+{% block extra_javascript %}
+  {% include 'pages/proof/partials/render-scripts.html' %}
+{% endblock extra_javascript %}

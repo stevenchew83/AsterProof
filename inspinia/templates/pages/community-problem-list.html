@@ -7,7 +7,11 @@
   <div class="container-fluid app-table-page">
     {% include 'partials/page-title.html' with title='Community problems' subtitle='Problems & resources' page_icon='ti-messages' %}
     <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-3">
-      <p class="text-muted mb-0">Problems shared by users. Admin review does not add a post to the main library.</p>
+      <p class="text-muted mb-0">
+        Your contributions and community posts you can access. Public sharing is a separate choice.
+      </p>
+      <a class="btn btn-outline-primary"
+         href="{% url 'pages:proof_public_list' %}">Explore public proofs</a>
       <a class="btn btn-primary"
          href="{% url 'pages:community_problem_create' %}"><i class="ti ti-plus me-1"></i>Post a problem</a>
     </div>
@@ -20,7 +24,9 @@
          {% if tab == 'all' %}aria-current="page"{% endif %}>All problems <span class="badge bg-secondary-subtle text-secondary ms-1">{{ all_count }}</span></a>
     </nav>
     {% if tab == 'all' %}
-      <p class="text-muted fs-sm">Every post is included here: pending, admin reviewed, changes requested, and declined.</p>
+      <p class="text-muted fs-sm">
+        All review statuses are included for posts you can access: pending, admin reviewed, changes requested, and declined.
+      </p>
     {% endif %}
     <div class="card">
       <div class="app-table-region table-responsive"
@@ -46,7 +52,7 @@
                      href="{% url 'pages:community_problem_detail' problem.pk %}">{{ problem.title }}</a><span class="app-table-meta text-muted">{{ problem.topic_tags|truncatechars:100 }}</span>
                 </td>
                 <td>{{ problem.get_topic_display }}</td>
-                <td>{{ problem.mohs }}</td>
+                <td>{{ problem.mohs|default_if_none:'Unknown' }}</td>
                 <td>{% include 'pages/partials/community-status.html' %}</td>
                 <td>{{ problem.author.name|default:'Community member' }}</td>
                 <td>{{ problem.created_at|date:'Y-m-d' }}</td>

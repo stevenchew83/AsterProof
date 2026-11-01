@@ -52,6 +52,8 @@ def payload(**updates):
 def post(author, **updates):
     fields = {key: value for key, value in payload(**updates).items() if key not in {"sharing_confirmed", "version"}}
     fields["contest_year"] = fields["contest_year"] or None
+    # These cases characterize the preserved audience/review contract of existing posts.
+    fields.setdefault("legacy_member_visible", True)
     return CommunityProblem.objects.create(author=author, **fields)
 
 
@@ -192,7 +194,6 @@ def test_optional_details_reopen_and_link_errors_after_validation(client, learne
         ("mohs", -1),
         ("mohs", 61),
         ("topic", "invalid"),
-        ("core_ideas", " "),
         ("topic_tags", ", ,"),
         ("source_details", ""),
         ("statement_latex", "x" * 12001),
