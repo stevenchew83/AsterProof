@@ -334,7 +334,8 @@ def test_public_problem_paginates_actual_proof_bodies_not_just_solution_cards(cl
     problem, publication = _published_problem(client, owner, reviewer)
     bodies = {}
     for number in range(11):
-        solver = UserFactory()
+        # The shared factory reuses matching emails; this fixture needs distinct solvers.
+        solver = UserFactory(email=f"pagination-solver-{number}@example.invalid")
         marker = f"BODY-PAGINATION-MARKER-{number:02d}"
         attempt = _save_attempt(client, solver, publication, body=PROOF_BODY + "\n" + marker)
         solution = _submit_proof(client, solver, attempt, title=f"Method {number}")
