@@ -358,7 +358,8 @@ def test_deleting_legacy_review_preserves_recorded_financial_exposure(coach):
         acknowledged_at=timezone.now(),
     )
     legacy.delete()
-    attempt = ReviewExecutionAttempt.objects.get(status="legacy_reconciliation_required")
+    attempt = ReviewExecutionAttempt.objects.get(status="legacy_unreconciled")
+    attempt._meta.get_field("status").run_validators(attempt.status)  # noqa: SLF001 - validate PostgreSQL's field bound
     assert attempt.bundle_id is None
     assert attempt.profile.payload["legacy_incomplete"]
     assert attempt.spend_events.get().amount_micros == 500

@@ -45,7 +45,7 @@ def purge_review_copy(sender, instance, **kwargs):
                     profile=profile,
                     subject_id=instance.revision_id,
                     origin="unverified_external",
-                    status="legacy_reconciliation_required",
+                    status="legacy_unreconciled",
                     receipt={
                         "legacy_incomplete": True,
                         "provider_execution_verified": False,
