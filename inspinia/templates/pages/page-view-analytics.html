@@ -2,532 +2,638 @@
 
 {% block title %}View analytics{% endblock title %}
 
-{% block extra_css %}
-<style>
-  .page-view-filter-grid {
-    display: grid;
-    gap: .75rem;
-    grid-template-columns: repeat(12, minmax(0, 1fr));
-  }
-
-  .page-view-filter-field {
-    grid-column: span 2;
-  }
-
-  .page-view-filter-field.is-wide {
-    grid-column: span 3;
-  }
-
-  .page-view-filter-field.is-actions,
-  .page-view-filter-field.is-toggles {
-    grid-column: span 12;
-  }
-
-  .page-view-surface-row {
-    display: grid;
-    gap: .75rem;
-    grid-template-columns: minmax(9rem, 13rem) minmax(10rem, 1fr) minmax(8rem, auto);
-    padding: .85rem 0;
-  }
-
-  .page-view-surface-row + .page-view-surface-row {
-    border-top: 1px solid var(--ins-border-color);
-  }
-
-  .page-view-surface-progress {
-    height: .45rem;
-  }
-
-  .page-view-path-action {
-    width: 2rem;
-  }
-
-  .page-view-mobile-list {
-    display: grid;
-    gap: .75rem;
-  }
-
-  .page-view-mobile-row {
-    border: 1px solid var(--ins-border-color);
-    border-radius: .5rem;
-    padding: .85rem;
-  }
-
-  @media (max-width: 1199.98px) {
-    .page-view-filter-field,
-    .page-view-filter-field.is-wide {
-      grid-column: span 4;
-    }
-  }
-
-  @media (max-width: 767.98px) {
-    .page-view-filter-field,
-    .page-view-filter-field.is-wide {
-      grid-column: span 12;
-    }
-
-    .page-view-surface-row {
-      grid-template-columns: 1fr;
-    }
-  }
-</style>
-{% endblock extra_css %}
-
 {% block page_content %}
-<div class="container-fluid app-table-page">
-
-  {% include 'partials/page-title.html' with title='View analytics' subtitle='Admin' page_icon='ti-chart-histogram' %}
-
-  <div class="row g-3 mt-0">
-    <div class="col-12">
-      <div class="card">
-        <div class="card-header border-bottom py-2">
-          <div class="d-flex flex-wrap align-items-center justify-content-between gap-2">
-            <div>
-              <h4 class="header-title mb-0">Analytics filters</h4>
-              <p class="text-muted fs-xs mb-0">
-                Showing {{ page_view_date_range.label }} · {{ page_view_stats.total }} views · {{ page_view_stats.known_user_total }} known user{{ page_view_stats.known_user_total|pluralize }}
-              </p>
-            </div>
-            <span class="badge bg-secondary-subtle text-secondary">{{ page_view_stats.anonymous_view_total }} anonymous view{{ page_view_stats.anonymous_view_total|pluralize }}</span>
-          </div>
+  <div class="container-fluid app-table-page page-view-page"
+       id="page-view-dashboard">
+    <header class="page-title-head app-page-header">
+      {% url 'pages:user_activity_dashboard' as page_view_home_url %}
+      {% include 'partials/page-header-intro.html' with title='View analytics' subtitle='Admin analytics' page_icon='ti-chart-histogram' back_url=page_view_home_url back_label='AsterProof' only %}
+      {% if page_view_stats.total %}
+        <div class="app-page-header-actions">
+          <a href="#page-view-recent" class="btn btn-sm btn-outline-secondary"><i class="ti ti-history me-1" aria-hidden="true"></i>Recent activity</a>
         </div>
-        <div class="card-body">
-          <form method="get" class="app-table-filters page-view-filter-grid">
-            <div class="page-view-filter-field">
-              <label class="form-label text-muted fs-xs text-uppercase fw-semibold mb-1" for="page-view-range">Range</label>
-              <select id="page-view-range" name="range" class="form-select form-select-sm">
-                {% for range_option in page_view_range_options %}
-                <option value="{{ range_option.value }}" {% if range_option.value == page_view_filters.range %}selected{% endif %}>{{ range_option.label }}</option>
-                {% endfor %}
-              </select>
-            </div>
-            <div class="page-view-filter-field">
-              <label class="form-label text-muted fs-xs text-uppercase fw-semibold mb-1" for="page-view-start">Start</label>
-              <input id="page-view-start" type="date" name="start" value="{{ page_view_filters.start }}" class="form-control form-control-sm">
-            </div>
-            <div class="page-view-filter-field">
-              <label class="form-label text-muted fs-xs text-uppercase fw-semibold mb-1" for="page-view-end">End</label>
-              <input id="page-view-end" type="date" name="end" value="{{ page_view_filters.end }}" class="form-control form-control-sm">
-            </div>
-            <div class="page-view-filter-field">
-              <label class="form-label text-muted fs-xs text-uppercase fw-semibold mb-1" for="page-view-surface">Surface</label>
-              <select id="page-view-surface" name="surface" class="form-select form-select-sm">
-                <option value="">All surfaces</option>
-                {% for surface_option in page_view_surface_options %}
-                <option value="{{ surface_option.value }}" {% if surface_option.value == page_view_filters.surface %}selected{% endif %}>{{ surface_option.label }}</option>
-                {% endfor %}
-              </select>
-            </div>
-            <div class="page-view-filter-field is-wide">
-              <label class="form-label text-muted fs-xs text-uppercase fw-semibold mb-1" for="page-view-user">User</label>
-              <select id="page-view-user" name="user" class="form-select form-select-sm">
-                <option value="">All users</option>
-                {% for user_option in page_view_user_options %}
-                <option value="{{ user_option.value }}" {% if user_option.value == page_view_filters.user %}selected{% endif %}>{{ user_option.label }}</option>
-                {% endfor %}
-              </select>
-            </div>
-            <div class="page-view-filter-field is-wide">
-              <label class="form-label text-muted fs-xs text-uppercase fw-semibold mb-1" for="page-view-q">Recent search</label>
-              <input id="page-view-q" type="search" name="q" value="{{ page_view_filters.q }}" class="form-control form-control-sm" placeholder="Label, path, user...">
-            </div>
-            <div class="page-view-filter-field is-toggles">
-              <div class="d-flex flex-wrap align-items-center gap-3">
-                <div class="form-check form-switch mb-0">
-                  <input class="form-check-input" type="checkbox" name="include_admins" value="1" id="page-view-include-admins" {% if page_view_filters.include_admins %}checked{% endif %}>
-                  <label class="form-check-label" for="page-view-include-admins">Include admins</label>
-                </div>
-                <input type="hidden" name="include_anonymous" value="0">
-                <div class="form-check form-switch mb-0">
-                  <input class="form-check-input" type="checkbox" name="include_anonymous" value="1" id="page-view-include-anonymous" {% if page_view_filters.include_anonymous == '1' %}checked{% endif %}>
-                  <label class="form-check-label" for="page-view-include-anonymous">Include anonymous</label>
-                </div>
-              </div>
-            </div>
-            <div class="page-view-filter-field is-actions">
-              <div class="d-flex flex-wrap align-items-center gap-2">
-                <button type="submit" class="btn btn-sm btn-primary">
-                  <i class="ti ti-filter me-1"></i>Apply filters
-                </button>
-                <a href="{% url 'pages:page_view_analytics' %}" class="btn btn-sm btn-outline-secondary">
-                  <i class="ti ti-refresh me-1"></i>Reset
-                </a>
-                <span class="text-muted fs-xs">{{ page_view_date_range.label }}</span>
-              </div>
-            </div>
-          </form>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <div class="row g-3 mt-0">
-    {% for row in page_view_kpi_rows %}
-    <div class="col-sm-6 col-xl-3">
-      <div class="card m-0 h-100">
-        <div class="card-body">
-          <div class="d-flex align-items-start">
-            <div class="flex-shrink-0">
-              <span class="avatar-title {{ row.badge_class }} rounded">
-                <i class="{{ row.icon_class }} fs-24"></i>
-              </span>
-            </div>
-            <div class="flex-grow-1 ms-2 min-w-0">
-              <p class="text-muted mb-0 fs-xs text-uppercase fw-semibold">{{ row.kpi_label }}</p>
-              <h3 class="mb-1">{{ row.view_total }}</h3>
-              <div class="d-flex flex-wrap align-items-center gap-1">
-                <span class="badge {{ row.delta_badge_class }}">{{ row.delta_label }}</span>
-                <span class="text-muted fs-xs">{{ row.known_user_total }} user{{ row.known_user_total|pluralize }}</span>
-              </div>
-              <p class="text-muted fs-xs mb-0 mt-1">
-                Latest:
-                {% if row.latest_at_label %}
-                <span data-bs-toggle="tooltip" title="{{ row.latest_at_title }}">{{ row.latest_at_label }}</span>
-                {% else %}
-                —
-                {% endif %}
-              </p>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-    {% endfor %}
-  </div>
-
-  <div class="row g-3 mt-1">
-    <div class="col-12">
-      <div class="card">
-        <div class="card-header border-bottom d-flex flex-wrap align-items-center gap-2">
-          <div class="flex-grow-1">
-            <h4 class="header-title mb-0">View volume by surface</h4>
-            <p class="text-muted fs-xs mb-0">{{ page_view_stats.total }} total views from {{ page_view_stats.known_user_total }} known user{{ page_view_stats.known_user_total|pluralize }}</p>
-          </div>
-          <span class="badge bg-secondary-subtle text-secondary">{{ page_view_date_range.label }}</span>
-        </div>
-        <div class="card-body">
-          {% if page_view_stats.total == 0 %}
-          <div class="alert alert-info mb-0" role="alert">
-            View counts will appear after students open statement, solution, list, or contest pages.
-          </div>
-          {% else %}
+      {% endif %}
+    </header>
+    <section class="page-view-overview" aria-label="View volume by surface">
+      <div class="page-view-overview-heading">
+        <h2 class="visually-hidden">View volume by surface</h2>
+        <dl class="page-view-audience-summary">
           <div>
-            {% for row in page_view_type_rows %}
-            <div class="page-view-surface-row align-items-center">
-              <div class="d-flex align-items-center gap-2">
-                <span class="badge {{ row.badge_class }}">{{ row.short_label }}</span>
-                <span class="fw-semibold">{{ row.view_type_label }}</span>
+            <dt>total views</dt>
+            <dd>
+              {{ page_view_stats.total }}
+            </dd>
+          </div>
+          <div>
+            <dt>known user{{ page_view_stats.known_user_total|pluralize }}</dt>
+            <dd>
+              {{ page_view_stats.known_user_total }}
+            </dd>
+          </div>
+          <div>
+            <dt>anonymous views</dt>
+            <dd>
+              {{ page_view_stats.anonymous_view_total }}
+            </dd>
+          </div>
+        </dl>
+        <span class="page-view-period">{{ page_view_date_range.label }}</span>
+      </div>
+      <dl class="page-view-metrics">
+        {% for row in page_view_kpi_rows %}
+          <div class="page-view-metric">
+            <dt>
+              <i class="{{ row.icon_class }}" aria-hidden="true"></i>{{ row.kpi_label }}
+            </dt>
+            <dd class="page-view-metric-value">
+              {{ row.view_total }}
+            </dd>
+            <dd class="page-view-metric-bar">
+              <div class="progress page-view-surface-progress">
+                <div class="progress-bar {{ row.bar_class }}"
+                     role="progressbar"
+                     style="width: {{ row.bar_width }}%"
+                     aria-label="{{ row.kpi_label }}, relative to the busiest surface"
+                     aria-valuenow="{{ row.bar_width }}"
+                     aria-valuemin="0"
+                     aria-valuemax="100"></div>
               </div>
+            </dd>
+            <dd class="page-view-metric-delta">
+              <span class="badge {{ row.delta_badge_class }}">{{ row.delta_label }}</span>
+            </dd>
+            <dd class="page-view-metric-meta">
+              {{ row.known_user_total }} user{{ row.known_user_total|pluralize }} ·
+              {% if row.latest_at_label %}
+                <span title="{{ row.latest_at_title }}" data-bs-toggle="tooltip">{{ row.latest_at_label }}</span>
+              {% else %}
+                No activity
+              {% endif %}
+            </dd>
+          </div>
+        {% endfor %}
+      </dl>
+    </section>
+    <section class="card page-view-filter-panel"
+             aria-label="Analytics range and audience">
+      <form method="get"
+            class="app-table-filters page-view-global-filters"
+            id="page-view-global-filters"
+            aria-label="Filter analytics range and audience">
+        <input type="hidden" name="surface" value="{{ page_view_filters.surface }}" />
+        <input type="hidden" name="user" value="{{ page_view_filters.user }}" />
+        <input type="hidden" name="q" value="{{ page_view_filters.q }}" />
+        <div class="page-view-range-field">
+          <label class="form-label" for="page-view-range">Range</label>
+          <select id="page-view-range" name="range" class="form-select form-select-sm">
+            {% for range_option in page_view_range_options %}
+              <option value="{{ range_option.value }}"
+                      {% if range_option.value == page_view_filters.range %}selected{% endif %}>
+                {{ range_option.label }}
+              </option>
+            {% endfor %}
+          </select>
+        </div>
+        <details class="page-view-date-options"
+                 id="page-view-custom-dates"
+                 {% if page_view_filters.range == 'custom' %}open{% endif %}>
+          <summary>
+            <i class="ti ti-calendar me-1" aria-hidden="true"></i>Custom dates<i class="ti ti-chevron-down" aria-hidden="true"></i>
+          </summary>
+          <div class="page-view-date-fields">
+            <div>
+              <label class="form-label" for="page-view-start">Start</label>
+              <input id="page-view-start"
+                     type="date"
+                     name="start"
+                     value="{{ page_view_filters.start }}"
+                     class="form-control form-control-sm" />
+            </div>
+            <div>
+              <label class="form-label" for="page-view-end">End</label>
+              <input id="page-view-end"
+                     type="date"
+                     name="end"
+                     value="{{ page_view_filters.end }}"
+                     class="form-control form-control-sm" />
+            </div>
+            <noscript>
+              <p class="text-muted fs-xs mb-0">Choose Custom range to apply these dates.</p>
+            </noscript>
+          </div>
+        </details>
+        <div class="page-view-audience-controls" aria-label="Audience">
+          <div class="form-check form-switch mb-0">
+            <input class="form-check-input"
+                   type="checkbox"
+                   name="include_admins"
+                   value="1"
+                   id="page-view-include-admins"
+                   {% if page_view_filters.include_admins %}checked{% endif %} />
+            <label class="form-check-label" for="page-view-include-admins">Include admins</label>
+          </div>
+          <input type="hidden" name="include_anonymous" value="0" />
+          <div class="form-check form-switch mb-0">
+            <input class="form-check-input"
+                   type="checkbox"
+                   name="include_anonymous"
+                   value="1"
+                   id="page-view-include-anonymous"
+                   {% if page_view_filters.include_anonymous == '1' %}checked{% endif %} />
+            <label class="form-check-label" for="page-view-include-anonymous">Include anonymous</label>
+          </div>
+        </div>
+        <div class="page-view-filter-actions">
+          <button type="submit"
+                  class="btn btn-sm btn-primary"
+                  aria-label="Apply analytics filters">
+            <i class="ti ti-filter me-1" aria-hidden="true"></i>Apply
+          </button>
+          <a href="{% url 'pages:page_view_analytics' %}"
+             class="btn btn-sm btn-light">Reset</a>
+        </div>
+        <div class="page-view-filter-scope">
+          <span>{{ page_view_date_range.start_label }}
+            {% if page_view_date_range.end_label %}– {{ page_view_date_range.end_label }}{% endif %}
+            {% if not page_view_date_range.start_label %}All time{% endif %}
+            </span><span>Range and audience apply to the full dashboard.</span>
+          </div>
+        </form>
+      </section>
+      {% if not page_view_stats.total %}
+        <div class="page-view-empty" role="status">
+          <span class="page-view-empty-icon"><i class="ti ti-chart-histogram" aria-hidden="true"></i></span>
+          <h2 class="header-title">No page views in this range</h2>
+          <p>View counts will appear after students open statement, solution, list, or contest pages.</p>
+          <a href="{% url 'pages:page_view_analytics' %}?range=all"
+             class="btn btn-sm btn-outline-secondary">Show all time</a>
+        </div>
+      {% endif %}
+      {% if page_view_stats.total > 0 %}
+        <div class="row g-3 mt-0">
+          <div class="col-12">
+            <div class="d-flex flex-wrap align-items-end justify-content-between gap-2">
               <div>
-                <div class="progress page-view-surface-progress">
-                  <div class="progress-bar {{ row.bar_class }}" role="progressbar" style="width: {{ row.bar_width }}%;" aria-valuenow="{{ row.bar_width }}" aria-valuemin="0" aria-valuemax="100"></div>
-                </div>
-              </div>
-              <div class="text-md-end">
-                <div class="fw-semibold">{{ row.view_total }} view{{ row.view_total|pluralize }}</div>
-                <div class="text-muted fs-xs">{{ row.known_user_total }} user{{ row.known_user_total|pluralize }} · {% if row.latest_at_label %}<span data-bs-toggle="tooltip" title="{{ row.latest_at_title }}">{{ row.latest_at_label }}</span>{% else %}No activity{% endif %}</div>
+                <h2 class="header-title mb-0">Top content</h2>
+                <p class="text-muted fs-xs mb-0">Top 10 statements and solutions in the selected range</p>
               </div>
             </div>
-            {% endfor %}
           </div>
-          {% endif %}
-        </div>
-      </div>
-    </div>
-  </div>
-
-  {% if page_view_stats.total > 0 %}
-  <div class="row g-3 mt-0">
-    <div class="col-12">
-      <div class="d-flex flex-wrap align-items-end justify-content-between gap-2">
-        <div>
-          <h4 class="header-title mb-0">Top content</h4>
-          <p class="text-muted fs-xs mb-0">Most viewed statements and solutions in the selected range</p>
-        </div>
-      </div>
-    </div>
-    <div class="col-xl-6">
-      <div class="card h-100">
-        <div class="card-header border-0 pb-0">
-          <h4 class="header-title mb-0">Most viewed statements</h4>
-          <p class="text-muted fs-xs mb-0">Problem statement detail pages</p>
-        </div>
-        <div class="card-body pt-2">
-          <div class="app-table-region table-responsive" tabindex="0" role="region" aria-label="Scrollable results">
-            <table class="app-table-compact table table-sm table-hover align-middle mb-0">
-              <thead>
-                <tr>
-                  <th>Problem</th>
-                  <th class="text-end">Views</th>
-                  <th class="text-end">Users</th>
-                  <th>Latest</th>
-                </tr>
-              </thead>
-              <tbody>
-                {% for row in page_view_top_statements %}
-                <tr>
-                  <td>
-                    {% if row.url %}
-                    <a href="{{ row.url }}" class="fw-semibold text-decoration-none">{{ row.display_label }}</a>
-                    {% else %}
-                    <span class="fw-semibold">{{ row.display_label }}</span>
-                    {% endif %}
-                    <span class="text-muted fs-12 app-table-meta">{{ row.contest_name }}{% if row.contest_year %} {{ row.contest_year }}{% endif %}</span>
-                  </td>
-                  <td class="text-end">{{ row.view_total }}</td>
-                  <td class="text-end">{{ row.known_user_total }}</td>
-                  <td>{% if row.latest_at_label %}<span data-bs-toggle="tooltip" title="{{ row.latest_at_title }}">{{ row.latest_at_label }}</span>{% else %}—{% endif %}</td>
-                </tr>
-                {% empty %}
-                <tr><td colspan="4" class="text-muted">No statement views yet.</td></tr>
-                {% endfor %}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <div class="col-xl-6">
-      <div class="card h-100">
-        <div class="card-header border-0 pb-0">
-          <h4 class="header-title mb-0">Most viewed solutions</h4>
-          <p class="text-muted fs-xs mb-0">Problem solution pages</p>
-        </div>
-        <div class="card-body pt-2">
-          <div class="app-table-region table-responsive" tabindex="0" role="region" aria-label="Scrollable results">
-            <table class="app-table-compact table table-sm table-hover align-middle mb-0">
-              <thead>
-                <tr>
-                  <th>Problem</th>
-                  <th class="text-end">Views</th>
-                  <th class="text-end">Users</th>
-                  <th>Latest</th>
-                </tr>
-              </thead>
-              <tbody>
-                {% for row in page_view_top_solutions %}
-                <tr>
-                  <td>
-                    {% if row.url %}
-                    <a href="{{ row.url }}" class="fw-semibold text-decoration-none">{{ row.display_label }}</a>
-                    {% else %}
-                    <span class="fw-semibold">{{ row.display_label }}</span>
-                    {% endif %}
-                    <span class="text-muted fs-12 app-table-meta">{{ row.contest_name }}{% if row.contest_year %} {{ row.contest_year }}{% endif %}</span>
-                  </td>
-                  <td class="text-end">{{ row.view_total }}</td>
-                  <td class="text-end">{{ row.known_user_total }}</td>
-                  <td>{% if row.latest_at_label %}<span data-bs-toggle="tooltip" title="{{ row.latest_at_title }}">{{ row.latest_at_label }}</span>{% else %}—{% endif %}</td>
-                </tr>
-                {% empty %}
-                <tr><td colspan="4" class="text-muted">No solution views yet.</td></tr>
-                {% endfor %}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <div class="row g-3 mt-0">
-    <div class="col-12">
-      <div>
-        <h4 class="header-title mb-0">List and contest traffic</h4>
-        <p class="text-muted fs-xs mb-0">Browse and contest-listing activity in the selected range</p>
-      </div>
-    </div>
-    <div class="col-xl-6">
-      <div class="card h-100">
-        <div class="card-header border-0 pb-0">
-          <h4 class="header-title mb-0">List views</h4>
-          <p class="text-muted fs-xs mb-0">Statement and problem list traffic</p>
-        </div>
-        <div class="card-body pt-2">
-          <div class="app-table-region table-responsive" tabindex="0" role="region" aria-label="Scrollable results">
-            <table class="app-table-compact table table-sm table-hover align-middle mb-0">
-              <thead>
-                <tr>
-                  <th>List</th>
-                  <th class="text-end">Views</th>
-                  <th class="text-end">Users</th>
-                  <th>Latest</th>
-                </tr>
-              </thead>
-              <tbody>
-                {% for row in page_view_top_lists %}
-                <tr>
-                  <td>
-                    <a href="{{ row.url }}" class="fw-semibold text-decoration-none">{{ row.display_label }}</a>
-                    {% if row.filter_chips %}
-                    <div class="app-table-inline d-inline-flex flex-nowrap gap-1 mt-1">
-                      {% for chip in row.filter_chips %}
-                      <span class="badge {{ chip.badge_class }}">{{ chip.label }}</span>
+          <div class="col-xl-6">
+            <div class="card h-100">
+              <div class="card-header border-0 pb-0">
+                <h4 class="header-title mb-0">Most viewed statements</h4>
+                <p class="text-muted fs-xs mb-0">Problem statement detail pages</p>
+              </div>
+              <div class="card-body pt-2">
+                <div class="app-table-region table-responsive"
+                     tabindex="0"
+                     role="region"
+                     aria-label="Scrollable analytics results">
+                  <table class="app-table-compact page-view-ranking-table table table-sm table-hover align-middle mb-0">
+                    <thead>
+                      <tr>
+                        <th scope="col">Problem</th>
+                        <th scope="col" class="text-end">Views</th>
+                        <th scope="col" class="text-end">Users</th>
+                        <th scope="col">Latest</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {% for row in page_view_top_statements %}
+                        <tr>
+                          <td>
+                            {% if row.url %}
+                              <a href="{{ row.url }}"
+                                 class="fw-semibold text-decoration-none"
+                                 title="{{ row.display_label }}">{{ row.display_label }}</a>
+                            {% else %}
+                              <span class="fw-semibold" title="{{ row.display_label }}">{{ row.display_label }}</span>
+                            {% endif %}
+                            <span class="text-muted fs-12 app-table-meta">{{ row.contest_name }}
+                              {% if row.contest_year %}{{ row.contest_year }}{% endif %}
+                            </span>
+                          </td>
+                          <td class="text-end">{{ row.view_total }}</td>
+                          <td class="text-end">{{ row.known_user_total }}</td>
+                          <td>
+                            {% if row.latest_at_label %}
+                              <span data-bs-toggle="tooltip" title="{{ row.latest_at_title }}">{{ row.latest_at_label }}</span>
+                            {% else %}
+                              —
+                            {% endif %}
+                          </td>
+                        </tr>
+                      {% empty %}
+                        <tr>
+                          <td colspan="4" class="text-muted">No statement views yet.</td>
+                        </tr>
                       {% endfor %}
-                    </div>
-                    {% endif %}
-                  </td>
-                  <td class="text-end">{{ row.view_total }}</td>
-                  <td class="text-end">{{ row.known_user_total }}</td>
-                  <td>{% if row.latest_at_label %}<span data-bs-toggle="tooltip" title="{{ row.latest_at_title }}">{{ row.latest_at_label }}</span>{% else %}—{% endif %}</td>
-                </tr>
-                {% empty %}
-                <tr><td colspan="4" class="text-muted">No list views yet.</td></tr>
-                {% endfor %}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <div class="col-xl-6">
-      <div class="card h-100">
-        <div class="card-header border-0 pb-0">
-          <h4 class="header-title mb-0">Contest views</h4>
-          <p class="text-muted fs-xs mb-0">Contest listing traffic</p>
-        </div>
-        <div class="card-body pt-2">
-          <div class="app-table-region table-responsive" tabindex="0" role="region" aria-label="Scrollable results">
-            <table class="app-table-compact table table-sm table-hover align-middle mb-0">
-              <thead>
-                <tr>
-                  <th>Contest</th>
-                  <th class="text-end">Views</th>
-                  <th class="text-end">Users</th>
-                  <th>Latest</th>
-                </tr>
-              </thead>
-              <tbody>
-                {% for row in page_view_top_contests %}
-                <tr>
-                  <td>
-                    {% if row.url %}
-                    <a href="{{ row.url }}" class="fw-semibold text-decoration-none">{{ row.label }}</a>
-                    {% else %}
-                    <span class="fw-semibold">{{ row.label }}</span>
-                    {% endif %}
-                  </td>
-                  <td class="text-end">{{ row.view_total }}</td>
-                  <td class="text-end">{{ row.known_user_total }}</td>
-                  <td>{% if row.latest_at_label %}<span data-bs-toggle="tooltip" title="{{ row.latest_at_title }}">{{ row.latest_at_label }}</span>{% else %}—{% endif %}</td>
-                </tr>
-                {% empty %}
-                <tr><td colspan="4" class="text-muted">No contest views yet.</td></tr>
-                {% endfor %}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <div class="row g-3 mt-0 mb-4">
-    <div class="col-12">
-      <div class="card">
-        <div class="card-header border-bottom">
-          <h4 class="header-title mb-0">Recent activity</h4>
-          <p class="text-muted fs-xs mb-0">Latest {{ page_view_recent_rows|length }} matching page views</p>
-        </div>
-        <div class="card-body">
-          <div class="app-table-region table-responsive d-none d-lg-block" tabindex="0" role="region" aria-label="Scrollable results">
-            <table class="app-table-compact table table-striped table-bordered align-middle mb-0">
-              <thead>
-                <tr>
-                  <th>Time</th>
-                  <th>Surface</th>
-                  <th>Label</th>
-                  <th>User</th>
-                  <th class="text-center">Path</th>
-                </tr>
-              </thead>
-              <tbody>
-                {% for row in page_view_recent_rows %}
-                <tr>
-                  <td class="text-nowrap">
-                    <span data-bs-toggle="tooltip" title="{{ row.created_at_title }}">{{ row.created_at_label }}</span>
-                  </td>
-                  <td><span class="badge {{ row.surface_badge_class }}">{{ row.view_type_short_label }}</span></td>
-                  <td>
-                    {% if row.url %}
-                    <a href="{{ row.url }}" class="fw-semibold text-decoration-none">{{ row.label|default:row.view_type_label }}</a>
-                    {% else %}
-                    <span class="fw-semibold">{{ row.label|default:row.view_type_label }}</span>
-                    {% endif %}
-                    {% if row.filter_chips %}
-                    <div class="app-table-inline d-inline-flex flex-nowrap gap-1 mt-1">
-                      {% for chip in row.filter_chips %}
-                      <span class="badge {{ chip.badge_class }}">{{ chip.label }}</span>
-                      {% endfor %}
-                    </div>
-                    {% endif %}
-                  </td>
-                  <td>{{ row.user_label }}</td>
-                  <td class="text-center">
-                    {% if row.path %}
-                    <button type="button" class="btn btn-sm btn-icon btn-outline-secondary page-view-path-action page-view-copy-path" data-page-view-path="{{ row.path }}" data-bs-toggle="tooltip" title="{{ row.path }}" aria-label="Copy path">
-                      <i class="ti ti-copy"></i>
-                    </button>
-                    {% else %}
-                    <span class="text-muted">—</span>
-                    {% endif %}
-                  </td>
-                </tr>
-                {% empty %}
-                <tr><td colspan="5" class="text-muted">No matching page views.</td></tr>
-                {% endfor %}
-              </tbody>
-            </table>
-          </div>
-
-          <div class="page-view-mobile-list d-lg-none">
-            {% for row in page_view_recent_rows %}
-            <div class="page-view-mobile-row">
-              <div class="d-flex align-items-start justify-content-between gap-2">
-                <div class="min-w-0">
-                  <div class="d-flex flex-wrap align-items-center gap-1 mb-1">
-                    <span class="badge {{ row.surface_badge_class }}">{{ row.view_type_short_label }}</span>
-                    <span class="text-muted fs-xs" data-bs-toggle="tooltip" title="{{ row.created_at_title }}">{{ row.created_at_label }}</span>
-                  </div>
-                  {% if row.url %}
-                  <a href="{{ row.url }}" class="fw-semibold text-decoration-none">{{ row.label|default:row.view_type_label }}</a>
-                  {% else %}
-                  <span class="fw-semibold">{{ row.label|default:row.view_type_label }}</span>
-                  {% endif %}
-                  <div class="text-muted fs-xs">{{ row.user_label }}</div>
-                  {% if row.filter_chips %}
-                  <div class="d-flex flex-wrap gap-1 mt-2">
-                    {% for chip in row.filter_chips %}
-                    <span class="badge {{ chip.badge_class }}">{{ chip.label }}</span>
-                    {% endfor %}
-                  </div>
-                  {% endif %}
+                    </tbody>
+                  </table>
                 </div>
-                {% if row.path %}
-                <button type="button" class="btn btn-sm btn-icon btn-outline-secondary page-view-path-action page-view-copy-path" data-page-view-path="{{ row.path }}" data-bs-toggle="tooltip" title="{{ row.path }}" aria-label="Copy path">
-                  <i class="ti ti-copy"></i>
-                </button>
-                {% endif %}
               </div>
             </div>
-            {% empty %}
-            <div class="alert alert-info mb-0" role="alert">No matching page views.</div>
-            {% endfor %}
+          </div>
+          <div class="col-xl-6">
+            <div class="card h-100">
+              <div class="card-header border-0 pb-0">
+                <h4 class="header-title mb-0">Most viewed solutions</h4>
+                <p class="text-muted fs-xs mb-0">Problem solution pages</p>
+              </div>
+              <div class="card-body pt-2">
+                <div class="app-table-region table-responsive"
+                     tabindex="0"
+                     role="region"
+                     aria-label="Scrollable analytics results">
+                  <table class="app-table-compact page-view-ranking-table table table-sm table-hover align-middle mb-0">
+                    <thead>
+                      <tr>
+                        <th scope="col">Problem</th>
+                        <th scope="col" class="text-end">Views</th>
+                        <th scope="col" class="text-end">Users</th>
+                        <th scope="col">Latest</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {% for row in page_view_top_solutions %}
+                        <tr>
+                          <td>
+                            {% if row.url %}
+                              <a href="{{ row.url }}"
+                                 class="fw-semibold text-decoration-none"
+                                 title="{{ row.display_label }}">{{ row.display_label }}</a>
+                            {% else %}
+                              <span class="fw-semibold" title="{{ row.display_label }}">{{ row.display_label }}</span>
+                            {% endif %}
+                            <span class="text-muted fs-12 app-table-meta">{{ row.contest_name }}
+                              {% if row.contest_year %}{{ row.contest_year }}{% endif %}
+                            </span>
+                          </td>
+                          <td class="text-end">{{ row.view_total }}</td>
+                          <td class="text-end">{{ row.known_user_total }}</td>
+                          <td>
+                            {% if row.latest_at_label %}
+                              <span data-bs-toggle="tooltip" title="{{ row.latest_at_title }}">{{ row.latest_at_label }}</span>
+                            {% else %}
+                              —
+                            {% endif %}
+                          </td>
+                        </tr>
+                      {% empty %}
+                        <tr>
+                          <td colspan="4" class="text-muted">No solution views yet.</td>
+                        </tr>
+                      {% endfor %}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
-      </div>
+        <div class="row g-3 mt-0">
+          <div class="col-12">
+            <div>
+              <h2 class="header-title mb-0">List and contest traffic</h2>
+              <p class="text-muted fs-xs mb-0">Top 10 lists and contests in the selected range</p>
+            </div>
+          </div>
+          <div class="col-xl-6">
+            <div class="card h-100">
+              <div class="card-header border-0 pb-0">
+                <h4 class="header-title mb-0">List views</h4>
+                <p class="text-muted fs-xs mb-0">Statement and problem list traffic</p>
+              </div>
+              <div class="card-body pt-2">
+                <div class="app-table-region table-responsive"
+                     tabindex="0"
+                     role="region"
+                     aria-label="Scrollable analytics results">
+                  <table class="app-table-compact page-view-ranking-table table table-sm table-hover align-middle mb-0">
+                    <thead>
+                      <tr>
+                        <th scope="col">List</th>
+                        <th scope="col" class="text-end">Views</th>
+                        <th scope="col" class="text-end">Users</th>
+                        <th scope="col">Latest</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {% for row in page_view_top_lists %}
+                        <tr>
+                          <td>
+                            <a href="{{ row.url }}"
+                               class="fw-semibold text-decoration-none"
+                               title="{{ row.display_label }}">{{ row.display_label }}</a>
+                            {% if row.filter_chips %}
+                              <details class="app-table-details page-view-path-details">
+                                <summary>Filters · {{ row.filter_chips|length }}</summary>
+                                <div class="app-table-details-body d-flex flex-wrap gap-1">
+                                  {% for chip in row.filter_chips %}<span class="badge {{ chip.badge_class }}">{{ chip.label }}</span>{% endfor %}
+                                </div>
+                              </details>
+                            {% endif %}
+                          </td>
+                          <td class="text-end">{{ row.view_total }}</td>
+                          <td class="text-end">{{ row.known_user_total }}</td>
+                          <td>
+                            {% if row.latest_at_label %}
+                              <span data-bs-toggle="tooltip" title="{{ row.latest_at_title }}">{{ row.latest_at_label }}</span>
+                            {% else %}
+                              —
+                            {% endif %}
+                          </td>
+                        </tr>
+                      {% empty %}
+                        <tr>
+                          <td colspan="4" class="text-muted">No list views yet.</td>
+                        </tr>
+                      {% endfor %}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="col-xl-6">
+            <div class="card h-100">
+              <div class="card-header border-0 pb-0">
+                <h4 class="header-title mb-0">Contest views</h4>
+                <p class="text-muted fs-xs mb-0">Contest listing traffic</p>
+              </div>
+              <div class="card-body pt-2">
+                <div class="app-table-region table-responsive"
+                     tabindex="0"
+                     role="region"
+                     aria-label="Scrollable analytics results">
+                  <table class="app-table-compact page-view-ranking-table table table-sm table-hover align-middle mb-0">
+                    <thead>
+                      <tr>
+                        <th scope="col">Contest</th>
+                        <th scope="col" class="text-end">Views</th>
+                        <th scope="col" class="text-end">Users</th>
+                        <th scope="col">Latest</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {% for row in page_view_top_contests %}
+                        <tr>
+                          <td>
+                            {% if row.url %}
+                              <a href="{{ row.url }}"
+                                 class="fw-semibold text-decoration-none"
+                                 title="{{ row.label }}">{{ row.label }}</a>
+                            {% else %}
+                              <span class="fw-semibold">{{ row.label }}</span>
+                            {% endif %}
+                          </td>
+                          <td class="text-end">{{ row.view_total }}</td>
+                          <td class="text-end">{{ row.known_user_total }}</td>
+                          <td>
+                            {% if row.latest_at_label %}
+                              <span data-bs-toggle="tooltip" title="{{ row.latest_at_title }}">{{ row.latest_at_label }}</span>
+                            {% else %}
+                              —
+                            {% endif %}
+                          </td>
+                        </tr>
+                      {% empty %}
+                        <tr>
+                          <td colspan="4" class="text-muted">No contest views yet.</td>
+                        </tr>
+                      {% endfor %}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="row g-3 mt-0 mb-4" id="page-view-recent">
+          <div class="col-12">
+            <div class="card">
+              <div class="card-header border-bottom">
+                <h2 class="header-title mb-0">Recent activity</h2>
+                <p class="text-muted fs-xs mb-0">Latest {{ page_view_recent_rows|length }} matching page views · up to 50</p>
+              </div>
+              <div class="card-body">
+                <form method="get"
+                      class="app-table-filters page-view-recent-filters"
+                      id="page-view-recent-filters"
+                      role="search"
+                      aria-label="Filter recent activity">
+                  <input type="hidden" name="range" value="{{ page_view_filters.range }}" />
+                  <input type="hidden" name="start" value="{{ page_view_filters.start }}" />
+                  <input type="hidden" name="end" value="{{ page_view_filters.end }}" />
+                  <input type="hidden"
+                         name="include_admins"
+                         value="{{ page_view_filters.include_admins }}" />
+                  <input type="hidden"
+                         name="include_anonymous"
+                         value="{{ page_view_filters.include_anonymous }}" />
+                  <div>
+                    <label class="form-label" for="page-view-surface">Surface</label>
+                    <select id="page-view-surface"
+                            name="surface"
+                            class="form-select form-select-sm">
+                      <option value="">All surfaces</option>
+                      {% for surface_option in page_view_surface_options %}
+                        <option value="{{ surface_option.value }}"
+                                {% if surface_option.value == page_view_filters.surface %}selected{% endif %}>
+                          {{ surface_option.label }}
+                        </option>
+                      {% endfor %}
+                    </select>
+                  </div>
+                  <div class="page-view-user-field">
+                    <label class="form-label" for="page-view-user">User</label>
+                    <select id="page-view-user" name="user" class="form-select form-select-sm">
+                      <option value="">All users</option>
+                      {% for user_option in page_view_user_options %}
+                        <option value="{{ user_option.value }}"
+                                {% if user_option.value == page_view_filters.user %}selected{% endif %}>
+                          {{ user_option.label }}
+                        </option>
+                      {% endfor %}
+                    </select>
+                  </div>
+                  <div class="page-view-search-field">
+                    <label class="form-label" for="page-view-q">Search activity</label>
+                    <div class="page-view-search-input">
+                      <i class="ti ti-search" aria-hidden="true"></i>
+                      <input id="page-view-q"
+                             type="search"
+                             name="q"
+                             value="{{ page_view_filters.q }}"
+                             class="form-control form-control-sm"
+                             placeholder="Label, path or user…" />
+                    </div>
+                  </div>
+                  <button type="submit"
+                          class="btn btn-sm btn-primary"
+                          aria-label="Apply recent activity filters">
+                    <i class="ti ti-filter me-1" aria-hidden="true"></i>Apply
+                  </button>
+                  <p class="page-view-recent-scope">
+                    These filters narrow recent activity. Overview totals and top content keep the selected range and audience.
+                  </p>
+                </form>
+                <p class="page-view-copy-status text-muted fs-xs mb-0"
+                   id="page-view-copy-status"
+                   role="status"
+                   aria-live="polite"></p>
+                <div class="app-table-region table-responsive d-none d-lg-block"
+                     tabindex="0"
+                     role="region"
+                     aria-label="Scrollable analytics results">
+                  <table class="app-table-compact page-view-ranking-table table table-sm table-hover align-middle mb-0">
+                    <thead>
+                      <tr>
+                        <th scope="col">Time</th>
+                        <th scope="col">Surface</th>
+                        <th scope="col">Label</th>
+                        <th scope="col">User</th>
+                        <th scope="col" class="text-center">Path</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {% for row in page_view_recent_rows %}
+                        <tr>
+                          <td class="text-nowrap">
+                            <span data-bs-toggle="tooltip" title="{{ row.created_at_title }}">{{ row.created_at_label }}</span>
+                          </td>
+                          <td>
+                            <span class="badge {{ row.surface_badge_class }}">{{ row.view_type_short_label }}</span>
+                          </td>
+                          <td>
+                            {% if row.url %}
+                              <a href="{{ row.url }}"
+                                 class="fw-semibold text-decoration-none"
+                                 title="{{ row.label|default:row.view_type_label }}">{{ row.label|default:row.view_type_label }}</a>
+                            {% else %}
+                              <span class="fw-semibold">{{ row.label|default:row.view_type_label }}</span>
+                            {% endif %}
+                            {% if row.filter_chips %}
+                              <details class="app-table-details page-view-path-details">
+                                <summary>Filters · {{ row.filter_chips|length }}</summary>
+                                <div class="app-table-details-body d-flex flex-wrap gap-1">
+                                  {% for chip in row.filter_chips %}<span class="badge {{ chip.badge_class }}">{{ chip.label }}</span>{% endfor %}
+                                </div>
+                              </details>
+                            {% endif %}
+                          </td>
+                          <td>
+                            {{ row.user_label }}
+                            {% if row.path %}
+                              <details class="app-table-details page-view-path-details">
+                                <summary>Path details</summary>
+                                <div class="app-table-details-body">
+                                  <code>{{ row.path }}</code>
+                                </div>
+                              </details>
+                            {% endif %}
+                          </td>
+                          <td class="text-center">
+                            {% if row.path %}
+                              <button type="button"
+                                      class="btn btn-sm btn-icon btn-outline-secondary page-view-path-action page-view-copy-path"
+                                      data-page-view-path="{{ row.path }}"
+                                      data-bs-toggle="tooltip"
+                                      title="{{ row.path }}"
+                                      aria-label="Copy path">
+                                <i class="ti ti-copy" aria-hidden="true"></i>
+                              </button>
+                            {% else %}
+                              <span class="text-muted">—</span>
+                            {% endif %}
+                          </td>
+                        </tr>
+                      {% empty %}
+                        <tr>
+                          <td colspan="5" class="text-muted">No matching page views.</td>
+                        </tr>
+                      {% endfor %}
+                    </tbody>
+                  </table>
+                </div>
+                <div class="page-view-mobile-list d-lg-none">
+                  {% for row in page_view_recent_rows %}
+                    <div class="page-view-mobile-row">
+                      <div class="d-flex align-items-start justify-content-between gap-2">
+                        <div class="min-w-0">
+                          <div class="d-flex flex-wrap align-items-center gap-1 mb-1">
+                            <span class="badge {{ row.surface_badge_class }}">{{ row.view_type_short_label }}</span>
+                            <span class="text-muted fs-xs"
+                                  data-bs-toggle="tooltip"
+                                  title="{{ row.created_at_title }}">{{ row.created_at_label }}</span>
+                          </div>
+                          {% if row.url %}
+                            <a href="{{ row.url }}"
+                               class="fw-semibold text-decoration-none"
+                               title="{{ row.label|default:row.view_type_label }}">{{ row.label|default:row.view_type_label }}</a>
+                          {% else %}
+                            <span class="fw-semibold">{{ row.label|default:row.view_type_label }}</span>
+                          {% endif %}
+                          <div class="text-muted fs-xs">{{ row.user_label }}</div>
+                          {% if row.path %}
+                            <details class="app-table-details page-view-path-details">
+                              <summary>Path details</summary>
+                              <div class="app-table-details-body">
+                                <code>{{ row.path }}</code>
+                              </div>
+                            </details>
+                          {% endif %}
+                          {% if row.filter_chips %}
+                            <div class="d-flex flex-wrap gap-1 mt-2">
+                              {% for chip in row.filter_chips %}<span class="badge {{ chip.badge_class }}">{{ chip.label }}</span>{% endfor %}
+                            </div>
+                          {% endif %}
+                        </div>
+                        {% if row.path %}
+                          <button type="button"
+                                  class="btn btn-sm btn-icon btn-outline-secondary page-view-path-action page-view-copy-path"
+                                  data-page-view-path="{{ row.path }}"
+                                  data-bs-toggle="tooltip"
+                                  title="{{ row.path }}"
+                                  aria-label="Copy path">
+                            <i class="ti ti-copy" aria-hidden="true"></i>
+                          </button>
+                        {% endif %}
+                      </div>
+                    </div>
+                  {% empty %}
+                    <div class="alert alert-info mb-0" role="alert">No matching page views.</div>
+                  {% endfor %}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      {% endif %}
     </div>
-  </div>
-  {% endif %}
-</div>
-{% endblock page_content %}
+  {% endblock page_content %}
 
 {% block extra_javascript %}
 <script>
 (function () {
+  var rangeSelect = document.getElementById("page-view-range");
+  var customDates = document.getElementById("page-view-custom-dates");
+  rangeSelect.addEventListener("change", function () {
+    if (rangeSelect.value === "custom") customDates.open = true;
+  });
+  ["page-view-start", "page-view-end"].forEach(function (id) {
+    document.getElementById(id).addEventListener("change", function () { rangeSelect.value = "custom"; });
+  });
+
+  var copyStatus = document.getElementById("page-view-copy-status");
+  function setCopyStatus(message, isError) {
+    if (!copyStatus) return;
+    copyStatus.textContent = message;
+    copyStatus.classList.toggle("text-danger", Boolean(isError));
+    copyStatus.classList.toggle("text-muted", !isError);
+  }
+
   function fallbackCopy(text) {
     var textArea = document.createElement("textarea");
     textArea.value = text;
@@ -537,7 +643,7 @@
     document.body.appendChild(textArea);
     textArea.select();
     try {
-      document.execCommand("copy");
+      if (!document.execCommand("copy")) return Promise.reject(new Error("Copy failed"));
     } finally {
       document.body.removeChild(textArea);
     }
@@ -553,19 +659,28 @@
 
   document.querySelectorAll(".page-view-copy-path").forEach(function (button) {
     var defaultHtml = button.innerHTML;
-    button.addEventListener("click", function () {
+    button.addEventListener("click", async function () {
       var path = button.getAttribute("data-page-view-path") || "";
       if (!path) return;
-      copyText(path).then(function () {
-        button.innerHTML = '<i class="ti ti-check"></i>';
+      button.disabled = true;
+      try {
+        await copyText(path);
+        setCopyStatus("Path copied.", false);
+        button.innerHTML = '<i class="ti ti-check" aria-hidden="true"></i>';
+        button.setAttribute("aria-label", "Path copied");
         button.classList.remove("btn-outline-secondary");
         button.classList.add("btn-success");
         window.setTimeout(function () {
           button.innerHTML = defaultHtml;
           button.classList.remove("btn-success");
           button.classList.add("btn-outline-secondary");
+          button.setAttribute("aria-label", "Copy path");
         }, 1200);
-      });
+      } catch (_) {
+        setCopyStatus("Could not copy the path. Open Path details to select it manually.", true);
+      } finally {
+        button.disabled = false;
+      }
     });
   });
 })();
