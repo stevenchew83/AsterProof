@@ -1,0 +1,130 @@
+{% extends 'learning/base.html' %}
+
+{% block learning_content %}
+  <h1 class="h2">
+    {% if area %}
+      {{ area.name }}
+    {% elif subject %}
+      {{ subject.name }}
+    {% else %}
+      Explore the knowledge catalogue
+    {% endif %}
+  </h1>
+  <p class="text-muted">Canonical areas and concepts, with reviewed teaching notes where available.</p>
+  <form method="get" class="card card-body mb-3">
+    {% if not prerequisite_available %}
+      <p class="alert alert-info">Prerequisite filtering is unavailable until the current catalogue graph is validated.</p>
+    {% endif %}
+    <div class="row g-3">
+      <div class="col-md-4">
+        <label for="catalogue-q" class="form-label">Search concepts and aliases</label>
+        <input class="form-control" id="catalogue-q" name="q" value="{{ q }}" />
+      </div>
+      <div class="col-md-4">
+        <label class="form-label" for="catalogue-subject">Topic</label>
+        <select class="form-select" id="catalogue-subject" name="subject">
+          <option value="">All topics</option>
+          {% for row in subjects %}
+            <option value="{{ row.pk }}" {% if subject.pk == row.pk %}selected{% endif %}>{{ row.name }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-md-4">
+        <label class="form-label" for="catalogue-area">Area</label>
+        <select class="form-select" id="catalogue-area" name="area">
+          <option value="">All areas</option>
+          {% for row in areas %}
+            <option value="{{ row.pk }}" {% if area.pk == row.pk %}selected{% endif %}>{{ row.name }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-md-3">
+        <label for="catalogue-role" class="form-label">Concept role</label>
+        <select class="form-select" id="catalogue-role" name="role">
+          <option value="">Any role</option>
+          {% for key,label in roles %}
+            <option value="{{ key }}" {% if role == key %}selected{% endif %}>{{ label }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-md-3">
+        <label class="form-label" for="catalogue-level">Teaching level</label>
+        <select class="form-select" id="catalogue-level" name="level">
+          <option value="">Any level</option>
+          <option value="core" {% if level == 'core' %}selected{% endif %}>Core</option>
+          <option value="advanced" {% if level == 'advanced' %}selected{% endif %}>Advanced</option>
+          <option value="specialist" {% if level == 'specialist' %}selected{% endif %}>Specialist</option>
+        </select>
+      </div>
+      <div class="col-md-3">
+        <label class="form-label" for="catalogue-availability">Teaching notes</label>
+        <select class="form-select" id="catalogue-availability" name="availability">
+          <option value="">Any availability</option>
+          <option value="available"
+                  {% if availability == 'available' %}selected{% endif %}>Reviewed notes available</option>
+          <option value="missing" {% if availability == 'missing' %}selected{% endif %}>Notes needed</option>
+        </select>
+      </div>
+      <div class="col-md-3">
+        <label class="form-label" for="catalogue-prerequisites">Prerequisites</label>
+        <select class="form-select" id="catalogue-prerequisites" name="prerequisites">
+          <option value="">Any</option>
+          <option value="has" {% if prerequisite_filter == 'has' %}selected{% endif %}>Curated prerequisites</option>
+          <option value="none"
+                  {% if prerequisite_filter == 'none' %}selected{% endif %}>No curated prerequisites</option>
+        </select>
+      </div>
+      <div>
+        <button class="btn btn-primary">Apply filters</button>
+        <a class="btn btn-light" href="{% url 'learning:explore' %}">Clear</a>
+      </div>
+    </div>
+  </form>
+  <div class="row g-3">
+    <aside class="col-lg-3">
+      <h2 class="h5">
+        Areas
+        {% if subject %}in {{ subject.name }}{% endif %}
+      </h2>
+      <div class="list-group">
+        {% for row in areas %}
+          <a class="list-group-item list-group-item-action d-flex justify-content-between gap-2"
+             href="{{ row.learning_url }}">{{ row.name }} <span class="text-muted">{{ row.concept_total }}</span></a>
+        {% endfor %}
+      </div>
+    </aside>
+    <section class="col-lg-9">
+      <h2 class="h5">
+        Concepts <span class="text-muted">{{ page.paginator.count }}</span>
+      </h2>
+      <div class="card">
+        <div class="table-responsive" tabindex="0" aria-label="Canonical concepts">
+          <table class="table mb-0">
+            <thead>
+              <tr>
+                <th>Concept</th>
+                <th>Reviewed notes</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for row in page %}
+                <tr>
+                  <td>
+                    <a href="{{ row.learning_url }}">{{ row.name }}</a>
+                    <div class="text-muted fs-xs">{{ row.pk }}</div>
+                  </td>
+                  <td>{{ row.note_total }}</td>
+                </tr>
+              {% empty %}
+                <tr>
+                  <td colspan="2">No concepts match these filters.</td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+      {% include 'learning/pagination.html' %}
+    </section>
+  </div>
+{% endblock %}
