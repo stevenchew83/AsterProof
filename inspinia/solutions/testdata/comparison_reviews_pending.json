@@ -1,0 +1,276 @@
+{
+  "schema_version": 1,
+  "corpus_digest": "decebac95dfbd88a8b73d6d1472d0d73dfd5d73c7bb536f9e9d9cd8d3bf77d30",
+  "provenance": "synthetic_unreviewed",
+  "reviewers": [],
+  "candidate_labels": [
+    {
+      "case_id": "synthetic-alg-development-alternative",
+      "input_digest": "04cc79f910528383bc1b7fc3e9573634ad297457852ac2c2812c55abe9fea4d0",
+      "labels": {
+        "assessment": "no_issues_found",
+        "critical_error": false,
+        "alternative_method": true,
+        "score": 7,
+        "human_review_required": false
+      }
+    },
+    {
+      "case_id": "synthetic-alg-development-invalid",
+      "input_digest": "af027c961c80c669718cdaa4ff43df06d1273bba9e41939407a8c18c12471128",
+      "labels": {
+        "assessment": "gap_found",
+        "critical_error": true,
+        "alternative_method": false,
+        "score": 0,
+        "human_review_required": false
+      }
+    },
+    {
+      "case_id": "synthetic-alg-development-partial",
+      "input_digest": "55e59c764b38c35ed0c7bb5fad9255bf03170c3692e2226c41a71f484618d81b",
+      "labels": {
+        "assessment": "incomplete",
+        "critical_error": false,
+        "alternative_method": false,
+        "score": null,
+        "human_review_required": false
+      }
+    },
+    {
+      "case_id": "synthetic-nt-development-alternative",
+      "input_digest": "05d0ab4cd4d21b3f57ea139aeed856f54e7bb792cea3ce5d280bf0210bc89500",
+      "labels": {
+        "assessment": "no_issues_found",
+        "critical_error": false,
+        "alternative_method": true,
+        "score": 7,
+        "human_review_required": false
+      }
+    },
+    {
+      "case_id": "synthetic-nt-development-invalid",
+      "input_digest": "425334dd791824fbf67cb465f00be7902a4116a8ac0a583bd98e371cf5bad954",
+      "labels": {
+        "assessment": "gap_found",
+        "critical_error": true,
+        "alternative_method": false,
+        "score": 0,
+        "human_review_required": false
+      }
+    },
+    {
+      "case_id": "synthetic-nt-development-partial",
+      "input_digest": "9303c04c6b70b4d41418891b4bfe68c7afcd97c484805eb718de39c809c160ba",
+      "labels": {
+        "assessment": "incomplete",
+        "critical_error": false,
+        "alternative_method": false,
+        "score": null,
+        "human_review_required": false
+      }
+    },
+    {
+      "case_id": "synthetic-geo-development-alternative",
+      "input_digest": "e6a465debcb0ed243993f8fe2db64def96f01edcc7e22f434eb5ea9a4b9fc087",
+      "labels": {
+        "assessment": "no_issues_found",
+        "critical_error": false,
+        "alternative_method": true,
+        "score": 7,
+        "human_review_required": false
+      }
+    },
+    {
+      "case_id": "synthetic-geo-development-invalid",
+      "input_digest": "bb4d8770aee9a3e9de04085ce57475ad27aa2aae2457c9910c40061af5e7478a",
+      "labels": {
+        "assessment": "gap_found",
+        "critical_error": true,
+        "alternative_method": false,
+        "score": 0,
+        "human_review_required": false
+      }
+    },
+    {
+      "case_id": "synthetic-geo-development-partial",
+      "input_digest": "9af256fb863ea7426f0399f65faa75f5682090cd88236db600ff13e529dd0ab9",
+      "labels": {
+        "assessment": "incomplete",
+        "critical_error": false,
+        "alternative_method": false,
+        "score": null,
+        "human_review_required": false
+      }
+    },
+    {
+      "case_id": "synthetic-com-development-alternative",
+      "input_digest": "1becac78fd605ac0bff58c28b02325a1f48b36eea086f98f75a2dee977c1a314",
+      "labels": {
+        "assessment": "no_issues_found",
+        "critical_error": false,
+        "alternative_method": true,
+        "score": 7,
+        "human_review_required": false
+      }
+    },
+    {
+      "case_id": "synthetic-com-development-invalid",
+      "input_digest": "d3dd555bb2f0bfaeb6b67b8f5a31890b30e55316fe66e2b787fd1f7c4ee948f7",
+      "labels": {
+        "assessment": "gap_found",
+        "critical_error": true,
+        "alternative_method": false,
+        "score": 0,
+        "human_review_required": false
+      }
+    },
+    {
+      "case_id": "synthetic-com-development-partial",
+      "input_digest": "2185d55c7afbab5ec0ba1c4db26a810c591295b883a9c974d82c5eb83e1fe790",
+      "labels": {
+        "assessment": "incomplete",
+        "critical_error": false,
+        "alternative_method": false,
+        "score": null,
+        "human_review_required": false
+      }
+    },
+    {
+      "case_id": "synthetic-alg-held_out-alternative",
+      "input_digest": "2f35104005d202a7642e88de8e8440c72df82e4768131b520464cfa89a13bf2e",
+      "labels": {
+        "assessment": "no_issues_found",
+        "critical_error": false,
+        "alternative_method": true,
+        "score": 7,
+        "human_review_required": false
+      }
+    },
+    {
+      "case_id": "synthetic-alg-held_out-invalid",
+      "input_digest": "14ee7ce596475c5651daeeb1902b6a7666fc672ece00661772187c02c7acc505",
+      "labels": {
+        "assessment": "gap_found",
+        "critical_error": true,
+        "alternative_method": false,
+        "score": 0,
+        "human_review_required": false
+      }
+    },
+    {
+      "case_id": "synthetic-alg-held_out-partial",
+      "input_digest": "2e7b1674effcee103b43e2b506c10b2ede3f594bc676d350c1f63f12f17acce0",
+      "labels": {
+        "assessment": "incomplete",
+        "critical_error": false,
+        "alternative_method": false,
+        "score": null,
+        "human_review_required": false
+      }
+    },
+    {
+      "case_id": "synthetic-nt-held_out-alternative",
+      "input_digest": "c6ce2d5bac33dd7bde509fc3de1e73e0f9b1dfe1f09b5d9bd2fe8bce084c8537",
+      "labels": {
+        "assessment": "no_issues_found",
+        "critical_error": false,
+        "alternative_method": true,
+        "score": 7,
+        "human_review_required": false
+      }
+    },
+    {
+      "case_id": "synthetic-nt-held_out-invalid",
+      "input_digest": "c10a5ca937665a62327ac3e39e59025d78094bd9aed2fe0c690f905362b6f214",
+      "labels": {
+        "assessment": "gap_found",
+        "critical_error": true,
+        "alternative_method": false,
+        "score": 3,
+        "human_review_required": false
+      }
+    },
+    {
+      "case_id": "synthetic-nt-held_out-partial",
+      "input_digest": "4fbacf11b3b1e9cb6a0f929f281dc315c2e6fb77f349658d4d75284f98e53613",
+      "labels": {
+        "assessment": "incomplete",
+        "critical_error": false,
+        "alternative_method": false,
+        "score": 3,
+        "human_review_required": false
+      }
+    },
+    {
+      "case_id": "synthetic-geo-held_out-alternative",
+      "input_digest": "2d824fcd740569fa979266223759f85f1e25b92acc19ebbac0512678d2eaee80",
+      "labels": {
+        "assessment": "no_issues_found",
+        "critical_error": false,
+        "alternative_method": true,
+        "score": 7,
+        "human_review_required": false
+      }
+    },
+    {
+      "case_id": "synthetic-geo-held_out-invalid",
+      "input_digest": "948df384b537509af6ffcb8781816e49cfd9a6c23e1f1a50b173a9b2e24aca73",
+      "labels": {
+        "assessment": "gap_found",
+        "critical_error": true,
+        "alternative_method": false,
+        "score": 0,
+        "human_review_required": false
+      }
+    },
+    {
+      "case_id": "synthetic-geo-held_out-partial",
+      "input_digest": "e3b3240e73986b3ed177ba2211ab2821d15e97a122ddb835fa1e3d55cda6cbd8",
+      "labels": {
+        "assessment": "unable_to_assess",
+        "critical_error": false,
+        "alternative_method": false,
+        "score": null,
+        "human_review_required": true
+      }
+    },
+    {
+      "case_id": "synthetic-com-held_out-alternative",
+      "input_digest": "d6eadc2de79eca6b21fa7643a55a4120667a98428b4994cac2de6583bf8c4d4d",
+      "labels": {
+        "assessment": "no_issues_found",
+        "critical_error": false,
+        "alternative_method": true,
+        "score": 7,
+        "human_review_required": false
+      }
+    },
+    {
+      "case_id": "synthetic-com-held_out-invalid",
+      "input_digest": "9fea34cd39f2a45a841e350c8d0826627c68e64482a04666117af8f779c4218b",
+      "labels": {
+        "assessment": "gap_found",
+        "critical_error": true,
+        "alternative_method": false,
+        "score": 0,
+        "human_review_required": false
+      }
+    },
+    {
+      "case_id": "synthetic-com-held_out-partial",
+      "input_digest": "0999dbfad28d4262fc36c7916ab5fe0c1e707f10e2caa2a6b3ea5f6ec3ec9651",
+      "labels": {
+        "assessment": "incomplete",
+        "critical_error": false,
+        "alternative_method": false,
+        "score": null,
+        "human_review_required": false
+      }
+    }
+  ],
+  "package_reviews": [],
+  "annotations": [],
+  "adjudications": [],
+  "digest": "41184df9913a90e51d43777cbbb51b73ba76b25fb09980bd593b465ce525c8c2"
+}

@@ -64,6 +64,10 @@ browser configuration. The user acknowledgement explains third-party processing;
 
 ## Validation and activation prerequisites
 
+The separate [local Phase 1 evaluation infrastructure](problem-evaluation-packages.md)
+adds immutable reference packages, human decision history, and a synthetic-only
+offline harness. It does not change or satisfy the runtime activation gates below.
+
 Ordinary tests use a fake provider and no paid requests. The 80 synthetic cases in
 `inspinia.solutions.testdata` are seed material requiring coach review, not validated
 benchmark labels. The offline evaluation command rejects unapproved labels and

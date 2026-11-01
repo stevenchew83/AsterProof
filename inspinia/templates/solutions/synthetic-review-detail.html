@@ -1,0 +1,129 @@
+{% extends 'layouts/vertical.html' %}
+
+{% block title %}
+  Private review report
+{% endblock title %}
+{% block page_content %}
+  <div class="container-fluid">
+    {% include 'partials/page-title.html' with title=mode_label subtitle='Private report' page_icon='ti-file-description' %}
+    <div class="app-table-toolbar d-flex gap-2 flex-wrap mb-3">
+      <a href="{% url 'solutions:synthetic_review_workspace' %}?case_id={{ review.case_id|urlencode }}"
+         class="btn btn-outline-primary">Back to review workspace</a><span class="badge bg-secondary-subtle text-secondary align-self-center">Private · Synthetic example</span>
+    </div>
+    <div class="alert alert-info" role="status">
+      This report uses synthetic, unapproved material. It is not human marking or formal verification.
+    </div>
+    <div class="row g-3">
+      <section class="col-lg-5" aria-labelledby="source-title">
+        <div class="card">
+          <div class="card-body">
+            <h2 id="source-title" class="header-title">Reviewed submission</h2>
+            <p>{{ packet.package.content.statement }}</p>
+            <p class="font-monospace text-break">{{ packet.submission.body_source }}</p>
+            <p class="text-muted fs-xs mb-0">
+              {{ review.case_id }} · Package v{{ packet.package.version }} · {{ review.created_at|date:'j M Y, H:i' }}
+            </p>
+          </div>
+        </div>
+      </section>
+      <section class="col-lg-7" aria-labelledby="feedback-title">
+        <div class="card">
+          <div class="card-body">
+            <h2 id="feedback-title" class="header-title">Assessment and feedback</h2>
+            <p>{{ report.summary }}</p>
+            {% if report.human_review_required %}
+              <div class="alert alert-warning" role="status">
+                Human review is required before drawing a mathematical conclusion.
+              </div>
+            {% endif %}
+            {% if report.strengths %}
+              <h3 class="h5">What is working</h3>
+              <ul>
+                {% for strength in report.strengths %}<li>{{ strength }}</li>{% endfor %}
+              </ul>
+            {% endif %}
+            {% for finding in report.findings %}
+              <article class="border-top pt-3 mt-3"
+                       aria-labelledby="finding-{{ finding.id }}">
+                <h3 class="h5" id="finding-{{ finding.id }}">
+                  Finding {{ forloop.counter }} <span class="badge bg-warning-subtle text-warning">{{ finding.severity|capfirst }}</span>
+                </h3>
+                <blockquote class="border-start border-3 ps-3 text-break">
+                  {{ finding.source_quote }}
+                </blockquote>
+                <p>{{ finding.explanation }}</p>
+                <p>
+                  <strong>Next step:</strong> {{ finding.next_step }}
+                </p>
+                {% for hint in finding.hints %}
+                  <div class="alert alert-light" data-revealed-hint>
+                    <strong>Hint {{ forloop.counter }}:</strong> {{ hint }}
+                  </div>
+                {% endfor %}
+                {% if finding.next_hint_level and can_reveal %}
+                  <form method="post"
+                        action="{% url 'solutions:synthetic_review_hint' review.pk %}">
+                    {% csrf_token %}
+                    <input type="hidden" name="finding_id" value="{{ finding.id }}" />
+                    <input type="hidden" name="level" value="{{ finding.next_hint_level }}" />
+                    <button class="btn btn-outline-primary btn-sm">Reveal hint {{ finding.next_hint_level }}</button>
+                  </form>
+                {% endif %}
+              </article>{% empty %}
+              <p class="text-muted">
+                No issue was identified in this synthetic assessment. That is not a guarantee of correctness.
+              </p>
+            {% endfor %}
+            {% if report.score %}
+              <section class="border-top pt-3 mt-3" aria-labelledby="score-title">
+                <h3 class="h5" id="score-title">Provisional rubric score</h3>
+                <p class="text-muted fs-sm">{{ report.score.label }}</p>
+                {% if report.score.total != None %}
+                  <p class="h3">{{ report.score.total }} / {{ report.score.max_score }}</p>
+                {% else %}
+                  <div class="alert alert-warning" role="status">Score withheld: human review required.</div>
+                {% endif %}
+                {% for reason in report.score.reasons %}<p>{{ reason }}</p>{% endfor %}
+                <ul class="list-unstyled">
+                  {% for criterion in report.score.criteria %}
+                    <li class="mb-2">
+                      <strong>{{ criterion.description }}</strong> · {{ criterion.points }} / {{ criterion.max_points }}
+                      <br />
+                      <span class="text-muted fs-sm">{{ criterion.justification }}
+                        {% if criterion.reason == 'dependency_not_met' %}Credit withheld because a prerequisite is missing.{% endif %}
+                      </span>
+                      {% for evidence in criterion.evidence %}
+                        <blockquote class="border-start ps-3 text-break mt-2 fs-sm">
+                          {{ evidence.quote }}
+                        </blockquote>
+                      {% endfor %}
+                    </li>
+                  {% endfor %}
+                </ul>
+                {% for cap in report.score.applied_caps %}
+                  <p class="text-muted fs-sm">Applied cap: {{ cap.description }} Maximum {{ cap.max_score }}.</p>
+                {% endfor %}
+              </section>
+            {% endif %}
+            {% if report.reference %}
+              <section class="border-top pt-3 mt-3" aria-labelledby="reference-title">
+                <h3 class="h5">Detailed corrections</h3>
+                {% for correction in report.corrections %}
+                  <p>{{ correction.corrected_argument }}</p>
+                {% empty %}
+                  <p>No correction was identified in the submitted argument.</p>
+                {% endfor %}
+                <h3 class="h5" id="reference-title">Complete synthetic reference solution</h3>
+                <p>{{ report.reference.proof }}</p>
+                <p class="text-muted fs-sm">{{ report.reference.source }} · Not human-approved.</p>
+              </section>
+            {% endif %}
+            <div class="border-top pt-3 mt-3 text-muted fs-sm">
+              {% for limitation in report.limitations %}<p class="mb-1">{{ limitation }}</p>{% endfor %}
+            </div>
+          </div>
+        </div>
+      </section>
+    </div>
+  </div>
+{% endblock page_content %}

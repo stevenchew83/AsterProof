@@ -1,0 +1,832 @@
+{
+  "schema_version": 1,
+  "provenance": "synthetic_unapproved",
+  "packages": [
+    {
+      "id": "synthetic-alg-development-v1",
+      "problem_id": "synthetic-alg-development",
+      "version": 1,
+      "content": {
+        "schema_version": 1,
+        "statement": "For every real x, prove x^2 + 2 >= 2.",
+        "assumptions": [],
+        "domain": "ALG",
+        "level": "Synthetic elementary proof exercise; not an Olympiad calibration sample",
+        "references": [
+          {
+            "id": "reference-1",
+            "method": "direct",
+            "proof": "A real square is nonnegative. Adding 2 proves the claim.",
+            "source": "Synthetic development material; awaiting independent human review"
+          }
+        ],
+        "rubric": {
+          "max_score": 7,
+          "criteria": [
+            {
+              "id": "milestone",
+              "description": "Justify the nonnegativity of a real square.",
+              "points": 3,
+              "depends_on": []
+            },
+            {
+              "id": "completion",
+              "description": "Complete a valid proof under the exact assumptions.",
+              "points": 4,
+              "depends_on": [
+                "milestone"
+              ]
+            }
+          ],
+          "caps": [
+            {
+              "id": "missing-milestone",
+              "description": "No credit without a supported milestone.",
+              "missing_any_of": [
+                "milestone"
+              ],
+              "max_score": 0
+            }
+          ],
+          "exclusive_groups": []
+        },
+        "known_pitfalls": [
+          "Do not infer correctness from presentation or similarity to a reference."
+        ],
+        "images": []
+      },
+      "digest": "bd124a3cd472d72bf5ae86141d070ca09fcdc3ff17d1d450b6af3e0fdfbfdc22"
+    },
+    {
+      "id": "synthetic-nt-development-v1",
+      "problem_id": "synthetic-nt-development",
+      "version": 1,
+      "content": {
+        "schema_version": 1,
+        "statement": "For every integer n, prove that n(n+1) is even.",
+        "assumptions": [],
+        "domain": "NT",
+        "level": "Synthetic elementary proof exercise; not an Olympiad calibration sample",
+        "references": [
+          {
+            "id": "reference-1",
+            "method": "direct",
+            "proof": "One of two consecutive integers is even, so their product is even.",
+            "source": "Synthetic development material; awaiting independent human review"
+          }
+        ],
+        "rubric": {
+          "max_score": 7,
+          "criteria": [
+            {
+              "id": "milestone",
+              "description": "Establish divisibility by 2 for every integer n.",
+              "points": 3,
+              "depends_on": []
+            },
+            {
+              "id": "completion",
+              "description": "Complete a valid proof under the exact assumptions.",
+              "points": 4,
+              "depends_on": [
+                "milestone"
+              ]
+            }
+          ],
+          "caps": [
+            {
+              "id": "missing-milestone",
+              "description": "No credit without a supported milestone.",
+              "missing_any_of": [
+                "milestone"
+              ],
+              "max_score": 0
+            }
+          ],
+          "exclusive_groups": []
+        },
+        "known_pitfalls": [
+          "Do not infer correctness from presentation or similarity to a reference."
+        ],
+        "images": []
+      },
+      "digest": "3e0bf955d4bc03224235e2032d4975d9a8a048118745c6b7719c734a3e84f3d9"
+    },
+    {
+      "id": "synthetic-geo-development-v1",
+      "problem_id": "synthetic-geo-development",
+      "version": 1,
+      "content": {
+        "schema_version": 1,
+        "statement": "In a nondegenerate triangle ABC with AB=AC, prove angle ABC = angle BCA.",
+        "assumptions": [],
+        "domain": "GEO",
+        "level": "Synthetic elementary proof exercise; not an Olympiad calibration sample",
+        "references": [
+          {
+            "id": "reference-1",
+            "method": "direct",
+            "proof": "Triangles ABC and ACB are congruent by SSS. Corresponding angles ABC and ACB are equal.",
+            "source": "Synthetic development material; awaiting independent human review"
+          }
+        ],
+        "rubric": {
+          "max_score": 7,
+          "criteria": [
+            {
+              "id": "milestone",
+              "description": "Give a valid reason that the two base angles are equal.",
+              "points": 3,
+              "depends_on": []
+            },
+            {
+              "id": "completion",
+              "description": "Complete a valid proof under the exact assumptions.",
+              "points": 4,
+              "depends_on": [
+                "milestone"
+              ]
+            }
+          ],
+          "caps": [
+            {
+              "id": "missing-milestone",
+              "description": "No credit without a supported milestone.",
+              "missing_any_of": [
+                "milestone"
+              ],
+              "max_score": 0
+            }
+          ],
+          "exclusive_groups": []
+        },
+        "known_pitfalls": [
+          "Do not infer correctness from presentation or similarity to a reference."
+        ],
+        "images": []
+      },
+      "digest": "2b49cc852211cbd9f0a6ed4502e29f3ec027eb55ec38397defe2ab8e831c1202"
+    },
+    {
+      "id": "synthetic-com-development-v1",
+      "problem_id": "synthetic-com-development",
+      "version": 1,
+      "content": {
+        "schema_version": 1,
+        "statement": "Six balls are placed in five boxes. Prove that some box contains at least two balls.",
+        "assumptions": [],
+        "domain": "COM",
+        "level": "Synthetic elementary proof exercise; not an Olympiad calibration sample",
+        "references": [
+          {
+            "id": "reference-1",
+            "method": "direct",
+            "proof": "If every box contained at most one ball, there would be at most five balls, contradicting six.",
+            "source": "Synthetic development material; awaiting independent human review"
+          }
+        ],
+        "rubric": {
+          "max_score": 7,
+          "criteria": [
+            {
+              "id": "milestone",
+              "description": "Explain why not all five boxes can contain at most one ball.",
+              "points": 3,
+              "depends_on": []
+            },
+            {
+              "id": "completion",
+              "description": "Complete a valid proof under the exact assumptions.",
+              "points": 4,
+              "depends_on": [
+                "milestone"
+              ]
+            }
+          ],
+          "caps": [
+            {
+              "id": "missing-milestone",
+              "description": "No credit without a supported milestone.",
+              "missing_any_of": [
+                "milestone"
+              ],
+              "max_score": 0
+            }
+          ],
+          "exclusive_groups": []
+        },
+        "known_pitfalls": [
+          "Do not infer correctness from presentation or similarity to a reference."
+        ],
+        "images": []
+      },
+      "digest": "63ece7cfae76e62b056349ad1f86aacf1f3d40149e5e5a763a7d617e304b8d5e"
+    },
+    {
+      "id": "synthetic-alg-held_out-v1",
+      "problem_id": "synthetic-alg-held_out",
+      "version": 1,
+      "content": {
+        "schema_version": 1,
+        "statement": "For positive real a and b, prove a+b >= 2 sqrt(ab).",
+        "assumptions": [],
+        "domain": "ALG",
+        "level": "Synthetic elementary proof exercise; not an Olympiad calibration sample",
+        "references": [
+          {
+            "id": "reference-1",
+            "method": "direct",
+            "proof": "Expand (sqrt(a)-sqrt(b))^2 >= 0 to obtain a+b >= 2 sqrt(ab).",
+            "source": "Synthetic development material; awaiting independent human review"
+          }
+        ],
+        "rubric": {
+          "max_score": 7,
+          "criteria": [
+            {
+              "id": "milestone",
+              "description": "Establish the required inequality, including equality when a=b.",
+              "points": 3,
+              "depends_on": []
+            },
+            {
+              "id": "completion",
+              "description": "Complete a valid proof under the exact assumptions.",
+              "points": 4,
+              "depends_on": [
+                "milestone"
+              ]
+            }
+          ],
+          "caps": [
+            {
+              "id": "missing-milestone",
+              "description": "No credit without a supported milestone.",
+              "missing_any_of": [
+                "milestone"
+              ],
+              "max_score": 0
+            }
+          ],
+          "exclusive_groups": []
+        },
+        "known_pitfalls": [
+          "Do not infer correctness from presentation or similarity to a reference."
+        ],
+        "images": []
+      },
+      "digest": "0c62123a137485a4be112e04cb00fcb3c8bcda3273106629026db33fd0918b81"
+    },
+    {
+      "id": "synthetic-nt-held_out-v1",
+      "problem_id": "synthetic-nt-held_out",
+      "version": 1,
+      "content": {
+        "schema_version": 1,
+        "statement": "For every integer n, prove that n(n+1)(n+2) is divisible by 6.",
+        "assumptions": [],
+        "domain": "NT",
+        "level": "Synthetic elementary proof exercise; not an Olympiad calibration sample",
+        "references": [
+          {
+            "id": "reference-1",
+            "method": "direct",
+            "proof": "Among three consecutive integers one is divisible by 3 and at least one is even. Since 2 and 3 are coprime, the product is divisible by 6.",
+            "source": "Synthetic development material; awaiting independent human review"
+          }
+        ],
+        "rubric": {
+          "max_score": 7,
+          "criteria": [
+            {
+              "id": "milestone",
+              "description": "Establish that the product is divisible by 2.",
+              "points": 3,
+              "depends_on": []
+            },
+            {
+              "id": "completion",
+              "description": "Complete a valid proof under the exact assumptions.",
+              "points": 4,
+              "depends_on": [
+                "milestone"
+              ]
+            }
+          ],
+          "caps": [
+            {
+              "id": "missing-milestone",
+              "description": "No credit without a supported milestone.",
+              "missing_any_of": [
+                "milestone"
+              ],
+              "max_score": 0
+            }
+          ],
+          "exclusive_groups": []
+        },
+        "known_pitfalls": [
+          "Do not infer correctness from presentation or similarity to a reference."
+        ],
+        "images": []
+      },
+      "digest": "3be4bf687880f2035b45cff5fb933b55e1e14d7bad6333fa330eff80bad55101"
+    },
+    {
+      "id": "synthetic-geo-held_out-v1",
+      "problem_id": "synthetic-geo-held_out",
+      "version": 1,
+      "content": {
+        "schema_version": 1,
+        "statement": "Triangle ABC has a right angle at A. If M is the midpoint of BC, prove MA=MB=MC.",
+        "assumptions": [],
+        "domain": "GEO",
+        "level": "Synthetic elementary proof exercise; not an Olympiad calibration sample",
+        "references": [
+          {
+            "id": "reference-1",
+            "method": "direct",
+            "proof": "Take A=(0,0), B=(b,0), C=(0,c), where b,c>0. Then M=(b/2,c/2), and all three squared distances equal (b^2+c^2)/4.",
+            "source": "Synthetic development material; awaiting independent human review"
+          }
+        ],
+        "rubric": {
+          "max_score": 7,
+          "criteria": [
+            {
+              "id": "milestone",
+              "description": "Establish that the midpoint of the hypotenuse is equidistant from all three vertices.",
+              "points": 3,
+              "depends_on": []
+            },
+            {
+              "id": "completion",
+              "description": "Complete a valid proof under the exact assumptions.",
+              "points": 4,
+              "depends_on": [
+                "milestone"
+              ]
+            }
+          ],
+          "caps": [
+            {
+              "id": "missing-milestone",
+              "description": "No credit without a supported milestone.",
+              "missing_any_of": [
+                "milestone"
+              ],
+              "max_score": 0
+            }
+          ],
+          "exclusive_groups": []
+        },
+        "known_pitfalls": [
+          "Do not infer correctness from presentation or similarity to a reference."
+        ],
+        "images": []
+      },
+      "digest": "3303e7866130d444bce820bb7193e1677304ee22506b2a18f78f902607b23454"
+    },
+    {
+      "id": "synthetic-com-held_out-v1",
+      "problem_id": "synthetic-com-held_out",
+      "version": 1,
+      "content": {
+        "schema_version": 1,
+        "statement": "Prove that a simple undirected graph on three vertices has two vertices of equal degree.",
+        "assumptions": [],
+        "domain": "COM",
+        "level": "Synthetic elementary proof exercise; not an Olympiad calibration sample",
+        "references": [
+          {
+            "id": "reference-1",
+            "method": "direct",
+            "proof": "Degrees are in {0,1,2}. If all differed, there would be both an isolated vertex and a vertex adjacent to every other vertex, a contradiction.",
+            "source": "Synthetic development material; awaiting independent human review"
+          }
+        ],
+        "rubric": {
+          "max_score": 7,
+          "criteria": [
+            {
+              "id": "milestone",
+              "description": "Rule out the possibility that all three degrees are distinct.",
+              "points": 3,
+              "depends_on": []
+            },
+            {
+              "id": "completion",
+              "description": "Complete a valid proof under the exact assumptions.",
+              "points": 4,
+              "depends_on": [
+                "milestone"
+              ]
+            }
+          ],
+          "caps": [
+            {
+              "id": "missing-milestone",
+              "description": "No credit without a supported milestone.",
+              "missing_any_of": [
+                "milestone"
+              ],
+              "max_score": 0
+            }
+          ],
+          "exclusive_groups": []
+        },
+        "known_pitfalls": [
+          "Do not infer correctness from presentation or similarity to a reference."
+        ],
+        "images": []
+      },
+      "digest": "86237b5b1d5a9b197a0b9937c743ea733b6b768de94d563eab6ce66e6f61d602"
+    }
+  ],
+  "cases": [
+    {
+      "id": "synthetic-alg-development-alternative",
+      "package_id": "synthetic-alg-development-v1",
+      "split": "development",
+      "submission": {
+        "body_source": "The minimum of x^2 is 0, attained at x=0, so x^2+2 >= 2."
+      },
+      "candidate_labels": {
+        "assessment": "no_issues_found",
+        "critical_error": false,
+        "alternative_method": true,
+        "score": 7,
+        "human_review_required": false
+      },
+      "input_digest": "04cc79f910528383bc1b7fc3e9573634ad297457852ac2c2812c55abe9fea4d0"
+    },
+    {
+      "id": "synthetic-alg-development-invalid",
+      "package_id": "synthetic-alg-development-v1",
+      "split": "development",
+      "submission": {
+        "body_source": "Since x > 0, we have x^2 > 0, and therefore x^2+2 > 2."
+      },
+      "candidate_labels": {
+        "assessment": "gap_found",
+        "critical_error": true,
+        "alternative_method": false,
+        "score": 0,
+        "human_review_required": false
+      },
+      "input_digest": "af027c961c80c669718cdaa4ff43df06d1273bba9e41939407a8c18c12471128"
+    },
+    {
+      "id": "synthetic-alg-development-partial",
+      "package_id": "synthetic-alg-development-v1",
+      "split": "development",
+      "submission": {
+        "body_source": "Subtracting 2, it remains to prove x^2 >= 0."
+      },
+      "candidate_labels": {
+        "assessment": "incomplete",
+        "critical_error": false,
+        "alternative_method": false,
+        "score": null,
+        "human_review_required": false
+      },
+      "input_digest": "55e59c764b38c35ed0c7bb5fad9255bf03170c3692e2226c41a71f484618d81b"
+    },
+    {
+      "id": "synthetic-nt-development-alternative",
+      "package_id": "synthetic-nt-development-v1",
+      "split": "development",
+      "submission": {
+        "body_source": "Modulo 2, n^2 is congruent to n, so n(n+1) is congruent to 2n, hence to 0."
+      },
+      "candidate_labels": {
+        "assessment": "no_issues_found",
+        "critical_error": false,
+        "alternative_method": true,
+        "score": 7,
+        "human_review_required": false
+      },
+      "input_digest": "05d0ab4cd4d21b3f57ea139aeed856f54e7bb792cea3ce5d280bf0210bc89500"
+    },
+    {
+      "id": "synthetic-nt-development-invalid",
+      "package_id": "synthetic-nt-development-v1",
+      "split": "development",
+      "submission": {
+        "body_source": "Every integer n is even, so n(n+1) is even."
+      },
+      "candidate_labels": {
+        "assessment": "gap_found",
+        "critical_error": true,
+        "alternative_method": false,
+        "score": 0,
+        "human_review_required": false
+      },
+      "input_digest": "425334dd791824fbf67cb465f00be7902a4116a8ac0a583bd98e371cf5bad954"
+    },
+    {
+      "id": "synthetic-nt-development-partial",
+      "package_id": "synthetic-nt-development-v1",
+      "split": "development",
+      "submission": {
+        "body_source": "It suffices to find an integer k with n(n+1)=2k."
+      },
+      "candidate_labels": {
+        "assessment": "incomplete",
+        "critical_error": false,
+        "alternative_method": false,
+        "score": null,
+        "human_review_required": false
+      },
+      "input_digest": "9303c04c6b70b4d41418891b4bfe68c7afcd97c484805eb718de39c809c160ba"
+    },
+    {
+      "id": "synthetic-geo-development-alternative",
+      "package_id": "synthetic-geo-development-v1",
+      "split": "development",
+      "submission": {
+        "body_source": "The cosine rule and AB=AC give equal cosines for angles ABC and BCA. Both lie in (0, pi), where cosine is injective, so they are equal."
+      },
+      "candidate_labels": {
+        "assessment": "no_issues_found",
+        "critical_error": false,
+        "alternative_method": true,
+        "score": 7,
+        "human_review_required": false
+      },
+      "input_digest": "e6a465debcb0ed243993f8fe2db64def96f01edcc7e22f434eb5ea9a4b9fc087"
+    },
+    {
+      "id": "synthetic-geo-development-invalid",
+      "package_id": "synthetic-geo-development-v1",
+      "split": "development",
+      "submission": {
+        "body_source": "The picture looks symmetric, so the two base angles are equal."
+      },
+      "candidate_labels": {
+        "assessment": "gap_found",
+        "critical_error": true,
+        "alternative_method": false,
+        "score": 0,
+        "human_review_required": false
+      },
+      "input_digest": "bb4d8770aee9a3e9de04085ce57475ad27aa2aae2457c9910c40061af5e7478a"
+    },
+    {
+      "id": "synthetic-geo-development-partial",
+      "package_id": "synthetic-geo-development-v1",
+      "split": "development",
+      "submission": {
+        "body_source": "Let M be the midpoint of BC. We have BM=CM and AM is common."
+      },
+      "candidate_labels": {
+        "assessment": "incomplete",
+        "critical_error": false,
+        "alternative_method": false,
+        "score": null,
+        "human_review_required": false
+      },
+      "input_digest": "9af256fb863ea7426f0399f65faa75f5682090cd88236db600ff13e529dd0ab9"
+    },
+    {
+      "id": "synthetic-com-development-alternative",
+      "package_id": "synthetic-com-development-v1",
+      "split": "development",
+      "submission": {
+        "body_source": "The pigeonhole principle, with six balls as objects and five boxes as holes, gives the result."
+      },
+      "candidate_labels": {
+        "assessment": "no_issues_found",
+        "critical_error": false,
+        "alternative_method": true,
+        "score": 7,
+        "human_review_required": false
+      },
+      "input_digest": "1becac78fd605ac0bff58c28b02325a1f48b36eea086f98f75a2dee977c1a314"
+    },
+    {
+      "id": "synthetic-com-development-invalid",
+      "package_id": "synthetic-com-development-v1",
+      "split": "development",
+      "submission": {
+        "body_source": "Every box contains exactly two balls because six is larger than five."
+      },
+      "candidate_labels": {
+        "assessment": "gap_found",
+        "critical_error": true,
+        "alternative_method": false,
+        "score": 0,
+        "human_review_required": false
+      },
+      "input_digest": "d3dd555bb2f0bfaeb6b67b8f5a31890b30e55316fe66e2b787fd1f7c4ee948f7"
+    },
+    {
+      "id": "synthetic-com-development-partial",
+      "package_id": "synthetic-com-development-v1",
+      "split": "development",
+      "submission": {
+        "body_source": "The average number of balls in a box is 6/5."
+      },
+      "candidate_labels": {
+        "assessment": "incomplete",
+        "critical_error": false,
+        "alternative_method": false,
+        "score": null,
+        "human_review_required": false
+      },
+      "input_digest": "2185d55c7afbab5ec0ba1c4db26a810c591295b883a9c974d82c5eb83e1fe790"
+    },
+    {
+      "id": "synthetic-alg-held_out-alternative",
+      "package_id": "synthetic-alg-held_out-v1",
+      "split": "held_out",
+      "submission": {
+        "body_source": "We have (a+b)^2-4ab=(a-b)^2 >= 0. Taking nonnegative square roots gives the claim."
+      },
+      "candidate_labels": {
+        "assessment": "no_issues_found",
+        "critical_error": false,
+        "alternative_method": true,
+        "score": 7,
+        "human_review_required": false
+      },
+      "input_digest": "2f35104005d202a7642e88de8e8440c72df82e4768131b520464cfa89a13bf2e"
+    },
+    {
+      "id": "synthetic-alg-held_out-invalid",
+      "package_id": "synthetic-alg-held_out-v1",
+      "split": "held_out",
+      "submission": {
+        "body_source": "Since (a-b)^2 < 0, expanding gives a+b >= 2 sqrt(ab)."
+      },
+      "candidate_labels": {
+        "assessment": "gap_found",
+        "critical_error": true,
+        "alternative_method": false,
+        "score": 0,
+        "human_review_required": false
+      },
+      "input_digest": "14ee7ce596475c5651daeeb1902b6a7666fc672ece00661772187c02c7acc505"
+    },
+    {
+      "id": "synthetic-alg-held_out-partial",
+      "package_id": "synthetic-alg-held_out-v1",
+      "split": "held_out",
+      "submission": {
+        "body_source": "The difference between the two sides is a+b-2 sqrt(ab)."
+      },
+      "candidate_labels": {
+        "assessment": "incomplete",
+        "critical_error": false,
+        "alternative_method": false,
+        "score": null,
+        "human_review_required": false
+      },
+      "input_digest": "2e7b1674effcee103b43e2b506c10b2ede3f594bc676d350c1f63f12f17acce0"
+    },
+    {
+      "id": "synthetic-nt-held_out-alternative",
+      "package_id": "synthetic-nt-held_out-v1",
+      "split": "held_out",
+      "submission": {
+        "body_source": "The product equals (n+1)^3-(n+1). For every integer m, m^3-m is 0 modulo both 2 and 3, as checking their residues shows. Hence it is 0 modulo 6."
+      },
+      "candidate_labels": {
+        "assessment": "no_issues_found",
+        "critical_error": false,
+        "alternative_method": true,
+        "score": 7,
+        "human_review_required": false
+      },
+      "input_digest": "c6ce2d5bac33dd7bde509fc3de1e73e0f9b1dfe1f09b5d9bd2fe8bce084c8537"
+    },
+    {
+      "id": "synthetic-nt-held_out-invalid",
+      "package_id": "synthetic-nt-held_out-v1",
+      "split": "held_out",
+      "submission": {
+        "body_source": "The product is even, so it is divisible by 6."
+      },
+      "candidate_labels": {
+        "assessment": "gap_found",
+        "critical_error": true,
+        "alternative_method": false,
+        "score": 3,
+        "human_review_required": false
+      },
+      "input_digest": "c10a5ca937665a62327ac3e39e59025d78094bd9aed2fe0c690f905362b6f214"
+    },
+    {
+      "id": "synthetic-nt-held_out-partial",
+      "package_id": "synthetic-nt-held_out-v1",
+      "split": "held_out",
+      "submission": {
+        "body_source": "Among n and n+1 one is even, so the product is divisible by 2."
+      },
+      "candidate_labels": {
+        "assessment": "incomplete",
+        "critical_error": false,
+        "alternative_method": false,
+        "score": 3,
+        "human_review_required": false
+      },
+      "input_digest": "4fbacf11b3b1e9cb6a0f929f281dc315c2e6fb77f349658d4d75284f98e53613"
+    },
+    {
+      "id": "synthetic-geo-held_out-alternative",
+      "package_id": "synthetic-geo-held_out-v1",
+      "split": "held_out",
+      "submission": {
+        "body_source": "By Thales theorem, A lies on the circle with diameter BC. Its center is M, so MA, MB, and MC are radii of the same circle."
+      },
+      "candidate_labels": {
+        "assessment": "no_issues_found",
+        "critical_error": false,
+        "alternative_method": true,
+        "score": 7,
+        "human_review_required": false
+      },
+      "input_digest": "2d824fcd740569fa979266223759f85f1e25b92acc19ebbac0512678d2eaee80"
+    },
+    {
+      "id": "synthetic-geo-held_out-invalid",
+      "package_id": "synthetic-geo-held_out-v1",
+      "split": "held_out",
+      "submission": {
+        "body_source": "Every right triangle has two 45 degree angles, so the median AM bisects the triangle and the distances are equal."
+      },
+      "candidate_labels": {
+        "assessment": "gap_found",
+        "critical_error": true,
+        "alternative_method": false,
+        "score": 0,
+        "human_review_required": false
+      },
+      "input_digest": "948df384b537509af6ffcb8781816e49cfd9a6c23e1f1a50b173a9b2e24aca73"
+    },
+    {
+      "id": "synthetic-geo-held_out-partial",
+      "package_id": "synthetic-geo-held_out-v1",
+      "split": "held_out",
+      "submission": {
+        "body_source": "My proof is in the missing attachment."
+      },
+      "candidate_labels": {
+        "assessment": "unable_to_assess",
+        "critical_error": false,
+        "alternative_method": false,
+        "score": null,
+        "human_review_required": true
+      },
+      "input_digest": "e3b3240e73986b3ed177ba2211ab2821d15e97a122ddb835fa1e3d55cda6cbd8"
+    },
+    {
+      "id": "synthetic-com-held_out-alternative",
+      "package_id": "synthetic-com-held_out-v1",
+      "split": "held_out",
+      "submission": {
+        "body_source": "With 0,1,2,3 edges, the degree multisets are respectively {0,0,0}, {0,1,1}, {1,1,2}, and {2,2,2}. Each has a repeated degree."
+      },
+      "candidate_labels": {
+        "assessment": "no_issues_found",
+        "critical_error": false,
+        "alternative_method": true,
+        "score": 7,
+        "human_review_required": false
+      },
+      "input_digest": "d6eadc2de79eca6b21fa7643a55a4120667a98428b4994cac2de6583bf8c4d4d"
+    },
+    {
+      "id": "synthetic-com-held_out-invalid",
+      "package_id": "synthetic-com-held_out-v1",
+      "split": "held_out",
+      "submission": {
+        "body_source": "The sum of degrees is even, so all three degrees are equal."
+      },
+      "candidate_labels": {
+        "assessment": "gap_found",
+        "critical_error": true,
+        "alternative_method": false,
+        "score": 0,
+        "human_review_required": false
+      },
+      "input_digest": "9fea34cd39f2a45a841e350c8d0826627c68e64482a04666117af8f779c4218b"
+    },
+    {
+      "id": "synthetic-com-held_out-partial",
+      "package_id": "synthetic-com-held_out-v1",
+      "split": "held_out",
+      "submission": {
+        "body_source": "Each vertex has degree 0, 1, or 2."
+      },
+      "candidate_labels": {
+        "assessment": "incomplete",
+        "critical_error": false,
+        "alternative_method": false,
+        "score": null,
+        "human_review_required": false
+      },
+      "input_digest": "0999dbfad28d4262fc36c7916ab5fe0c1e707f10e2caa2a6b3ea5f6ec3ec9651"
+    }
+  ]
+}

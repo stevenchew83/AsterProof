@@ -374,5 +374,9 @@ class SolutionBodyImage(models.Model):
         return f"Body image {self.pk} → solution {self.solution_id}"
 
 
+from inspinia.solutions.evaluation_models import EvaluationPackageApproval  # noqa: E402, F401
+from inspinia.solutions.evaluation_models import ProblemEvaluationPackage  # noqa: E402, F401
+from inspinia.solutions.prototype_models import SyntheticHintReveal  # noqa: E402, F401
+from inspinia.solutions.prototype_models import SyntheticReview  # noqa: E402, F401
 from inspinia.solutions.review_models import SolutionReview  # noqa: E402, F401
 from inspinia.solutions.review_models import SolutionReviewPolicy  # noqa: E402, F401

@@ -5,6 +5,9 @@ from inspinia.solutions.admin_collections import admin_collection_selection_view
 from inspinia.solutions.admin_collections import admin_collections_view
 from inspinia.solutions.admin_sharing import admin_public_shares_view
 from inspinia.solutions.collection_views import collection_edit_view
+from inspinia.solutions.prototype_views import synthetic_review_detail
+from inspinia.solutions.prototype_views import synthetic_review_hint
+from inspinia.solutions.prototype_views import synthetic_review_workspace
 from inspinia.solutions.public_views import public_collection_view
 from inspinia.solutions.public_views import public_solution_image_view
 from inspinia.solutions.public_views import public_solution_view
@@ -24,6 +27,9 @@ from inspinia.solutions.views import solution_guide_preference_view
 app_name = "solutions"
 
 urlpatterns = [
+    path("admin/review-prototype/", synthetic_review_workspace, name="synthetic_review_workspace"),
+    path("admin/review-prototype/<uuid:review_id>/", synthetic_review_detail, name="synthetic_review_detail"),
+    path("admin/review-prototype/<uuid:review_id>/hints/", synthetic_review_hint, name="synthetic_review_hint"),
     path("admin/collections/", admin_collections_view, name="admin_collections"),
     path("admin/collections/selection/", admin_collection_selection_view, name="admin_collection_selection"),
     path("admin/collections/new/", admin_collection_edit_view, name="admin_collection_create"),
