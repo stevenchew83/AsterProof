@@ -400,14 +400,7 @@ jobs:
               else:
                   from scripts.deployment.additive_schema import schema_for_disclosure, validate_disclosure
                   approved = schema_for_disclosure(json.loads(os_disclosure))
-                  from scripts.deployment import learning_schema
-                  if approved is learning_schema:
-                      expected = sorted([
-                          {'migration': app + '.' + name, 'classification': 'backward-compatible-schema'}
-                          for app, name in learning_schema.MIGRATIONS
-                      ], key=lambda row: row['migration'])
-                  else:
-                      expected = [{'migration': approved.MIGRATION, 'classification': 'backward-compatible-schema'}]
+                  expected = [{'migration': approved.MIGRATION, 'classification': 'backward-compatible-schema'}]
               schema = validate_disclosure(json.loads(os_disclosure), target_sha=value['target_sha'])
               if schema['active_sha'] != value['active_sha']:
                   raise SystemExit('Schema disclosure active release mismatch')

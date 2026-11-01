@@ -1,9 +1,6 @@
 from django.urls import path
 
-from inspinia.learning.asset_views import asset_detail
-
 from . import backend
-from . import learning
 from . import seo
 from . import views
 from .solution_preview import solution_preview_view
@@ -45,10 +42,6 @@ urlpatterns = [
     path("newsletter/subscribe/", views.newsletter_subscribe_view, name="newsletter_subscribe"),
     path("newsletter/confirm/<str:token>/", views.newsletter_confirm_view, name="newsletter_confirm"),
     path("newsletter/unsubscribe/<str:token>/", views.newsletter_unsubscribe_view, name="newsletter_unsubscribe"),
-    path("library/notes/<uuid:document_id>/<slug:slug>/", learning.learning_note, name="learning_note"),
-    path("library/notes/<uuid:document_id>/feedback/report/", learning.report_note, name="learning_report"),
-    path("library/assets/<uuid:asset_id>/", asset_detail, name="learning_asset"),
-    path("library/pathways/<slug:slug>/", learning.public_pathway, name="learning_pathway"),
     path("library/", views.library_view, name="library"),
     path("library/<slug:subject>/", views.library_subject_view, name="library_subject"),
     path("library/<slug:subject>/<slug:area_slug>/", views.library_area_view, name="library_area"),

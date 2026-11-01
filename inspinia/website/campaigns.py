@@ -15,6 +15,7 @@ from allauth.account.adapter import get_adapter
 from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.db import transaction
+from django.db.models import Q
 from django.db.models.functions import Lower
 from django.template.loader import render_to_string
 from django.urls import reverse
@@ -203,9 +204,10 @@ def _content_still_public(campaign):
     if campaign.lecture_template_version is None:
         return True
     notices = campaign.lecture_notices.all()
-    from .automation import public_lectures
-
-    return notices.exists() and not notices.exclude(lecture_id__in=public_lectures().values("pk")).exists()
+    return notices.exists() and not notices.filter(
+        Q(lecture__isnull=True) | Q(lecture__is_published=False)
+        | Q(lecture__concept__is_published=False) | Q(lecture__concept__area__is_published=False),
+    ).exists()
 
 
 def _dispatch(request, campaign, delivery):

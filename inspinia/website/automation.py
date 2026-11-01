@@ -12,7 +12,6 @@ from zoneinfo import ZoneInfo
 from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.db import transaction
-from django.db.models import Q
 from django.utils import timezone
 
 from . import campaigns
@@ -30,31 +29,12 @@ MAX_MESSAGES = 20
 MAX_SECONDS = 50
 
 
-def announcement_eligible_lectures(queryset):
-    """Reviewed shared-content mappings remain excluded, even with readers disabled."""
-    from .learning import schema_ready
-
-    if not schema_ready():
-        return queryset
-    excluded = Q()
-    for relation in ("learning_link", "concept__learning_link", "concept__area__learning_link"):
-        excluded |= Q(**{relation + "__announcement_excluded": True}) | Q(**{relation + "__is_cutover": True})
-    return queryset.exclude(excluded)
-
-
 def public_lectures():
-    return announcement_eligible_lectures(LibraryLecture.objects.filter(
+    return LibraryLecture.objects.filter(
         is_published=True,
         concept__is_published=True,
         concept__area__is_published=True,
-    ).select_related("concept__area"))
-
-
-def _exclude_pending_module_notices():
-    eligible = announcement_eligible_lectures(LibraryLecture.objects.all()).values("pk")
-    NewsletterLectureNotice.objects.filter(
-        status=NewsletterLectureNotice.Status.PENDING, lecture__isnull=False,
-    ).exclude(lecture_id__in=eligible).update(status=NewsletterLectureNotice.Status.EXCLUDED)
+    ).select_related("concept__area")
 
 
 def next_digest(when, digest_time):
@@ -241,7 +221,6 @@ def _prepare_lecture_digest():
             policy.lecture_error = "lecture_template_changed"
             policy.save(update_fields=["lecture_enabled", "next_digest_at", "lecture_error"])
             return
-        _exclude_pending_module_notices()
         _capture_lectures(NewsletterLectureNotice.Status.PENDING, maximum=100)
         if policy.next_digest_at and policy.next_digest_at > timezone.now():
             return

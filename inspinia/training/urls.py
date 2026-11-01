@@ -23,7 +23,6 @@ urlpatterns = [
     path("dashboard/", dashboard_view, name="dashboard"),
     path("training/", roadmap_view, name="roadmap"),
     path("submissions/", my_submissions_view, name="my_submissions"),
-    path("training/legacy/", roadmap_view, {"legacy": True}, name="legacy_roadmap"),
     path("training/<slug:topic_slug>/", topic_detail_view, name="topic_detail"),
     path("training/<slug:topic_slug>/<slug:subtopic_slug>/", subtopic_detail_view, name="subtopic_detail"),
     path("materials/<slug:material_slug>/", material_detail_view, name="material_detail"),

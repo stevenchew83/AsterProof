@@ -2,58 +2,6 @@
   "format_version": 1,
   "baseline_sha": null,
   "migrations": {
-    "pages.0045_prerequisitegraphstate_catalogueprerequisite": {
-      "classification": "backward-compatible-schema",
-      "recovery_required": false,
-      "code_rollback_permitted": true,
-      "data_preconditions": [
-        "exact_learning_bundle_and_postgresql_17_9_delta",
-        "new_learning_schema_tables_absent",
-        "historical_records_sequences_and_triggers_preserved",
-        "new_learning_tables_empty_and_notes_unpublished",
-        "verified_learning_reader_for_activation_and_recovery"
-      ],
-      "rationale": "Part of the exact additive Training 2.0 bundle: two prerequisite tables, thirteen shared-content tables, an archive flag on the newly created draft table, and five pathway/import/history tables. No backfill, source changes, grants, publication or announcements. The installed schema immediately establishes a durable learning-reader floor regardless of rows or feature flags. Code recovery is permitted only to an independently verified learning-aware reader; the ordinary previous reader is incompatible and must never be activated. The frozen PostgreSQL delta, preservation evidence and separate trusted allowance installation are required; this classification grants no production or content-publication authority."
-    },
-    "learning.0001_initial": {
-      "classification": "backward-compatible-schema",
-      "recovery_required": false,
-      "code_rollback_permitted": true,
-      "data_preconditions": [
-        "exact_learning_bundle_and_postgresql_17_9_delta",
-        "new_learning_schema_tables_absent",
-        "historical_records_sequences_and_triggers_preserved",
-        "new_learning_tables_empty_and_notes_unpublished",
-        "verified_learning_reader_for_activation_and_recovery"
-      ],
-      "rationale": "Part of the exact additive Training 2.0 bundle: two prerequisite tables, thirteen shared-content tables, an archive flag on the newly created draft table, and five pathway/import/history tables. No backfill, source changes, grants, publication or announcements. The installed schema immediately establishes a durable learning-reader floor regardless of rows or feature flags. Code recovery is permitted only to an independently verified learning-aware reader; the ordinary previous reader is incompatible and must never be activated. The frozen PostgreSQL delta, preservation evidence and separate trusted allowance installation are required; this classification grants no production or content-publication authority."
-    },
-    "learning.0002_contentdraft_is_archived": {
-      "classification": "backward-compatible-schema",
-      "recovery_required": false,
-      "code_rollback_permitted": true,
-      "data_preconditions": [
-        "exact_learning_bundle_and_postgresql_17_9_delta",
-        "new_learning_schema_tables_absent",
-        "historical_records_sequences_and_triggers_preserved",
-        "new_learning_tables_empty_and_notes_unpublished",
-        "verified_learning_reader_for_activation_and_recovery"
-      ],
-      "rationale": "Part of the exact additive Training 2.0 bundle: two prerequisite tables, thirteen shared-content tables, an archive flag on the newly created draft table, and five pathway/import/history tables. No backfill, source changes, grants, publication or announcements. The installed schema immediately establishes a durable learning-reader floor regardless of rows or feature flags. Code recovery is permitted only to an independently verified learning-aware reader; the ordinary previous reader is incompatible and must never be activated. The frozen PostgreSQL delta, preservation evidence and separate trusted allowance installation are required; this classification grants no production or content-publication authority."
-    },
-    "training.0006_learningpath_learningpathrevision_learningpathitem_and_more": {
-      "classification": "backward-compatible-schema",
-      "recovery_required": false,
-      "code_rollback_permitted": true,
-      "data_preconditions": [
-        "exact_learning_bundle_and_postgresql_17_9_delta",
-        "new_learning_schema_tables_absent",
-        "historical_records_sequences_and_triggers_preserved",
-        "new_learning_tables_empty_and_notes_unpublished",
-        "verified_learning_reader_for_activation_and_recovery"
-      ],
-      "rationale": "Part of the exact additive Training 2.0 bundle: two prerequisite tables, thirteen shared-content tables, an archive flag on the newly created draft table, and five pathway/import/history tables. No backfill, source changes, grants, publication or announcements. The installed schema immediately establishes a durable learning-reader floor regardless of rows or feature flags. Code recovery is permitted only to an independently verified learning-aware reader; the ordinary previous reader is incompatible and must never be activated. The frozen PostgreSQL delta, preservation evidence and separate trusted allowance installation are required; this classification grants no production or content-publication authority."
-    },
     "pages.0044_learning_page_activity": {
       "classification": "backward-compatible-schema",
       "recovery_required": false,

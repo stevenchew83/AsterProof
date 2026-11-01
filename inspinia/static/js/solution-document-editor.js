@@ -14,7 +14,23 @@ const {createRecovery} = require("./solution-document-recovery.js");
 const FIELDS = ["title", "summary", "problem_statement", "author_name", "pdf_show_author", "pdf_show_date", "pdf_show_footer"];
 const instances = new WeakMap();
 const language = StreamLanguage.define(stex);
-const {snippets, completionSpec} = require("./math-document-editor.js");
+const snippets = {
+  frac: "\\frac{${}}{${}}", dfrac: "\\dfrac{${}}{${}}", sqrt: "\\sqrt{${}}", binom: "\\binom{${}}{${}}",
+  text: "\\text{${}}", textbf: "\\textbf{${}}", textit: "\\textit{${}}", emph: "\\emph{${}}", mathbb: "\\mathbb{${}}", mathcal: "\\mathcal{${}}", operatorname: "\\operatorname{${}}",
+  section: "\\section*{${}}", subsection: "\\subsection*{${}}", paragraph: "\\paragraph{${}}",
+};
+
+function completionSpec(source, position) {
+  const before = source.slice(0, position);
+  const environment = /\\(begin|end)\{([A-Za-z*]*)$/.exec(before);
+  if (environment) {
+    const nearest = unclosedEnvironment(before.slice(0, environment.index));
+    const names = environment[1] === "end" ? nearest ? [nearest] : [] : ENVIRONMENTS;
+    return {from: environment.index, to: source[position] === "}" ? position + 1 : position, names, mode: environment[1], prefix: environment[2]};
+  }
+  const command = /\\([A-Za-z]*)$/.exec(before);
+  return command ? {from: command.index, to: position, names: [...Object.keys(snippets), ...COMMANDS, "begin", "end"], mode: "command", prefix: command[1]} : null;
+}
 
 function completions(context) {
   if (context.view && context.view.composing) return null;
