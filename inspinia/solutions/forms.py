@@ -43,10 +43,49 @@ class PdfDisplayOptionsMixin:
 
 
 class ProblemSolutionForm(PdfDisplayOptionsMixin, forms.ModelForm):
+    body_source = forms.CharField(
+        required=True,
+        strip=False,
+        label="Your solution",
+        widget=forms.Textarea(
+            attrs={
+                "class": "form-control font-monospace",
+                "rows": 20,
+                "spellcheck": "false",
+                "data-solution-source": "",
+                "placeholder": "Write your argument and LaTeX here.",
+            },
+        ),
+    )
+    base_version = forms.IntegerField(min_value=0, widget=forms.HiddenInput)
+    editor_context = forms.CharField(widget=forms.HiddenInput)
     pdf_options_present = forms.CharField(required=False, initial="1", widget=forms.HiddenInput)
     pdf_show_author = _pdf_display_option("Show author", "author")
     pdf_show_date = _pdf_display_option("Show date", "date")
     pdf_show_footer = _pdf_display_option("Show footer (page numbers)", "footer")
+
+    def __init__(self, *args, **kwargs):
+        from inspinia.solutions.document_source import solution_source
+        from inspinia.solutions.revisions import editor_context
+
+        super().__init__(*args, **kwargs)
+        self.initial.setdefault("body_source", solution_source(self.instance))
+        self.initial.setdefault("base_version", self.instance.edit_version or 0)
+        self.initial.setdefault(
+            "editor_context",
+            editor_context(
+                self.instance.author,
+                self.instance.problem.problem_uuid,
+                solution=self.instance,
+            ),
+        )
+
+    def clean_body_source(self):
+        source = self.cleaned_data["body_source"]
+        if not source.strip():
+            message = "Write your solution before saving."
+            raise forms.ValidationError(message)
+        return source
 
     class Meta:
         model = ProblemSolution
@@ -159,20 +198,41 @@ ProblemSolutionBlockFormSet = inlineformset_factory(
 
 
 class SolutionPreviewForm(PdfDisplayOptionsMixin, forms.Form):
+    body_source = forms.CharField(
+        max_length=PREVIEW_TOTAL_LIMIT,
+        required=False,
+        strip=False,
+        label="Your solution",
+        widget=forms.Textarea(
+            attrs={
+                "class": "form-control font-monospace",
+                "rows": 20,
+                "spellcheck": "false",
+                "data-solution-source": "",
+                "placeholder": "Write your argument and LaTeX here.",
+            },
+        ),
+    )
     pdf_options_present = forms.CharField(required=False, initial="1", widget=forms.HiddenInput)
     pdf_show_author = _pdf_display_option("Show author", "author")
     pdf_show_date = _pdf_display_option("Show date", "date")
     pdf_show_footer = _pdf_display_option("Show footer (page numbers)", "footer")
     author_name = forms.CharField(
-        max_length=100, required=False, label="Author name (optional)",
+        max_length=100,
+        required=False,
+        label="Author name (optional)",
         widget=forms.TextInput(attrs={"class": "form-control", "data-pdf-author-input": ""}),
     )
     title = forms.CharField(
-        max_length=160, required=False, label="Document title",
+        max_length=160,
+        required=False,
+        label="Document title",
         widget=forms.TextInput(attrs={"class": "form-control", "placeholder": "My solution"}),
     )
     problem_statement = forms.CharField(
-        max_length=PREVIEW_BODY_LIMIT, required=False, label="Problem statement (optional)",
+        max_length=PREVIEW_BODY_LIMIT,
+        required=False,
+        label="Problem statement (optional)",
         widget=forms.Textarea(attrs={"class": "form-control font-monospace", "rows": 4, "spellcheck": "false"}),
     )
 
@@ -204,9 +264,16 @@ class BaseSolutionPreviewBlockFormSet(BaseProblemSolutionBlockFormSet):
 
 
 SolutionPreviewBlockFormSet = inlineformset_factory(
-    ProblemSolution, ProblemSolutionBlock, form=SolutionPreviewBlockForm,
-    formset=BaseSolutionPreviewBlockFormSet, extra=0, can_delete=True, can_order=True,
-    max_num=PREVIEW_BLOCK_LIMIT, absolute_max=PREVIEW_BLOCK_LIMIT, validate_max=True,
+    ProblemSolution,
+    ProblemSolutionBlock,
+    form=SolutionPreviewBlockForm,
+    formset=BaseSolutionPreviewBlockFormSet,
+    extra=0,
+    can_delete=True,
+    can_order=True,
+    max_num=PREVIEW_BLOCK_LIMIT,
+    absolute_max=PREVIEW_BLOCK_LIMIT,
+    validate_max=True,
 )
 
 
@@ -221,7 +288,14 @@ class BaseSolutionWriterHandoffBlockFormSet(BaseSolutionPreviewBlockFormSet):
 
 
 SolutionWriterHandoffBlockFormSet = inlineformset_factory(
-    ProblemSolution, ProblemSolutionBlock, form=SolutionWriterHandoffBlockForm,
-    formset=BaseSolutionWriterHandoffBlockFormSet, extra=0, can_delete=True, can_order=True,
-    max_num=PREVIEW_BLOCK_LIMIT, absolute_max=PREVIEW_BLOCK_LIMIT, validate_max=True,
+    ProblemSolution,
+    ProblemSolutionBlock,
+    form=SolutionWriterHandoffBlockForm,
+    formset=BaseSolutionWriterHandoffBlockFormSet,
+    extra=0,
+    can_delete=True,
+    can_order=True,
+    max_num=PREVIEW_BLOCK_LIMIT,
+    absolute_max=PREVIEW_BLOCK_LIMIT,
+    validate_max=True,
 )

@@ -52,8 +52,8 @@
   {% if writer_draft %}
   <div class="alert alert-info mt-3" role="status">
     <strong>{{ writer_draft.document.title|default:'Your Solution Writer draft' }}</strong> is ready to continue.
-    Choose a problem without an existing solution, review the imported blocks, then save a private draft.
-    Your original statement is kept as an editable opening block. Workspace PDFs use your profile name.
+    Choose a problem without an existing solution, review your document, then save a private draft.
+    Your original statement is preserved as a source attachment. Workspace PDFs use your profile name.
     <a href="{% url 'website:solution_preview' %}?resume=1" class="alert-link">Return to your writing</a>.
   </div>
   {% endif %}
@@ -127,7 +127,7 @@
     <div class="card-header border-bottom d-flex flex-wrap align-items-center justify-content-between gap-2">
       <div>
         <h4 class="header-title mb-0">Pick a problem statement</h4>
-        <p class="text-muted fs-xs mb-0">Choose from linked statement rows, then jump straight into the block editor for that problem.</p>
+        <p class="text-muted fs-xs mb-0">Choose from linked statement rows, then start writing your solution.</p>
       </div>
       <a href="{% url 'solutions:my_solution_list' %}" class="btn btn-outline-secondary btn-sm">Back to my solutions</a>
     </div>

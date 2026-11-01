@@ -16,7 +16,6 @@ from inspinia.pages.models import ProblemSolveRecord
 from inspinia.pages.models import UserProblemCompletion
 from inspinia.solutions.models import ProblemSolution
 from inspinia.solutions.models import ProblemSolutionBlock
-from inspinia.solutions.models import SolutionBlockType
 from inspinia.users.tests.factories import UserFactory
 
 pytestmark = pytest.mark.django_db
@@ -39,15 +38,12 @@ def statement_for(problem, *, text="Prove the inequality."):
     )
 
 
-def proof_data(*, action="save", solution=None, body="This completes the proof."):
-    block = solution.blocks.get() if solution else None
+def proof_data(client, url, *, action="save", solution=None, body="This completes the proof."):
+    form = client.get(url).context["form"]
     return {
         "action": action, "solution-title": "My proof", "solution-summary": "A useful identity.",
-        "blocks-TOTAL_FORMS": "1", "blocks-INITIAL_FORMS": "1" if block else "0",
-        "blocks-MIN_NUM_FORMS": "0", "blocks-MAX_NUM_FORMS": "1000",
-        "blocks-0-id": str(block.pk) if block else "", "blocks-0-ORDER": "1",
-        "blocks-0-block_type": str(SolutionBlockType.objects.get(slug="proof").pk),
-        "blocks-0-title": "Proof", "blocks-0-body_format": "latex", "blocks-0-body_source": body,
+        "solution-body_source": body, "solution-base_version": form["base_version"].value(),
+        "solution-editor_context": form["editor_context"].value(),
     }
 
 
@@ -76,13 +72,13 @@ def test_save_and_solve_saves_proof_and_own_progress_without_publishing(workspac
         user=other_user, statement=statement, problem=None if statement else problem,
         status=UserProblemCompletion.Status.ATTEMPTED,
     )
-    data = {**proof_data(), "user_id": str(other_user.pk)}
+    data = {**proof_data(client, url), "user_id": str(other_user.pk)}
 
     response = save_then_mark_solved(client, problem, url, data, follow=True)
 
     assert response.status_code == HTTPStatus.OK
     solution = ProblemSolution.objects.get(author=user, problem=problem)
-    assert solution.blocks.get().body_source == data["blocks-0-body_source"]
+    assert solution.current_revision.body_source == data["solution-body_source"]
     assert solution.status == ProblemSolution.Status.DRAFT
     assert solution.published_at is None
     completion = UserProblemCompletion.objects.get(user=user)
@@ -99,9 +95,10 @@ def test_save_and_solve_saves_proof_and_own_progress_without_publishing(workspac
     assert other.status == UserProblemCompletion.Status.ATTEMPTED
     assert other.completion_date is None
 
-    save_then_mark_solved(client, problem, url, proof_data(solution=solution))
+    save_then_mark_solved(client, problem, url, proof_data(client, url, solution=solution))
     assert UserProblemCompletion.objects.filter(user=user).count() == 1
-    assert solution.blocks.count() == 1
+    assert solution.revisions.count() == 1
+    assert not solution.blocks.exists()
 
 
 @pytest.mark.parametrize("action", ["save", "save_draft", "publish"])
@@ -109,7 +106,7 @@ def test_normal_solution_actions_do_not_record_a_solve(workspace, action):
     client, user, problem, url = workspace
     statement_for(problem)
 
-    response = client.post(url, proof_data(action=action))
+    response = client.post(url, proof_data(client, url, action=action))
 
     assert response.status_code == HTTPStatus.FOUND
     assert ProblemSolution.objects.filter(author=user, problem=problem).exists()
@@ -118,16 +115,16 @@ def test_normal_solution_actions_do_not_record_a_solve(workspace, action):
 
 def test_saving_a_draft_after_a_solve_preserves_progress(workspace):
     client, user, problem, url = workspace
-    save_then_mark_solved(client, problem, url, proof_data())
+    save_then_mark_solved(client, problem, url, proof_data(client, url))
     solution = ProblemSolution.objects.get(author=user, problem=problem)
     completion = UserProblemCompletion.objects.get(user=user)
 
-    client.post(url, proof_data(action="save_draft", solution=solution, body="A revised proof."))
+    client.post(url, proof_data(client, url, action="save_draft", solution=solution, body="A revised proof."))
 
     solution.refresh_from_db()
     completion.refresh_from_db()
     assert solution.status == ProblemSolution.Status.DRAFT
-    assert solution.blocks.get().body_source == "A revised proof."
+    assert solution.current_revision.body_source == "A revised proof."
     assert completion.status == UserProblemCompletion.Status.SOLVED
     assert completion.completion_date == timezone.localdate()
 
@@ -146,7 +143,7 @@ def test_save_and_solve_preserves_existing_dates_status_advances_and_study_detai
         user=user, statement=statement, status=status, completion_date=existing_date, **details,
     )
 
-    response = save_then_mark_solved(client, problem, url, proof_data())
+    response = save_then_mark_solved(client, problem, url, proof_data(client, url))
 
     assert response.status_code == HTTPStatus.FOUND
     completion.refresh_from_db()
@@ -165,7 +162,7 @@ def test_save_and_solve_preserves_legacy_completion_details(workspace):
         completion_date=date(2026, 1, 2), key_technique="An invariant", post_mortem="Try a second proof.",
     )
 
-    save_then_mark_solved(client, problem, url, proof_data())
+    save_then_mark_solved(client, problem, url, proof_data(client, url))
 
     completion = UserProblemCompletion.objects.get(user=user, statement=statement)
     assert completion.status == legacy.status
@@ -186,7 +183,7 @@ def test_save_and_solve_follows_duplicate_completion_rules_without_rewriting_pri
         completion_date=date(2025, 5, 6), key_technique="My earlier approach",
     )
 
-    save_then_mark_solved(client, problem, url, proof_data())
+    save_then_mark_solved(client, problem, url, proof_data(client, url))
 
     completion = UserProblemCompletion.objects.get(user=user, statement=statement)
     assert completion.status == UserProblemCompletion.Status.SOLVED
@@ -200,7 +197,7 @@ def test_save_and_solve_records_a_completion_for_an_empty_linked_statement(works
     client, user, problem, url = workspace
     statement = statement_for(problem, text="")
 
-    save_then_mark_solved(client, problem, url, proof_data())
+    save_then_mark_solved(client, problem, url, proof_data(client, url))
 
     completion = UserProblemCompletion.objects.get(user=user, statement=statement)
     assert completion.status == UserProblemCompletion.Status.SOLVED
@@ -210,7 +207,7 @@ def test_save_and_solve_uses_the_browser_local_date(workspace, monkeypatch):
     client, user, problem, url = workspace
     monkeypatch.setattr(timezone, "now", lambda: datetime(2026, 10, 29, 17, tzinfo=UTC))
 
-    save_then_mark_solved(client, problem, url, {**proof_data(), "completion_timezone": "America/New_York"})
+    save_then_mark_solved(client, problem, url, {**proof_data(client, url), "completion_timezone": "America/New_York"})
 
     assert UserProblemCompletion.objects.get(user=user).completion_date == date(2026, 10, 29)
 
@@ -219,10 +216,10 @@ def test_save_and_solve_invalid_proof_changes_neither_solution_nor_progress(work
     client, _user, problem, url = workspace
     statement_for(problem)
 
-    response = client.post(url, proof_data(body=""))
+    response = client.post(url, proof_data(client, url, body=""))
 
     assert response.status_code == HTTPStatus.OK
-    assert response.context["formset"].errors
+    assert response.context["form"].errors
     assert not ProblemSolution.objects.exists()
     assert not UserProblemCompletion.objects.exists()
 
@@ -250,19 +247,19 @@ def test_completion_failure_preserves_saved_proof(workspace, monkeypatch, existi
 
     monkeypatch.setattr(views, "mark_problem_solved", fail_after_completion)
     with pytest.raises(DatabaseError, match="Simulated completion failure"):
-        save_then_mark_solved(client, problem, url, proof_data(solution=solution))
+        save_then_mark_solved(client, problem, url, proof_data(client, url, solution=solution))
 
     if existing_solution:
         solution.refresh_from_db()
         assert solution.title == "My proof"
-        assert solution.blocks.get().body_source == "This completes the proof."
+        assert solution.current_revision.body_source == "This completes the proof."
         completion.refresh_from_db()
         assert completion.status == UserProblemCompletion.Status.ATTEMPTED
         assert completion.completion_date is None
         assert completion.key_technique == "An earlier idea"
     else:
         saved = ProblemSolution.objects.get(author=user, problem=problem)
-        assert saved.blocks.get().body_source == "This completes the proof."
+        assert saved.current_revision.body_source == "This completes the proof."
         assert not UserProblemCompletion.objects.filter(user=user, statement=statement).exists()
 
 
@@ -286,11 +283,11 @@ def test_marking_solved_never_saves_browser_proof_fields(workspace, saved):
     statement = statement_for(problem)
     solution = None
     if saved:
-        client.post(url, proof_data())
+        client.post(url, proof_data(client, url))
         solution = ProblemSolution.objects.get(author=user, problem=problem)
         previous_updated_at = solution.updated_at
     payload = {
-        **proof_data(solution=solution, body="Unsaved browser edit"),
+        **proof_data(client, url, solution=solution, body="Unsaved browser edit"),
         "action": "mark_solved", "problem_uuid": str(problem.problem_uuid),
         "statement_uuid": str(statement.statement_uuid),
     }
@@ -302,7 +299,7 @@ def test_marking_solved_never_saves_browser_proof_fields(workspace, saved):
     assert UserProblemCompletion.objects.filter(user=user).count() == 1
     if saved:
         solution.refresh_from_db()
-        assert solution.blocks.get().body_source == "This completes the proof."
+        assert solution.current_revision.body_source == "This completes the proof."
         assert solution.updated_at == previous_updated_at
     else:
         assert not ProblemSolution.objects.exists()
@@ -310,7 +307,7 @@ def test_marking_solved_never_saves_browser_proof_fields(workspace, saved):
 
 def test_legacy_combined_save_action_no_longer_records_a_solve(workspace):
     client, user, problem, url = workspace
-    response = client.post(url, proof_data(action="save_and_solve"))
+    response = client.post(url, proof_data(client, url, action="save_and_solve"))
     assert response.status_code == HTTPStatus.FOUND
     assert ProblemSolution.objects.filter(author=user, problem=problem).exists()
     assert not UserProblemCompletion.objects.filter(user=user).exists()

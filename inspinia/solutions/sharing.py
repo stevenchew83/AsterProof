@@ -10,6 +10,7 @@ from django.core.exceptions import ValidationError
 from django.urls import reverse
 
 from inspinia.pages.topic_labels import display_topic_label
+from inspinia.solutions.document_source import solution_source
 from inspinia.solutions.pdf_latex import solution_pdf_date_display
 
 MAX_SHARED_BYTES = 1024 * 1024
@@ -69,8 +70,15 @@ def build_public_snapshot(solution, problem_data, coverage):
             for block in solution.blocks.select_related("block_type").order_by("position", "id")
         ],
     }
-    if not snapshot["blocks"]:
-        message = "Add and save at least one solution block before sharing."
+    if solution.current_revision_id:
+        snapshot["version"] = 2
+        snapshot["document"] = {
+            "source": solution_source(solution), "format": "latex",
+            "syntax_version": solution.current_revision.syntax_version,
+        }
+        del snapshot["blocks"]
+    if not (snapshot.get("document", {}).get("source", "").strip() or snapshot.get("blocks")):
+        message = "Write and save a solution before sharing."
         raise ValidationError(message)
     if len(json.dumps(snapshot, ensure_ascii=False).encode()) > MAX_SHARED_BYTES:
         message = "This solution is too large to share. Reduce its size and save before trying again."

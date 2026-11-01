@@ -18,10 +18,14 @@ from django.db import DatabaseError
 from django.db import IntegrityError
 from django.db import transaction
 from django.db.models import Avg
+from django.db.models import Case
 from django.db.models import Count
+from django.db.models import IntegerField
 from django.db.models import Max
 from django.db.models import Prefetch
 from django.db.models import Q
+from django.db.models import Value
+from django.db.models import When
 from django.http import FileResponse
 from django.http import HttpResponseBadRequest
 from django.http import JsonResponse
@@ -54,6 +58,10 @@ from inspinia.pages.statement_analytics import effective_mohs
 from inspinia.pages.statement_concept_coverage import statement_coverage_payloads
 from inspinia.pages.topic_labels import display_topic_label
 from inspinia.problemsets.selectors import problem_list_add_target_rows
+from inspinia.solutions.document_source import legacy_source
+from inspinia.solutions.document_source import solution_blocks
+from inspinia.solutions.document_source import solution_source
+from inspinia.solutions.forms import PDF_DISPLAY_FIELDS
 from inspinia.solutions.forms import ProblemSolutionBlockFormSet
 from inspinia.solutions.forms import ProblemSolutionForm
 from inspinia.solutions.models import ProblemSolution
@@ -62,6 +70,8 @@ from inspinia.solutions.models import SolutionBlockType
 from inspinia.solutions.models import SolutionBodyImage
 from inspinia.solutions.models import SolutionCollection
 from inspinia.solutions.models import SolutionPublicShare
+from inspinia.solutions.models import SolutionReview
+from inspinia.solutions.models import SolutionSourceArtifact
 from inspinia.solutions.onboarding import solution_guide_context
 from inspinia.solutions.pdf_latex import SolutionPdfCompileError
 from inspinia.solutions.pdf_latex import SolutionPdfCompileParams
@@ -70,6 +80,13 @@ from inspinia.solutions.pdf_latex import SolutionPdfMissingBodyImagesError
 from inspinia.solutions.pdf_latex import SolutionPdfToolError
 from inspinia.solutions.pdf_latex import compile_solution_to_pdf
 from inspinia.solutions.pdf_latex import solution_pdf_date_display
+from inspinia.solutions.reviews import review_available
+from inspinia.solutions.revisions import DocumentWritesDisabled
+from inspinia.solutions.revisions import InvalidDocument
+from inspinia.solutions.revisions import InvalidEditorContext
+from inspinia.solutions.revisions import StaleSolutionVersion
+from inspinia.solutions.revisions import editor_context
+from inspinia.solutions.revisions import save_document
 from inspinia.solutions.sharing import build_public_snapshot
 from inspinia.solutions.sharing import public_description
 from inspinia.solutions.sharing import public_preview_image
@@ -183,11 +200,9 @@ def _solution_pdf_http_response(request, solution: ProblemSolution):
     problem = solution.problem
     problem_data = _problem_context(problem)
     problem_label = problem.contest_year_problem or f"{problem.contest} {problem.year} {problem.problem}"
-    blocks = list(solution.blocks.all())
+    blocks = solution_blocks(solution)
     statement_row = (
-        ContestProblemStatement.objects.filter(linked_problem_id=problem.pk)
-        .only("statement_latex")
-        .first()
+        ContestProblemStatement.objects.filter(linked_problem_id=problem.pk).only("statement_latex").first()
     )
     problem_statement_latex = (statement_row.statement_latex if statement_row else "") or ""
 
@@ -315,13 +330,18 @@ def _solution_reference_url(solution: ProblemSolution) -> str:
 def _solution_card_rows(solutions: list[ProblemSolution]) -> list[dict]:
     rows = []
     for solution in solutions:
-        blocks = [] if hasattr(solution, "block_count") else list(solution.blocks.all())
+        blocks = [] if hasattr(solution, "block_count") else solution_blocks(solution)
         problem_url = reverse("solutions:problem_solution_list", args=[solution.problem.problem_uuid])
         rows.append(
             {
                 "anchor": f"solution-{solution.id}",
                 "author_label": solution.author.name or solution.author.email,
                 "blocks": blocks,
+                "document_source": (
+                    solution_source(solution)
+                    if solution.current_revision_id and not hasattr(solution, "block_count")
+                    else None
+                ),
                 "block_count": solution.block_count if hasattr(solution, "block_count") else len(blocks),
                 "edit_url": reverse("solutions:problem_solution_edit", args=[solution.problem.problem_uuid]),
                 "id": solution.id,
@@ -440,29 +460,91 @@ def _solution_page_completion_payload(
 
 
 def _solution_form_context(solution: ProblemSolution, post_data=None) -> tuple[ProblemSolutionForm, object]:
-    return (
-        ProblemSolutionForm(post_data, instance=solution, prefix="solution"),
-        ProblemSolutionBlockFormSet(post_data, instance=solution, prefix="blocks"),
+    legacy = None
+    recovered = False
+    if post_data is not None and "solution-body_source" not in post_data:
+        legacy = ProblemSolutionBlockFormSet(post_data, instance=solution, prefix="blocks")
+        post_data = post_data.copy()
+        if legacy.is_valid():
+            post_data["solution-body_source"] = legacy_source([row.save(commit=False) for row in legacy.ordered_forms])
+        else:
+            # Recovery is literal source only; invalid legacy model identities are never saved.
+            post_data["solution-body_source"] = "\n\n".join(
+                str(value) for name, value in post_data.items() if name.endswith(("-title", "-body_source"))
+            )
+        post_data["solution-base_version"] = solution.edit_version or 0
+        post_data["solution-editor_context"] = editor_context(
+            solution.author,
+            solution.problem.problem_uuid,
+            solution=solution,
+        )
+        recovered = True
+    form = ProblemSolutionForm(post_data, instance=solution, prefix="solution")
+    if recovered:
+        form.add_error(None, "Your old editor has been updated. Review the recovered document below, then save again.")
+    return form, legacy
+
+
+def _review_context(request, problem, solution):
+    available = review_available(request.user)
+    latest = None
+    acknowledged = False
+    if settings.SOLUTION_AI_REVIEW_ENABLED or solution.current_revision_id:
+        latest = SolutionReview.objects.filter(
+            author=request.user, revision__solution__author=request.user, revision__solution__problem=problem,
+        ).order_by("-created_at").only("pk", "created_at").first()
+        acknowledged = bool(latest) or (available and SolutionReview.objects.filter(author=request.user).exists())
+    statement = ContestProblemStatement.objects.filter(linked_problem=problem, is_active=True).order_by(
+        "-updated_at", "-pk",
+    ).values_list("statement_latex", flat=True).first()
+    return {"solution_review_config": {
+        "enabled": available, "visible": available or latest is not None,
+        "createUrl": reverse("solutions:solution_review_create", args=[problem.problem_uuid]),
+        "revisionId": str(solution.current_revision_id or ""), "editVersion": solution.edit_version or 0,
+        "hasStatement": bool((statement or "").strip()), "acknowledged": acknowledged,
+        "latestStatusUrl": (
+            reverse("solutions:solution_review_status", args=[problem.problem_uuid, latest.pk]) if latest else ""
+        ),
+    }}
+
+
+@transaction.atomic
+def _save_solution_form_request(*, form, request, action, writer_import=None):
+    result = save_document(
+        solution=form.instance,
+        user=request.user,
+        source=form.cleaned_data["body_source"],
+        title=form.cleaned_data["title"],
+        summary=form.cleaned_data["summary"],
+        pdf_options={name: form.cleaned_data[name] for name in PDF_DISPLAY_FIELDS},
+        base_version=form.cleaned_data["base_version"],
+        context=form.cleaned_data["editor_context"],
+        action=action,
     )
+    if writer_import:
+        original = writer_import["document"].get("problem_statement", "")
+        if original:
+            SolutionSourceArtifact.objects.create(
+                solution=result.solution,
+                uploaded_by=request.user,
+                artifact_type="tex",
+                original_name="Solution Writer original problem statement",
+                mime_type="text/x-tex",
+                source_text=original,
+            )
+    message = {"publish": "Published solution.", "save_draft": "Saved draft."}.get(action, "Saved changes.")
+    return result.solution, message, "success"
 
 
-def _save_solution_form_request(
-    *,
-    form: ProblemSolutionForm,
-    formset,
-    problem: ProblemSolveRecord,
-    request,
-    action: str,
-) -> tuple[ProblemSolution, str, str]:
-    with transaction.atomic():
-        solution = form.save(commit=False)
-        solution.problem = problem
-        solution.author = request.user
-        message_text, message_level = _apply_editor_action(solution, action)
-        solution.save()
-        formset.instance = solution
-        _save_solution_blocks(formset, solution)
-    return solution, message_text, message_level
+def _saved_document_json(solution):
+    return JsonResponse(
+        {
+            "saved": True,
+            "revision_id": str(solution.current_revision_id),
+            "edit_version": solution.edit_version,
+            "editor_context": editor_context(solution.author, solution.problem.problem_uuid, solution=solution),
+        },
+    )
 
 
 def _selected_solution_id(request) -> int | None:
@@ -498,12 +580,14 @@ def _problem_solution_list_inline_form_context(
     form, formset = _solution_form_context(solution, post_data)
     plain_block_type = SolutionBlockType.objects.filter(slug="plain").only("id").first()
     return {
-        "inline_draft_block_form": _inline_draft_block_form(formset),
+        "inline_draft_block_form": None,
         "inline_draft_form": form,
         "inline_draft_formset": formset,
+        **_review_context(request, problem, solution),
         "plain_block_type_id": str(plain_block_type.pk) if plain_block_type else "",
         "solution_body_image_upload_url": reverse(
-            "solutions:solution_body_image_upload", args=[problem.problem_uuid],
+            "solutions:solution_body_image_upload",
+            args=[problem.problem_uuid],
         ),
         "solution_status_label": ProblemSolution.Status(solution.status).label,
         "public_share": (
@@ -782,7 +866,18 @@ def my_solution_list_view(request):
         ProblemSolution.objects.filter(author=request.user)
         .select_related("problem", "author")
         .annotate(
-            block_count=Count("blocks"),
+            block_count=Case(
+                When(
+                    current_revision__isnull=False,
+                    then=Case(
+                        When(current_revision__body_source__regex=r"\S", then=Value(1)),
+                        default=Value(0),
+                        output_field=IntegerField(),
+                    ),
+                ),
+                default=Count("blocks"),
+                output_field=IntegerField(),
+            ),
             public_share_count=Count("public_share", filter=Q(public_share__is_active=True), distinct=True),
         )
         .order_by("-updated_at", "-id"),
@@ -792,7 +887,8 @@ def my_solution_list_view(request):
     context = {
         "my_solution_rows": _solution_card_rows(solutions),
         "solution_collections": SolutionCollection.objects.filter(
-            owner=request.user, kind=SolutionCollection.Kind.PERSONAL,
+            owner=request.user,
+            kind=SolutionCollection.Kind.PERSONAL,
         ).annotate(
             entry_count=Count("entries"),
         ),
@@ -852,7 +948,7 @@ def problem_solution_list_view(request, problem_uuid):
     problem_data = _problem_context(problem)
     solution_queryset = (
         ProblemSolution.objects.filter(problem=problem)
-        .select_related("author", "problem")
+        .select_related("author", "problem", "current_revision")
         .prefetch_related(_problem_solution_prefetch())
     )
     selected_solution_id = _selected_solution_id(request)
@@ -868,18 +964,23 @@ def problem_solution_list_view(request, problem_uuid):
             post_data=request.POST,
         )
         form = inline_form_context["inline_draft_form"]
-        formset = inline_form_context["inline_draft_formset"]
-        if form is not None and formset is not None and form.is_valid() and formset.is_valid():
+        if form is not None and form.is_valid():
             action = request.POST.get("action") or "save_draft"
-            solution, message_text, message_level = _save_solution_form_request(
-                form=form,
-                formset=formset,
-                problem=problem,
-                request=request,
-                action=action,
-            )
-            getattr(messages, message_level)(request, message_text)
-            return redirect(_solution_reference_url(solution))
+            try:
+                solution, message_text, message_level = _save_solution_form_request(
+                    form=form,
+                    request=request,
+                    action=action,
+                )
+            except (InvalidDocument, InvalidEditorContext, StaleSolutionVersion) as error:
+                form.add_error(None, str(error))
+                if request.headers.get("X-Requested-With") == "XMLHttpRequest":
+                    return _document_error_json(error)
+            else:
+                if request.headers.get("X-Requested-With") == "XMLHttpRequest":
+                    return _saved_document_json(solution)
+                getattr(messages, message_level)(request, message_text)
+                return redirect(_solution_reference_url(solution))
         return _solution_list_response(
             request,
             problem=problem,
@@ -899,6 +1000,46 @@ def problem_solution_list_view(request, problem_uuid):
     )
 
 
+def _document_error_json(error):
+    status = 422
+    if isinstance(error, DocumentWritesDisabled):
+        status = 503
+    elif isinstance(error, StaleSolutionVersion):
+        status = 409
+    return JsonResponse({"error": str(error)}, status=status)
+
+
+def _save_editor_submission(request, form, writer_import):
+    action = "save_draft" if writer_import else request.POST.get("action") or "save"
+    if action == "save_and_solve":
+        action = "save"
+    try:
+        solution, message_text, message_level = _save_solution_form_request(
+            form=form,
+            request=request,
+            action=action,
+            writer_import=writer_import,
+        )
+    except (InvalidDocument, InvalidEditorContext, StaleSolutionVersion) as error:
+        form.add_error(None, str(error))
+        if request.headers.get("X-Requested-With") == "XMLHttpRequest":
+            return _document_error_json(error)
+        return None
+    except IntegrityError:
+        if not writer_import:
+            raise
+        form.add_error(
+            None, "A solution could not be created. Your pending draft is still available; choose another problem.",
+        )
+        return None
+    if writer_import:
+        request.session.pop(WRITER_DRAFT_SESSION_KEY, None)
+    if request.headers.get("X-Requested-With") == "XMLHttpRequest":
+        return _saved_document_json(solution)
+    getattr(messages, message_level)(request, message_text)
+    return redirect("solutions:problem_solution_edit", solution.problem.problem_uuid)
+
+
 @login_required
 @never_cache
 def problem_solution_edit_view(request, problem_uuid):
@@ -907,10 +1048,11 @@ def problem_solution_edit_view(request, problem_uuid):
     draft = get_writer_draft(request)
     writer_token = request.POST.get("writer_draft_token") or request.GET.get("from_writer")
     writer_import = draft if draft and writer_token == draft["token"] else None
-    existing_solution = solution is not None
+    existing_solution = solution is not None and bool(solution.current_revision_id or solution.blocks.exists())
     if request.method == "GET" and writer_token and (not writer_import or existing_solution):
         messages.warning(
-            request, "Your writing has not replaced any saved solution. Choose an unused problem to continue.",
+            request,
+            "Your writing has not replaced any saved solution. Choose an unused problem to continue.",
         )
         return redirect(writer_handoff_url())
     if solution is None:
@@ -918,41 +1060,32 @@ def problem_solution_edit_view(request, problem_uuid):
 
     form, formset = _solution_form_context(solution, request.POST or None)
     if writer_import and request.method == "GET":
-        initial, blocks = writer_editor_initial(writer_import)
+        initial, _blocks = writer_editor_initial(writer_import)
         form = ProblemSolutionForm(instance=solution, prefix="solution", initial=initial)
-        formset = ProblemSolutionBlockFormSet(instance=solution, prefix="blocks", initial=blocks)
-        formset.extra = len(blocks)
-    if request.method == "POST" and writer_token and (
-        not writer_import or existing_solution or request.POST.get("action") == "publish"
+    if (
+        request.method == "POST"
+        and writer_token
+        and (not writer_import or existing_solution or request.POST.get("action") == "publish")
     ):
-        form.add_error(None, (
-            "This handoff cannot be saved here. Your writing is still in this form; "
-            "return to the problem picker to continue with your pending draft."
-        ))
+        form.add_error(
+            None,
+            (
+                "This handoff cannot be saved here. Your writing is still in this form; "
+                "return to the problem picker to continue with your pending draft."
+            ),
+        )
 
-    if request.method == "POST" and form.is_valid() and formset.is_valid():
-        action = "save_draft" if writer_import else request.POST.get("action") or "save"
-        try:
-            solution, message_text, message_level = _save_solution_form_request(
-                form=form, formset=formset, problem=problem, request=request, action=action,
-            )
-        except IntegrityError:
-            if not writer_import:
-                raise
-            form.add_error(None, (
-                "A solution could not be created for this problem. Your pending draft is still available; "
-                "choose another problem and try again."
-            ))
-        else:
-            if writer_import:
-                request.session.pop(WRITER_DRAFT_SESSION_KEY, None)
-            getattr(messages, message_level)(request, message_text)
-            return redirect("solutions:problem_solution_edit", problem.problem_uuid)
+    if request.method == "POST" and form.is_valid():
+        response = _save_editor_submission(request, form, writer_import)
+        if response is not None:
+            return response
 
     current_status = solution.status or ProblemSolution.Status.DRAFT
     problem_data = _problem_context(problem)
     coverage_source = problem_data["statement_entry"] or ContestProblemStatement(
-        linked_problem=problem, topic=problem.topic, is_active=problem.is_active,
+        linked_problem=problem,
+        topic=problem.topic,
+        is_active=problem.is_active,
     )
     editor_coverage = statement_coverage_payloads([coverage_source])[coverage_source.pk]
     plain_block_type = SolutionBlockType.objects.filter(slug="plain").only("id").first()
@@ -962,16 +1095,30 @@ def problem_solution_edit_view(request, problem_uuid):
         "formset": formset,
         "show_solution_guide": show_solution_guide,
         "guide_has_saved_content": bool(
-            show_solution_guide and solution.pk and solution.blocks.exists(),
+            show_solution_guide and solution.pk and solution_source(solution).strip(),
         ),
         "public_share": (
             SolutionPublicShare.objects.filter(solution=solution, is_active=True).first() if solution.pk else None
         ),
         "writer_import": writer_import,
+        "writer_original_statement": (
+            writer_import["document"].get("problem_statement", "")
+            if writer_import
+            else (
+                solution.source_artifacts.filter(original_name="Solution Writer original problem statement")
+                .values_list("source_text", flat=True)
+                .first()
+                if solution.pk
+                else ""
+            )
+        ),
+        **_review_context(request, problem, solution),
         "plain_block_type_id": str(plain_block_type.id) if plain_block_type is not None else "",
         "problem_data": problem_data,
         "completion_state": _solution_page_completion_payload(
-            problem=problem, statement=problem_data["statement_entry"], user=request.user,
+            problem=problem,
+            statement=problem_data["statement_entry"],
+            user=request.user,
         ),
         "solution_body_image_upload_url": reverse(
             "solutions:solution_body_image_upload",
@@ -984,6 +1131,10 @@ def problem_solution_edit_view(request, problem_uuid):
         "pdf_author_name": (request.user.name or "").strip() or "Unknown",
         "pdf_date_label": solution_pdf_date_display(solution),
     }
+    if request.method == "POST" and request.headers.get("X-Requested-With") == "XMLHttpRequest":
+        return JsonResponse(
+            {"error": "Please check your solution.", "errors": form.errors.get_json_data()}, status=422,
+        )
     return render(request, "solutions/problem-solution-editor.html", context)
 
 
@@ -991,7 +1142,7 @@ def problem_solution_edit_view(request, problem_uuid):
 @never_cache
 @transaction.atomic
 def problem_solution_share_view(request, problem_uuid):
-    queryset = ProblemSolution.objects.select_related("author", "problem")
+    queryset = ProblemSolution.objects.select_related("author", "problem", "current_revision")
     if request.method == "POST":
         # All share mutations lock the same owner row, including first creation.
         queryset = queryset.select_for_update(of=("self",))
@@ -1017,32 +1168,39 @@ def problem_solution_share_view(request, problem_uuid):
         "share_url": share_url,
         "whatsapp_url": whatsapp_share_url(share_url),
         "preview_description": public_description(snapshot) if snapshot else "",
-        "share_outdated": bool(share and share.is_active and (
-            share.source_updated_at != solution.updated_at or snapshot is None
-            or snapshot_digest(share.snapshot) != snapshot_digest(snapshot)
-        )),
+        "share_outdated": bool(
+            share
+            and share.is_active
+            and (
+                share.source_updated_at != solution.updated_at
+                or snapshot is None
+                or snapshot_digest(share.snapshot) != snapshot_digest(snapshot)
+            ),
+        ),
         "solution_media_url": settings.MEDIA_URL,
         "review_snapshot": True,
         "review_digest": snapshot_digest(snapshot) if snapshot else "",
     }
     if _sharing_json_request(request):
-        return JsonResponse({
-            "is_active": bool(share_url),
-            "can_share": snapshot is not None,
-            "share_url": share_url,
-            "whatsapp_url": context["whatsapp_url"] if share_url else "",
-            "preview_url": share_url or reverse("solutions:problem_solution_share", args=[problem_uuid]),
-            "review_url": reverse("solutions:problem_solution_share", args=[problem_uuid]),
-            "source_version": solution.updated_at.isoformat(),
-            "share_revision": str(share.revision) if share else "",
-            "review_digest": context["review_digest"],
-            "has_saved_changes": context["share_outdated"],
-            "saved_title": snapshot["title"] if snapshot else solution.title,
-            "saved_author": snapshot["author"] if snapshot else "",
-            "saved_date": snapshot["date"] if snapshot else "",
-            "shared_at": timezone.localtime(share.updated_at).strftime("%d %b %Y, %H:%M") if share_url else "",
-            "error": review_error,
-        })
+        return JsonResponse(
+            {
+                "is_active": bool(share_url),
+                "can_share": snapshot is not None,
+                "share_url": share_url,
+                "whatsapp_url": context["whatsapp_url"] if share_url else "",
+                "preview_url": share_url or reverse("solutions:problem_solution_share", args=[problem_uuid]),
+                "review_url": reverse("solutions:problem_solution_share", args=[problem_uuid]),
+                "source_version": solution.updated_at.isoformat(),
+                "share_revision": str(share.revision) if share else "",
+                "review_digest": context["review_digest"],
+                "has_saved_changes": context["share_outdated"],
+                "saved_title": snapshot["title"] if snapshot else solution.title,
+                "saved_author": snapshot["author"] if snapshot else "",
+                "saved_date": snapshot["date"] if snapshot else "",
+                "shared_at": timezone.localtime(share.updated_at).strftime("%d %b %Y, %H:%M") if share_url else "",
+                "error": review_error,
+            },
+        )
     return render(request, "solutions/problem-solution-share.html", context)
 
 
@@ -1153,7 +1311,9 @@ def admin_problem_solution_pdf_view(request, solution_pk: int):
     """Admin inventory: download any user's solution as Evan-format PDF (same pipeline as author PDF)."""
     _require_admin_tools_access(request)
     solution = get_object_or_404(
-        ProblemSolution.objects.select_related("author", "problem").prefetch_related(_problem_solution_prefetch()),
+        ProblemSolution.objects.select_related("author", "problem", "current_revision").prefetch_related(
+            _problem_solution_prefetch(),
+        ),
         pk=solution_pk,
     )
     return _solution_pdf_http_response(request, solution)

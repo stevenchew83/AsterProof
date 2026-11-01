@@ -1,0 +1,15 @@
+<div class="solution-source-tools" role="group" aria-label="Insert LaTeX" hidden>
+  <button type="button" data-insert-source="inline" title="Insert inline mathematics">Inline math</button>
+  <button type="button" data-insert-source="display" title="Insert a displayed equation">Equation</button>
+  <button type="button" data-insert-source="fraction">Fraction</button>
+  <button type="button" data-insert-source="align">Align</button>
+  <button type="button" data-insert-source="matrix">Matrix</button>
+  <button type="button" data-insert-source="claim">Claim</button>
+  <button type="button" data-insert-source="proof">Proof</button>
+</div>
+<label class="visually-hidden" for="{{ form.body_source.id_for_label }}">Your solution</label>
+{{ form.body_source }}
+{% for error in form.body_source.errors %}<p class="invalid-feedback d-block website-field-error">{{ error }}</p>{% endfor %}
+<p class="solution-source-help" id="solution-source-help">Write freely with text and LaTeX. Type <code>\</code> for suggestions, use <code>$…$</code> for inline math, and <code>\[…\]</code> for equations. Tab moves through snippet fields; Escape closes suggestions.</p>
+<p class="solution-source-help" data-editor-fallback role="status" hidden></p>
+<p class="solution-source-help" data-preview-warning role="status" hidden></p>

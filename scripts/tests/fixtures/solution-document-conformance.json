@@ -1,0 +1,90 @@
+[
+  {
+    "name": "claim-with-proof",
+    "block": {
+      "slug": "claim",
+      "label": "Claim",
+      "title": "$n$ is even.",
+      "body_source": "Write $n=2k$.",
+      "body_format": "latex"
+    },
+    "source": "\\begin{claim}\n$n$ is even.\n\\end{claim}\n\n\\begin{proof}\nWrite $n=2k$.\n\\end{proof}"
+  },
+  {
+    "name": "literal-plain-text",
+    "block": {
+      "slug": "plain",
+      "label": "Plain",
+      "title": "",
+      "body_source": "\\begin{claim} $x$ & {n}_#~^",
+      "body_format": "plain_text"
+    },
+    "source": "\\textbackslash{}begin\\{claim\\} \\$x\\$ \\& \\{n\\}\\_\\#\\textasciitilde{}\\textasciicircum{}"
+  },
+  {
+    "name": "observation",
+    "block": {
+      "slug": "observation",
+      "label": "Observation",
+      "title": "A fact",
+      "body_source": "This follows.",
+      "body_format": "latex"
+    },
+    "source": "\\begin{fact}\nA fact\n\nThis follows.\n\\end{fact}"
+  },
+  {
+    "name": "named-proof",
+    "block": {
+      "slug": "proof",
+      "label": "Proof",
+      "title": "Induction step",
+      "body_source": "Assume $n=k$.",
+      "body_format": "latex"
+    },
+    "source": "\\begin{proof}[Induction step]\nAssume $n=k$.\n\\end{proof}"
+  },
+  {
+    "name": "section",
+    "block": {
+      "slug": "section",
+      "label": "Section",
+      "title": "First argument",
+      "body_source": "Let $x=1$.",
+      "body_format": "latex"
+    },
+    "source": "\\section*{First argument}\n\nLet $x=1$."
+  },
+  {
+    "name": "part",
+    "block": {
+      "slug": "part",
+      "label": "Part",
+      "title": "",
+      "body_source": "A subargument.",
+      "body_format": "latex"
+    },
+    "source": "\\subsection*{Part}\n\nA subargument."
+  },
+  {
+    "name": "case",
+    "block": {
+      "slug": "case",
+      "label": "Case",
+      "title": "$n=1$.",
+      "body_source": "Immediate.",
+      "body_format": "latex"
+    },
+    "source": "\\textbf{$n=1$.}\n\nImmediate."
+  },
+  {
+    "name": "custom-type",
+    "block": {
+      "slug": "custom",
+      "label": "Custom",
+      "title": "A & B",
+      "body_source": "No content lost.",
+      "body_format": "latex"
+    },
+    "source": "\\paragraph{Custom — A \\& B}\n\nNo content lost."
+  }
+]

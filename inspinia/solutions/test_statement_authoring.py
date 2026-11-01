@@ -163,18 +163,18 @@ def test_inactive_statement_cannot_start_solution(workspace):
 def test_standalone_statement_can_save_private_solution_and_use_progress_pages(workspace):
     client, user, statement = workspace
     editor_url = client.post(start_url(statement)).url
+    form = client.get(editor_url).context["form"]
     saved = client.post(editor_url, {
         "action": "save_draft", "solution-title": "My standalone proof", "solution-summary": "",
-        "blocks-TOTAL_FORMS": "1", "blocks-INITIAL_FORMS": "0", "blocks-0-ORDER": "1",
-        "blocks-0-block_type": "", "blocks-0-title": "", "blocks-0-body_format": "latex",
-        "blocks-0-body_source": "$n=n$",
+        "solution-body_source": "$n=n$", "solution-base_version": form["base_version"].value(),
+        "solution-editor_context": form["editor_context"].value(),
     })
 
     assert saved.status_code == HTTPStatus.FOUND
     solution = ProblemSolution.objects.get(author=user)
     assert solution.problem.problem_uuid == statement.problem_uuid
     assert solution.status == ProblemSolution.Status.DRAFT
-    assert solution.blocks.get().body_source == "$n=n$"
+    assert solution.current_revision.body_source == "$n=n$"
     assert not hasattr(solution, "public_share")
     UserProblemCompletion.objects.create(user=user, problem=solution.problem, statement=statement, status="written")
     for route in ("pages:user_activity_dashboard", "pages:my_completion_progress_analytics"):

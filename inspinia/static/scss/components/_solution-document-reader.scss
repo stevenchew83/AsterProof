@@ -1,0 +1,25 @@
+// Continuous-source typography shared by previews and read-only public copies.
+.solution-document-rendered {
+  --document-surface: var(--ins-secondary-bg, #fff);
+  --document-ink: var(--ins-body-color, #24332d);
+  --document-muted: var(--ins-secondary-color, #68746e);
+  --document-line: var(--ins-border-color, #d8dfda);
+  --document-soft: var(--ins-tertiary-bg, #edf0e8);
+  --document-accent: var(--ins-primary, #27624b);
+  --document-selection: rgba(82, 142, 114, .24);
+}
+.solution-document-rendered { white-space: pre-wrap; overflow-wrap: anywhere; font-family: Georgia, "Times New Roman", serif; font-size: 1rem; line-height: 1.85; }
+.solution-document-rendered .solution-document-heading { font-family: inherit; font-size: 1.15em; font-weight: 700; margin: 1.25em 0 .5em; }
+.solution-document-rendered h4.solution-document-heading { font-size: 1.05em; }
+.solution-document-rendered h5.solution-document-heading { font-size: 1em; }
+.solution-document-environment { margin: 1em 0; padding: .8em 1em; border-left: 2px solid var(--document-accent); background: var(--document-soft); border-radius: 0 3px 3px 0; }
+.solution-document-environment-label { font-size: .85em; font-weight: 700; margin-bottom: .25em; }
+.solution-document-proof { padding: .25em 0; border: 0; background: transparent; }
+.solution-document-proof > .solution-document-environment-label { font-style: italic; }
+.solution-document-remark { background: transparent; border-left-color: var(--document-line); }
+.solution-document-list { margin: .75em 0; padding-left: 1.75em; white-space: normal; }
+.solution-document-list > li { white-space: pre-wrap; margin: .4em 0; }
+.solution-source-fallback { font-family: var(--ins-font-monospace, monospace); font-size: .85em; white-space: pre-wrap; }
+.solution-document-rendered .solution-body-image { display: block; max-width: 100%; height: auto; margin: 1rem auto; }
+.solution-document-rendered .solution-document-math { max-width: 100%; }
+.solution-document-rendered div.solution-document-math { overflow-x: auto; overflow-y: hidden; }

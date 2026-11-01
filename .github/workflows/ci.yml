@@ -90,7 +90,10 @@ jobs:
           DATABASE_URL: postgres://postgres@127.0.0.1:5432/asterproof_schema_rehearsal
         run: |
           rehearsal_args=()
-          if ! git diff --quiet "$BASE_SHA" HEAD -- scripts/deployment/curated_collections_schema.py scripts/deployment/curated_collections_schema_rehearsal.py scripts/deployment/tests/fixtures/curated-collections-schema-delta.json inspinia/solutions/migrations/0008_solutioncollection_kind_and_nullable_owner.py; then
+          if ! git diff --quiet "$BASE_SHA" HEAD -- scripts/deployment/solution_document_schema.py scripts/deployment/solution_document_schema_rehearsal.py scripts/deployment/tests/fixtures/solution-document-schema-delta.json inspinia/solutions/migrations/0009_problemsolution_edit_version_solutionreviewpolicy_and_more.py; then
+            rehearsal=scripts.deployment.solution_document_schema_rehearsal
+            active_sha="$BASE_SHA"
+          elif ! git diff --quiet "$BASE_SHA" HEAD -- scripts/deployment/curated_collections_schema.py scripts/deployment/curated_collections_schema_rehearsal.py scripts/deployment/tests/fixtures/curated-collections-schema-delta.json inspinia/solutions/migrations/0008_solutioncollection_kind_and_nullable_owner.py; then
             rehearsal=scripts.deployment.curated_collections_schema_rehearsal
             active_sha="$BASE_SHA"
           elif ! git diff --quiet "$BASE_SHA" HEAD -- scripts/deployment/statement_authoring_schema.py scripts/deployment/statement_authoring_rehearsal.py inspinia/pages/migrations/0040_statement_authoring_metadata.py; then
@@ -156,11 +159,15 @@ jobs:
           retention-days: 7
 
       - name: Set up Node
-        if: steps.checks.outputs.static == 'true'
+        if: steps.checks.outputs.javascript == 'true'
         uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: npm
+
+      - name: Install locked JavaScript contract dependencies
+        if: steps.checks.outputs.javascript == 'true' && steps.checks.outputs.static != 'true'
+        run: npm ci --ignore-scripts
 
       - name: Build and collect changed static files
         if: steps.checks.outputs.static == 'true'
@@ -243,7 +250,9 @@ jobs:
               raise SystemExit('Concurrency checks require PostgreSQL 17.9')
           import pytest
           raise SystemExit(pytest.main([
-              'inspinia/solutions/test_admin_collection_concurrency.py', '--create-db', '-q',
+              'inspinia/solutions/test_admin_collection_concurrency.py',
+              'inspinia/solutions/test_document_revisions.py',
+              'inspinia/solutions/test_reviews.py', '--create-db', '-q',
           ]))
           PY
 
