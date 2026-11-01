@@ -7,6 +7,7 @@ import json
 import os
 import re
 from datetime import date
+from html import unescape
 from http import HTTPStatus
 from pathlib import Path
 from statistics import median
@@ -15,6 +16,8 @@ from time import perf_counter
 import pytest
 from django.core.cache import cache
 from django.db import connection
+from django.template.loader import render_to_string
+from django.test import RequestFactory
 from django.test.utils import CaptureQueriesContext
 from django.urls import reverse
 
@@ -37,6 +40,28 @@ from inspinia.users.tests.factories import UserFactory
 
 pytestmark = pytest.mark.django_db
 COMPLETED_SUBTOPICS = 36
+
+
+def _visible_sidebar_routes(user, settings):
+    source = (Path(settings.BASE_DIR) / "inspinia/templates/partials/sidenav.html").read_text()
+    request = RequestFactory().get("/")
+    request.user = user
+    rendered = render_to_string("partials/sidenav.html", request=request)
+    visible_urls = {unescape(url).partition("#")[0] for url in re.findall(r'href="([^"]+)"', rendered)}
+    routes = {}
+    for route, label in re.findall(r"route_name='([^']+)' label='([^']+)'", source):
+        if reverse(route) in visible_urls:
+            routes.setdefault(route, label)
+    assert routes, "The navigation audit must exercise rendered links"
+    return routes
+
+
+def test_navigation_audit_preserves_case_scoped_workspace_access(client, settings):
+    settings.SHARED_PROGRESS_LEARNERS = {}
+    user = UserFactory(role=User.Role.ADMIN)
+    client.force_login(user)
+    assert "solutions:evaluation_workspace" not in _visible_sidebar_routes(user, settings)
+    assert client.get(reverse("solutions:evaluation_workspace")).status_code == HTTPStatus.FORBIDDEN
 
 
 def _seed_audit_data(user):
@@ -148,11 +173,7 @@ def test_navigation_page_loading(client, settings):
     user = UserFactory(role=User.Role.ADMIN)
     dataset = _seed_audit_data(user)
     client.force_login(user)
-    sidebar = (Path(settings.BASE_DIR) / "inspinia/templates/partials/sidenav.html").read_text()
-    links = re.findall(r"route_name='([^']+)' label='([^']+)'", sidebar)
-    routes = {}
-    for route, label in links:
-        routes.setdefault(route, label)
+    routes = _visible_sidebar_routes(user, settings)
     results = []
     for route, label in routes.items():
         url = reverse(route)
