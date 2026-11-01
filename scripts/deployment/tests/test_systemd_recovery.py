@@ -55,12 +55,18 @@ def test_encrypted_restore_with_private_umask_separate_uid_and_network_namespace
         with psycopg.connect(REHEARSAL_URL, autocommit=True) as connection, connection.transaction():
             with connection.cursor() as cursor:
                 recovery._set_readonly(cursor)
-                # Exercise the real Assessment migration constraints, not an empty fixture.
+                # Exercise all reviewed Assessment and Training CHECKs from real migrations.
                 raw_checks = {
                     tuple(row[field] for field in ("schema", "table", "name", "type", "definition"))
                     for row in recovery._snapshot(connection)["constraints"]
                 }
-                assert len(recovery.PG17_CHECK_REPARSE_EQUIVALENTS) == 2
+                reviewed_checks = {
+                    ("public", "solutions_evaluationpackageapproval", "evaluation_package_valid_decision", "c"),
+                    ("public", "solutions_syntheticreview", "synthetic_review_valid_mode", "c"),
+                    ("public", "learning_contentdocument", "learning_document_canonical_identity", "c"),
+                }
+                assert len(recovery.PG17_CHECK_REPARSE_EQUIVALENTS) == len(reviewed_checks)
+                assert {key[:4] for key in recovery.PG17_CHECK_REPARSE_EQUIVALENTS} == reviewed_checks
                 assert set(recovery.PG17_CHECK_REPARSE_EQUIVALENTS) <= raw_checks
                 expected = recovery.capture_manifest(connection)
                 cursor.execute("SELECT pg_export_snapshot()")
