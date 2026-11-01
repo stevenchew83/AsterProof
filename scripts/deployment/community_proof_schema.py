@@ -151,7 +151,8 @@ def smoke_command():
         "*['/community/problems/'+str(row.pk)+'/' for row in rows]]:\n"
         "        request=factory.get(url)\n"
         "        request.user=user\n"
-        "        if resolve(request.path).func(request).status_code!=200:\n"
+        "        match=resolve(request.path)\n"
+        "        if match.func(request,**match.kwargs).status_code!=200:\n"
         "            raise RuntimeError('Active revision community reader failed')\n"
     )
 

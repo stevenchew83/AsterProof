@@ -1,11 +1,19 @@
 """The proof-library maintenance path preserves recovery and has no initialization side effects."""
 # ruff: noqa: ARG002, EM101, TRY003
 
+import ast
 import hashlib
 from pathlib import Path
+from types import ModuleType
 from types import SimpleNamespace
+from uuid import UUID
 
 import pytest
+from django.http import HttpResponse
+from django.test import RequestFactory
+from django.test import override_settings
+from django.urls import path
+from django.urls import resolve
 
 from scripts.deployment import community_proof_schema as schema
 from scripts.deployment import community_schema
@@ -169,3 +177,30 @@ def test_dispatch_requires_only_the_one_frozen_proof_migration(monkeypatch):
     changes.append("A\tinspinia/pages/migrations/0044_learning_page_activity.py")
     with pytest.raises(validate_dispatch.DispatchValidationError, match="exact frozen"):
         validate_dispatch.build_migration_disclosure(**args)
+
+
+def test_generated_compatibility_reader_passes_resolved_problem_id_to_detail_views():
+    urls = ModuleType("community_proof_compatibility_test_urls")
+    visited = []
+    user = object()
+
+    def listing(request):
+        assert request.user is user
+        visited.append(request.path)
+        return HttpResponse()
+
+    def detail(request, problem_id):
+        assert request.user is user
+        visited.append(problem_id)
+        return HttpResponse()
+
+    urls.urlpatterns = [
+        path("community/problems/", listing),
+        path("community/problems/<uuid:problem_id>/", detail),
+    ]
+    rows = [SimpleNamespace(pk=UUID(int=1)), SimpleNamespace(pk=UUID(int=2))]
+    loop = next(node for node in ast.walk(ast.parse(schema.smoke_command())) if isinstance(node, ast.For))
+    compiled = compile(ast.Module(body=[loop], type_ignores=[]), "generated-compatibility-reader", "exec")
+    with override_settings(ROOT_URLCONF=urls):
+        exec(compiled, {"factory": RequestFactory(), "rows": rows, "user": user, "resolve": resolve})  # noqa: S102
+    assert visited == ["/community/problems/", "/community/problems/", rows[0].pk, rows[1].pk]
