@@ -251,6 +251,16 @@ def run(args) -> int:
         from django.db import connection
 
         report = rehearse(connection, source_sha=args.release_sha, active_sha=args.active_sha)
+        if connection.vendor == "postgresql":
+            from scripts.deployment.schema_fingerprint import normalize_schema_snapshot
+            from scripts.deployment.schema_rehearsal import _snapshot
+
+            snapshot = normalize_schema_snapshot(_snapshot(connection))
+            delta = {field: [row for row in rows if row.get("table") in TABLES]
+                     for field, rows in snapshot.items()}
+            args.output.with_name("evaluation-schema-delta.json").write_text(
+                json.dumps(delta, sort_keys=True, indent=2) + "\n",
+            )
         connection.close()
     args.output.write_text(json.dumps(report, sort_keys=True, indent=2) + "\n")
     return 0
