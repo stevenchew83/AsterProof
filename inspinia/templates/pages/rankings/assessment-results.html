@@ -1,0 +1,80 @@
+{% extends 'layouts/vertical.html' %}
+
+{% block title %}Assessment results{% endblock title %}
+
+{% block page_content %}
+<div class="container-fluid app-table-page">
+  {% include 'partials/page-title.html' with title='Assessment results' subtitle='Rankings' page_icon='ti-trophy' %}
+  {% include 'pages/rankings/result-navigation.html' with current='results' only %}
+  {% include 'pages/rankings/result-messages.html' %}
+
+  <div class="card mt-0">
+    <div class="card-body">
+      <form method="get" class="app-table-filters row g-2 align-items-end">
+        <div class="col-lg-4 col-sm-6">
+          <label for="result-assessment" class="form-label mb-1">Assessment</label>
+          <select name="assessment" id="result-assessment" class="form-select">
+            {% for option in assessments %}<option value="{{ option.pk }}" {% if option.pk == assessment.pk %}selected{% endif %}>{{ option.display_name }} · {{ option.result_count }} result{{ option.result_count|pluralize }}</option>{% endfor %}
+          </select>
+        </div>
+        <div class="col-lg-2 col-sm-6">
+          <label for="result-band" class="form-label mb-1">Category</label>
+          <select name="band" id="result-band" class="form-select">
+            <option value="">All categories</option>
+            {% for option in bands %}<option {% if band == option %}selected{% endif %}>{{ option }}</option>{% endfor %}
+          </select>
+        </div>
+        <div class="col-lg-3 col-sm-6">
+          <label for="result-search" class="form-label mb-1">Student name</label>
+          <input type="search" name="q" id="result-search" value="{{ q }}" class="form-control" placeholder="Search all results" maxlength="255">
+        </div>
+        <div class="col-lg-3 col-sm-6">
+          <label for="result-school" class="form-label mb-1">School</label>
+          <input type="search" name="school" id="result-school" value="{{ school }}" class="form-control" placeholder="School name" maxlength="255">
+        </div>
+        <div class="col-sm-4 col-lg-2">
+          <label for="result-order" class="form-label mb-1">Sort by</label>
+          <select name="order" id="result-order" class="form-select">
+            <option value="score" {% if order == 'score' %}selected{% endif %}>Category, then score</option>
+            <option value="name" {% if order == 'name' %}selected{% endif %}>Student name</option>
+            <option value="school" {% if order == 'school' %}selected{% endif %}>School</option>
+          </select>
+        </div>
+        <div class="col-sm-8 col-lg-10 d-flex flex-wrap gap-2">
+          <button class="btn btn-primary" type="submit"><i class="ti ti-filter me-1" aria-hidden="true"></i>Apply filters</button>
+          <a class="btn btn-outline-secondary" href="{% url 'rankings:assessment_results' %}">Reset</a>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div class="card mt-3">
+    <div class="card-header border-0 pb-0">
+      <h2 class="header-title mb-1">{{ assessment.display_name|default:'No assessment results yet' }}</h2>
+      <p class="text-muted fs-xs mb-0">Ranks use raw scores within each category. Equal scores share a rank; searches keep the original category ranks. Medals and group labels are shown as recorded.</p>
+    </div>
+    <div class="card-body pt-2">
+      <div class="app-table-region table-responsive" tabindex="0" role="region" aria-label="Assessment results">
+        <table id="assessment-results-table" class="app-table-compact table table-striped align-middle mb-0">
+          <thead><tr><th scope="col">Category rank</th><th scope="col">Student</th><th scope="col">School</th><th scope="col">Category</th><th scope="col">Raw score</th><th scope="col">Medal / group</th></tr></thead>
+          <tbody>
+            {% for result in page_obj %}
+            <tr>
+              <td>{{ result.category_rank|default_if_none:'—' }}</td>
+              <td><a href="{% url 'rankings:student_detail' result.student_id %}">{{ result.student.full_name }}</a></td>
+              <td>{{ result.school_display|default:'—' }}</td>
+              <td>{{ result.band|default:'—' }}</td>
+              <td class="fw-semibold">{% if result.raw_score is not None %}{{ result.raw_score|floatformat:'-2' }}{% else %}—{% endif %}</td>
+              <td>{% if result.medal %}<span class="badge bg-warning-subtle text-warning-emphasis">{{ result.medal }}</span>{% endif %} {{ result.status_text }}{% if result.source_notes %}<details class="app-table-details"><summary>Source notes</summary><div class="app-table-details-body">{{ result.source_notes }}</div></details>{% endif %}</td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="6" class="text-muted py-4">{% if assessment %}No results match these filters.{% else %}Import an olympiad history sheet or an IMONST2 result list to get started.{% endif %}</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% include 'pages/rankings/result-pagination.html' %}
+    </div>
+  </div>
+</div>
+{% endblock page_content %}
