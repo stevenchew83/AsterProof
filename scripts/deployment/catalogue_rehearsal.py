@@ -134,8 +134,10 @@ def main():
         raise ValueError("Catalogue rehearsal requires an empty isolated PostgreSQL 17.9 database")
     validate_candidate(Path.cwd())
     executor = MigrationExecutor(connection)
-    targets = [n for n in executor.loader.graph.leaf_nodes() if n[0] != "pages"] + [
+    # Website and Assessment depend on pages 0039/0043, beyond this historical baseline.
+    targets = [n for n in executor.loader.graph.leaf_nodes() if n[0] not in {"pages", "solutions", "website"}] + [
         ("pages", "0036_concept_assignment_reviews"),
+        ("solutions", "0010_offline_evaluation_contract"),
     ]
     executor.migrate(targets)
     old_apps = executor.loader.project_state(targets).apps

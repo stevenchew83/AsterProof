@@ -9,6 +9,7 @@ on:
       - scripts/deployment/postgres_runtime.py
       - scripts/deployment/recovery_crypto.py
       - scripts/deployment/tests/test_database_recovery.py
+      - scripts/deployment/tests/test_systemd_recovery.py
       - scripts/deployment/tests/test_postgres_runtime.py
       - scripts/deployment/tests/test_recovery_crypto.py
       - scripts/deployment/tests/test_catalogue_*.py
@@ -120,6 +121,26 @@ jobs:
             ${{ runner.temp }}/postgres-runtime.manifest.json
             ${{ runner.temp }}/postgres-runtime-smoke.json
           retention-days: 30
+      - name: Prepare the current pre-Community recovery schema
+        run: |
+          .catalogue-quality/bin/python - <<'PY'
+          from django.conf import settings
+          from scripts.deployment.schema_rehearsal import configure_rehearsal_database
+          configure_rehearsal_database(settings)
+          import django
+          django.setup()
+          from django.db import connection
+          from django.db.migrations.executor import MigrationExecutor
+          executor = MigrationExecutor(connection)
+          executor.migrate([
+              node for node in executor.loader.graph.leaf_nodes()
+              if node[0] not in {"pages", "solutions"}
+          ] + [
+              ("pages", "0044_learning_page_activity"),
+              ("solutions", "0012_synthetic_review_prototype"),
+          ])
+          connection.close()
+          PY
       - name: Verify encrypted snapshot and complete isolated database restore
         run: |
           .catalogue-quality/bin/python -m scripts.deployment.database_recovery smoke
