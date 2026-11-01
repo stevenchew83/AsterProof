@@ -1,0 +1,40 @@
+{% extends 'base.html' %}
+
+{% block title %}Report a statement error{% endblock title %}
+{% block extra_meta %}<meta name="robots" content="noindex,nofollow" />{% endblock extra_meta %}
+
+{% block body %}
+<main class="container py-4 py-md-5">
+  <div class="row justify-content-center">
+    <div class="col-lg-8 col-xl-6">
+      <a href="{{ back_url }}" class="btn btn-outline-secondary btn-sm mb-3"><i class="ti ti-arrow-left me-1" aria-hidden="true"></i>Back to problem</a>
+      <section class="card" aria-labelledby="report-title">
+        <div class="card-header border-0 pb-0">
+          <p class="text-muted fs-xs mb-1">{{ statement_label }}</p>
+          <h1 id="report-title" class="h4 mb-0">Report a statement error</h1>
+        </div>
+        <div class="card-body">
+          {% if report_sent %}
+          <div class="alert alert-success mb-0" role="status">Thank you. Your report has been sent to the administrators for review.</div>
+          {% else %}
+          <p class="text-muted">Tell us about a typo, missing condition, incorrect formula, or diagram issue. You can report without signing in.</p>
+          <form method="post">
+            {% csrf_token %}
+            {{ form.token }}
+            {{ form.website }}
+            {% if form.non_field_errors or form.token.errors or form.website.errors %}
+            <div class="alert alert-danger" role="alert">{{ form.non_field_errors }}{{ form.token.errors }}{{ form.website.errors }}</div>
+            {% endif %}
+            <label class="form-label" for="{{ form.description.id_for_label }}">{{ form.description.label }}</label>
+            {{ form.description }}
+            <p id="report-help" class="form-text">Describe the error and, if you know it, the correct wording or a source. Maximum 2,000 characters. Please leave out personal information.</p>
+            {% for error in form.description.errors %}<p class="text-danger" role="alert">{{ error }}</p>{% endfor %}
+            <button type="submit" class="btn btn-primary"><i class="ti ti-flag me-1" aria-hidden="true"></i>Send report</button>
+          </form>
+          {% endif %}
+        </div>
+      </section>
+    </div>
+  </div>
+</main>
+{% endblock body %}
