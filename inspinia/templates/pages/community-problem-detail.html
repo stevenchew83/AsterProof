@@ -1,0 +1,190 @@
+{% extends 'layouts/vertical.html' %}
+
+{% block title %}
+  {{ problem.title }}
+{% endblock title %}
+{% block extra_css %}{% include 'pages/partials/community-styles.html' %}{% endblock extra_css %}
+{% block page_content %}
+  <div class="container-fluid">
+    {% include 'partials/page-title.html' with title=problem.title subtitle='Community problems' page_icon='ti-messages' %}
+    <div class="d-flex flex-wrap gap-2 mb-3">
+      <a href="{% url 'pages:community_problem_list' %}?tab=all"
+         class="btn btn-outline-secondary btn-sm">All community problems</a>
+      {% if can_edit %}
+        <a href="{% url 'pages:community_problem_edit' problem.pk %}"
+           class="btn btn-outline-primary btn-sm">Edit and resubmit</a>
+      {% endif %}
+      {% include 'pages/partials/community-status.html' %}
+    </div>
+    <div class="row g-3">
+      <div class="col-xl-8">
+        <article class="card">
+          <div class="card-body">
+            <p class="text-muted fs-sm">
+              {{ problem.get_topic_display }} · Proposed MOHS {{ problem.mohs }} · {{ problem.author.name|default:'Community member' }} · Version {{ problem.version }}
+            </p>
+            {% if problem.status != 'approved' %}
+              <div class="alert alert-warning py-2">This version has not been approved by an admin.</div>
+            {% endif %}
+            <h2 class="header-title fs-16">Problem statement</h2>
+            <div class="community-problem-text lh-lg"
+                 data-community-math>{{ problem.statement_latex }}</div>
+          </div>
+        </article>
+        <section class="card mt-3">
+          <div class="card-body">
+            <h2 class="header-title fs-16">Problem details</h2>
+            <dl class="row mb-0">
+              <dt class="col-sm-3">Tags</dt>
+              <dd class="col-sm-9 text-break">
+                {{ problem.topic_tags }}
+              </dd>
+              <dt class="col-sm-3">Core ideas</dt>
+              <dd class="col-sm-9 community-problem-text" data-community-math>{{ problem.core_ideas }}</dd>
+              <dt class="col-sm-3">Difficulty rationale</dt>
+              <dd class="col-sm-9 community-problem-text" data-community-math>{{ problem.rationale }}</dd>
+              <dt class="col-sm-3">Pitfalls</dt>
+              <dd class="col-sm-9 text-break" data-community-math>
+                {{ problem.pitfalls|default:'Not supplied' }}
+              </dd>
+              <dt class="col-sm-3">Source</dt>
+              <dd class="col-sm-9 text-break">
+                {{ problem.get_source_kind_display }} · {{ problem.source_details }}
+                {% if problem.source_url %}
+                  <br />
+                  <a href="{{ problem.source_url }}"
+                     target="_blank"
+                     rel="noopener noreferrer">View source <span class="visually-hidden">(opens in a new tab)</span></a>
+                {% endif %}
+              </dd>
+              {% if problem.contest_name %}
+                <dt class="col-sm-3">Contest reference</dt>
+                <dd class="col-sm-9">
+                  {{ problem.contest_name }} {{ problem.contest_year }} {{ problem.problem_code }}
+                </dd>
+              {% endif %}
+            </dl>
+          </div>
+        </section>
+        {% if show_private and problem.solution_outline %}
+          <section class="card mt-3">
+            <div class="card-body">
+              <h2 class="header-title fs-16">Private solution outline</h2>
+              <p class="text-muted fs-xs">Visible only to the author and admins.</p>
+              <div class="community-problem-text" data-community-math>{{ problem.solution_outline }}</div>
+            </div>
+          </section>
+        {% endif %}
+        {% include 'pages/partials/community-similarity.html' with similarity=problem.similarity_snapshot %}
+      </div>
+      <aside class="col-xl-4">
+        <section class="card">
+          <div class="card-body">
+            <h2 class="header-title fs-16">Admin review</h2>
+            <p>{% include 'pages/partials/community-status.html' %}</p>
+            {% if problem.reviewed_at %}
+              <p class="text-muted fs-sm">
+                {{ problem.reviewed_by.name|default:'Admin' }} · {{ problem.reviewed_at|date:'Y-m-d H:i T' }}
+              </p>
+            {% endif %}
+            {% if problem.review_notes %}
+              <p class="community-problem-text">{{ problem.review_notes }}</p>
+            {% endif %}
+            {% if can_review %}
+              <form method="post">
+                {% csrf_token %}{{ review_form.version }}{{ review_form.non_field_errors }}
+                <div class="mb-3">
+                  <label class="form-label" for="{{ review_form.decision.id_for_label }}">Decision</label>
+                  {{ review_form.decision }}{{ review_form.decision.errors }}
+                </div>
+                <div class="mb-3">
+                  <label class="form-label" for="{{ review_form.notes.id_for_label }}">Review notes</label>
+                  {{ review_form.notes }}
+                  <div class="form-text">{{ review_form.notes.help_text }}</div>
+                  {{ review_form.notes.errors }}
+                </div>
+                <button class="btn btn-primary" type="submit">Save admin decision</button>
+              </form>
+            {% endif %}
+            <p class="text-muted fs-xs mt-3 mb-0">An approved post remains separate from the main library.</p>
+          </div>
+        </section>
+        {% if is_admin %}
+          <section class="card mt-3">
+            <div class="card-body">
+              <h2 class="header-title fs-16">ChatGPT statement review</h2>
+              <p class="text-muted fs-sm">
+                Check wording, mathematical assumptions, metadata, difficulty, attribution, and possible library matches. Feedback is advisory.
+              </p>
+              {% if ai_review %}
+                <p>
+                  <span class="badge bg-info-subtle text-info">{{ ai_review.get_status_display }}</span> · Version {{ ai_review.version }}
+                </p>
+                {% if ai_review.status == 'queued' or ai_review.status == 'running' %}
+                  <p class="fs-sm">The review worker processes this request. Refresh to check its result.</p>
+                {% endif %}
+                {% if ai_review.error_code %}
+                  <div class="alert alert-warning fs-sm">
+                    Review could not be completed ({{ ai_review.error_code }}). This request will not be automatically retried.
+                  </div>
+                {% endif %}
+                {% if ai_review.feedback %}
+                  <p class="fw-semibold text-break">{{ ai_review.feedback.summary }}</p>
+                  <h3 class="fs-sm">Statement issues</h3>
+                  <ul>
+                    {% for issue in ai_review.feedback.issues %}
+                      <li class="text-break">{{ issue }}</li>
+                    {% empty %}
+                      <li>No issues reported; this is not a correctness guarantee.</li>
+                    {% endfor %}
+                  </ul>
+                  <h3 class="fs-sm">Metadata suggestions</h3>
+                  <ul>
+                    {% for suggestion in ai_review.feedback.metadata_suggestions %}
+                      <li class="text-break">{{ suggestion }}</li>
+                    {% empty %}
+                      <li>No changes suggested.</li>
+                    {% endfor %}
+                  </ul>
+                  <h3 class="fs-sm">Similarity assessment</h3>
+                  <p class="text-break">{{ ai_review.feedback.similarity_assessment }}</p>
+                  <h3 class="fs-sm">Limitations</h3>
+                  <ul>
+                    {% for limitation in ai_review.feedback.limitations %}<li class="text-break">{{ limitation }}</li>{% endfor %}
+                  </ul>
+                {% endif %}
+              {% elif can_review and ai_ready %}
+                <form method="post"
+                      action="{% url 'pages:community_problem_ai_review' problem.pk %}">
+                  {% csrf_token %}
+                  <input type="hidden" name="version" value="{{ problem.version }}" />
+                  <div class="form-check mb-3">
+                    <input class="form-check-input"
+                           type="checkbox"
+                           name="acknowledged"
+                           value="1"
+                           id="ai-acknowledged"
+                           required />
+                    <label class="form-check-label fs-sm" for="ai-acknowledged">
+                      Send this saved statement, details, private solution outline, and library candidates to OpenAI for a paid review.
+                    </label>
+                  </div>
+                  <button class="btn btn-outline-primary" type="submit">
+                    <i class="ti ti-sparkles me-1"></i>Request ChatGPT review
+                  </button>
+                </form>
+              {% else %}
+                <p class="text-muted fs-sm mb-0">
+                  AI review needs an enabled statement-review policy with a model, verified pricing, and budgets. Human review is available independently.
+                </p>
+              {% endif %}
+            </div>
+          </section>
+        {% endif %}
+      </aside>
+    </div>
+  </div>
+{% endblock page_content %}
+{% block extra_javascript %}
+  {% include 'pages/partials/community-math.html' %}
+{% endblock extra_javascript %}
