@@ -1,7 +1,8 @@
-  <div class="row g-3 mt-0">
+  <div class="row g-3 mt-0" id="completion-progress-breakdown">
     <div class="col-12">
       <div class="card">
-        <div class="card-header border-bottom pb-0">
+        <div class="card-header border-bottom pb-0 completion-progress-breakdown-header">
+          <h2 class="header-title">Progress breakdown</h2>
           <ul class="nav nav-tabs card-header-tabs" id="completion-progress-chart-tabs" role="tablist">
             <li class="nav-item" role="presentation">
               <button class="nav-link active" id="completion-progress-topics-tab" data-bs-toggle="tab" data-bs-target="#completion-progress-topics-pane" type="button" role="tab" aria-controls="completion-progress-topics-pane" aria-selected="true">Topics</button>
@@ -23,7 +24,7 @@
     </div>
   </div>
 
-  <div class="row g-3 mt-0">
+  <div class="row g-3 mt-0" id="completion-progress-activity">
     <div class="col-12">
       <div class="card">
         {% include 'pages/partials/completion-progress-calendar.html' %}
@@ -31,7 +32,7 @@
     </div>
   </div>
 
-  <div class="row g-3 mt-0">
+  <div class="row g-3 mt-0" id="completion-progress-coverage">
     <div class="col-12">
       <div class="card">
         {% include 'pages/partials/completion-progress-contest.html' %}

@@ -11333,7 +11333,16 @@ def test_completion_progress_analytics_renders_admin_dashboard(client):
     apex_restore = response_html.index("__asterproofApexAmdBackup", apex_script)
     assert apex_guard_start < apex_script < apex_restore
     assert "tooltip: { shared: true, intersect: false }" in response_html
-    assert '<div class="flex-shrink-0">\n              <span class="avatar-title bg-primary-subtle' in response_html
+    assert all(
+        marker in response_html
+        for marker in (
+            'class="completion-progress-metrics"',
+            'aria-label="Progress summary"',
+            'aria-label="Filter progress analytics"',
+            'data-chart-height="260"',
+            'class="completion-progress-comparison"',
+        )
+    )
     assert "var updatedColumnIndex = tableColumns.length - 1;" in response_html
     assert 'order: [[updatedColumnIndex, "desc"]]' in response_html
     today_title = f"{today.strftime('%a, %d %b %Y')}: 1 completion"
@@ -11343,6 +11352,24 @@ def test_completion_progress_analytics_renders_admin_dashboard(client):
     zero_title = f"{zero_day.strftime('%a, %d %b %Y')}: 0 completions"
     zero_index = response_html.index(f'data-bs-title="{zero_title}"')
     assert 'tabindex="0"' not in response_html[zero_index : zero_index + 240]
+
+
+@pytest.mark.parametrize(("mohs", "expected_average", "expected_max"), [(0, "0.0", "0"), (None, "—", "—")])
+def test_completion_progress_summary_distinguishes_zero_and_missing_mohs(client, mohs, expected_average, expected_max):
+    user = UserFactory(role=User.Role.ADMIN)
+    client.force_login(user)
+    problem = ProblemSolveRecord.objects.create(
+        year=2026, contest="IMO", problem="P1", topic="ALG", mohs=mohs,
+    )
+    UserProblemCompletion.objects.create(user=user, problem=problem, completion_date=timezone.localdate())
+
+    response = client.get(reverse("pages:completion_progress_analytics"), {"user": str(user.pk), "range": "custom"})
+
+    assert response.status_code == HTTPStatus.OK
+    html = response.content.decode()
+    assert re.search(r"<dt>Average MOHS</dt>\s*<dd>\s*" + expected_average + r"\s*</dd>", html)
+    assert re.search(r"<dt>Max MOHS</dt>\s*<dd>\s*" + expected_max + r"\s*</dd>", html)
+    assert html.index('class="completion-progress-metrics"') < html.index('name="range"')
 
 
 def test_completion_progress_analytics_dedupes_duplicate_statement_metrics_but_keeps_rows(client):
