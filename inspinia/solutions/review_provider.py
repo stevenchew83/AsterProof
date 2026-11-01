@@ -1,4 +1,4 @@
-"""OpenAI boundary for solution coaching; never called by saving, preview, or autocomplete."""
+"""The only OpenAI boundary. Never called by saving, preview, or autocomplete."""
 
 from __future__ import annotations
 

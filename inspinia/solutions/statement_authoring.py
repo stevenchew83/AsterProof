@@ -4,6 +4,7 @@ from django.contrib.auth.decorators import login_required
 from django.db import transaction
 from django.shortcuts import get_object_or_404
 from django.shortcuts import redirect
+from django.urls import reverse
 from django.views.decorators.http import require_POST
 
 from inspinia.pages.models import ContestProblemStatement
@@ -34,4 +35,5 @@ def statement_solution_start_view(request, statement_uuid):
         )
         statement.linked_problem = problem
         statement.save(update_fields={"linked_problem", "updated_at"})
-    return redirect("solutions:problem_solution_edit", statement.problem_uuid)
+    editor_url = reverse("solutions:problem_solution_edit", args=[statement.problem_uuid])
+    return redirect(f"{editor_url}#solution-writing-area")
