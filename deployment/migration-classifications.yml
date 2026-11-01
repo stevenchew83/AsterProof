@@ -168,6 +168,29 @@
         "existing_records_preserved"
       ],
       "rationale": "Adds one first-login preference column, with a persistent not_enrolled database default for existing accounts and compatibility with old-code account creation. New application accounts default to active. The AlterField changes only the Python default; existing profile, approval, solution and progress data remain intact. Requires separately installed frozen migration authority."
+    },
+    "pages.0042_community_problems": {
+      "classification": "backward-compatible-schema",
+      "recovery_required": false,
+      "code_rollback_permitted": true,
+      "data_preconditions": [
+        "community_tables_absent",
+        "existing_library_accounts_solutions_and_progress_preserved",
+        "community_ai_review_disabled"
+      ],
+      "rationale": "Creates seven isolated community-post, human-review, AI-policy/job and similarity-index tables. Existing library statements, accounts, solutions and completion records are not rewritten. AI review remains disabled with zero budgets. Old application code remains compatible while the new tables and retained community data are preserved. Classification does not install or broaden production migration authority."
+    },
+    "pages.0043_statement_similarity_source": {
+      "classification": "data-or-non-compatible",
+      "recovery_required": true,
+      "code_rollback_permitted": false,
+      "data_preconditions": [
+        "community_tables_created",
+        "similarity_source_table_and_trigger_function_absent",
+        "verified_database_recovery_point",
+        "existing_statement_and_catalogue_trigger_definitions_preserved"
+      ],
+      "rationale": "Creates the isolated similarity-source table, seeds its singleton revision, and installs an invoker-security trigger function on ContestProblemStatement. The trigger increments only the new revision when statement text or active status changes, or on insertion/deletion; existing source records are preserved. RunPython is data-class under the established protocol, requiring an exact frozen allowance, PostgreSQL rehearsal, trigger/function audits, verified recovery and separately authorized installed authority. Ordinary rollback is not permitted by this classification."
     }
   }
 }

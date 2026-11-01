@@ -15,6 +15,8 @@ from pathlib import Path
 from typing import Any
 
 from scripts.deployment import catalogue_schema
+from scripts.deployment import community_schema
+from scripts.deployment import maintenance_schema
 from scripts.deployment import statement_authoring_schema
 from scripts.deployment.additive_schema import validate_disclosure
 from scripts.deployment.concept_schema import ConceptSchemaError
@@ -82,7 +84,7 @@ def validate_schema_input(value: str, *, release_sha: str, migration_class: str,
         if initial_adoption or len(value) > 8192:
             raise DispatchValidationError("Catalogue maintenance cannot use adoption or an oversized disclosure")
         try:
-            catalogue_schema.validate_disclosure(json.loads(value), target_sha=release_sha)
+            maintenance_schema.validate_disclosure(json.loads(value), target_sha=release_sha)
         except (ValueError, TypeError) as exc:
             raise DispatchValidationError("Catalogue maintenance requires its exact frozen disclosure") from exc
         return
@@ -340,6 +342,12 @@ def build_migration_disclosure(
     elif migrations:
         derived = "backward-compatible-schema"
     if declared_class == "data-or-non-compatible":
+        community_plan = [
+            {"migration": "pages." + name, "classification": classification}
+            for name, classification in zip(
+                community_schema.MIGRATIONS, community_schema.MIGRATION_CLASSES, strict=True,
+            )
+        ]
         authoring_plan = [{"migration": statement_authoring_schema.MIGRATION, "classification": declared_class}]
         expected = [
             {
@@ -348,10 +356,12 @@ def build_migration_disclosure(
             }
             for i, name in enumerate(catalogue_schema.MIGRATIONS)
         ]
-        if migrations not in (expected, authoring_plan):
-            raise DispatchValidationError("Data-class deployment is restricted to the exact catalogue migration plan")
+        if migrations not in (expected, authoring_plan, community_plan):
+            raise DispatchValidationError("Data-class deployment requires an exact frozen maintenance plan")
         try:
-            if migrations == authoring_plan:
+            if migrations == community_plan:
+                community_schema.validate_candidate(repository)
+            elif migrations == authoring_plan:
                 statement_authoring_schema.validate_candidate(repository)
             else:
                 catalogue_schema.validate_candidate(repository)
