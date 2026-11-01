@@ -393,5 +393,9 @@ from inspinia.solutions.evaluation_models import ReviewerProfile  # noqa: E402, 
 from inspinia.solutions.evaluation_models import ReviewExecutionAttempt  # noqa: E402, F401
 from inspinia.solutions.evaluation_models import ReviewInputBundle  # noqa: E402, F401
 from inspinia.solutions.evaluation_models import ReviewSpendEvent  # noqa: E402, F401
+from inspinia.solutions.problem_evaluation_models import EvaluationPackageApproval  # noqa: E402, F401
+from inspinia.solutions.problem_evaluation_models import ProblemEvaluationPackage  # noqa: E402, F401
+from inspinia.solutions.prototype_models import SyntheticHintReveal  # noqa: E402, F401
+from inspinia.solutions.prototype_models import SyntheticReview  # noqa: E402, F401
 from inspinia.solutions.review_models import SolutionReview  # noqa: E402, F401
 from inspinia.solutions.review_models import SolutionReviewPolicy  # noqa: E402, F401

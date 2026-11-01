@@ -303,6 +303,8 @@ REDIS_SSL = REDIS_URL.startswith("rediss://")
 # Coaching is opt-in twice: this kill switch and an enabled, funded pilot policy.
 SOLUTION_DOCUMENT_WRITES_ENABLED = env.bool("SOLUTION_DOCUMENT_WRITES_ENABLED", default=False)
 SOLUTION_AI_REVIEW_ENABLED = env.bool("SOLUTION_AI_REVIEW_ENABLED", default=False)
+# Synthetic fixture workspace only; never enables the paid review worker.
+SYNTHETIC_REVIEW_PROTOTYPE_ENABLED = False
 SOLUTION_AI_EXECUTION_MODE = "offline"
 PROBLEM_STATEMENT_AI_REVIEW_ENABLED = env.bool("PROBLEM_STATEMENT_AI_REVIEW_ENABLED", default=False)
 OPENAI_API_KEY = env("OPENAI_API_KEY", default="")

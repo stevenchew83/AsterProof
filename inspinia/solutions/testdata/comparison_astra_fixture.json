@@ -1,0 +1,1870 @@
+{
+  "schema_version": 1,
+  "plan_digest": "a3a6d4f85316f66d5f3c0b6a163cbf60e4e2c4ceaf6c5cc6cf0a46035feae639",
+  "model": "gpt-6-astra",
+  "reasoning_effort": "high",
+  "execution_kind": "synthetic_fixture",
+  "records": [
+    {
+      "case_id": "synthetic-alg-held_out-alternative",
+      "trial": 1,
+      "input_digest": "2f35104005d202a7642e88de8e8440c72df82e4768131b520464cfa89a13bf2e",
+      "assessment_request_digest": "6da00d676e7964f75326e3d724d68585d750a40ff5ef4d9cd11e05f174c9a35a",
+      "feedback_request_digest": "2fced432bae2f823c60d4bfff39dde28ac086fbb4682c6e01d43be9bd5d7bd43",
+      "status": "completed",
+      "assessment": {
+        "assessment": "no_issues_found",
+        "summary": "No issue was identified in this synthetic argument.",
+        "human_review_required": false,
+        "limitations": [
+          "Synthetic, unapproved exercise; not a model reliability measurement."
+        ],
+        "claims": [
+          {
+            "id": "argument",
+            "verdict": "supported",
+            "evidence": {
+              "start": 0,
+              "end": 82,
+              "quote": "We have (a+b)^2-4ab=(a-b)^2 >= 0. Taking nonnegative square roots gives the claim."
+            },
+            "justification": "The submitted argument supports the conclusion under the given assumptions.",
+            "depends_on": []
+          }
+        ],
+        "findings": []
+      },
+      "mode_feedback": {
+        "summary": "No issue was identified in this synthetic argument.",
+        "strengths": [
+          "The argument addresses the stated target."
+        ],
+        "findings": [],
+        "hints": [],
+        "rubric_fit": "applicable",
+        "decisions": [
+          {
+            "criterion_id": "milestone",
+            "status": "met",
+            "claim_ids": [
+              "argument"
+            ],
+            "justification": "Supported progress addresses this criterion."
+          },
+          {
+            "criterion_id": "completion",
+            "status": "met",
+            "claim_ids": [
+              "argument"
+            ],
+            "justification": "Supported progress addresses this criterion."
+          }
+        ]
+      },
+      "returned_models": [],
+      "provider_request_ids": [],
+      "usage": null,
+      "latency_ms": null,
+      "error_code": null
+    },
+    {
+      "case_id": "synthetic-alg-held_out-alternative",
+      "trial": 2,
+      "input_digest": "2f35104005d202a7642e88de8e8440c72df82e4768131b520464cfa89a13bf2e",
+      "assessment_request_digest": "6da00d676e7964f75326e3d724d68585d750a40ff5ef4d9cd11e05f174c9a35a",
+      "feedback_request_digest": "2fced432bae2f823c60d4bfff39dde28ac086fbb4682c6e01d43be9bd5d7bd43",
+      "status": "completed",
+      "assessment": {
+        "assessment": "no_issues_found",
+        "summary": "No issue was identified in this synthetic argument.",
+        "human_review_required": false,
+        "limitations": [
+          "Synthetic, unapproved exercise; not a model reliability measurement."
+        ],
+        "claims": [
+          {
+            "id": "argument",
+            "verdict": "supported",
+            "evidence": {
+              "start": 0,
+              "end": 82,
+              "quote": "We have (a+b)^2-4ab=(a-b)^2 >= 0. Taking nonnegative square roots gives the claim."
+            },
+            "justification": "The submitted argument supports the conclusion under the given assumptions.",
+            "depends_on": []
+          }
+        ],
+        "findings": []
+      },
+      "mode_feedback": {
+        "summary": "No issue was identified in this synthetic argument.",
+        "strengths": [
+          "The argument addresses the stated target."
+        ],
+        "findings": [],
+        "hints": [],
+        "rubric_fit": "applicable",
+        "decisions": [
+          {
+            "criterion_id": "milestone",
+            "status": "met",
+            "claim_ids": [
+              "argument"
+            ],
+            "justification": "Supported progress addresses this criterion."
+          },
+          {
+            "criterion_id": "completion",
+            "status": "met",
+            "claim_ids": [
+              "argument"
+            ],
+            "justification": "Supported progress addresses this criterion."
+          }
+        ]
+      },
+      "returned_models": [],
+      "provider_request_ids": [],
+      "usage": null,
+      "latency_ms": null,
+      "error_code": null
+    },
+    {
+      "case_id": "synthetic-alg-held_out-invalid",
+      "trial": 1,
+      "input_digest": "14ee7ce596475c5651daeeb1902b6a7666fc672ece00661772187c02c7acc505",
+      "assessment_request_digest": "8e120e07c37f81d1067c49f2fd2385151cf9942476928205a694dac6ff777da3",
+      "feedback_request_digest": "b4c0e0ff93c3f14f654eba321ea1cfb2b6afc2a4f03073685ef062368b10d4f5",
+      "status": "completed",
+      "assessment": {
+        "assessment": "gap_found",
+        "summary": "A real square cannot be strictly negative, and the claimed implication has not been established.",
+        "human_review_required": false,
+        "limitations": [
+          "Synthetic, unapproved exercise; not a model reliability measurement."
+        ],
+        "claims": [
+          {
+            "id": "argument",
+            "verdict": "invalid",
+            "evidence": {
+              "start": 0,
+              "end": 53,
+              "quote": "Since (a-b)^2 < 0, expanding gives a+b >= 2 sqrt(ab)."
+            },
+            "justification": "A real square cannot be strictly negative, and the claimed implication has not been established.",
+            "depends_on": []
+          }
+        ],
+        "findings": [
+          {
+            "id": "finding-1",
+            "claim_id": "argument",
+            "category": "invalid_step",
+            "severity": "critical",
+            "diagnosis": "A real square cannot be strictly negative, and the claimed implication has not been established."
+          }
+        ]
+      },
+      "mode_feedback": {
+        "summary": "A real square cannot be strictly negative, and the claimed implication has not been established.",
+        "strengths": [],
+        "findings": [
+          {
+            "finding_id": "finding-1",
+            "explanation": "A real square cannot be strictly negative, and the claimed implication has not been established.",
+            "next_step": "Check the sign of the square before drawing the inequality."
+          }
+        ],
+        "hints": [
+          {
+            "finding_id": "finding-1",
+            "levels": [
+              "Consider the case a=b.",
+              "Look for a nonnegative expression involving the two square roots."
+            ]
+          }
+        ],
+        "rubric_fit": "applicable",
+        "decisions": [
+          {
+            "criterion_id": "milestone",
+            "status": "not_met",
+            "claim_ids": [
+              "argument"
+            ],
+            "justification": "The required criterion is not established in this submission."
+          },
+          {
+            "criterion_id": "completion",
+            "status": "not_met",
+            "claim_ids": [
+              "argument"
+            ],
+            "justification": "The required criterion is not established in this submission."
+          }
+        ]
+      },
+      "returned_models": [],
+      "provider_request_ids": [],
+      "usage": null,
+      "latency_ms": null,
+      "error_code": null
+    },
+    {
+      "case_id": "synthetic-alg-held_out-invalid",
+      "trial": 2,
+      "input_digest": "14ee7ce596475c5651daeeb1902b6a7666fc672ece00661772187c02c7acc505",
+      "assessment_request_digest": "8e120e07c37f81d1067c49f2fd2385151cf9942476928205a694dac6ff777da3",
+      "feedback_request_digest": "b4c0e0ff93c3f14f654eba321ea1cfb2b6afc2a4f03073685ef062368b10d4f5",
+      "status": "completed",
+      "assessment": {
+        "assessment": "gap_found",
+        "summary": "A real square cannot be strictly negative, and the claimed implication has not been established.",
+        "human_review_required": false,
+        "limitations": [
+          "Synthetic, unapproved exercise; not a model reliability measurement."
+        ],
+        "claims": [
+          {
+            "id": "argument",
+            "verdict": "invalid",
+            "evidence": {
+              "start": 0,
+              "end": 53,
+              "quote": "Since (a-b)^2 < 0, expanding gives a+b >= 2 sqrt(ab)."
+            },
+            "justification": "A real square cannot be strictly negative, and the claimed implication has not been established.",
+            "depends_on": []
+          }
+        ],
+        "findings": [
+          {
+            "id": "finding-1",
+            "claim_id": "argument",
+            "category": "invalid_step",
+            "severity": "critical",
+            "diagnosis": "A real square cannot be strictly negative, and the claimed implication has not been established."
+          }
+        ]
+      },
+      "mode_feedback": {
+        "summary": "A real square cannot be strictly negative, and the claimed implication has not been established.",
+        "strengths": [],
+        "findings": [
+          {
+            "finding_id": "finding-1",
+            "explanation": "A real square cannot be strictly negative, and the claimed implication has not been established.",
+            "next_step": "Check the sign of the square before drawing the inequality."
+          }
+        ],
+        "hints": [
+          {
+            "finding_id": "finding-1",
+            "levels": [
+              "Consider the case a=b.",
+              "Look for a nonnegative expression involving the two square roots."
+            ]
+          }
+        ],
+        "rubric_fit": "applicable",
+        "decisions": [
+          {
+            "criterion_id": "milestone",
+            "status": "not_met",
+            "claim_ids": [
+              "argument"
+            ],
+            "justification": "The required criterion is not established in this submission."
+          },
+          {
+            "criterion_id": "completion",
+            "status": "not_met",
+            "claim_ids": [
+              "argument"
+            ],
+            "justification": "The required criterion is not established in this submission."
+          }
+        ]
+      },
+      "returned_models": [],
+      "provider_request_ids": [],
+      "usage": null,
+      "latency_ms": null,
+      "error_code": null
+    },
+    {
+      "case_id": "synthetic-alg-held_out-partial",
+      "trial": 1,
+      "input_digest": "2e7b1674effcee103b43e2b506c10b2ede3f594bc676d350c1f63f12f17acce0",
+      "assessment_request_digest": "52d6977174bbf3c83c1fa3191fcb197539ae2324a59ffb263cac853c751f0435",
+      "feedback_request_digest": "c5e39e0dc8931a87c78a19f60403c300f2ec0d5ff0591ac4f7897d0a96ac2792",
+      "status": "completed",
+      "assessment": {
+        "assessment": "incomplete",
+        "summary": "The submitted work stops before establishing the required conclusion.",
+        "human_review_required": false,
+        "limitations": [
+          "Synthetic, unapproved exercise; not a model reliability measurement."
+        ],
+        "claims": [
+          {
+            "id": "argument",
+            "verdict": "unjustified",
+            "evidence": {
+              "start": 0,
+              "end": 55,
+              "quote": "The difference between the two sides is a+b-2 sqrt(ab)."
+            },
+            "justification": "The submitted work stops before establishing the required conclusion.",
+            "depends_on": []
+          }
+        ],
+        "findings": [
+          {
+            "id": "finding-1",
+            "claim_id": "argument",
+            "category": "unfinished",
+            "severity": "major",
+            "diagnosis": "The submitted work stops before establishing the required conclusion."
+          }
+        ]
+      },
+      "mode_feedback": {
+        "summary": "The submitted work stops before establishing the required conclusion.",
+        "strengths": [],
+        "findings": [
+          {
+            "finding_id": "finding-1",
+            "explanation": "The submitted work stops before establishing the required conclusion.",
+            "next_step": "State the remaining proof obligation and justify the next implication."
+          }
+        ],
+        "hints": [
+          {
+            "finding_id": "finding-1",
+            "levels": [
+              "Compare the last established statement with the target.",
+              "Identify a theorem or case distinction that connects them."
+            ]
+          }
+        ],
+        "rubric_fit": "applicable",
+        "decisions": [
+          {
+            "criterion_id": "milestone",
+            "status": "not_met",
+            "claim_ids": [
+              "argument"
+            ],
+            "justification": "The required criterion is not established in this submission."
+          },
+          {
+            "criterion_id": "completion",
+            "status": "not_met",
+            "claim_ids": [
+              "argument"
+            ],
+            "justification": "The required criterion is not established in this submission."
+          }
+        ]
+      },
+      "returned_models": [],
+      "provider_request_ids": [],
+      "usage": null,
+      "latency_ms": null,
+      "error_code": null
+    },
+    {
+      "case_id": "synthetic-alg-held_out-partial",
+      "trial": 2,
+      "input_digest": "2e7b1674effcee103b43e2b506c10b2ede3f594bc676d350c1f63f12f17acce0",
+      "assessment_request_digest": "52d6977174bbf3c83c1fa3191fcb197539ae2324a59ffb263cac853c751f0435",
+      "feedback_request_digest": "c5e39e0dc8931a87c78a19f60403c300f2ec0d5ff0591ac4f7897d0a96ac2792",
+      "status": "completed",
+      "assessment": {
+        "assessment": "incomplete",
+        "summary": "The submitted work stops before establishing the required conclusion.",
+        "human_review_required": false,
+        "limitations": [
+          "Synthetic, unapproved exercise; not a model reliability measurement."
+        ],
+        "claims": [
+          {
+            "id": "argument",
+            "verdict": "unjustified",
+            "evidence": {
+              "start": 0,
+              "end": 55,
+              "quote": "The difference between the two sides is a+b-2 sqrt(ab)."
+            },
+            "justification": "The submitted work stops before establishing the required conclusion.",
+            "depends_on": []
+          }
+        ],
+        "findings": [
+          {
+            "id": "finding-1",
+            "claim_id": "argument",
+            "category": "unfinished",
+            "severity": "major",
+            "diagnosis": "The submitted work stops before establishing the required conclusion."
+          }
+        ]
+      },
+      "mode_feedback": {
+        "summary": "The submitted work stops before establishing the required conclusion.",
+        "strengths": [],
+        "findings": [
+          {
+            "finding_id": "finding-1",
+            "explanation": "The submitted work stops before establishing the required conclusion.",
+            "next_step": "State the remaining proof obligation and justify the next implication."
+          }
+        ],
+        "hints": [
+          {
+            "finding_id": "finding-1",
+            "levels": [
+              "Compare the last established statement with the target.",
+              "Identify a theorem or case distinction that connects them."
+            ]
+          }
+        ],
+        "rubric_fit": "applicable",
+        "decisions": [
+          {
+            "criterion_id": "milestone",
+            "status": "not_met",
+            "claim_ids": [
+              "argument"
+            ],
+            "justification": "The required criterion is not established in this submission."
+          },
+          {
+            "criterion_id": "completion",
+            "status": "not_met",
+            "claim_ids": [
+              "argument"
+            ],
+            "justification": "The required criterion is not established in this submission."
+          }
+        ]
+      },
+      "returned_models": [],
+      "provider_request_ids": [],
+      "usage": null,
+      "latency_ms": null,
+      "error_code": null
+    },
+    {
+      "case_id": "synthetic-com-held_out-alternative",
+      "trial": 1,
+      "input_digest": "d6eadc2de79eca6b21fa7643a55a4120667a98428b4994cac2de6583bf8c4d4d",
+      "assessment_request_digest": "6ef2f9e809c3ca24f52a1b45cb307fee00f00e5d83860c086c437a8bf2a6f99c",
+      "feedback_request_digest": "5fbaaeba164b7d52bb29c9355a04e4b9feb96f3d04feb22293fb40f4863665cd",
+      "status": "completed",
+      "assessment": {
+        "assessment": "no_issues_found",
+        "summary": "No issue was identified in this synthetic argument.",
+        "human_review_required": false,
+        "limitations": [
+          "Synthetic, unapproved exercise; not a model reliability measurement."
+        ],
+        "claims": [
+          {
+            "id": "argument",
+            "verdict": "supported",
+            "evidence": {
+              "start": 0,
+              "end": 125,
+              "quote": "With 0,1,2,3 edges, the degree multisets are respectively {0,0,0}, {0,1,1}, {1,1,2}, and {2,2,2}. Each has a repeated degree."
+            },
+            "justification": "The submitted argument supports the conclusion under the given assumptions.",
+            "depends_on": []
+          }
+        ],
+        "findings": []
+      },
+      "mode_feedback": {
+        "summary": "No issue was identified in this synthetic argument.",
+        "strengths": [
+          "The argument addresses the stated target."
+        ],
+        "findings": [],
+        "hints": [],
+        "rubric_fit": "applicable",
+        "decisions": [
+          {
+            "criterion_id": "milestone",
+            "status": "met",
+            "claim_ids": [
+              "argument"
+            ],
+            "justification": "Supported progress addresses this criterion."
+          },
+          {
+            "criterion_id": "completion",
+            "status": "met",
+            "claim_ids": [
+              "argument"
+            ],
+            "justification": "Supported progress addresses this criterion."
+          }
+        ]
+      },
+      "returned_models": [],
+      "provider_request_ids": [],
+      "usage": null,
+      "latency_ms": null,
+      "error_code": null
+    },
+    {
+      "case_id": "synthetic-com-held_out-alternative",
+      "trial": 2,
+      "input_digest": "d6eadc2de79eca6b21fa7643a55a4120667a98428b4994cac2de6583bf8c4d4d",
+      "assessment_request_digest": "6ef2f9e809c3ca24f52a1b45cb307fee00f00e5d83860c086c437a8bf2a6f99c",
+      "feedback_request_digest": "5fbaaeba164b7d52bb29c9355a04e4b9feb96f3d04feb22293fb40f4863665cd",
+      "status": "completed",
+      "assessment": {
+        "assessment": "no_issues_found",
+        "summary": "No issue was identified in this synthetic argument.",
+        "human_review_required": false,
+        "limitations": [
+          "Synthetic, unapproved exercise; not a model reliability measurement."
+        ],
+        "claims": [
+          {
+            "id": "argument",
+            "verdict": "supported",
+            "evidence": {
+              "start": 0,
+              "end": 125,
+              "quote": "With 0,1,2,3 edges, the degree multisets are respectively {0,0,0}, {0,1,1}, {1,1,2}, and {2,2,2}. Each has a repeated degree."
+            },
+            "justification": "The submitted argument supports the conclusion under the given assumptions.",
+            "depends_on": []
+          }
+        ],
+        "findings": []
+      },
+      "mode_feedback": {
+        "summary": "No issue was identified in this synthetic argument.",
+        "strengths": [
+          "The argument addresses the stated target."
+        ],
+        "findings": [],
+        "hints": [],
+        "rubric_fit": "applicable",
+        "decisions": [
+          {
+            "criterion_id": "milestone",
+            "status": "met",
+            "claim_ids": [
+              "argument"
+            ],
+            "justification": "Supported progress addresses this criterion."
+          },
+          {
+            "criterion_id": "completion",
+            "status": "met",
+            "claim_ids": [
+              "argument"
+            ],
+            "justification": "Supported progress addresses this criterion."
+          }
+        ]
+      },
+      "returned_models": [],
+      "provider_request_ids": [],
+      "usage": null,
+      "latency_ms": null,
+      "error_code": null
+    },
+    {
+      "case_id": "synthetic-com-held_out-invalid",
+      "trial": 1,
+      "input_digest": "9fea34cd39f2a45a841e350c8d0826627c68e64482a04666117af8f779c4218b",
+      "assessment_request_digest": "7150afc5ad4327c1b20af88030a42acfab16d61396863efb2bcf7a86a85e36c5",
+      "feedback_request_digest": "e6809bb90ad71195612da69b3bfe5509554d3fa6b2c2c319cd64ad51decd9cba",
+      "status": "completed",
+      "assessment": {
+        "assessment": "gap_found",
+        "summary": "An even sum does not force all the degrees to be equal.",
+        "human_review_required": false,
+        "limitations": [
+          "Synthetic, unapproved exercise; not a model reliability measurement."
+        ],
+        "claims": [
+          {
+            "id": "argument",
+            "verdict": "invalid",
+            "evidence": {
+              "start": 0,
+              "end": 59,
+              "quote": "The sum of degrees is even, so all three degrees are equal."
+            },
+            "justification": "An even sum does not force all the degrees to be equal.",
+            "depends_on": []
+          }
+        ],
+        "findings": [
+          {
+            "id": "finding-1",
+            "claim_id": "argument",
+            "category": "invalid_step",
+            "severity": "critical",
+            "diagnosis": "An even sum does not force all the degrees to be equal."
+          }
+        ]
+      },
+      "mode_feedback": {
+        "summary": "An even sum does not force all the degrees to be equal.",
+        "strengths": [],
+        "findings": [
+          {
+            "finding_id": "finding-1",
+            "explanation": "An even sum does not force all the degrees to be equal.",
+            "next_step": "Check which degree values could coexist in this graph."
+          }
+        ],
+        "hints": [
+          {
+            "finding_id": "finding-1",
+            "levels": [
+              "Try the graph with two edges.",
+              "Can an isolated vertex coexist with a vertex adjacent to both other vertices?"
+            ]
+          }
+        ],
+        "rubric_fit": "applicable",
+        "decisions": [
+          {
+            "criterion_id": "milestone",
+            "status": "not_met",
+            "claim_ids": [
+              "argument"
+            ],
+            "justification": "The required criterion is not established in this submission."
+          },
+          {
+            "criterion_id": "completion",
+            "status": "not_met",
+            "claim_ids": [
+              "argument"
+            ],
+            "justification": "The required criterion is not established in this submission."
+          }
+        ]
+      },
+      "returned_models": [],
+      "provider_request_ids": [],
+      "usage": null,
+      "latency_ms": null,
+      "error_code": null
+    },
+    {
+      "case_id": "synthetic-com-held_out-invalid",
+      "trial": 2,
+      "input_digest": "9fea34cd39f2a45a841e350c8d0826627c68e64482a04666117af8f779c4218b",
+      "assessment_request_digest": "7150afc5ad4327c1b20af88030a42acfab16d61396863efb2bcf7a86a85e36c5",
+      "feedback_request_digest": "e6809bb90ad71195612da69b3bfe5509554d3fa6b2c2c319cd64ad51decd9cba",
+      "status": "completed",
+      "assessment": {
+        "assessment": "gap_found",
+        "summary": "An even sum does not force all the degrees to be equal.",
+        "human_review_required": false,
+        "limitations": [
+          "Synthetic, unapproved exercise; not a model reliability measurement."
+        ],
+        "claims": [
+          {
+            "id": "argument",
+            "verdict": "invalid",
+            "evidence": {
+              "start": 0,
+              "end": 59,
+              "quote": "The sum of degrees is even, so all three degrees are equal."
+            },
+            "justification": "An even sum does not force all the degrees to be equal.",
+            "depends_on": []
+          }
+        ],
+        "findings": [
+          {
+            "id": "finding-1",
+            "claim_id": "argument",
+            "category": "invalid_step",
+            "severity": "critical",
+            "diagnosis": "An even sum does not force all the degrees to be equal."
+          }
+        ]
+      },
+      "mode_feedback": {
+        "summary": "An even sum does not force all the degrees to be equal.",
+        "strengths": [],
+        "findings": [
+          {
+            "finding_id": "finding-1",
+            "explanation": "An even sum does not force all the degrees to be equal.",
+            "next_step": "Check which degree values could coexist in this graph."
+          }
+        ],
+        "hints": [
+          {
+            "finding_id": "finding-1",
+            "levels": [
+              "Try the graph with two edges.",
+              "Can an isolated vertex coexist with a vertex adjacent to both other vertices?"
+            ]
+          }
+        ],
+        "rubric_fit": "applicable",
+        "decisions": [
+          {
+            "criterion_id": "milestone",
+            "status": "not_met",
+            "claim_ids": [
+              "argument"
+            ],
+            "justification": "The required criterion is not established in this submission."
+          },
+          {
+            "criterion_id": "completion",
+            "status": "not_met",
+            "claim_ids": [
+              "argument"
+            ],
+            "justification": "The required criterion is not established in this submission."
+          }
+        ]
+      },
+      "returned_models": [],
+      "provider_request_ids": [],
+      "usage": null,
+      "latency_ms": null,
+      "error_code": null
+    },
+    {
+      "case_id": "synthetic-com-held_out-partial",
+      "trial": 1,
+      "input_digest": "0999dbfad28d4262fc36c7916ab5fe0c1e707f10e2caa2a6b3ea5f6ec3ec9651",
+      "assessment_request_digest": "66e956c42873021aef96d858b0217dcee5d000ad61620a5626bbda031468e4b7",
+      "feedback_request_digest": "22a4973604cbeeb01679472d7d862bdd5a0380918819481828280114d252f612",
+      "status": "completed",
+      "assessment": {
+        "assessment": "incomplete",
+        "summary": "The submitted work stops before establishing the required conclusion.",
+        "human_review_required": false,
+        "limitations": [
+          "Synthetic, unapproved exercise; not a model reliability measurement."
+        ],
+        "claims": [
+          {
+            "id": "argument",
+            "verdict": "unjustified",
+            "evidence": {
+              "start": 0,
+              "end": 34,
+              "quote": "Each vertex has degree 0, 1, or 2."
+            },
+            "justification": "The submitted work stops before establishing the required conclusion.",
+            "depends_on": []
+          }
+        ],
+        "findings": [
+          {
+            "id": "finding-1",
+            "claim_id": "argument",
+            "category": "unfinished",
+            "severity": "major",
+            "diagnosis": "The submitted work stops before establishing the required conclusion."
+          }
+        ]
+      },
+      "mode_feedback": {
+        "summary": "The submitted work stops before establishing the required conclusion.",
+        "strengths": [],
+        "findings": [
+          {
+            "finding_id": "finding-1",
+            "explanation": "The submitted work stops before establishing the required conclusion.",
+            "next_step": "State the remaining proof obligation and justify the next implication."
+          }
+        ],
+        "hints": [
+          {
+            "finding_id": "finding-1",
+            "levels": [
+              "Compare the last established statement with the target.",
+              "Identify a theorem or case distinction that connects them."
+            ]
+          }
+        ],
+        "rubric_fit": "applicable",
+        "decisions": [
+          {
+            "criterion_id": "milestone",
+            "status": "not_met",
+            "claim_ids": [
+              "argument"
+            ],
+            "justification": "The required criterion is not established in this submission."
+          },
+          {
+            "criterion_id": "completion",
+            "status": "not_met",
+            "claim_ids": [
+              "argument"
+            ],
+            "justification": "The required criterion is not established in this submission."
+          }
+        ]
+      },
+      "returned_models": [],
+      "provider_request_ids": [],
+      "usage": null,
+      "latency_ms": null,
+      "error_code": null
+    },
+    {
+      "case_id": "synthetic-com-held_out-partial",
+      "trial": 2,
+      "input_digest": "0999dbfad28d4262fc36c7916ab5fe0c1e707f10e2caa2a6b3ea5f6ec3ec9651",
+      "assessment_request_digest": "66e956c42873021aef96d858b0217dcee5d000ad61620a5626bbda031468e4b7",
+      "feedback_request_digest": "22a4973604cbeeb01679472d7d862bdd5a0380918819481828280114d252f612",
+      "status": "completed",
+      "assessment": {
+        "assessment": "incomplete",
+        "summary": "The submitted work stops before establishing the required conclusion.",
+        "human_review_required": false,
+        "limitations": [
+          "Synthetic, unapproved exercise; not a model reliability measurement."
+        ],
+        "claims": [
+          {
+            "id": "argument",
+            "verdict": "unjustified",
+            "evidence": {
+              "start": 0,
+              "end": 34,
+              "quote": "Each vertex has degree 0, 1, or 2."
+            },
+            "justification": "The submitted work stops before establishing the required conclusion.",
+            "depends_on": []
+          }
+        ],
+        "findings": [
+          {
+            "id": "finding-1",
+            "claim_id": "argument",
+            "category": "unfinished",
+            "severity": "major",
+            "diagnosis": "The submitted work stops before establishing the required conclusion."
+          }
+        ]
+      },
+      "mode_feedback": {
+        "summary": "The submitted work stops before establishing the required conclusion.",
+        "strengths": [],
+        "findings": [
+          {
+            "finding_id": "finding-1",
+            "explanation": "The submitted work stops before establishing the required conclusion.",
+            "next_step": "State the remaining proof obligation and justify the next implication."
+          }
+        ],
+        "hints": [
+          {
+            "finding_id": "finding-1",
+            "levels": [
+              "Compare the last established statement with the target.",
+              "Identify a theorem or case distinction that connects them."
+            ]
+          }
+        ],
+        "rubric_fit": "applicable",
+        "decisions": [
+          {
+            "criterion_id": "milestone",
+            "status": "not_met",
+            "claim_ids": [
+              "argument"
+            ],
+            "justification": "The required criterion is not established in this submission."
+          },
+          {
+            "criterion_id": "completion",
+            "status": "not_met",
+            "claim_ids": [
+              "argument"
+            ],
+            "justification": "The required criterion is not established in this submission."
+          }
+        ]
+      },
+      "returned_models": [],
+      "provider_request_ids": [],
+      "usage": null,
+      "latency_ms": null,
+      "error_code": null
+    },
+    {
+      "case_id": "synthetic-geo-held_out-alternative",
+      "trial": 1,
+      "input_digest": "2d824fcd740569fa979266223759f85f1e25b92acc19ebbac0512678d2eaee80",
+      "assessment_request_digest": "52fe88405bd10b419907a47e5dd819e7fefe215b6449c76d2c77c9b62d8802ff",
+      "feedback_request_digest": "6e50dd244777fe2267745844d41c1608d6f18303745589afca9608f7c179613a",
+      "status": "completed",
+      "assessment": {
+        "assessment": "no_issues_found",
+        "summary": "No issue was identified in this synthetic argument.",
+        "human_review_required": false,
+        "limitations": [
+          "Synthetic, unapproved exercise; not a model reliability measurement."
+        ],
+        "claims": [
+          {
+            "id": "argument",
+            "verdict": "supported",
+            "evidence": {
+              "start": 0,
+              "end": 122,
+              "quote": "By Thales theorem, A lies on the circle with diameter BC. Its center is M, so MA, MB, and MC are radii of the same circle."
+            },
+            "justification": "The submitted argument supports the conclusion under the given assumptions.",
+            "depends_on": []
+          }
+        ],
+        "findings": []
+      },
+      "mode_feedback": {
+        "summary": "No issue was identified in this synthetic argument.",
+        "strengths": [
+          "The argument addresses the stated target."
+        ],
+        "findings": [],
+        "hints": [],
+        "rubric_fit": "applicable",
+        "decisions": [
+          {
+            "criterion_id": "milestone",
+            "status": "met",
+            "claim_ids": [
+              "argument"
+            ],
+            "justification": "Supported progress addresses this criterion."
+          },
+          {
+            "criterion_id": "completion",
+            "status": "met",
+            "claim_ids": [
+              "argument"
+            ],
+            "justification": "Supported progress addresses this criterion."
+          }
+        ]
+      },
+      "returned_models": [],
+      "provider_request_ids": [],
+      "usage": null,
+      "latency_ms": null,
+      "error_code": null
+    },
+    {
+      "case_id": "synthetic-geo-held_out-alternative",
+      "trial": 2,
+      "input_digest": "2d824fcd740569fa979266223759f85f1e25b92acc19ebbac0512678d2eaee80",
+      "assessment_request_digest": "52fe88405bd10b419907a47e5dd819e7fefe215b6449c76d2c77c9b62d8802ff",
+      "feedback_request_digest": "6e50dd244777fe2267745844d41c1608d6f18303745589afca9608f7c179613a",
+      "status": "completed",
+      "assessment": {
+        "assessment": "no_issues_found",
+        "summary": "No issue was identified in this synthetic argument.",
+        "human_review_required": false,
+        "limitations": [
+          "Synthetic, unapproved exercise; not a model reliability measurement."
+        ],
+        "claims": [
+          {
+            "id": "argument",
+            "verdict": "supported",
+            "evidence": {
+              "start": 0,
+              "end": 122,
+              "quote": "By Thales theorem, A lies on the circle with diameter BC. Its center is M, so MA, MB, and MC are radii of the same circle."
+            },
+            "justification": "The submitted argument supports the conclusion under the given assumptions.",
+            "depends_on": []
+          }
+        ],
+        "findings": []
+      },
+      "mode_feedback": {
+        "summary": "No issue was identified in this synthetic argument.",
+        "strengths": [
+          "The argument addresses the stated target."
+        ],
+        "findings": [],
+        "hints": [],
+        "rubric_fit": "applicable",
+        "decisions": [
+          {
+            "criterion_id": "milestone",
+            "status": "met",
+            "claim_ids": [
+              "argument"
+            ],
+            "justification": "Supported progress addresses this criterion."
+          },
+          {
+            "criterion_id": "completion",
+            "status": "met",
+            "claim_ids": [
+              "argument"
+            ],
+            "justification": "Supported progress addresses this criterion."
+          }
+        ]
+      },
+      "returned_models": [],
+      "provider_request_ids": [],
+      "usage": null,
+      "latency_ms": null,
+      "error_code": null
+    },
+    {
+      "case_id": "synthetic-geo-held_out-invalid",
+      "trial": 1,
+      "input_digest": "948df384b537509af6ffcb8781816e49cfd9a6c23e1f1a50b173a9b2e24aca73",
+      "assessment_request_digest": "8229e8b2ddfea80375759f20a626a47da269403c625394b2e52d65026902df1c",
+      "feedback_request_digest": "0a513852d4d165d8c19be82adc6a7acc45d8145d84d9fff65e5d5b69705e5e96",
+      "status": "completed",
+      "assessment": {
+        "assessment": "gap_found",
+        "summary": "A right angle does not force the other two angles to be equal.",
+        "human_review_required": false,
+        "limitations": [
+          "Synthetic, unapproved exercise; not a model reliability measurement."
+        ],
+        "claims": [
+          {
+            "id": "argument",
+            "verdict": "invalid",
+            "evidence": {
+              "start": 0,
+              "end": 113,
+              "quote": "Every right triangle has two 45 degree angles, so the median AM bisects the triangle and the distances are equal."
+            },
+            "justification": "A right angle does not force the other two angles to be equal.",
+            "depends_on": []
+          }
+        ],
+        "findings": [
+          {
+            "id": "finding-1",
+            "claim_id": "argument",
+            "category": "invalid_step",
+            "severity": "critical",
+            "diagnosis": "A right angle does not force the other two angles to be equal."
+          }
+        ]
+      },
+      "mode_feedback": {
+        "summary": "A right angle does not force the other two angles to be equal.",
+        "strengths": [],
+        "findings": [
+          {
+            "finding_id": "finding-1",
+            "explanation": "A right angle does not force the other two angles to be equal.",
+            "next_step": "Use only the stated right angle and midpoint conditions."
+          }
+        ],
+        "hints": [
+          {
+            "finding_id": "finding-1",
+            "levels": [
+              "Consider a right triangle whose legs have different lengths.",
+              "Investigate a circle associated with the hypotenuse."
+            ]
+          }
+        ],
+        "rubric_fit": "applicable",
+        "decisions": [
+          {
+            "criterion_id": "milestone",
+            "status": "not_met",
+            "claim_ids": [
+              "argument"
+            ],
+            "justification": "The required criterion is not established in this submission."
+          },
+          {
+            "criterion_id": "completion",
+            "status": "not_met",
+            "claim_ids": [
+              "argument"
+            ],
+            "justification": "The required criterion is not established in this submission."
+          }
+        ]
+      },
+      "returned_models": [],
+      "provider_request_ids": [],
+      "usage": null,
+      "latency_ms": null,
+      "error_code": null
+    },
+    {
+      "case_id": "synthetic-geo-held_out-invalid",
+      "trial": 2,
+      "input_digest": "948df384b537509af6ffcb8781816e49cfd9a6c23e1f1a50b173a9b2e24aca73",
+      "assessment_request_digest": "8229e8b2ddfea80375759f20a626a47da269403c625394b2e52d65026902df1c",
+      "feedback_request_digest": "0a513852d4d165d8c19be82adc6a7acc45d8145d84d9fff65e5d5b69705e5e96",
+      "status": "completed",
+      "assessment": {
+        "assessment": "gap_found",
+        "summary": "A right angle does not force the other two angles to be equal.",
+        "human_review_required": false,
+        "limitations": [
+          "Synthetic, unapproved exercise; not a model reliability measurement."
+        ],
+        "claims": [
+          {
+            "id": "argument",
+            "verdict": "invalid",
+            "evidence": {
+              "start": 0,
+              "end": 113,
+              "quote": "Every right triangle has two 45 degree angles, so the median AM bisects the triangle and the distances are equal."
+            },
+            "justification": "A right angle does not force the other two angles to be equal.",
+            "depends_on": []
+          }
+        ],
+        "findings": [
+          {
+            "id": "finding-1",
+            "claim_id": "argument",
+            "category": "invalid_step",
+            "severity": "critical",
+            "diagnosis": "A right angle does not force the other two angles to be equal."
+          }
+        ]
+      },
+      "mode_feedback": {
+        "summary": "A right angle does not force the other two angles to be equal.",
+        "strengths": [],
+        "findings": [
+          {
+            "finding_id": "finding-1",
+            "explanation": "A right angle does not force the other two angles to be equal.",
+            "next_step": "Use only the stated right angle and midpoint conditions."
+          }
+        ],
+        "hints": [
+          {
+            "finding_id": "finding-1",
+            "levels": [
+              "Consider a right triangle whose legs have different lengths.",
+              "Investigate a circle associated with the hypotenuse."
+            ]
+          }
+        ],
+        "rubric_fit": "applicable",
+        "decisions": [
+          {
+            "criterion_id": "milestone",
+            "status": "not_met",
+            "claim_ids": [
+              "argument"
+            ],
+            "justification": "The required criterion is not established in this submission."
+          },
+          {
+            "criterion_id": "completion",
+            "status": "not_met",
+            "claim_ids": [
+              "argument"
+            ],
+            "justification": "The required criterion is not established in this submission."
+          }
+        ]
+      },
+      "returned_models": [],
+      "provider_request_ids": [],
+      "usage": null,
+      "latency_ms": null,
+      "error_code": null
+    },
+    {
+      "case_id": "synthetic-geo-held_out-partial",
+      "trial": 1,
+      "input_digest": "e3b3240e73986b3ed177ba2211ab2821d15e97a122ddb835fa1e3d55cda6cbd8",
+      "assessment_request_digest": "16830d612c72da760e711b0ae46f89965c70b8e53618211cd510f1b788e7200c",
+      "feedback_request_digest": "b9f75869aaf1d282faccf656d124e230e73621e5b2c834f60b7f682b53fc0753",
+      "status": "completed",
+      "assessment": {
+        "assessment": "unable_to_assess",
+        "summary": "The referenced attachment is unavailable, so the mathematical argument cannot be inspected.",
+        "human_review_required": true,
+        "limitations": [
+          "Synthetic, unapproved exercise; not a model reliability measurement."
+        ],
+        "claims": [
+          {
+            "id": "argument",
+            "verdict": "unresolved",
+            "evidence": {
+              "start": 0,
+              "end": 38,
+              "quote": "My proof is in the missing attachment."
+            },
+            "justification": "The referenced attachment is unavailable, so the mathematical argument cannot be inspected.",
+            "depends_on": []
+          }
+        ],
+        "findings": [
+          {
+            "id": "finding-1",
+            "claim_id": "argument",
+            "category": "unreadable",
+            "severity": "major",
+            "diagnosis": "The referenced attachment is unavailable, so the mathematical argument cannot be inspected."
+          }
+        ]
+      },
+      "mode_feedback": {
+        "summary": "The referenced attachment is unavailable, so the mathematical argument cannot be inspected.",
+        "strengths": [],
+        "findings": [
+          {
+            "finding_id": "finding-1",
+            "explanation": "The referenced attachment is unavailable, so the mathematical argument cannot be inspected.",
+            "next_step": "Supply the missing proof before requesting mathematical assessment."
+          }
+        ],
+        "hints": [
+          {
+            "finding_id": "finding-1",
+            "levels": [
+              "Check that the complete proof is present.",
+              "Include readable text for every step that needs review."
+            ]
+          }
+        ],
+        "rubric_fit": "human_review_required",
+        "decisions": [
+          {
+            "criterion_id": "milestone",
+            "status": "unresolved",
+            "claim_ids": [
+              "argument"
+            ],
+            "justification": "The required criterion is not established in this submission."
+          },
+          {
+            "criterion_id": "completion",
+            "status": "unresolved",
+            "claim_ids": [
+              "argument"
+            ],
+            "justification": "The required criterion is not established in this submission."
+          }
+        ]
+      },
+      "returned_models": [],
+      "provider_request_ids": [],
+      "usage": null,
+      "latency_ms": null,
+      "error_code": null
+    },
+    {
+      "case_id": "synthetic-geo-held_out-partial",
+      "trial": 2,
+      "input_digest": "e3b3240e73986b3ed177ba2211ab2821d15e97a122ddb835fa1e3d55cda6cbd8",
+      "assessment_request_digest": "16830d612c72da760e711b0ae46f89965c70b8e53618211cd510f1b788e7200c",
+      "feedback_request_digest": "b9f75869aaf1d282faccf656d124e230e73621e5b2c834f60b7f682b53fc0753",
+      "status": "completed",
+      "assessment": {
+        "assessment": "unable_to_assess",
+        "summary": "The referenced attachment is unavailable, so the mathematical argument cannot be inspected.",
+        "human_review_required": true,
+        "limitations": [
+          "Synthetic, unapproved exercise; not a model reliability measurement."
+        ],
+        "claims": [
+          {
+            "id": "argument",
+            "verdict": "unresolved",
+            "evidence": {
+              "start": 0,
+              "end": 38,
+              "quote": "My proof is in the missing attachment."
+            },
+            "justification": "The referenced attachment is unavailable, so the mathematical argument cannot be inspected.",
+            "depends_on": []
+          }
+        ],
+        "findings": [
+          {
+            "id": "finding-1",
+            "claim_id": "argument",
+            "category": "unreadable",
+            "severity": "major",
+            "diagnosis": "The referenced attachment is unavailable, so the mathematical argument cannot be inspected."
+          }
+        ]
+      },
+      "mode_feedback": {
+        "summary": "The referenced attachment is unavailable, so the mathematical argument cannot be inspected.",
+        "strengths": [],
+        "findings": [
+          {
+            "finding_id": "finding-1",
+            "explanation": "The referenced attachment is unavailable, so the mathematical argument cannot be inspected.",
+            "next_step": "Supply the missing proof before requesting mathematical assessment."
+          }
+        ],
+        "hints": [
+          {
+            "finding_id": "finding-1",
+            "levels": [
+              "Check that the complete proof is present.",
+              "Include readable text for every step that needs review."
+            ]
+          }
+        ],
+        "rubric_fit": "human_review_required",
+        "decisions": [
+          {
+            "criterion_id": "milestone",
+            "status": "unresolved",
+            "claim_ids": [
+              "argument"
+            ],
+            "justification": "The required criterion is not established in this submission."
+          },
+          {
+            "criterion_id": "completion",
+            "status": "unresolved",
+            "claim_ids": [
+              "argument"
+            ],
+            "justification": "The required criterion is not established in this submission."
+          }
+        ]
+      },
+      "returned_models": [],
+      "provider_request_ids": [],
+      "usage": null,
+      "latency_ms": null,
+      "error_code": null
+    },
+    {
+      "case_id": "synthetic-nt-held_out-alternative",
+      "trial": 1,
+      "input_digest": "c6ce2d5bac33dd7bde509fc3de1e73e0f9b1dfe1f09b5d9bd2fe8bce084c8537",
+      "assessment_request_digest": "72515f66e5b2b565655e2191e73d4de74fb5310f5ef8b9c3cb2f15a7c4f318fe",
+      "feedback_request_digest": "2ab364dab2da417ae56a3ae946a0cfab92954cbc3328f4c00700c6697a9ebe61",
+      "status": "completed",
+      "assessment": {
+        "assessment": "no_issues_found",
+        "summary": "No issue was identified in this synthetic argument.",
+        "human_review_required": false,
+        "limitations": [
+          "Synthetic, unapproved exercise; not a model reliability measurement."
+        ],
+        "claims": [
+          {
+            "id": "argument",
+            "verdict": "supported",
+            "evidence": {
+              "start": 0,
+              "end": 144,
+              "quote": "The product equals (n+1)^3-(n+1). For every integer m, m^3-m is 0 modulo both 2 and 3, as checking their residues shows. Hence it is 0 modulo 6."
+            },
+            "justification": "The submitted argument supports the conclusion under the given assumptions.",
+            "depends_on": []
+          }
+        ],
+        "findings": []
+      },
+      "mode_feedback": {
+        "summary": "No issue was identified in this synthetic argument.",
+        "strengths": [
+          "The argument addresses the stated target."
+        ],
+        "findings": [],
+        "hints": [],
+        "rubric_fit": "applicable",
+        "decisions": [
+          {
+            "criterion_id": "milestone",
+            "status": "met",
+            "claim_ids": [
+              "argument"
+            ],
+            "justification": "Supported progress addresses this criterion."
+          },
+          {
+            "criterion_id": "completion",
+            "status": "met",
+            "claim_ids": [
+              "argument"
+            ],
+            "justification": "Supported progress addresses this criterion."
+          }
+        ]
+      },
+      "returned_models": [],
+      "provider_request_ids": [],
+      "usage": null,
+      "latency_ms": null,
+      "error_code": null
+    },
+    {
+      "case_id": "synthetic-nt-held_out-alternative",
+      "trial": 2,
+      "input_digest": "c6ce2d5bac33dd7bde509fc3de1e73e0f9b1dfe1f09b5d9bd2fe8bce084c8537",
+      "assessment_request_digest": "72515f66e5b2b565655e2191e73d4de74fb5310f5ef8b9c3cb2f15a7c4f318fe",
+      "feedback_request_digest": "2ab364dab2da417ae56a3ae946a0cfab92954cbc3328f4c00700c6697a9ebe61",
+      "status": "completed",
+      "assessment": {
+        "assessment": "no_issues_found",
+        "summary": "No issue was identified in this synthetic argument.",
+        "human_review_required": false,
+        "limitations": [
+          "Synthetic, unapproved exercise; not a model reliability measurement."
+        ],
+        "claims": [
+          {
+            "id": "argument",
+            "verdict": "supported",
+            "evidence": {
+              "start": 0,
+              "end": 144,
+              "quote": "The product equals (n+1)^3-(n+1). For every integer m, m^3-m is 0 modulo both 2 and 3, as checking their residues shows. Hence it is 0 modulo 6."
+            },
+            "justification": "The submitted argument supports the conclusion under the given assumptions.",
+            "depends_on": []
+          }
+        ],
+        "findings": []
+      },
+      "mode_feedback": {
+        "summary": "No issue was identified in this synthetic argument.",
+        "strengths": [
+          "The argument addresses the stated target."
+        ],
+        "findings": [],
+        "hints": [],
+        "rubric_fit": "applicable",
+        "decisions": [
+          {
+            "criterion_id": "milestone",
+            "status": "met",
+            "claim_ids": [
+              "argument"
+            ],
+            "justification": "Supported progress addresses this criterion."
+          },
+          {
+            "criterion_id": "completion",
+            "status": "met",
+            "claim_ids": [
+              "argument"
+            ],
+            "justification": "Supported progress addresses this criterion."
+          }
+        ]
+      },
+      "returned_models": [],
+      "provider_request_ids": [],
+      "usage": null,
+      "latency_ms": null,
+      "error_code": null
+    },
+    {
+      "case_id": "synthetic-nt-held_out-invalid",
+      "trial": 1,
+      "input_digest": "c10a5ca937665a62327ac3e39e59025d78094bd9aed2fe0c690f905362b6f214",
+      "assessment_request_digest": "0641f98aa19090fa9548dac642d9d8a78e05d0c811b48901e540df19e3599256",
+      "feedback_request_digest": "07fd79eed85a31b5f7bcf5f68a7ef98a0e136829ba63ec92553bb213cc1d81f0",
+      "status": "completed",
+      "assessment": {
+        "assessment": "gap_found",
+        "summary": "Evenness alone does not establish divisibility by six.",
+        "human_review_required": false,
+        "limitations": [
+          "Synthetic, unapproved exercise; not a model reliability measurement."
+        ],
+        "claims": [
+          {
+            "id": "parity",
+            "verdict": "supported",
+            "evidence": {
+              "start": 0,
+              "end": 19,
+              "quote": "The product is even"
+            },
+            "justification": "The submitted parity observation establishes divisibility by two.",
+            "depends_on": []
+          },
+          {
+            "id": "argument",
+            "verdict": "invalid",
+            "evidence": {
+              "start": 0,
+              "end": 45,
+              "quote": "The product is even, so it is divisible by 6."
+            },
+            "justification": "Evenness alone does not establish divisibility by six.",
+            "depends_on": [
+              "parity"
+            ]
+          }
+        ],
+        "findings": [
+          {
+            "id": "finding-1",
+            "claim_id": "argument",
+            "category": "invalid_step",
+            "severity": "critical",
+            "diagnosis": "Evenness alone does not establish divisibility by six."
+          }
+        ]
+      },
+      "mode_feedback": {
+        "summary": "Evenness alone does not establish divisibility by six.",
+        "strengths": [],
+        "findings": [
+          {
+            "finding_id": "finding-1",
+            "explanation": "Evenness alone does not establish divisibility by six.",
+            "next_step": "Identify which divisibility condition is still missing."
+          }
+        ],
+        "hints": [
+          {
+            "finding_id": "finding-1",
+            "levels": [
+              "Can an even integer fail to be divisible by six?",
+              "Inspect three consecutive integers modulo the other prime factor."
+            ]
+          }
+        ],
+        "rubric_fit": "applicable",
+        "decisions": [
+          {
+            "criterion_id": "milestone",
+            "status": "met",
+            "claim_ids": [
+              "parity"
+            ],
+            "justification": "Supported progress addresses this criterion."
+          },
+          {
+            "criterion_id": "completion",
+            "status": "not_met",
+            "claim_ids": [
+              "argument"
+            ],
+            "justification": "The required criterion is not established in this submission."
+          }
+        ]
+      },
+      "returned_models": [],
+      "provider_request_ids": [],
+      "usage": null,
+      "latency_ms": null,
+      "error_code": null
+    },
+    {
+      "case_id": "synthetic-nt-held_out-invalid",
+      "trial": 2,
+      "input_digest": "c10a5ca937665a62327ac3e39e59025d78094bd9aed2fe0c690f905362b6f214",
+      "assessment_request_digest": "0641f98aa19090fa9548dac642d9d8a78e05d0c811b48901e540df19e3599256",
+      "feedback_request_digest": "07fd79eed85a31b5f7bcf5f68a7ef98a0e136829ba63ec92553bb213cc1d81f0",
+      "status": "completed",
+      "assessment": {
+        "assessment": "gap_found",
+        "summary": "Evenness alone does not establish divisibility by six.",
+        "human_review_required": false,
+        "limitations": [
+          "Synthetic, unapproved exercise; not a model reliability measurement."
+        ],
+        "claims": [
+          {
+            "id": "parity",
+            "verdict": "supported",
+            "evidence": {
+              "start": 0,
+              "end": 19,
+              "quote": "The product is even"
+            },
+            "justification": "The submitted parity observation establishes divisibility by two.",
+            "depends_on": []
+          },
+          {
+            "id": "argument",
+            "verdict": "invalid",
+            "evidence": {
+              "start": 0,
+              "end": 45,
+              "quote": "The product is even, so it is divisible by 6."
+            },
+            "justification": "Evenness alone does not establish divisibility by six.",
+            "depends_on": [
+              "parity"
+            ]
+          }
+        ],
+        "findings": [
+          {
+            "id": "finding-1",
+            "claim_id": "argument",
+            "category": "invalid_step",
+            "severity": "critical",
+            "diagnosis": "Evenness alone does not establish divisibility by six."
+          }
+        ]
+      },
+      "mode_feedback": {
+        "summary": "Evenness alone does not establish divisibility by six.",
+        "strengths": [],
+        "findings": [
+          {
+            "finding_id": "finding-1",
+            "explanation": "Evenness alone does not establish divisibility by six.",
+            "next_step": "Identify which divisibility condition is still missing."
+          }
+        ],
+        "hints": [
+          {
+            "finding_id": "finding-1",
+            "levels": [
+              "Can an even integer fail to be divisible by six?",
+              "Inspect three consecutive integers modulo the other prime factor."
+            ]
+          }
+        ],
+        "rubric_fit": "applicable",
+        "decisions": [
+          {
+            "criterion_id": "milestone",
+            "status": "met",
+            "claim_ids": [
+              "parity"
+            ],
+            "justification": "Supported progress addresses this criterion."
+          },
+          {
+            "criterion_id": "completion",
+            "status": "not_met",
+            "claim_ids": [
+              "argument"
+            ],
+            "justification": "The required criterion is not established in this submission."
+          }
+        ]
+      },
+      "returned_models": [],
+      "provider_request_ids": [],
+      "usage": null,
+      "latency_ms": null,
+      "error_code": null
+    },
+    {
+      "case_id": "synthetic-nt-held_out-partial",
+      "trial": 1,
+      "input_digest": "4fbacf11b3b1e9cb6a0f929f281dc315c2e6fb77f349658d4d75284f98e53613",
+      "assessment_request_digest": "49b3b6d4f46add8340635530c5b7bbe509b5f6fce46ca33ffaeecd85d3ef31b9",
+      "feedback_request_digest": "d8096e8e561e6e96c287d9bfdac2b7004753ec2f1cbf77d62549ae75de7c38b7",
+      "status": "completed",
+      "assessment": {
+        "assessment": "incomplete",
+        "summary": "The submitted work stops before establishing the required conclusion.",
+        "human_review_required": false,
+        "limitations": [
+          "Synthetic, unapproved exercise; not a model reliability measurement."
+        ],
+        "claims": [
+          {
+            "id": "parity",
+            "verdict": "supported",
+            "evidence": {
+              "start": 0,
+              "end": 62,
+              "quote": "Among n and n+1 one is even, so the product is divisible by 2."
+            },
+            "justification": "The submitted parity observation establishes divisibility by two.",
+            "depends_on": []
+          },
+          {
+            "id": "argument",
+            "verdict": "unjustified",
+            "evidence": {
+              "start": 0,
+              "end": 62,
+              "quote": "Among n and n+1 one is even, so the product is divisible by 2."
+            },
+            "justification": "The submitted work stops before establishing the required conclusion.",
+            "depends_on": [
+              "parity"
+            ]
+          }
+        ],
+        "findings": [
+          {
+            "id": "finding-1",
+            "claim_id": "argument",
+            "category": "unfinished",
+            "severity": "major",
+            "diagnosis": "The submitted work stops before establishing the required conclusion."
+          }
+        ]
+      },
+      "mode_feedback": {
+        "summary": "The submitted work stops before establishing the required conclusion.",
+        "strengths": [],
+        "findings": [
+          {
+            "finding_id": "finding-1",
+            "explanation": "The submitted work stops before establishing the required conclusion.",
+            "next_step": "State the remaining proof obligation and justify the next implication."
+          }
+        ],
+        "hints": [
+          {
+            "finding_id": "finding-1",
+            "levels": [
+              "Compare the last established statement with the target.",
+              "Identify a theorem or case distinction that connects them."
+            ]
+          }
+        ],
+        "rubric_fit": "applicable",
+        "decisions": [
+          {
+            "criterion_id": "milestone",
+            "status": "met",
+            "claim_ids": [
+              "parity"
+            ],
+            "justification": "Supported progress addresses this criterion."
+          },
+          {
+            "criterion_id": "completion",
+            "status": "not_met",
+            "claim_ids": [
+              "argument"
+            ],
+            "justification": "The required criterion is not established in this submission."
+          }
+        ]
+      },
+      "returned_models": [],
+      "provider_request_ids": [],
+      "usage": null,
+      "latency_ms": null,
+      "error_code": null
+    },
+    {
+      "case_id": "synthetic-nt-held_out-partial",
+      "trial": 2,
+      "input_digest": "4fbacf11b3b1e9cb6a0f929f281dc315c2e6fb77f349658d4d75284f98e53613",
+      "assessment_request_digest": "49b3b6d4f46add8340635530c5b7bbe509b5f6fce46ca33ffaeecd85d3ef31b9",
+      "feedback_request_digest": "d8096e8e561e6e96c287d9bfdac2b7004753ec2f1cbf77d62549ae75de7c38b7",
+      "status": "completed",
+      "assessment": {
+        "assessment": "incomplete",
+        "summary": "The submitted work stops before establishing the required conclusion.",
+        "human_review_required": false,
+        "limitations": [
+          "Synthetic, unapproved exercise; not a model reliability measurement."
+        ],
+        "claims": [
+          {
+            "id": "parity",
+            "verdict": "supported",
+            "evidence": {
+              "start": 0,
+              "end": 62,
+              "quote": "Among n and n+1 one is even, so the product is divisible by 2."
+            },
+            "justification": "The submitted parity observation establishes divisibility by two.",
+            "depends_on": []
+          },
+          {
+            "id": "argument",
+            "verdict": "unjustified",
+            "evidence": {
+              "start": 0,
+              "end": 62,
+              "quote": "Among n and n+1 one is even, so the product is divisible by 2."
+            },
+            "justification": "The submitted work stops before establishing the required conclusion.",
+            "depends_on": [
+              "parity"
+            ]
+          }
+        ],
+        "findings": [
+          {
+            "id": "finding-1",
+            "claim_id": "argument",
+            "category": "unfinished",
+            "severity": "major",
+            "diagnosis": "The submitted work stops before establishing the required conclusion."
+          }
+        ]
+      },
+      "mode_feedback": {
+        "summary": "The submitted work stops before establishing the required conclusion.",
+        "strengths": [],
+        "findings": [
+          {
+            "finding_id": "finding-1",
+            "explanation": "The submitted work stops before establishing the required conclusion.",
+            "next_step": "State the remaining proof obligation and justify the next implication."
+          }
+        ],
+        "hints": [
+          {
+            "finding_id": "finding-1",
+            "levels": [
+              "Compare the last established statement with the target.",
+              "Identify a theorem or case distinction that connects them."
+            ]
+          }
+        ],
+        "rubric_fit": "applicable",
+        "decisions": [
+          {
+            "criterion_id": "milestone",
+            "status": "met",
+            "claim_ids": [
+              "parity"
+            ],
+            "justification": "Supported progress addresses this criterion."
+          },
+          {
+            "criterion_id": "completion",
+            "status": "not_met",
+            "claim_ids": [
+              "argument"
+            ],
+            "justification": "The required criterion is not established in this submission."
+          }
+        ]
+      },
+      "returned_models": [],
+      "provider_request_ids": [],
+      "usage": null,
+      "latency_ms": null,
+      "error_code": null
+    }
+  ],
+  "digest": "a024c3a24b5f7c293771fe87bc449afe5ee1b5adad31c109dfa5f7f549690eb8"
+}
