@@ -104,3 +104,17 @@ ordering and migration renumbering.
 Complete immediate checks and short stabilization for each activation. No delayed
 monitoring is scheduled. Retain command/run IDs, exact SHAs, artifact digests,
 preflight/postflight evidence and any limits in the local release packet.
+
+## Combined-candidate local verification
+
+The populated PostgreSQL 17.9 rehearsal against archived combined previous source
+`c479355eb4d94fe0b938dc292613de3b2384725b` preserved all Assessment and Community
+fixtures, sequences, schema objects and routines. The exact four Training migrations
+still add 20 empty tables with normalized delta
+`351ffd6792fc2dfbcd3f670cd78576391f7ebaeced08d7ff317bd3ad19603c24`.
+The frozen production bridge passed 29 HTTP/privacy probes both before and after
+the synthetic upgrade. All Learning, synthetic-prototype and AI-review flags stayed
+off; no provider was dispatched. The first reports deliberately use
+`source_sha=null` because they preceded the integration commit. This local evidence
+does not establish installed authority, a production baseline or release acceptance;
+the final source and actual deployed baselines must still be bound and verified.

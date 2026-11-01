@@ -28,11 +28,21 @@ existing 0042/0043 community allowance remains frozen and cannot admit this rele
 | pages.0045_community_proof_library | 63892e34819c93bbba63820cd7ba397afb8a1408d53b016d2063ad212c11be32 | The only permitted pending migration; data-or-non-compatible |
 | pages.0044_learning_page_activity | a55e4fe4f34729e7db3f1c4bf67a1deaadeb39f799958b900e2c5d840e9559e2 | Already applied prerequisite |
 | solutions.0010_offline_evaluation_contract | 9fee1f590a8cdde9df9d30c201a49caea20a5c31efe2f4b0aa7c92171d4844a8 | Already applied prerequisite |
+| solutions.0011_problem_evaluation_packages | 84d90530396e51ca2cbd1c2bfb65ebb6c50de0e5af2db912d0d3091592c7dad3 | Must already be applied by the separately approved assessment release |
+| solutions.0012_synthetic_review_prototype | 0b17355ca04f2cc39a2535d52573c0130ea44256d725f813e6bc4cff53952cf4 | Must already be applied by the separately approved assessment release |
 
 The prerequisite community migrations 0042/0043 also retain their existing frozen
 hashes. The release's active source must contain the same prior migration files as
 the candidate. An extra migration, missing prerequisite, changed model operation,
 changed constraint identity, backward plan, or modified frozen bytes is No-Go.
+
+Assessment PR #398 reached main before this release merged and has separate
+installation/deployment authorization. Finish that release before merging and
+dispatching Community. Preserve its complete allowance in the combined authority;
+the earlier Community-only snapshot must not replace that newer generation.
+The final Community rehearsal must use the verified active assessment release and
+recompute its source-bound proof and production fingerprints. Community still
+admits only migration 0045, with the same migration bytes and catalog delta.
 
 0045 adds these nine tables:
 
@@ -125,7 +135,7 @@ new behavior. No similarity-index initialization or catalog refresh belongs here
 
 ## Reviewed production path
 
-After both prerequisite releases are already applied, prepare a data-class
+After all prerequisite releases are already applied, prepare a data-class
 disclosure binding the exact active/target SHAs, input hashes, beginning/ending
 fingerprints, frozen PostgreSQL proof digest, and unchanged recovery policy.
 

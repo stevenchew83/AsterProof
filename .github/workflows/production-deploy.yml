@@ -427,6 +427,7 @@ jobs:
                           {'migration': app + '.' + name, 'classification': 'backward-compatible-schema'}
                           for app, name in assessment_prototype_schema.MIGRATIONS
                       ], key=lambda row: row['migration'])
+
                   else:
                       expected = [{'migration': approved.MIGRATION, 'classification': 'backward-compatible-schema'}]
               schema = validate_disclosure(json.loads(os_disclosure), target_sha=value['target_sha'])

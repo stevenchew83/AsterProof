@@ -155,6 +155,7 @@ jobs:
             active_sha="$BASE_SHA"
           elif ! git diff --quiet "$BASE_SHA" HEAD -- scripts/deployment/community_proof_schema.py scripts/deployment/community_proof_schema_rehearsal.py scripts/deployment/tests/fixtures/community-proof-schema-delta.json inspinia/pages/migrations/0045_community_proof_library.py; then
             rehearsal=scripts.deployment.community_proof_schema_rehearsal
+
             active_sha="$BASE_SHA"
           elif ! git diff --quiet "$BASE_SHA" HEAD -- scripts/deployment/solution_evaluation_schema.py scripts/deployment/solution_evaluation_schema_rehearsal.py scripts/deployment/tests/fixtures/solution-evaluation-schema-delta.json inspinia/solutions/migrations/0010_offline_evaluation_contract.py; then
             rehearsal=scripts.deployment.solution_evaluation_schema_rehearsal
