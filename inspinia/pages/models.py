@@ -22,14 +22,6 @@ from inspinia.pages.catalogue_models import CatalogueState  # noqa: F401
 from inspinia.pages.catalogue_models import CatalogueSubject  # noqa: F401
 from inspinia.pages.catalogue_models import ConceptLibrarySnapshot  # noqa: F401
 from inspinia.pages.catalogue_models import UserConceptProgressSummary  # noqa: F401
-from inspinia.pages.community_models import CommunityProblem  # noqa: F401
-from inspinia.pages.community_models import CommunityProblemReview  # noqa: F401
-from inspinia.pages.community_models import StatementAIReview  # noqa: F401
-from inspinia.pages.community_models import StatementReviewPolicy  # noqa: F401
-from inspinia.pages.community_models import StatementSimilarityDocument  # noqa: F401
-from inspinia.pages.community_models import StatementSimilarityIndex  # noqa: F401
-from inspinia.pages.community_models import StatementSimilaritySource  # noqa: F401
-from inspinia.pages.community_models import StatementSimilarityTerm  # noqa: F401
 from inspinia.pages.contest_names import PROJECT_CONTEST_NAME_MAX_LENGTH
 from inspinia.pages.contest_names import normalize_contest_name
 from inspinia.pages.contest_names import normalize_text_list

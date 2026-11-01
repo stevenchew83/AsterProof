@@ -1,9 +1,5 @@
 from django.urls import path
 
-from inspinia.pages.community_views import community_problem_ai_review
-from inspinia.pages.community_views import community_problem_create
-from inspinia.pages.community_views import community_problem_detail
-from inspinia.pages.community_views import community_problem_list
 from inspinia.pages.concept_assignment_bulk_views import concept_review_bulk_check
 from inspinia.pages.concept_assignment_bulk_views import concept_review_snapshot_export
 from inspinia.pages.concept_assignment_source_export import assignment_source_export
@@ -69,14 +65,6 @@ from inspinia.pages.views import user_solution_record_list_view
 app_name = "pages"
 
 urlpatterns = [
-    path("community/problems/", community_problem_list, name="community_problem_list"),
-    path("community/problems/new/", community_problem_create, name="community_problem_create"),
-    path("community/problems/<uuid:problem_id>/", community_problem_detail, name="community_problem_detail"),
-    path("community/problems/<uuid:problem_id>/edit/", community_problem_create, name="community_problem_edit"),
-    path(
-        "community/problems/<uuid:problem_id>/ai-review/", community_problem_ai_review,
-        name="community_problem_ai_review",
-    ),
     path("statement-reports/<uuid:statement_uuid>/", statement_report_create, name="statement_report_create"),
     path("tools/statement-reports/", statement_report_list, name="statement_report_list"),
     path("tools/statement-reports/<int:report_id>/", statement_report_update, name="statement_report_update"),
