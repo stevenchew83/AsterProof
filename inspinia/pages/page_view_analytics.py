@@ -22,6 +22,7 @@ from django.db.models.functions import TruncYear
 from django.urls import reverse
 from django.utils import timezone
 
+from inspinia.pages.learning_activity_analytics import build_learning_activity_analytics
 from inspinia.pages.models import PageViewEvent
 from inspinia.users.models import User
 
@@ -758,6 +759,7 @@ def build_page_view_analytics_context(params: QueryDict | None = None) -> dict[s
 
     return {
         "page_view_rankings": rankings,
+        "learning_activity": build_learning_activity_analytics(date_range, include_admins, params),
         "page_view_charts": {
             "timeline": timeline,
             "heatmap": _activity_heatmap(queryset),

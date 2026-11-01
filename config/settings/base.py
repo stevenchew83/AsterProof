@@ -212,10 +212,13 @@ TEMPLATES = [
                 "django.contrib.messages.context_processors.messages",
                 "inspinia.users.context_processors.allauth_settings",
                 "inspinia.users.context_processors.app_roles",
+                "inspinia.pages.learning_activity.learning_activity_context",
             ],
         },
     },
 ]
+
+LEARNING_ACTIVITY_ENABLED = env.bool("DJANGO_LEARNING_ACTIVITY_ENABLED", default=True)
 
 # https://docs.djangoproject.com/en/dev/ref/settings/#form-renderer
 FORM_RENDERER = "django.forms.renderers.TemplatesSetting"

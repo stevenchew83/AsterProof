@@ -13,6 +13,7 @@
       {% include 'partials/page-header-intro.html' with title='View analytics' subtitle='Admin analytics' page_icon='ti-chart-histogram' back_url=page_view_home_url back_label='AsterProof' only %}
       <div class="app-page-header-actions">
         <span class="page-view-period"><i class="ti ti-calendar" aria-hidden="true"></i>{{ page_view_date_range.label }}</span>
+        <a href="#page-view-learning" class="btn btn-sm btn-outline-secondary"><i class="ti ti-click me-1" aria-hidden="true"></i>Time &amp; clicks</a>
         {% if page_view_stats.total %}
           <a href="#page-view-recent" class="btn btn-sm btn-outline-secondary"><i class="ti ti-history me-1" aria-hidden="true"></i>Recent activity</a>
         {% endif %}
@@ -27,6 +28,7 @@
         <input type="hidden" name="surface" value="{{ page_view_filters.surface }}" />
         <input type="hidden" name="user" value="{{ page_view_filters.user }}" />
         <input type="hidden" name="q" value="{{ page_view_filters.q }}" />
+        <input type="hidden" name="activity_user" value="{{ learning_activity.selected_user }}" />
         <div class="page-view-range-field">
           <label class="form-label" for="page-view-range">Range</label>
           <select id="page-view-range" name="range" class="form-select form-select-sm">
@@ -162,6 +164,7 @@
           <a href="{% url 'pages:page_view_analytics' %}?range=all"
              class="btn btn-sm btn-outline-secondary">Show all time</a>
         </section>
+        {% include 'pages/partials/learning-activity-analytics.html' %}
       {% else %}
         <div class="page-view-charts-grid">
           <section class="card page-view-trend-panel"
@@ -405,6 +408,7 @@
             </div>
           </div>
         </section>
+        {% include 'pages/partials/learning-activity-analytics.html' %}
         <div class="row g-3 mt-0 mb-4" id="page-view-recent">
           <div class="col-12">
             <div class="card">
@@ -419,6 +423,7 @@
                       role="search"
                       aria-label="Filter recent activity">
                   <input type="hidden" name="range" value="{{ page_view_filters.range }}" />
+                  <input type="hidden" name="activity_user" value="{{ learning_activity.selected_user }}" />
                   <input type="hidden" name="start" value="{{ page_view_filters.start }}" />
                   <input type="hidden" name="end" value="{{ page_view_filters.end }}" />
                   <input type="hidden"

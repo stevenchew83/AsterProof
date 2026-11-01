@@ -2,6 +2,16 @@
   "format_version": 1,
   "baseline_sha": null,
   "migrations": {
+    "pages.0044_learning_page_activity": {
+      "classification": "backward-compatible-schema",
+      "recovery_required": false,
+      "code_rollback_permitted": true,
+      "data_preconditions": [
+        "learning_activity_tables_absent",
+        "existing_accounts_learning_records_and_page_views_preserved"
+      ],
+      "rationale": "Creates only signed-in learning-visit and per-visit action-count tables with user/visit foreign keys, a visit/user date index, and a unique visit/action constraint. No backfill, existing-record changes, new roles, or permissions. Account deletion cascades through the new telemetry. Production application requires the normal separately reviewed frozen additive-schema allowance and preservation proof; this classification does not authorize installation or activation."
+    },
     "pages.0041_statement_issue_reports": {
       "classification": "backward-compatible-schema",
       "recovery_required": false,
