@@ -130,4 +130,3 @@ def problem_solution_create_view(request):
         "writer_draft": writer_draft,
     }
     return render(request, "solutions/problem-solution-create.html", context)
-
