@@ -11,10 +11,10 @@ from inspinia.solutions.public_views import public_solution_view
 from inspinia.solutions.review_views import solution_review_create_view
 from inspinia.solutions.review_views import solution_review_reveal_view
 from inspinia.solutions.review_views import solution_review_status_view
+from inspinia.solutions.solution_picker import problem_solution_create_view
 from inspinia.solutions.statement_authoring import statement_solution_start_view
 from inspinia.solutions.views import admin_problem_solution_pdf_view
 from inspinia.solutions.views import my_solution_list_view
-from inspinia.solutions.views import problem_solution_create_view
 from inspinia.solutions.views import problem_solution_edit_view
 from inspinia.solutions.views import problem_solution_list_view
 from inspinia.solutions.views import problem_solution_pdf_view

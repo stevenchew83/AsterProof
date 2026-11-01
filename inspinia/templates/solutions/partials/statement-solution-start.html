@@ -1,0 +1,5 @@
+<form method="post" action="{{ solution_start_url }}" class="d-inline-flex m-0">
+  {% csrf_token %}
+  {% if writer_draft %}<input type="hidden" name="writer_draft_token" value="{{ writer_draft.token }}">{% endif %}
+  <button type="submit" class="btn btn-primary btn-sm" aria-label="{{ button_label|default:'Start solution' }} for {{ problem_label }}">{{ button_label|default:"Start solution" }}</button>
+</form>

@@ -567,6 +567,7 @@
 (function () {
   var dataEl = document.getElementById("problem-statements-table-data");
   var alertEl = document.getElementById("problem-statements-table-alert");
+  var csrfToken = "{{ csrf_token|escapejs }}";
 
   function showTableAlert(message) {
     if (!alertEl) return;
@@ -728,8 +729,14 @@
           if (type !== "display") return label;
 
           var action = "";
+          if (row.solution_start_url) {
+            action = '<form method="post" action="' + escapeHtml(row.solution_start_url) + '" class="d-inline-flex m-0">' +
+              '<input type="hidden" name="csrfmiddlewaretoken" value="' + escapeHtml(csrfToken) + '">' +
+              '<button type="submit" class="btn btn-outline-primary btn-sm" aria-label="Start solution for ' +
+              escapeHtml(label) + '">Start</button></form>';
+          }
           if (actionUrl) {
-            action =
+            action +=
               '<a href="' +
               actionUrl +
               '" class="btn ' +
@@ -792,11 +799,6 @@
         data: null,
         className: "text-nowrap",
         render: function (_data, type, row) {
-          if (!row.is_linked) {
-            if (type === "sort") return "000-not-linked";
-            if (type === "filter") return "not linked";
-            return type === "display" ? '<span class="badge text-bg-light border">Not linked</span>' : "Not linked";
-          }
           var kind = row.user_completion_state_kind || "";
           var badgeClass = "text-bg-light";
           if (kind === "solved") badgeClass = "text-bg-success";

@@ -784,15 +784,16 @@ def _statement_table_rows(base, *, user=None) -> list[dict]:
     )
     completion_dates_by_statement_id: dict[int, date | None] = {}
     visible_solution_problem_ids: set[int] = set()
-    if user is not None and linked_problem_ids:
+    if user is not None:
         completion_dates_by_statement_id = _statement_completion_dates_by_statement_id(
             statements_list,
             user=user,
         )
+    if user is not None and linked_problem_ids:
         visible_solution_problem_ids = set(
             ProblemSolution.objects.filter(problem_id__in=linked_problem_ids)
             .filter(Q(author=user) | Q(status=ProblemSolution.Status.PUBLISHED))
-            .values_list("problem_id", flat=True)
+            .values_list("problem_id", flat=True),
         )
 
     table_rows: list[dict] = []
@@ -870,6 +871,11 @@ def _statement_table_rows(base, *, user=None) -> list[dict]:
                 "problem_code": statement.problem_code,
                 "statement_uuid": str(statement.statement_uuid),
                 "statement_detail_url": reverse("pages:problem_statement_detail", args=[statement.statement_uuid]),
+                "solution_start_url": (
+                    reverse("solutions:statement_solution_start", args=[statement.statement_uuid])
+                    if statement.is_active and linked_problem is None
+                    else ""
+                ),
                 "problem_uuid": str(statement.problem_uuid),
                 "linked_problem_mohs": linked_problem_mohs,
                 "linked_problem_mohs_url": linked_problem_mohs_url,
@@ -5918,6 +5924,11 @@ def problem_statement_detail_view(request, statement_uuid: uuid.UUID):
                 if linked_problem is not None
                 else ""
             ),
+            "solution_start_url": (
+                reverse("solutions:statement_solution_start", args=[statement.statement_uuid])
+                if statement.is_active and linked_problem is None
+                else ""
+            ),
             "solutions_url": (
                 reverse("solutions:problem_solution_list", args=[linked_problem.problem_uuid])
                 if linked_problem is not None
@@ -7618,6 +7629,7 @@ def _build_dashboard_contest_statement_listing_context(
                     if linked_problem is not None
                     else ""
                 ),
+                "solution_start_url": reverse("solutions:statement_solution_start", args=[statement.statement_uuid]),
                 "solutions_url": (
                     reverse("solutions:problem_solution_list", args=[linked_problem.problem_uuid])
                     if linked_problem is not None

@@ -137,6 +137,36 @@ def test_password_sign_in_preserves_writing_until_explicit_private_save(client, 
     assert not UserProblemCompletion.objects.exists()
 
 
+def test_writer_can_choose_newly_uploaded_statement_without_manual_linking(client):
+    user = UserFactory()
+    client.force_login(user)
+    statement = ContestProblemStatement.objects.create(
+        contest_name="New upload", contest_year=2026, problem_code="P1", problem_number=1,
+        statement_latex="A newly uploaded statement.",
+    )
+    stage(client)
+    token = client.session[WRITER_DRAFT_SESSION_KEY]["token"]
+    picker = client.get(writer_handoff_url())
+    row = picker.context["statement_problem_rows"][0]
+    assert row["editor_button_label"] == "Continue with this problem"
+    assert row["solution_start_url"] in picker.content.decode()
+    assert f'name="writer_draft_token" value="{token}"' in picker.content.decode()
+
+    started = client.post(row["solution_start_url"], {"writer_draft_token": token})
+    editor = client.get(started.url)
+
+    assert editor.status_code == HTTPStatus.OK
+    assert editor.context["writer_import"]["token"] == token
+    assert editor.context["form"]["title"].value() == "A preserved proof"
+    assert not ProblemSolution.objects.exists()
+    saved = client.post(started.url, editor_data(editor))
+    assert saved.status_code == HTTPStatus.FOUND
+    solution = ProblemSolution.objects.get(author=user)
+    assert solution.problem.problem_uuid == statement.problem_uuid
+    assert solution.status == ProblemSolution.Status.DRAFT
+    assert WRITER_DRAFT_SESSION_KEY not in client.session
+
+
 def test_pending_signup_keeps_draft_and_resumes_after_approval(client, settings):
     settings.ACCOUNT_EMAIL_VERIFICATION = "none"
     access = UserAccessSettings.get_solo()
