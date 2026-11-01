@@ -9,6 +9,7 @@ on:
       - scripts/deployment/postgres_runtime.py
       - scripts/deployment/recovery_crypto.py
       - scripts/deployment/tests/test_database_recovery.py
+      - scripts/deployment/tests/test_systemd_recovery.py
       - scripts/deployment/tests/test_postgres_runtime.py
       - scripts/deployment/tests/test_recovery_crypto.py
       - scripts/deployment/tests/test_catalogue_*.py

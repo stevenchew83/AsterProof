@@ -11,7 +11,7 @@ import sys
 from pathlib import Path
 
 from scripts.deployment.catalogue_schema import INPUT_HASHES
-from scripts.deployment.catalogue_schema import MIGRATION_APPLY
+from scripts.deployment.catalogue_schema import MIGRATIONS
 from scripts.deployment.catalogue_schema import TABLES
 from scripts.deployment.catalogue_schema import behaviour_fingerprint
 from scripts.deployment.catalogue_schema import behaviour_snapshot
@@ -31,6 +31,23 @@ PRESERVED = (
     ("pages", "StatementTopicTechnique"), ("pages", "UserProblemCompletion"),
     ("pages", "ProblemConceptAssignment"), ("pages", "ConceptAssignmentState"),
 )
+
+
+def apply_historical_catalogue(executor):
+    """Check the bounded historical plan without admitting newer leaf migrations."""
+    targets = [("pages", MIGRATIONS[-1])]
+    actual = [
+        (migration.app_label, migration.name, backwards, [type(op).__name__ for op in migration.operations])
+        for migration, backwards in executor.migration_plan(targets)
+    ]
+    expected = [
+        ("pages", MIGRATIONS[0], False, ["CreateModel"] * 11 + ["AddConstraint"] * 3),
+        ("pages", MIGRATIONS[1], False, ["RunPython"]),
+        ("pages", MIGRATIONS[2], False, ["RunPython"]),
+    ]
+    if actual != expected:
+        raise ValueError("Historical rehearsal differs from the frozen catalogue plan")
+    executor.migrate(targets)
 
 
 def record_values(apps):
@@ -134,8 +151,10 @@ def main():
         raise ValueError("Catalogue rehearsal requires an empty isolated PostgreSQL 17.9 database")
     validate_candidate(Path.cwd())
     executor = MigrationExecutor(connection)
-    targets = [n for n in executor.loader.graph.leaf_nodes() if n[0] != "pages"] + [
+    # Website and Assessment depend on pages 0039/0043, beyond this historical baseline.
+    targets = [n for n in executor.loader.graph.leaf_nodes() if n[0] not in {"pages", "solutions", "website"}] + [
         ("pages", "0036_concept_assignment_reviews"),
+        ("solutions", "0010_offline_evaluation_contract"),
     ]
     executor.migrate(targets)
     old_apps = executor.loader.project_state(targets).apps
@@ -144,9 +163,12 @@ def main():
     empty_behaviour = behaviour_snapshot(connection)
     if empty_behaviour != {"functions": [], "triggers": []}:
         raise ValueError("Catalogue function or triggers already exist before upgrade")
-    exec(MIGRATION_APPLY, {})
+    apply_historical_catalogue(MigrationExecutor(connection))
     after = _snapshot(connection)
-    new_apps = MigrationExecutor(connection).loader.project_state().apps
+    catalogue_targets = [node for node in targets if node[0] != "pages"] + [
+        ("pages", "0039_catalogue_revision_triggers"),
+    ]
+    new_apps = MigrationExecutor(connection).loader.project_state(catalogue_targets).apps
     if record_values(new_apps) != records:
         raise ValueError("Catalogue upgrade changed an existing user, source, assignment or completion record")
     delta = {k: [r for r in rows if r.get("table") in TABLES] for k, rows in after.items()}
@@ -161,7 +183,6 @@ def main():
     )
     if _snapshot(connection) != after or record_values(new_apps) != records:
         raise ValueError("Active-revision compatibility smoke changed schema or existing records")
-    verify_publication_and_invalidation()
     # Reversal is exercised only on this synthetic database, never suggested as recovery.
     executor = MigrationExecutor(connection)
     executor.migrate([("pages", "0038_seed_catalogue")])
@@ -170,6 +191,16 @@ def main():
     MigrationExecutor(connection).migrate([("pages", "0039_catalogue_revision_triggers")])
     if behaviour_snapshot(connection) != behaviour:
         raise ValueError("Trigger reinstall produced different definitions")
+    # Current runtime models require the later Website/Assessment schema. Keep
+    # the historical DDL/reader proof above separate from this synthetic fixture.
+    executor = MigrationExecutor(connection)
+    executor.migrate([
+        node for node in executor.loader.graph.leaf_nodes() if node[0] not in {"pages", "solutions"}
+    ] + [
+        ("pages", "0044_learning_page_activity"),
+        ("solutions", "0012_synthetic_review_prototype"),
+    ])
+    verify_publication_and_invalidation()
     result = {
         "format_version": 1, "source_sha": args.release_sha, "active_sha": args.active_sha,
         "postgres_version": connection.pg_version, "input_hashes": INPUT_HASHES,

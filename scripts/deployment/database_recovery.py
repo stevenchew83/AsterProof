@@ -70,6 +70,20 @@ for _index, _table, _columns, _field, _values in (
     PG17_INDEX_REPARSE_EQUIVALENTS[_prefix + f"(ARRAY[{_array_cast}])::text[]))"] = (
         _prefix + f"ARRAY[{_element_cast}]))"
     )
+# The same PG17 cast redistribution affects only these two observed CHECKs.
+# Bind the complete definition and object identity; every other change must fail.
+PG17_CHECK_REPARSE_EQUIVALENTS = {}
+for _table, _name, _field, _values in (
+    ("solutions_evaluationpackageapproval", "evaluation_package_valid_decision", "decision",
+     ("approved", "rejected", "revoked")),
+    ("solutions_syntheticreview", "synthetic_review_valid_mode", "mode", ("coach", "provisional", "examiner")),
+):
+    _prefix = f"CHECK ({_field}::text = ANY (ARRAY["
+    _array_cast = ", ".join(f"'{value}'::character varying" for value in _values)
+    _element_cast = ", ".join(f"'{value}'::character varying::text" for value in _values)
+    PG17_CHECK_REPARSE_EQUIVALENTS[(
+        "public", _table, _name, "c", _prefix + _array_cast + "]::text[]))",
+    )] = _prefix + _element_cast + "]))"
 META_SQL = """SELECT json_build_object(
  'database',current_database(),'server_version',current_setting('server_version_num')::int,
  'database_bytes',pg_database_size(current_database()),'locale',d.datcollate,
@@ -213,7 +227,7 @@ def _copy_digest(connection, query):
 
 
 def logical_backup_schema(snapshot):
-    """Normalize only dropped slots and two exact PG17 literal-array cast rewrites."""
+    """Normalize dropped slots and the exact reviewed PG17 index/CHECK rewrites."""
     result = {k: [dict(row) for row in rows] for k, rows in snapshot.items()}
     ordinals = {}
     for row in sorted(result["columns"], key=lambda r: (r["schema"], r["table"], r["position"])):
@@ -222,6 +236,9 @@ def logical_backup_schema(snapshot):
         row["position"] = ordinals[key]
     for row in result.get("indexes", []):
         row["definition"] = PG17_INDEX_REPARSE_EQUIVALENTS.get(row["definition"], row["definition"])
+    for row in result.get("constraints", []):
+        identity = tuple(row[field] for field in ("schema", "table", "name", "type", "definition"))
+        row["definition"] = PG17_CHECK_REPARSE_EQUIVALENTS.get(identity, row["definition"])
     return result
 
 
