@@ -60,7 +60,7 @@
                 {% for result in results %}
                 <tr>
                   <td>{{ result.assessment.display_name }}</td>
-                  <td>{{ result.raw_score|default:'' }}</td>
+                  <td>{{ result.raw_score|default_if_none:'' }}</td>
                   <td>{{ result.medal }}</td>
                   <td>{{ result.band }}</td>
                   <td>{{ result.status_text }}</td>

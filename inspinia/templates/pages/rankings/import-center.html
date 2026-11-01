@@ -5,6 +5,7 @@
 {% block page_content %}
 <div class="container-fluid app-table-page">
   {% include 'partials/page-title.html' with title='Import center' subtitle='Rankings' page_icon='ti-file-import' %}
+  <div class="app-table-toolbar mb-3"><a href="{% url 'rankings:olympiad_sheet_import' %}" class="btn btn-outline-primary"><i class="ti ti-upload me-1" aria-hidden="true"></i>Import olympiad history / IMONST2 text</a></div>
 
   {% if messages %}
   <div class="mt-3">
