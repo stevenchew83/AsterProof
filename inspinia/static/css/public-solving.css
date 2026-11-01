@@ -1770,6 +1770,15 @@ textarea.form-control-lg {
   --w-muted: #516461;
   --w-accent: #26766c;
   --w-line: #d9ded6;
+  display: -webkit-box;
+  display: -ms-flexbox;
+  display: flex;
+  -webkit-box-orient: vertical;
+  -webkit-box-direction: normal;
+      -ms-flex-direction: column;
+          flex-direction: column;
+  min-height: 100vh;
+  min-height: 100dvh;
   color: var(--w-ink);
   background: var(--w-paper);
   font-size: 14px;
@@ -1817,6 +1826,12 @@ textarea.form-control-lg {
 .website ::selection {
   background: #c9e2d8;
   color: #203544;
+}
+
+.website > main {
+  -webkit-box-flex: 1;
+      -ms-flex: 1 0 auto;
+          flex: 1 0 auto;
 }
 
 .website-container {
