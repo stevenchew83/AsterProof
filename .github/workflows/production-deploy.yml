@@ -378,6 +378,11 @@ jobs:
           print(f"- Target SHA: `{value['target_sha']}`")
           print(f"- Migration class: `{value['classification']}`")
           print(f"- Classified migrations: `{len(value['migrations'])}`")
+          if value.get('learning_reader_preparation'):
+              print('- Learning reader preparation: no database changes; four migrations remain deferred.')
+              print(json.dumps(value['learning_reader_preparation'], sort_keys=True, indent=2))
+          if value.get('learning_reader_successor'):
+              print('- Apply the four migrations deferred by the verified active reader bridge.')
           import os
           if os_disclosure := os.environ.get('SCHEMA_DISCLOSURE'):
               if value['classification'] == 'data-or-non-compatible':

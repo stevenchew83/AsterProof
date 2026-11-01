@@ -46,6 +46,10 @@ with verified learning-reader bytes. An ordinary previous reader cannot qualify.
 The currently observed production baseline has no such reader; installation of
 schema support alone does not satisfy this recovery prerequisite.
 
+The approved [two-stage bootstrap/recovery sequence](training-2-bootstrap-recovery.md)
+establishes that baseline through a real no-DDL bridge activation before the schema
+release. It does not waive the pre-DDL recovery check or migration validation.
+
 ## Durable reader floor
 
 The presence of any shared-learning content, publication, legacy-bridge or pathway

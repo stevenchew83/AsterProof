@@ -242,6 +242,9 @@ def test_backend_commands_keep_ai_off_and_initialization_bounded(monkeypatch):
 
 
 def test_dispatch_admits_only_two_exact_migrations(monkeypatch):
+    # This fixture models an ordinary maintenance source, not the reader bridge.
+    monkeypatch.setattr("scripts.deployment.learning_bridge.is_bridge_source", lambda root: False)
+    monkeypatch.setattr(validate_dispatch, "_active_learning_bridge", lambda *args: False)
     changes = ["A\t" + path for path in schema.INPUT_HASHES]
     monkeypatch.setattr(
         validate_dispatch.subprocess,

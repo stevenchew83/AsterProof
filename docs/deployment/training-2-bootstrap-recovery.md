@@ -1,0 +1,63 @@
+# Training 2.0 bootstrap and staged recovery
+
+The owner explicitly approved the bootstrap/recovery work and deployment on
+2026-11-01, retaining the requirement that all starter notes stay unpublished.
+This record describes the scoped sequence; it is not standing operational authority.
+
+## Stage 1: establish a real compatible recovery release
+
+The first release contains the shared reader and the exact four future migrations,
+but its frozen production settings force the module, contributions and publication
+off. The installed worker may defer those migrations only for this byte-verified
+bridge, for migration class `none`, without a schema disclosure. It validates the
+28 reader files, the exact four migrations and all 92 historical migration sources.
+The bridge's production settings file is frozen in `learning_bridge.py`.
+
+Before activation, the candidate runs as the application account with PostgreSQL
+transactions forced read-only and bounded timeouts. It must use production
+settings, have all three learning flags false, observe no learning schema floor,
+and report exactly the four pending migrations and their operation types. No
+migration is executed, recorded or faked. Existing database fingerprints must match
+before and after. Every other candidate retains ordinary `migrate --check`.
+
+Normal protected GitHub activation, process-bound health, static checks and short
+stabilization qualify this actual release as the recovery baseline. Probe public
+home/library/search, anonymous assets and authenticated legacy Training while the
+new tables are absent. A working `/healthz/` alone is insufficient. A malformed
+bridge, extra pending migration, enabled flag, missing source or changed fingerprint
+fails before activation. An already-present floor never uses the deferral exception.
+
+## Stage 2: apply the reviewed schema
+
+A separate successor commit removes the bridge settings override while preserving
+the exact compatible reader files. The migration disclosure identifies the four
+migrations deliberately deferred by the active bridge even though their files were
+already delivered. The database's real pending plan and frozen PostgreSQL delta
+remain authoritative; an empty Git migration diff does not mean an empty DB plan.
+
+The existing pre-DDL gate still requires the actual eligible baseline's manifest
+and guarded files to verify as a compatible reader. Build and attestation repeat
+the exact PostgreSQL rehearsal. Starting and expected fingerprints bind the actual
+production target. Apply only the four frozen migrations, retain empty new content
+tables, verify the ending audit and activate through the protected workflow.
+Automatic and explicit recovery retain the reader floor. Do not relabel an old
+manifest, invent a recovery target, drop tables, or bypass a required check.
+
+## Bootstrap and activation boundaries
+
+Use the established separately staged root-owned Git checkout and the existing
+`bootstrap.install_authority` procedure at the merged, verified SHA. Preserve the
+target contract, audit identity, deployment key and restrictions, sudoers, systemd
+security configuration, environment, database fingerprints, active release and
+application PID. Verify all protected hashes and the installed authority afterward.
+Installation reloads systemd; it does not restart the app or install schema.
+
+Enable the module only after schema and recovery verification. Authoring also
+requires persistent private assets, the configured existing Steven account and the
+reviewed rights-retained contributor agreement. Keep `LEARNING_PUBLICATION_ENABLED`
+false and `LEARNING_CONTENT_PACK_ROOT` empty. No starter manuscripts are shipped,
+imported or published by either release. No lecture announcements are sent.
+
+Complete immediate checks and short stabilization for each activation. No delayed
+monitoring is scheduled. Retain command/run IDs, exact SHAs, artifact digests,
+preflight/postflight evidence and any limits in the local release packet.

@@ -17,6 +17,7 @@ from scripts.deployment import catalogue_schema
 from scripts.deployment import community_schema
 from scripts.deployment import curated_collections_schema
 from scripts.deployment import learning_activity_schema
+from scripts.deployment import learning_bridge
 from scripts.deployment import learning_schema
 from scripts.deployment import maintenance_schema
 from scripts.deployment import newsletter_automation_schema
@@ -67,6 +68,7 @@ RUNUSER = Path("/usr/sbin/runuser")
 SYSTEMD_RUN = Path("/usr/bin/systemd-run")
 MAX_RETAINED_RELEASES = 5
 MIN_RETAINED_RELEASES = 2
+BRIDGE_PGOPTIONS = "-c default_transaction_read_only=on -c lock_timeout=2s -c statement_timeout=30s"
 
 
 class OperationError(RuntimeError):
@@ -232,6 +234,7 @@ class WorkerBackend:
         arguments: list[str],
         *,
         migration: bool = False,
+        read_only: bool = False,
         runtime_seconds: int | None = None,
     ) -> None:
         subprocess.run(
@@ -244,6 +247,10 @@ class WorkerBackend:
                 f"--uid={contract.app_user}",
                 "--setenv=DJANGO_READ_DOT_ENV_FILE=False",
                 *(["--setenv=PGOPTIONS=-c lock_timeout=2s -c statement_timeout=30s"] if migration else []),
+                *([
+                    "--setenv=PGOPTIONS=-c default_transaction_read_only=on "
+                    "-c lock_timeout=2s -c statement_timeout=30s",
+                ] if read_only else []),
                 f"--property=WorkingDirectory={release}",
                 f"--property=EnvironmentFile={contract.environment_file}",
                 "--property=NoNewPrivileges=yes",
@@ -252,6 +259,12 @@ class WorkerBackend:
                 "--property=ProtectSystem=strict",
                 "--property=RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6",
                 *([f"--property=RuntimeMaxSec={runtime_seconds}s"] if runtime_seconds else []),
+                # EnvironmentFile overrides systemd Environment assignments.
+                # Apply these fixed bridge-only values after that merge so even
+                # Django setup cannot inherit a writable connection default.
+                *([
+                    "/usr/bin/env", "DJANGO_READ_DOT_ENV_FILE=False", f"PGOPTIONS={BRIDGE_PGOPTIONS}",
+                ] if read_only else []),
                 str(release / ".venv/bin/python"),
                 str(release / "manage.py"),
                 *arguments,
@@ -268,6 +281,12 @@ class WorkerBackend:
 
     def candidate_migrations_applied(self, contract: TargetContract, release: Path) -> None:
         self._run_candidate(contract, release, ["migrate", "--check"])
+
+    def check_learning_bridge(self, contract: TargetContract, release: Path) -> None:
+        learning_bridge.validate_bridge_candidate(release)
+        self._run_candidate(
+            contract, release, ["shell", "--command", learning_bridge.PLAN_CHECK], read_only=True, runtime_seconds=60,
+        )
 
     def migrate(self, contract: TargetContract, release: Path) -> None:
         self._run_candidate(contract, release, ["migrate", "--noinput"])
@@ -894,6 +913,20 @@ def _deploy(
     backend.prepare(contract, request, staging)
     backend.publish_permissions(contract, staging, release)
     try:
+        try:
+            bridge = learning_bridge.is_bridge_source(release)
+            bridge_marker = learning_bridge.has_bridge_marker(release)
+        except (OSError, ValueError) as exc:
+            raise OperationError("learning_bridge_invalid") from exc
+        if bridge_marker:
+            if not bridge:
+                raise OperationError("learning_bridge_invalid")
+            if request["migration_class"] != "none" or "schema_disclosure" in request:
+                raise OperationError("learning_bridge_requires_none")
+            try:
+                learning_bridge.validate_bridge_candidate(release)
+            except (OSError, ValueError) as exc:
+                raise OperationError("learning_bridge_invalid") from exc
         backend.ensure_document_reader(contract, release)
         backend.ensure_learning_reader(contract, release)
         backend.candidate_check(contract, release)
@@ -1068,7 +1101,10 @@ def _deploy(
                 backend.migrate_concept_schema(contract, release)
             if not schema_audit_matches(disclosure, backend.schema_audit(contract), stage="expected"):
                 raise OperationError("schema_ending_state_mismatch")
-        backend.candidate_migrations_applied(contract, release)
+        if bridge and not backend.learning_reader_required(contract):
+            backend.check_learning_bridge(contract, release)
+        else:
+            backend.candidate_migrations_applied(contract, release)
         ending_fingerprint = backend.state_fingerprint(contract)
         if request["migration_class"] in {"backward-compatible-schema", "data-or-non-compatible"} and (
             ending_fingerprint != request["schema_disclosure"]["expected"]["state_fingerprint"]

@@ -19,7 +19,7 @@ FLOOR_SQL = "SELECT " + " OR ".join(f"to_regclass('public.{table}') IS NOT NULL"
 # capability refresh in the separately installed deployment authority.
 READER_SOURCES = {
     "inspinia/learning/asset_views.py": (
-        "5d7325fc5ba5b0b540637f31ff56a1408aa3ff9f55b0a110bb71867e7b94e24b"
+        "c1c9073ce18b07f180a46312126cf91e57f0750770cb9d10e9e77fccccfed01d"
     ),
     "inspinia/learning/assets.py": (
         "146acd0ba57567b68e32693d54ecf246a68a0224eb0f09dec11b4cbd7790b331"

@@ -10,11 +10,14 @@ from django.views.decorators.http import require_safe
 from inspinia.learning.assets import ASSET_FILENAME
 from inspinia.learning.assets import can_access_asset
 from inspinia.learning.models import ContentAsset
+from inspinia.learning.permissions import module_enabled
 
 
 @never_cache
 @require_safe
 def asset_detail(request, asset_id):
+    if not module_enabled():
+        raise Http404
     asset = get_object_or_404(ContentAsset, pk=asset_id)
     if not can_access_asset(asset, request.user):
         raise Http404

@@ -1,6 +1,8 @@
 """Private image persistence, contextual delivery and retained-reference cleanup."""
 
 import os
+import subprocess
+import sys
 import uuid
 from concurrent.futures import ThreadPoolExecutor
 from datetime import timedelta
@@ -151,6 +153,40 @@ def test_missing_private_storage_refuses_upload_as_preserved_validation_error(wo
     settings.LEARNING_PRIVATE_ASSET_ROOT = ""
     with pytest.raises(ValidationError, match="Private image upload is unavailable"):
         store_asset(draft=draft, user=author, upload=image_upload())
+
+
+def test_disabled_asset_reader_does_not_query_an_absent_learning_schema(tmp_path):
+    code = f"""from django.conf import settings
+settings.DATABASES={{'default':{{'ENGINE':'django.db.backends.sqlite3','NAME':{str(tmp_path / 'empty.sqlite3')!r}}}}}
+settings.LEARNING_MODULE_ENABLED=False
+import django
+django.setup()
+from django.db import connection
+from django.contrib.auth.models import AnonymousUser
+from django.http import Http404
+from django.test import RequestFactory
+from django.test.utils import CaptureQueriesContext
+from inspinia.learning.asset_views import asset_detail
+if connection.introspection.table_names():
+    raise RuntimeError('Pre-schema fixture must be empty')
+request=RequestFactory().get('/library/assets/00000000-0000-0000-0000-000000000001/')
+request.user=AnonymousUser()
+with CaptureQueriesContext(connection) as queries:
+    try:
+        asset_detail(request,'00000000-0000-0000-0000-000000000001')
+    except Http404:
+        pass
+    else:
+        raise RuntimeError('Disabled assets must return404')
+if queries.captured_queries:
+    raise RuntimeError('Disabled assets queried a missing learning table')
+"""
+    result = subprocess.run(  # noqa: S603 - Fixed local interpreter and isolated empty SQLite fixture.
+        [sys.executable, "-c", code],
+        env={**os.environ, "DJANGO_READ_DOT_ENV_FILE": "false", "DJANGO_SETTINGS_MODULE": "config.settings.test"},
+        check=False, capture_output=True, text=True, timeout=20,
+    )
+    assert result.returncode == 0, result.stdout + result.stderr
 
 
 def test_reference_checks_require_authorisation_and_description(workspace):
