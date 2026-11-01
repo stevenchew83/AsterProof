@@ -1,58 +1,99 @@
 # Offline solution-checking readiness evidence
 
-Date: 2026-11-01. Scope: local validation of architecture contract v1 before its first CI execution.
+Date: 2026-11-01. Scope: architecture contract v1 and repository-only release
+preparation. This record supersedes the initial local-only assessment. No
+production operation, provider execution or activation is authorized by it.
 
-## Engineering verification
+## Source-bound CI evidence
 
-- 879 tests passed across solutions, configuration, users, JavaScript integration,
-  isolation harness and schema/CI contracts.
-- 10 PostgreSQL-only tests were explicitly skipped on SQLite: four new evidence
-  races, two review races and four existing editor/collection source-lock checks.
-- 14 direct AI-review JavaScript contracts passed, including per-finding releases
-  and stale success/failure responses.
-- Focused Ruff passed; Django system checks and migration consistency passed.
-- Asset build passed. It reported the existing stale Browserslist database notice;
-  no dependency update was made.
-- Synthetic local workspace checks passed at desktop 1440px and phone width 390px,
-  with no page errors, external requests or horizontal overflow.
-- The actual SQLite migration smoke preserved legacy data, triggers, constraints,
-  sequences and foreign keys while adding only the exact 19 new evidence tables.
-- Focused security review findings were corrected and have regression coverage.
+[CI 41288461538](https://github.com/stevenchew83/AsterProof/actions/runs/41288461538)
+passed on `17ff1ae47a733e9b5f0d5b3312e27de1a807b0bb`. Both Docker isolation
+modes, mandatory PostgreSQL races, additive schema preservation, assets, lint,
+Django and application checks passed. The application suite had 2720 passes and
+10 SQLite skips; the isolated PostgreSQL evaluation suite had 299 passes and no
+skips. Source-lock checks added 74 PostgreSQL passes.
 
-JUnit artifact SHA256: `bfeb65f2fafcc74f4bcc1fc404f04deb1c4d5fc9750cec332675c7f47a069566`.
+[CI 41290288254](https://github.com/stevenchew83/AsterProof/actions/runs/41290288254)
+passed after integrating main `0f3ad3a46734a51b757bbfb2d3fdc3276a25cfaf`, on
+`8742d4f496c4f3ba62bf684a8afae152a1835ea0`:
 
-Local SQLite schema artifact SHA256: `c40b9f1413a5253e24215415d2a00daaf075ff8d11e9de5638f0331a26673c94`.
+- Credential-free `--network=none`: 286 passed, 6 PostgreSQL-only skips.
+- Internal-only PostgreSQL 17.9 evaluation suite: 299 passed, no skips. Required
+  concurrency targets include the first-document-save race.
+- Application/core checks: 2789 passed, 12 SQLite skips. These counts include
+  newer main changes; skips are reported, not interpreted as executed tests.
+- Existing PostgreSQL source locks/review regressions: 74 passed.
+- Synthetic systemd maintenance contracts: 2 passed.
+- PostgreSQL schema preservation, actionlint, dependency lock, static build and
+  manifest, Ruff, Django checks and migration consistency passed.
 
-These are engineering artifacts, not authenticated model executions.
+Artifacts for that integrated source:
 
-## Readiness decisions
+| Artifact | ID | Archive SHA-256 |
+|---|---|---|
+| `offline-evaluation-41290288254` | 13077056690 | `fbe213574ebbc33745299b4a18c611568d98b419cb041826beda0d5b8758100d` |
+| `website-schema-rehearsal-41290288254` | 13076936909 | `216b246c7933fffe3be58d584aadf7e7d78efc00476dc497bf3848428f63c9f0` |
 
-| Gate | Current conclusion |
+The first artifact contains the immutable dependency image identity, installed
+package list and isolation logs. The second includes the synthetic PostgreSQL
+delta: exactly 19 tables, 131 columns, 62 constraints, 65 indexes and no extension.
+Its normalized schema fingerprint is
+`e34c2715374cba7a9aab59c473d3308c4dcd656896509c76165972cf568842d0`.
+Actions artifacts expire after seven days; the reviewed frozen schema delta is
+retained in the repository. Artifact archive digests are distinct from normalized
+schema fingerprints and from an individual evidence file's digest.
+
+These runs establish engineering evidence, not authenticated model output. The
+schema-capture run did not run active-code compatibility; the separate production
+allowance adds that check and requires a new green PR run on its final source.
+Its proof is uploaded by the same CI workflow and must be checked before merge.
+The required check remains `verify`; no merge or deployment is performed here.
+
+## Earlier local evidence
+
+The initial local verification had 879 passes, 10 PostgreSQL-only skips, 14 direct
+JavaScript contracts, successful desktop 1440px/mobile 390px synthetic workspace
+checks, and SQLite preservation of existing rows, triggers, constraints, sequences
+and foreign keys. No page errors, external requests or horizontal overflow were
+observed in those synthetic previews. This is historical local evidence rather
+than a substitute for the source-bound CI runs above.
+
+- Local JUnit SHA-256: `bfeb65f2fafcc74f4bcc1fc404f04deb1c4d5fc9750cec332675c7f47a069566`.
+- Local SQLite schema artifact SHA-256: `c40b9f1413a5253e24215415d2a00daaf075ff8d11e9de5638f0331a26673c94`.
+
+## Readiness decisions and limits
+
+| Gate | Conclusion |
 |---|---|
-| E — Engineering | Not established: actual Docker isolation and PostgreSQL 17.9 acceptance unavailable locally |
-| D — Dataset | Pending genuine source/rights evidence, coach judgments, sampling and frozen holdouts |
+| E — Engineering | Offline implementation acceptance passed for the source-bound CI runs above; the new production allowance must also pass its final PR checks before merge |
+| D — Dataset | Provisional: genuine source/rights evidence, coach judgments, sampling and frozen holdouts remain outstanding |
 | M — Model | Untested; fixture/import scores cannot qualify |
 | P — Pedagogy | Untested; no independent-learning study performed |
 | A — Activation | None issued |
 
-Docker CLI is absent. The isolation runner fails explicitly rather than claiming
-success. CI now contains both required isolation modes and mandatory non-skipped
-PostgreSQL race checks; it was not dispatched by this task. The new schema rehearsal
-contract does not widen the completed editor deployment allowance or supply production
-migration authority. No production schema or configuration was changed.
+No qualified coach judgment, lawful reuse permission or representative learner
+corpus was fabricated. Human data-quality checks remain mandatory. The newer
+statement/community systems retain their own scope and approvals.
 
-The test suites contain deliberately synthetic identities and mathematical fixtures.
-No real learner corpus or human qualification was fabricated. During this initial
-local validation, no paid API call,
-credential provisioning, worker activation, deployment, commit or push was performed.
+The [release allowance](../deployment/offline-evaluation-release.md) is prepared
+only in source. It does not widen the completed editor allowance or install
+production authority. Final merged-release disclosure needs verified production
+starting fingerprints and a release-bound PostgreSQL/active-code rehearsal;
+these are not invented from synthetic CI data. No production schema, service,
+configuration, credential, worker or authority was changed.
 
 ## Operating result
 
-Student AI flag defaults remain disabled and budgets remain zero. Real-provider
-execution is additionally hard-blocked before SDK construction/credential use.
-Fixture injection is explicit and non-authoritative. Editor saving, image handling,
-preview, sharing and completion behavior remain covered by the passing regression suite.
+Both AI-review flags default to false. Solution-provider execution remains
+hard-blocked before SDK construction or credential use, and normal execution mode
+is fixed to `offline`. Policies remain disabled and unfunded; no activation
+authorization or live dispatcher is issued. The deployment plan check additionally
+rejects enabled AI flags or a funded/enabled solution policy.
+
+Paid model API calls: zero. Student AI review: disabled. Real-model performance
+and educational effectiveness: untested. Editor saving, autocomplete, managed
+image handling, preview, sharing and completion remain regression-covered.
 
 See [the architecture contract](ai-solution-checking-architecture.md) and
-[the isolation procedure](offline-evaluation-isolation.md) for implementation,
-acceptance and future approval boundaries.
+[the isolation procedure](offline-evaluation-isolation.md) for requirements and
+future approval boundaries.

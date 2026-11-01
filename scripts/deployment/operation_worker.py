@@ -23,6 +23,7 @@ from scripts.deployment import onboarding_schema
 from scripts.deployment import solution_analytics_schema
 from scripts.deployment import solution_collections_schema
 from scripts.deployment import solution_document_schema
+from scripts.deployment import solution_evaluation_schema
 from scripts.deployment import solution_pdf_schema
 from scripts.deployment import solution_sharing_schema
 from scripts.deployment import statement_authoring_schema
@@ -359,6 +360,15 @@ class WorkerBackend:
     def check_solution_sharing_schema(self, contract: TargetContract, release: Path) -> None:
         solution_sharing_schema.validate_candidate(release)
         self._run_candidate(contract, release, ["shell", "--command", solution_sharing_schema.PLAN_CHECK])
+
+    def check_solution_evaluation_schema(self, contract: TargetContract, release: Path) -> None:
+        solution_evaluation_schema.validate_candidate(release)
+        self._run_candidate(contract, release, ["shell", "--command", solution_evaluation_schema.PLAN_CHECK])
+
+    def migrate_solution_evaluation_schema(self, contract: TargetContract, release: Path) -> None:
+        self._run_candidate(
+            contract, release, ["shell", "--command", solution_evaluation_schema.MIGRATION_APPLY], migration=True,
+        )
 
     def check_statement_reports_schema(self, contract: TargetContract, release: Path) -> None:
         statement_reports_schema.validate_candidate(release)
@@ -906,7 +916,10 @@ def _deploy(
             ):
                 raise OperationError("schema_starting_state_mismatch")
             try:
-                if disclosure["migration"] == statement_reports_schema.MIGRATION:
+                if disclosure["migration"] == solution_evaluation_schema.MIGRATION:
+                    solution_evaluation_schema.validate_build_evidence(release, disclosure)
+                    backend.check_solution_evaluation_schema(contract, release)
+                elif disclosure["migration"] == statement_reports_schema.MIGRATION:
                     statement_reports_schema.validate_build_evidence(release, disclosure)
                     backend.check_statement_reports_schema(contract, release)
                 elif disclosure["migration"] == solution_document_schema.MIGRATION:
@@ -948,7 +961,9 @@ def _deploy(
             if not audit_matches(disclosure, backend.schema_audit(contract), stage="starting"):
                 raise OperationError("schema_starting_state_drift")
             transition(state_path, "migrating")
-            if disclosure["migration"] == statement_reports_schema.MIGRATION:
+            if disclosure["migration"] == solution_evaluation_schema.MIGRATION:
+                backend.migrate_solution_evaluation_schema(contract, release)
+            elif disclosure["migration"] == statement_reports_schema.MIGRATION:
                 backend.migrate_statement_reports_schema(contract, release)
             elif disclosure["migration"] == solution_document_schema.MIGRATION:
                 backend.migrate_solution_document_schema(contract, release)

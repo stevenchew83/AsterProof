@@ -1,0 +1,2240 @@
+{
+  "columns": [
+    {
+      "collation": "default",
+      "column": "activity",
+      "default": null,
+      "nullable": false,
+      "position": 3,
+      "schema": "public",
+      "table": "solutions_activationauthorization",
+      "type": "character varying(24)"
+    },
+    {
+      "collation": "default",
+      "column": "content_digest",
+      "default": null,
+      "nullable": false,
+      "position": 4,
+      "schema": "public",
+      "table": "solutions_hintrevealevent",
+      "type": "character varying(64)"
+    },
+    {
+      "collation": "default",
+      "column": "currency",
+      "default": null,
+      "nullable": false,
+      "position": 5,
+      "schema": "public",
+      "table": "solutions_reviewspendevent",
+      "type": "character varying(3)"
+    },
+    {
+      "collation": "default",
+      "column": "decision",
+      "default": null,
+      "nullable": false,
+      "position": 6,
+      "schema": "public",
+      "table": "solutions_readinessevidence",
+      "type": "character varying(24)"
+    },
+    {
+      "collation": "default",
+      "column": "digest",
+      "default": null,
+      "nullable": false,
+      "position": 4,
+      "schema": "public",
+      "table": "solutions_reviewerprofile",
+      "type": "character varying(64)"
+    },
+    {
+      "collation": "default",
+      "column": "digest",
+      "default": null,
+      "nullable": false,
+      "position": 5,
+      "schema": "public",
+      "table": "solutions_evaluationdatasetsnapshot",
+      "type": "character varying(64)"
+    },
+    {
+      "collation": "default",
+      "column": "digest",
+      "default": null,
+      "nullable": false,
+      "position": 5,
+      "schema": "public",
+      "table": "solutions_reviewinputbundle",
+      "type": "character varying(64)"
+    },
+    {
+      "collation": "default",
+      "column": "digest",
+      "default": null,
+      "nullable": false,
+      "position": 6,
+      "schema": "public",
+      "table": "solutions_evaluationrun",
+      "type": "character varying(64)"
+    },
+    {
+      "collation": "default",
+      "column": "domain",
+      "default": null,
+      "nullable": false,
+      "position": 4,
+      "schema": "public",
+      "table": "solutions_evaluationproblemfamily",
+      "type": "character varying(3)"
+    },
+    {
+      "collation": "default",
+      "column": "expertise",
+      "default": null,
+      "nullable": false,
+      "position": 4,
+      "schema": "public",
+      "table": "solutions_evaluationassignment",
+      "type": "text"
+    },
+    {
+      "collation": "default",
+      "column": "finding_id",
+      "default": null,
+      "nullable": false,
+      "position": 3,
+      "schema": "public",
+      "table": "solutions_hintrevealevent",
+      "type": "character varying(64)"
+    },
+    {
+      "collation": "default",
+      "column": "gate",
+      "default": null,
+      "nullable": false,
+      "position": 3,
+      "schema": "public",
+      "table": "solutions_readinessevidence",
+      "type": "character varying(1)"
+    },
+    {
+      "collation": "default",
+      "column": "idempotency_key",
+      "default": null,
+      "nullable": false,
+      "position": 6,
+      "schema": "public",
+      "table": "solutions_reviewspendevent",
+      "type": "character varying(100)"
+    },
+    {
+      "collation": "default",
+      "column": "input_digest",
+      "default": null,
+      "nullable": false,
+      "position": 5,
+      "schema": "public",
+      "table": "solutions_coachjudgment",
+      "type": "character varying(64)"
+    },
+    {
+      "collation": "default",
+      "column": "kind",
+      "default": null,
+      "nullable": false,
+      "position": 3,
+      "schema": "public",
+      "table": "solutions_coachjudgment",
+      "type": "character varying(16)"
+    },
+    {
+      "collation": "default",
+      "column": "kind",
+      "default": null,
+      "nullable": false,
+      "position": 3,
+      "schema": "public",
+      "table": "solutions_reviewspendevent",
+      "type": "character varying(16)"
+    },
+    {
+      "collation": "default",
+      "column": "kind",
+      "default": null,
+      "nullable": false,
+      "position": 4,
+      "schema": "public",
+      "table": "solutions_evaluationauditevent",
+      "type": "character varying(48)"
+    },
+    {
+      "collation": "default",
+      "column": "mode",
+      "default": null,
+      "nullable": false,
+      "position": 5,
+      "schema": "public",
+      "table": "solutions_assistancepolicy",
+      "type": "character varying(24)"
+    },
+    {
+      "collation": "default",
+      "column": "name",
+      "default": null,
+      "nullable": false,
+      "position": 3,
+      "schema": "public",
+      "table": "solutions_evaluationdatasetsnapshot",
+      "type": "character varying(200)"
+    },
+    {
+      "collation": "default",
+      "column": "origin",
+      "default": null,
+      "nullable": false,
+      "position": 3,
+      "schema": "public",
+      "table": "solutions_evaluationrun",
+      "type": "character varying(32)"
+    },
+    {
+      "collation": "default",
+      "column": "origin",
+      "default": null,
+      "nullable": false,
+      "position": 3,
+      "schema": "public",
+      "table": "solutions_reviewexecutionattempt",
+      "type": "character varying(32)"
+    },
+    {
+      "collation": "default",
+      "column": "purpose",
+      "default": null,
+      "nullable": false,
+      "position": 3,
+      "schema": "public",
+      "table": "solutions_reviewconsent",
+      "type": "character varying(24)"
+    },
+    {
+      "collation": "default",
+      "column": "reason",
+      "default": null,
+      "nullable": false,
+      "position": 4,
+      "schema": "public",
+      "table": "solutions_evaluationlifecycle",
+      "type": "character varying(64)"
+    },
+    {
+      "collation": "default",
+      "column": "reason",
+      "default": null,
+      "nullable": false,
+      "position": 8,
+      "schema": "public",
+      "table": "solutions_assistancepolicy",
+      "type": "character varying(200)"
+    },
+    {
+      "collation": "default",
+      "column": "role",
+      "default": null,
+      "nullable": false,
+      "position": 2,
+      "schema": "public",
+      "table": "solutions_evaluationassignment",
+      "type": "character varying(24)"
+    },
+    {
+      "collation": "default",
+      "column": "status",
+      "default": null,
+      "nullable": false,
+      "position": 4,
+      "schema": "public",
+      "table": "solutions_reviewexecutionattempt",
+      "type": "character varying(24)"
+    },
+    {
+      "collation": "default",
+      "column": "title",
+      "default": null,
+      "nullable": false,
+      "position": 3,
+      "schema": "public",
+      "table": "solutions_evaluationproblemfamily",
+      "type": "character varying(200)"
+    },
+    {
+      "collation": null,
+      "column": "active",
+      "default": null,
+      "nullable": false,
+      "position": 5,
+      "schema": "public",
+      "table": "solutions_evaluationassignment",
+      "type": "boolean"
+    },
+    {
+      "collation": null,
+      "column": "actor_id",
+      "default": null,
+      "nullable": false,
+      "position": 6,
+      "schema": "public",
+      "table": "solutions_reviewconsent",
+      "type": "bigint"
+    },
+    {
+      "collation": null,
+      "column": "actor_id",
+      "default": null,
+      "nullable": false,
+      "position": 8,
+      "schema": "public",
+      "table": "solutions_evaluationassignment",
+      "type": "bigint"
+    },
+    {
+      "collation": null,
+      "column": "actor_id",
+      "default": null,
+      "nullable": true,
+      "position": 4,
+      "schema": "public",
+      "table": "solutions_evaluationfindingjudgment",
+      "type": "bigint"
+    },
+    {
+      "collation": null,
+      "column": "actor_id",
+      "default": null,
+      "nullable": true,
+      "position": 6,
+      "schema": "public",
+      "table": "solutions_activationauthorization",
+      "type": "bigint"
+    },
+    {
+      "collation": null,
+      "column": "actor_id",
+      "default": null,
+      "nullable": true,
+      "position": 6,
+      "schema": "public",
+      "table": "solutions_coachjudgment",
+      "type": "bigint"
+    },
+    {
+      "collation": null,
+      "column": "actor_id",
+      "default": null,
+      "nullable": true,
+      "position": 6,
+      "schema": "public",
+      "table": "solutions_evaluationauditevent",
+      "type": "bigint"
+    },
+    {
+      "collation": null,
+      "column": "actor_id",
+      "default": null,
+      "nullable": true,
+      "position": 6,
+      "schema": "public",
+      "table": "solutions_hintrevealevent",
+      "type": "bigint"
+    },
+    {
+      "collation": null,
+      "column": "actor_id",
+      "default": null,
+      "nullable": true,
+      "position": 7,
+      "schema": "public",
+      "table": "solutions_evaluationrun",
+      "type": "bigint"
+    },
+    {
+      "collation": null,
+      "column": "actor_id",
+      "default": null,
+      "nullable": true,
+      "position": 7,
+      "schema": "public",
+      "table": "solutions_readinessevidence",
+      "type": "bigint"
+    },
+    {
+      "collation": null,
+      "column": "actor_id_scope",
+      "default": null,
+      "nullable": true,
+      "position": 4,
+      "schema": "public",
+      "table": "solutions_assistancepolicy",
+      "type": "bigint"
+    },
+    {
+      "collation": null,
+      "column": "amount_micros",
+      "default": null,
+      "nullable": false,
+      "position": 4,
+      "schema": "public",
+      "table": "solutions_reviewspendevent",
+      "type": "bigint"
+    },
+    {
+      "collation": null,
+      "column": "appointed_by_id",
+      "default": null,
+      "nullable": true,
+      "position": 9,
+      "schema": "public",
+      "table": "solutions_assistancepolicy",
+      "type": "bigint"
+    },
+    {
+      "collation": null,
+      "column": "appointed_by_id",
+      "default": null,
+      "nullable": true,
+      "position": 9,
+      "schema": "public",
+      "table": "solutions_evaluationassignment",
+      "type": "bigint"
+    },
+    {
+      "collation": null,
+      "column": "attempt_id",
+      "default": null,
+      "nullable": false,
+      "position": 8,
+      "schema": "public",
+      "table": "solutions_reviewspendevent",
+      "type": "uuid"
+    },
+    {
+      "collation": null,
+      "column": "bundle_id",
+      "default": null,
+      "nullable": false,
+      "position": 6,
+      "schema": "public",
+      "table": "solutions_reviewbundleasset",
+      "type": "uuid"
+    },
+    {
+      "collation": null,
+      "column": "bundle_id",
+      "default": null,
+      "nullable": false,
+      "position": 8,
+      "schema": "public",
+      "table": "solutions_evaluationcase",
+      "type": "uuid"
+    },
+    {
+      "collation": null,
+      "column": "bundle_id",
+      "default": null,
+      "nullable": true,
+      "position": 10,
+      "schema": "public",
+      "table": "solutions_reviewexecutionattempt",
+      "type": "uuid"
+    },
+    {
+      "collation": null,
+      "column": "case_id",
+      "default": null,
+      "nullable": false,
+      "position": 5,
+      "schema": "public",
+      "table": "solutions_evaluationfindingjudgment",
+      "type": "uuid"
+    },
+    {
+      "collation": null,
+      "column": "case_id",
+      "default": null,
+      "nullable": false,
+      "position": 7,
+      "schema": "public",
+      "table": "solutions_coachjudgment",
+      "type": "uuid"
+    },
+    {
+      "collation": null,
+      "column": "created_at",
+      "default": null,
+      "nullable": false,
+      "position": 2,
+      "schema": "public",
+      "table": "solutions_activationauthorization",
+      "type": "timestamp with time zone"
+    },
+    {
+      "collation": null,
+      "column": "created_at",
+      "default": null,
+      "nullable": false,
+      "position": 2,
+      "schema": "public",
+      "table": "solutions_assistancepolicy",
+      "type": "timestamp with time zone"
+    },
+    {
+      "collation": null,
+      "column": "created_at",
+      "default": null,
+      "nullable": false,
+      "position": 2,
+      "schema": "public",
+      "table": "solutions_coachjudgment",
+      "type": "timestamp with time zone"
+    },
+    {
+      "collation": null,
+      "column": "created_at",
+      "default": null,
+      "nullable": false,
+      "position": 2,
+      "schema": "public",
+      "table": "solutions_evaluationauditevent",
+      "type": "timestamp with time zone"
+    },
+    {
+      "collation": null,
+      "column": "created_at",
+      "default": null,
+      "nullable": false,
+      "position": 2,
+      "schema": "public",
+      "table": "solutions_evaluationcase",
+      "type": "timestamp with time zone"
+    },
+    {
+      "collation": null,
+      "column": "created_at",
+      "default": null,
+      "nullable": false,
+      "position": 2,
+      "schema": "public",
+      "table": "solutions_evaluationdatasetsnapshot",
+      "type": "timestamp with time zone"
+    },
+    {
+      "collation": null,
+      "column": "created_at",
+      "default": null,
+      "nullable": false,
+      "position": 2,
+      "schema": "public",
+      "table": "solutions_evaluationfindingjudgment",
+      "type": "timestamp with time zone"
+    },
+    {
+      "collation": null,
+      "column": "created_at",
+      "default": null,
+      "nullable": false,
+      "position": 2,
+      "schema": "public",
+      "table": "solutions_evaluationproblemfamily",
+      "type": "timestamp with time zone"
+    },
+    {
+      "collation": null,
+      "column": "created_at",
+      "default": null,
+      "nullable": false,
+      "position": 2,
+      "schema": "public",
+      "table": "solutions_evaluationrun",
+      "type": "timestamp with time zone"
+    },
+    {
+      "collation": null,
+      "column": "created_at",
+      "default": null,
+      "nullable": false,
+      "position": 2,
+      "schema": "public",
+      "table": "solutions_hintrevealevent",
+      "type": "timestamp with time zone"
+    },
+    {
+      "collation": null,
+      "column": "created_at",
+      "default": null,
+      "nullable": false,
+      "position": 2,
+      "schema": "public",
+      "table": "solutions_readinessevidence",
+      "type": "timestamp with time zone"
+    },
+    {
+      "collation": null,
+      "column": "created_at",
+      "default": null,
+      "nullable": false,
+      "position": 2,
+      "schema": "public",
+      "table": "solutions_reviewbundleasset",
+      "type": "timestamp with time zone"
+    },
+    {
+      "collation": null,
+      "column": "created_at",
+      "default": null,
+      "nullable": false,
+      "position": 2,
+      "schema": "public",
+      "table": "solutions_reviewconsent",
+      "type": "timestamp with time zone"
+    },
+    {
+      "collation": null,
+      "column": "created_at",
+      "default": null,
+      "nullable": false,
+      "position": 2,
+      "schema": "public",
+      "table": "solutions_reviewerprofile",
+      "type": "timestamp with time zone"
+    },
+    {
+      "collation": null,
+      "column": "created_at",
+      "default": null,
+      "nullable": false,
+      "position": 2,
+      "schema": "public",
+      "table": "solutions_reviewinputbundle",
+      "type": "timestamp with time zone"
+    },
+    {
+      "collation": null,
+      "column": "created_at",
+      "default": null,
+      "nullable": false,
+      "position": 2,
+      "schema": "public",
+      "table": "solutions_reviewspendevent",
+      "type": "timestamp with time zone"
+    },
+    {
+      "collation": null,
+      "column": "created_at",
+      "default": null,
+      "nullable": false,
+      "position": 6,
+      "schema": "public",
+      "table": "solutions_reviewexecutionattempt",
+      "type": "timestamp with time zone"
+    },
+    {
+      "collation": null,
+      "column": "created_at",
+      "default": null,
+      "nullable": false,
+      "position": 7,
+      "schema": "public",
+      "table": "solutions_evaluationassignment",
+      "type": "timestamp with time zone"
+    },
+    {
+      "collation": null,
+      "column": "eligible",
+      "default": null,
+      "nullable": false,
+      "position": 3,
+      "schema": "public",
+      "table": "solutions_evaluationlifecycle",
+      "type": "boolean"
+    },
+    {
+      "collation": null,
+      "column": "ends_at",
+      "default": null,
+      "nullable": false,
+      "position": 7,
+      "schema": "public",
+      "table": "solutions_assistancepolicy",
+      "type": "timestamp with time zone"
+    },
+    {
+      "collation": null,
+      "column": "expires_at",
+      "default": null,
+      "nullable": false,
+      "position": 5,
+      "schema": "public",
+      "table": "solutions_activationauthorization",
+      "type": "timestamp with time zone"
+    },
+    {
+      "collation": null,
+      "column": "expires_at",
+      "default": null,
+      "nullable": false,
+      "position": 5,
+      "schema": "public",
+      "table": "solutions_reviewconsent",
+      "type": "timestamp with time zone"
+    },
+    {
+      "collation": null,
+      "column": "expires_at",
+      "default": null,
+      "nullable": true,
+      "position": 6,
+      "schema": "public",
+      "table": "solutions_evaluationassignment",
+      "type": "timestamp with time zone"
+    },
+    {
+      "collation": null,
+      "column": "family_id",
+      "default": null,
+      "nullable": false,
+      "position": 7,
+      "schema": "public",
+      "table": "solutions_evaluationcase",
+      "type": "uuid"
+    },
+    {
+      "collation": null,
+      "column": "generation",
+      "default": null,
+      "nullable": false,
+      "position": 2,
+      "schema": "public",
+      "table": "solutions_evaluationlifecycle",
+      "type": "integer"
+    },
+    {
+      "collation": null,
+      "column": "id",
+      "default": null,
+      "nullable": false,
+      "position": 1,
+      "schema": "public",
+      "table": "solutions_activationauthorization",
+      "type": "uuid"
+    },
+    {
+      "collation": null,
+      "column": "id",
+      "default": null,
+      "nullable": false,
+      "position": 1,
+      "schema": "public",
+      "table": "solutions_assistancepolicy",
+      "type": "uuid"
+    },
+    {
+      "collation": null,
+      "column": "id",
+      "default": null,
+      "nullable": false,
+      "position": 1,
+      "schema": "public",
+      "table": "solutions_coachjudgment",
+      "type": "uuid"
+    },
+    {
+      "collation": null,
+      "column": "id",
+      "default": null,
+      "nullable": false,
+      "position": 1,
+      "schema": "public",
+      "table": "solutions_evaluationassignment",
+      "type": "uuid"
+    },
+    {
+      "collation": null,
+      "column": "id",
+      "default": null,
+      "nullable": false,
+      "position": 1,
+      "schema": "public",
+      "table": "solutions_evaluationauditevent",
+      "type": "uuid"
+    },
+    {
+      "collation": null,
+      "column": "id",
+      "default": null,
+      "nullable": false,
+      "position": 1,
+      "schema": "public",
+      "table": "solutions_evaluationcase",
+      "type": "uuid"
+    },
+    {
+      "collation": null,
+      "column": "id",
+      "default": null,
+      "nullable": false,
+      "position": 1,
+      "schema": "public",
+      "table": "solutions_evaluationdatasetsnapshot",
+      "type": "uuid"
+    },
+    {
+      "collation": null,
+      "column": "id",
+      "default": null,
+      "nullable": false,
+      "position": 1,
+      "schema": "public",
+      "table": "solutions_evaluationfindingjudgment",
+      "type": "uuid"
+    },
+    {
+      "collation": null,
+      "column": "id",
+      "default": null,
+      "nullable": false,
+      "position": 1,
+      "schema": "public",
+      "table": "solutions_evaluationproblemfamily",
+      "type": "uuid"
+    },
+    {
+      "collation": null,
+      "column": "id",
+      "default": null,
+      "nullable": false,
+      "position": 1,
+      "schema": "public",
+      "table": "solutions_evaluationrun",
+      "type": "uuid"
+    },
+    {
+      "collation": null,
+      "column": "id",
+      "default": null,
+      "nullable": false,
+      "position": 1,
+      "schema": "public",
+      "table": "solutions_hintrevealevent",
+      "type": "uuid"
+    },
+    {
+      "collation": null,
+      "column": "id",
+      "default": null,
+      "nullable": false,
+      "position": 1,
+      "schema": "public",
+      "table": "solutions_readinessevidence",
+      "type": "uuid"
+    },
+    {
+      "collation": null,
+      "column": "id",
+      "default": null,
+      "nullable": false,
+      "position": 1,
+      "schema": "public",
+      "table": "solutions_reviewbundleasset",
+      "type": "uuid"
+    },
+    {
+      "collation": null,
+      "column": "id",
+      "default": null,
+      "nullable": false,
+      "position": 1,
+      "schema": "public",
+      "table": "solutions_reviewconsent",
+      "type": "uuid"
+    },
+    {
+      "collation": null,
+      "column": "id",
+      "default": null,
+      "nullable": false,
+      "position": 1,
+      "schema": "public",
+      "table": "solutions_reviewerprofile",
+      "type": "uuid"
+    },
+    {
+      "collation": null,
+      "column": "id",
+      "default": null,
+      "nullable": false,
+      "position": 1,
+      "schema": "public",
+      "table": "solutions_reviewexecutionattempt",
+      "type": "uuid"
+    },
+    {
+      "collation": null,
+      "column": "id",
+      "default": null,
+      "nullable": false,
+      "position": 1,
+      "schema": "public",
+      "table": "solutions_reviewinputbundle",
+      "type": "uuid"
+    },
+    {
+      "collation": null,
+      "column": "id",
+      "default": null,
+      "nullable": false,
+      "position": 1,
+      "schema": "public",
+      "table": "solutions_reviewspendevent",
+      "type": "uuid"
+    },
+    {
+      "collation": null,
+      "column": "level",
+      "default": null,
+      "nullable": false,
+      "position": 5,
+      "schema": "public",
+      "table": "solutions_hintrevealevent",
+      "type": "smallint"
+    },
+    {
+      "collation": null,
+      "column": "manifest",
+      "default": null,
+      "nullable": false,
+      "position": 4,
+      "schema": "public",
+      "table": "solutions_evaluationdatasetsnapshot",
+      "type": "jsonb"
+    },
+    {
+      "collation": null,
+      "column": "manifest",
+      "default": null,
+      "nullable": false,
+      "position": 5,
+      "schema": "public",
+      "table": "solutions_reviewbundleasset",
+      "type": "jsonb"
+    },
+    {
+      "collation": null,
+      "column": "metadata",
+      "default": null,
+      "nullable": false,
+      "position": 4,
+      "schema": "public",
+      "table": "solutions_evaluationcase",
+      "type": "jsonb"
+    },
+    {
+      "collation": null,
+      "column": "metadata",
+      "default": null,
+      "nullable": false,
+      "position": 5,
+      "schema": "public",
+      "table": "solutions_evaluationauditevent",
+      "type": "jsonb"
+    },
+    {
+      "collation": null,
+      "column": "metadata",
+      "default": null,
+      "nullable": false,
+      "position": 5,
+      "schema": "public",
+      "table": "solutions_evaluationproblemfamily",
+      "type": "jsonb"
+    },
+    {
+      "collation": null,
+      "column": "metadata",
+      "default": null,
+      "nullable": false,
+      "position": 7,
+      "schema": "public",
+      "table": "solutions_reviewspendevent",
+      "type": "jsonb"
+    },
+    {
+      "collation": null,
+      "column": "normalized",
+      "default": null,
+      "nullable": false,
+      "position": 4,
+      "schema": "public",
+      "table": "solutions_reviewbundleasset",
+      "type": "bytea"
+    },
+    {
+      "collation": null,
+      "column": "original",
+      "default": null,
+      "nullable": false,
+      "position": 3,
+      "schema": "public",
+      "table": "solutions_reviewbundleasset",
+      "type": "bytea"
+    },
+    {
+      "collation": null,
+      "column": "owner_id",
+      "default": null,
+      "nullable": true,
+      "position": 6,
+      "schema": "public",
+      "table": "solutions_reviewinputbundle",
+      "type": "bigint"
+    },
+    {
+      "collation": null,
+      "column": "payload",
+      "default": null,
+      "nullable": false,
+      "position": 3,
+      "schema": "public",
+      "table": "solutions_evaluationfindingjudgment",
+      "type": "jsonb"
+    },
+    {
+      "collation": null,
+      "column": "payload",
+      "default": null,
+      "nullable": false,
+      "position": 3,
+      "schema": "public",
+      "table": "solutions_reviewerprofile",
+      "type": "jsonb"
+    },
+    {
+      "collation": null,
+      "column": "payload",
+      "default": null,
+      "nullable": false,
+      "position": 4,
+      "schema": "public",
+      "table": "solutions_activationauthorization",
+      "type": "jsonb"
+    },
+    {
+      "collation": null,
+      "column": "payload",
+      "default": null,
+      "nullable": false,
+      "position": 4,
+      "schema": "public",
+      "table": "solutions_coachjudgment",
+      "type": "jsonb"
+    },
+    {
+      "collation": null,
+      "column": "payload",
+      "default": null,
+      "nullable": false,
+      "position": 4,
+      "schema": "public",
+      "table": "solutions_reviewconsent",
+      "type": "jsonb"
+    },
+    {
+      "collation": null,
+      "column": "payload",
+      "default": null,
+      "nullable": false,
+      "position": 4,
+      "schema": "public",
+      "table": "solutions_reviewinputbundle",
+      "type": "jsonb"
+    },
+    {
+      "collation": null,
+      "column": "payload",
+      "default": null,
+      "nullable": false,
+      "position": 5,
+      "schema": "public",
+      "table": "solutions_readinessevidence",
+      "type": "jsonb"
+    },
+    {
+      "collation": null,
+      "column": "prepared_by_id",
+      "default": null,
+      "nullable": true,
+      "position": 5,
+      "schema": "public",
+      "table": "solutions_evaluationcase",
+      "type": "bigint"
+    },
+    {
+      "collation": null,
+      "column": "prepared_by_id",
+      "default": null,
+      "nullable": true,
+      "position": 6,
+      "schema": "public",
+      "table": "solutions_evaluationdatasetsnapshot",
+      "type": "bigint"
+    },
+    {
+      "collation": null,
+      "column": "prepared_by_id",
+      "default": null,
+      "nullable": true,
+      "position": 6,
+      "schema": "public",
+      "table": "solutions_evaluationproblemfamily",
+      "type": "bigint"
+    },
+    {
+      "collation": null,
+      "column": "problem_uuid",
+      "default": null,
+      "nullable": true,
+      "position": 3,
+      "schema": "public",
+      "table": "solutions_assistancepolicy",
+      "type": "uuid"
+    },
+    {
+      "collation": null,
+      "column": "problem_uuid",
+      "default": null,
+      "nullable": true,
+      "position": 3,
+      "schema": "public",
+      "table": "solutions_reviewinputbundle",
+      "type": "uuid"
+    },
+    {
+      "collation": null,
+      "column": "profile_id",
+      "default": null,
+      "nullable": false,
+      "position": 7,
+      "schema": "public",
+      "table": "solutions_reviewexecutionattempt",
+      "type": "uuid"
+    },
+    {
+      "collation": null,
+      "column": "profile_id",
+      "default": null,
+      "nullable": false,
+      "position": 9,
+      "schema": "public",
+      "table": "solutions_evaluationrun",
+      "type": "uuid"
+    },
+    {
+      "collation": null,
+      "column": "protocol",
+      "default": null,
+      "nullable": false,
+      "position": 4,
+      "schema": "public",
+      "table": "solutions_evaluationrun",
+      "type": "jsonb"
+    },
+    {
+      "collation": null,
+      "column": "provenance",
+      "default": null,
+      "nullable": false,
+      "position": 3,
+      "schema": "public",
+      "table": "solutions_evaluationcase",
+      "type": "jsonb"
+    },
+    {
+      "collation": null,
+      "column": "receipt",
+      "default": null,
+      "nullable": false,
+      "position": 5,
+      "schema": "public",
+      "table": "solutions_reviewexecutionattempt",
+      "type": "jsonb"
+    },
+    {
+      "collation": null,
+      "column": "reports",
+      "default": null,
+      "nullable": false,
+      "position": 5,
+      "schema": "public",
+      "table": "solutions_evaluationrun",
+      "type": "jsonb"
+    },
+    {
+      "collation": null,
+      "column": "review_id",
+      "default": null,
+      "nullable": false,
+      "position": 7,
+      "schema": "public",
+      "table": "solutions_hintrevealevent",
+      "type": "uuid"
+    },
+    {
+      "collation": null,
+      "column": "review_id",
+      "default": null,
+      "nullable": true,
+      "position": 8,
+      "schema": "public",
+      "table": "solutions_reviewexecutionattempt",
+      "type": "uuid"
+    },
+    {
+      "collation": null,
+      "column": "run_id",
+      "default": null,
+      "nullable": false,
+      "position": 6,
+      "schema": "public",
+      "table": "solutions_evaluationfindingjudgment",
+      "type": "uuid"
+    },
+    {
+      "collation": null,
+      "column": "run_id",
+      "default": null,
+      "nullable": true,
+      "position": 9,
+      "schema": "public",
+      "table": "solutions_reviewexecutionattempt",
+      "type": "uuid"
+    },
+    {
+      "collation": null,
+      "column": "scope_id",
+      "default": null,
+      "nullable": false,
+      "position": 3,
+      "schema": "public",
+      "table": "solutions_evaluationassignment",
+      "type": "uuid"
+    },
+    {
+      "collation": null,
+      "column": "snapshot_id",
+      "default": null,
+      "nullable": false,
+      "position": 8,
+      "schema": "public",
+      "table": "solutions_evaluationrun",
+      "type": "uuid"
+    },
+    {
+      "collation": null,
+      "column": "starts_at",
+      "default": null,
+      "nullable": false,
+      "position": 6,
+      "schema": "public",
+      "table": "solutions_assistancepolicy",
+      "type": "timestamp with time zone"
+    },
+    {
+      "collation": null,
+      "column": "subject_id",
+      "default": null,
+      "nullable": false,
+      "position": 2,
+      "schema": "public",
+      "table": "solutions_reviewexecutionattempt",
+      "type": "uuid"
+    },
+    {
+      "collation": null,
+      "column": "supersedes_id",
+      "default": null,
+      "nullable": true,
+      "position": 6,
+      "schema": "public",
+      "table": "solutions_evaluationcase",
+      "type": "uuid"
+    },
+    {
+      "collation": null,
+      "column": "target_id",
+      "default": null,
+      "nullable": false,
+      "position": 1,
+      "schema": "public",
+      "table": "solutions_evaluationlifecycle",
+      "type": "uuid"
+    },
+    {
+      "collation": null,
+      "column": "target_id",
+      "default": null,
+      "nullable": false,
+      "position": 3,
+      "schema": "public",
+      "table": "solutions_evaluationauditevent",
+      "type": "uuid"
+    },
+    {
+      "collation": null,
+      "column": "target_id",
+      "default": null,
+      "nullable": false,
+      "position": 4,
+      "schema": "public",
+      "table": "solutions_readinessevidence",
+      "type": "uuid"
+    },
+    {
+      "collation": null,
+      "column": "updated_at",
+      "default": null,
+      "nullable": false,
+      "position": 5,
+      "schema": "public",
+      "table": "solutions_evaluationlifecycle",
+      "type": "timestamp with time zone"
+    }
+  ],
+  "constraints": [
+    {
+      "definition": "CHECK (actor_id_scope >= 0)",
+      "name": "solutions_assistancepolicy_actor_id_scope_check",
+      "schema": "public",
+      "table": "solutions_assistancepolicy",
+      "type": "c"
+    },
+    {
+      "definition": "CHECK (amount_micros >= 0)",
+      "name": "solutions_reviewspendevent_amount_micros_check",
+      "schema": "public",
+      "table": "solutions_reviewspendevent",
+      "type": "c"
+    },
+    {
+      "definition": "CHECK (generation >= 0)",
+      "name": "solutions_evaluationlifecycle_generation_check",
+      "schema": "public",
+      "table": "solutions_evaluationlifecycle",
+      "type": "c"
+    },
+    {
+      "definition": "CHECK (level >= 0)",
+      "name": "solutions_hintrevealevent_level_check",
+      "schema": "public",
+      "table": "solutions_hintrevealevent",
+      "type": "c"
+    },
+    {
+      "definition": "FOREIGN KEY (actor_id) REFERENCES users_user(id) DEFERRABLE INITIALLY DEFERRED",
+      "name": "solutions_activation_actor_id_6d1cccbc_fk_users_use",
+      "schema": "public",
+      "table": "solutions_activationauthorization",
+      "type": "f"
+    },
+    {
+      "definition": "FOREIGN KEY (actor_id) REFERENCES users_user(id) DEFERRABLE INITIALLY DEFERRED",
+      "name": "solutions_coachjudgment_actor_id_969b0d8d_fk_users_user_id",
+      "schema": "public",
+      "table": "solutions_coachjudgment",
+      "type": "f"
+    },
+    {
+      "definition": "FOREIGN KEY (actor_id) REFERENCES users_user(id) DEFERRABLE INITIALLY DEFERRED",
+      "name": "solutions_evaluation_actor_id_1118d49d_fk_users_use",
+      "schema": "public",
+      "table": "solutions_evaluationassignment",
+      "type": "f"
+    },
+    {
+      "definition": "FOREIGN KEY (actor_id) REFERENCES users_user(id) DEFERRABLE INITIALLY DEFERRED",
+      "name": "solutions_evaluation_actor_id_7701dc7b_fk_users_use",
+      "schema": "public",
+      "table": "solutions_evaluationfindingjudgment",
+      "type": "f"
+    },
+    {
+      "definition": "FOREIGN KEY (actor_id) REFERENCES users_user(id) DEFERRABLE INITIALLY DEFERRED",
+      "name": "solutions_evaluation_actor_id_87b9a881_fk_users_use",
+      "schema": "public",
+      "table": "solutions_evaluationauditevent",
+      "type": "f"
+    },
+    {
+      "definition": "FOREIGN KEY (actor_id) REFERENCES users_user(id) DEFERRABLE INITIALLY DEFERRED",
+      "name": "solutions_evaluationrun_actor_id_b7b29844_fk_users_user_id",
+      "schema": "public",
+      "table": "solutions_evaluationrun",
+      "type": "f"
+    },
+    {
+      "definition": "FOREIGN KEY (actor_id) REFERENCES users_user(id) DEFERRABLE INITIALLY DEFERRED",
+      "name": "solutions_hintrevealevent_actor_id_63122699_fk_users_user_id",
+      "schema": "public",
+      "table": "solutions_hintrevealevent",
+      "type": "f"
+    },
+    {
+      "definition": "FOREIGN KEY (actor_id) REFERENCES users_user(id) DEFERRABLE INITIALLY DEFERRED",
+      "name": "solutions_readinessevidence_actor_id_cf6f62aa_fk_users_user_id",
+      "schema": "public",
+      "table": "solutions_readinessevidence",
+      "type": "f"
+    },
+    {
+      "definition": "FOREIGN KEY (actor_id) REFERENCES users_user(id) DEFERRABLE INITIALLY DEFERRED",
+      "name": "solutions_reviewconsent_actor_id_3192a1b0_fk_users_user_id",
+      "schema": "public",
+      "table": "solutions_reviewconsent",
+      "type": "f"
+    },
+    {
+      "definition": "FOREIGN KEY (appointed_by_id) REFERENCES users_user(id) DEFERRABLE INITIALLY DEFERRED",
+      "name": "solutions_assistance_appointed_by_id_f3e8dd51_fk_users_use",
+      "schema": "public",
+      "table": "solutions_assistancepolicy",
+      "type": "f"
+    },
+    {
+      "definition": "FOREIGN KEY (appointed_by_id) REFERENCES users_user(id) DEFERRABLE INITIALLY DEFERRED",
+      "name": "solutions_evaluation_appointed_by_id_79febc17_fk_users_use",
+      "schema": "public",
+      "table": "solutions_evaluationassignment",
+      "type": "f"
+    },
+    {
+      "definition": "FOREIGN KEY (attempt_id) REFERENCES solutions_reviewexecutionattempt(id) DEFERRABLE INITIALLY DEFERRED",
+      "name": "solutions_reviewspen_attempt_id_45348153_fk_solutions",
+      "schema": "public",
+      "table": "solutions_reviewspendevent",
+      "type": "f"
+    },
+    {
+      "definition": "FOREIGN KEY (bundle_id) REFERENCES solutions_reviewinputbundle(id) DEFERRABLE INITIALLY DEFERRED",
+      "name": "solutions_evaluation_bundle_id_87746e0b_fk_solutions",
+      "schema": "public",
+      "table": "solutions_evaluationcase",
+      "type": "f"
+    },
+    {
+      "definition": "FOREIGN KEY (bundle_id) REFERENCES solutions_reviewinputbundle(id) DEFERRABLE INITIALLY DEFERRED",
+      "name": "solutions_reviewbund_bundle_id_3b253f5f_fk_solutions",
+      "schema": "public",
+      "table": "solutions_reviewbundleasset",
+      "type": "f"
+    },
+    {
+      "definition": "FOREIGN KEY (bundle_id) REFERENCES solutions_reviewinputbundle(id) DEFERRABLE INITIALLY DEFERRED",
+      "name": "solutions_reviewexec_bundle_id_4f000ef2_fk_solutions",
+      "schema": "public",
+      "table": "solutions_reviewexecutionattempt",
+      "type": "f"
+    },
+    {
+      "definition": "FOREIGN KEY (case_id) REFERENCES solutions_evaluationcase(id) DEFERRABLE INITIALLY DEFERRED",
+      "name": "solutions_coachjudgm_case_id_c12b93a2_fk_solutions",
+      "schema": "public",
+      "table": "solutions_coachjudgment",
+      "type": "f"
+    },
+    {
+      "definition": "FOREIGN KEY (case_id) REFERENCES solutions_evaluationcase(id) DEFERRABLE INITIALLY DEFERRED",
+      "name": "solutions_evaluation_case_id_6d3810d1_fk_solutions",
+      "schema": "public",
+      "table": "solutions_evaluationfindingjudgment",
+      "type": "f"
+    },
+    {
+      "definition": "FOREIGN KEY (family_id) REFERENCES solutions_evaluationproblemfamily(id) DEFERRABLE INITIALLY DEFERRED",
+      "name": "solutions_evaluation_family_id_13120e62_fk_solutions",
+      "schema": "public",
+      "table": "solutions_evaluationcase",
+      "type": "f"
+    },
+    {
+      "definition": "FOREIGN KEY (owner_id) REFERENCES users_user(id) DEFERRABLE INITIALLY DEFERRED",
+      "name": "solutions_reviewinputbundle_owner_id_add02bed_fk_users_user_id",
+      "schema": "public",
+      "table": "solutions_reviewinputbundle",
+      "type": "f"
+    },
+    {
+      "definition": "FOREIGN KEY (prepared_by_id) REFERENCES users_user(id) DEFERRABLE INITIALLY DEFERRED",
+      "name": "solutions_evaluation_prepared_by_id_78af8c30_fk_users_use",
+      "schema": "public",
+      "table": "solutions_evaluationcase",
+      "type": "f"
+    },
+    {
+      "definition": "FOREIGN KEY (prepared_by_id) REFERENCES users_user(id) DEFERRABLE INITIALLY DEFERRED",
+      "name": "solutions_evaluation_prepared_by_id_dbea8cd9_fk_users_use",
+      "schema": "public",
+      "table": "solutions_evaluationdatasetsnapshot",
+      "type": "f"
+    },
+    {
+      "definition": "FOREIGN KEY (prepared_by_id) REFERENCES users_user(id) DEFERRABLE INITIALLY DEFERRED",
+      "name": "solutions_evaluation_prepared_by_id_e5c149e7_fk_users_use",
+      "schema": "public",
+      "table": "solutions_evaluationproblemfamily",
+      "type": "f"
+    },
+    {
+      "definition": "FOREIGN KEY (profile_id) REFERENCES solutions_reviewerprofile(id) DEFERRABLE INITIALLY DEFERRED",
+      "name": "solutions_evaluation_profile_id_14294894_fk_solutions",
+      "schema": "public",
+      "table": "solutions_evaluationrun",
+      "type": "f"
+    },
+    {
+      "definition": "FOREIGN KEY (profile_id) REFERENCES solutions_reviewerprofile(id) DEFERRABLE INITIALLY DEFERRED",
+      "name": "solutions_reviewexec_profile_id_c1a709ea_fk_solutions",
+      "schema": "public",
+      "table": "solutions_reviewexecutionattempt",
+      "type": "f"
+    },
+    {
+      "definition": "FOREIGN KEY (review_id) REFERENCES solutions_solutionreview(id) DEFERRABLE INITIALLY DEFERRED",
+      "name": "solutions_hintreveal_review_id_4318e88b_fk_solutions",
+      "schema": "public",
+      "table": "solutions_hintrevealevent",
+      "type": "f"
+    },
+    {
+      "definition": "FOREIGN KEY (review_id) REFERENCES solutions_solutionreview(id) DEFERRABLE INITIALLY DEFERRED",
+      "name": "solutions_reviewexec_review_id_9786a93e_fk_solutions",
+      "schema": "public",
+      "table": "solutions_reviewexecutionattempt",
+      "type": "f"
+    },
+    {
+      "definition": "FOREIGN KEY (run_id) REFERENCES solutions_evaluationrun(id) DEFERRABLE INITIALLY DEFERRED",
+      "name": "solutions_evaluation_run_id_975d2fb2_fk_solutions",
+      "schema": "public",
+      "table": "solutions_evaluationfindingjudgment",
+      "type": "f"
+    },
+    {
+      "definition": "FOREIGN KEY (run_id) REFERENCES solutions_evaluationrun(id) DEFERRABLE INITIALLY DEFERRED",
+      "name": "solutions_reviewexec_run_id_3c54eb35_fk_solutions",
+      "schema": "public",
+      "table": "solutions_reviewexecutionattempt",
+      "type": "f"
+    },
+    {
+      "definition": "FOREIGN KEY (snapshot_id) REFERENCES solutions_evaluationdatasetsnapshot(id) DEFERRABLE INITIALLY DEFERRED",
+      "name": "solutions_evaluation_snapshot_id_51186c56_fk_solutions",
+      "schema": "public",
+      "table": "solutions_evaluationrun",
+      "type": "f"
+    },
+    {
+      "definition": "FOREIGN KEY (supersedes_id) REFERENCES solutions_evaluationcase(id) DEFERRABLE INITIALLY DEFERRED",
+      "name": "solutions_evaluation_supersedes_id_9b8ff7a5_fk_solutions",
+      "schema": "public",
+      "table": "solutions_evaluationcase",
+      "type": "f"
+    },
+    {
+      "definition": "PRIMARY KEY (id)",
+      "name": "solutions_activationauthorization_pkey",
+      "schema": "public",
+      "table": "solutions_activationauthorization",
+      "type": "p"
+    },
+    {
+      "definition": "PRIMARY KEY (id)",
+      "name": "solutions_assistancepolicy_pkey",
+      "schema": "public",
+      "table": "solutions_assistancepolicy",
+      "type": "p"
+    },
+    {
+      "definition": "PRIMARY KEY (id)",
+      "name": "solutions_coachjudgment_pkey",
+      "schema": "public",
+      "table": "solutions_coachjudgment",
+      "type": "p"
+    },
+    {
+      "definition": "PRIMARY KEY (id)",
+      "name": "solutions_evaluationassignment_pkey",
+      "schema": "public",
+      "table": "solutions_evaluationassignment",
+      "type": "p"
+    },
+    {
+      "definition": "PRIMARY KEY (id)",
+      "name": "solutions_evaluationauditevent_pkey",
+      "schema": "public",
+      "table": "solutions_evaluationauditevent",
+      "type": "p"
+    },
+    {
+      "definition": "PRIMARY KEY (id)",
+      "name": "solutions_evaluationcase_pkey",
+      "schema": "public",
+      "table": "solutions_evaluationcase",
+      "type": "p"
+    },
+    {
+      "definition": "PRIMARY KEY (id)",
+      "name": "solutions_evaluationdatasetsnapshot_pkey",
+      "schema": "public",
+      "table": "solutions_evaluationdatasetsnapshot",
+      "type": "p"
+    },
+    {
+      "definition": "PRIMARY KEY (id)",
+      "name": "solutions_evaluationfindingjudgment_pkey",
+      "schema": "public",
+      "table": "solutions_evaluationfindingjudgment",
+      "type": "p"
+    },
+    {
+      "definition": "PRIMARY KEY (id)",
+      "name": "solutions_evaluationproblemfamily_pkey",
+      "schema": "public",
+      "table": "solutions_evaluationproblemfamily",
+      "type": "p"
+    },
+    {
+      "definition": "PRIMARY KEY (id)",
+      "name": "solutions_evaluationrun_pkey",
+      "schema": "public",
+      "table": "solutions_evaluationrun",
+      "type": "p"
+    },
+    {
+      "definition": "PRIMARY KEY (id)",
+      "name": "solutions_hintrevealevent_pkey",
+      "schema": "public",
+      "table": "solutions_hintrevealevent",
+      "type": "p"
+    },
+    {
+      "definition": "PRIMARY KEY (id)",
+      "name": "solutions_readinessevidence_pkey",
+      "schema": "public",
+      "table": "solutions_readinessevidence",
+      "type": "p"
+    },
+    {
+      "definition": "PRIMARY KEY (id)",
+      "name": "solutions_reviewbundleasset_pkey",
+      "schema": "public",
+      "table": "solutions_reviewbundleasset",
+      "type": "p"
+    },
+    {
+      "definition": "PRIMARY KEY (id)",
+      "name": "solutions_reviewconsent_pkey",
+      "schema": "public",
+      "table": "solutions_reviewconsent",
+      "type": "p"
+    },
+    {
+      "definition": "PRIMARY KEY (id)",
+      "name": "solutions_reviewerprofile_pkey",
+      "schema": "public",
+      "table": "solutions_reviewerprofile",
+      "type": "p"
+    },
+    {
+      "definition": "PRIMARY KEY (id)",
+      "name": "solutions_reviewexecutionattempt_pkey",
+      "schema": "public",
+      "table": "solutions_reviewexecutionattempt",
+      "type": "p"
+    },
+    {
+      "definition": "PRIMARY KEY (id)",
+      "name": "solutions_reviewinputbundle_pkey",
+      "schema": "public",
+      "table": "solutions_reviewinputbundle",
+      "type": "p"
+    },
+    {
+      "definition": "PRIMARY KEY (id)",
+      "name": "solutions_reviewspendevent_pkey",
+      "schema": "public",
+      "table": "solutions_reviewspendevent",
+      "type": "p"
+    },
+    {
+      "definition": "PRIMARY KEY (target_id)",
+      "name": "solutions_evaluationlifecycle_pkey",
+      "schema": "public",
+      "table": "solutions_evaluationlifecycle",
+      "type": "p"
+    },
+    {
+      "definition": "UNIQUE (actor_id, role, scope_id)",
+      "name": "evaluation_assignment_unique",
+      "schema": "public",
+      "table": "solutions_evaluationassignment",
+      "type": "u"
+    },
+    {
+      "definition": "UNIQUE (attempt_id, idempotency_key)",
+      "name": "evaluation_spend_idempotent",
+      "schema": "public",
+      "table": "solutions_reviewspendevent",
+      "type": "u"
+    },
+    {
+      "definition": "UNIQUE (bundle_id)",
+      "name": "solutions_evaluationcase_bundle_id_key",
+      "schema": "public",
+      "table": "solutions_evaluationcase",
+      "type": "u"
+    },
+    {
+      "definition": "UNIQUE (case_id, actor_id, kind)",
+      "name": "evaluation_judgment_unique",
+      "schema": "public",
+      "table": "solutions_coachjudgment",
+      "type": "u"
+    },
+    {
+      "definition": "UNIQUE (digest)",
+      "name": "solutions_evaluationdatasetsnapshot_digest_key",
+      "schema": "public",
+      "table": "solutions_evaluationdatasetsnapshot",
+      "type": "u"
+    },
+    {
+      "definition": "UNIQUE (digest)",
+      "name": "solutions_reviewerprofile_digest_key",
+      "schema": "public",
+      "table": "solutions_reviewerprofile",
+      "type": "u"
+    },
+    {
+      "definition": "UNIQUE (review_id)",
+      "name": "solutions_reviewexecutionattempt_review_id_key",
+      "schema": "public",
+      "table": "solutions_reviewexecutionattempt",
+      "type": "u"
+    },
+    {
+      "definition": "UNIQUE (review_id, finding_id, content_digest, level)",
+      "name": "evaluation_hint_unique",
+      "schema": "public",
+      "table": "solutions_hintrevealevent",
+      "type": "u"
+    },
+    {
+      "definition": "UNIQUE (run_id, case_id, actor_id)",
+      "name": "evaluation_finding_judgment_unique",
+      "schema": "public",
+      "table": "solutions_evaluationfindingjudgment",
+      "type": "u"
+    }
+  ],
+  "extensions": [],
+  "indexes": [
+    {
+      "definition": "CREATE INDEX solutions_activationauthorization_actor_id_6d1cccbc ON public.solutions_activationauthorization USING btree (actor_id)",
+      "name": "solutions_activationauthorization_actor_id_6d1cccbc",
+      "schema": "public",
+      "table": "solutions_activationauthorization"
+    },
+    {
+      "definition": "CREATE INDEX solutions_assistancepolicy_appointed_by_id_f3e8dd51 ON public.solutions_assistancepolicy USING btree (appointed_by_id)",
+      "name": "solutions_assistancepolicy_appointed_by_id_f3e8dd51",
+      "schema": "public",
+      "table": "solutions_assistancepolicy"
+    },
+    {
+      "definition": "CREATE INDEX solutions_assistancepolicy_problem_uuid_30f66206 ON public.solutions_assistancepolicy USING btree (problem_uuid)",
+      "name": "solutions_assistancepolicy_problem_uuid_30f66206",
+      "schema": "public",
+      "table": "solutions_assistancepolicy"
+    },
+    {
+      "definition": "CREATE INDEX solutions_coachjudgment_actor_id_969b0d8d ON public.solutions_coachjudgment USING btree (actor_id)",
+      "name": "solutions_coachjudgment_actor_id_969b0d8d",
+      "schema": "public",
+      "table": "solutions_coachjudgment"
+    },
+    {
+      "definition": "CREATE INDEX solutions_coachjudgment_case_id_c12b93a2 ON public.solutions_coachjudgment USING btree (case_id)",
+      "name": "solutions_coachjudgment_case_id_c12b93a2",
+      "schema": "public",
+      "table": "solutions_coachjudgment"
+    },
+    {
+      "definition": "CREATE INDEX solutions_evaluationassignment_actor_id_1118d49d ON public.solutions_evaluationassignment USING btree (actor_id)",
+      "name": "solutions_evaluationassignment_actor_id_1118d49d",
+      "schema": "public",
+      "table": "solutions_evaluationassignment"
+    },
+    {
+      "definition": "CREATE INDEX solutions_evaluationassignment_appointed_by_id_79febc17 ON public.solutions_evaluationassignment USING btree (appointed_by_id)",
+      "name": "solutions_evaluationassignment_appointed_by_id_79febc17",
+      "schema": "public",
+      "table": "solutions_evaluationassignment"
+    },
+    {
+      "definition": "CREATE INDEX solutions_evaluationassignment_scope_id_6fc16e56 ON public.solutions_evaluationassignment USING btree (scope_id)",
+      "name": "solutions_evaluationassignment_scope_id_6fc16e56",
+      "schema": "public",
+      "table": "solutions_evaluationassignment"
+    },
+    {
+      "definition": "CREATE INDEX solutions_evaluationauditevent_actor_id_87b9a881 ON public.solutions_evaluationauditevent USING btree (actor_id)",
+      "name": "solutions_evaluationauditevent_actor_id_87b9a881",
+      "schema": "public",
+      "table": "solutions_evaluationauditevent"
+    },
+    {
+      "definition": "CREATE INDEX solutions_evaluationauditevent_kind_0d02c90a ON public.solutions_evaluationauditevent USING btree (kind)",
+      "name": "solutions_evaluationauditevent_kind_0d02c90a",
+      "schema": "public",
+      "table": "solutions_evaluationauditevent"
+    },
+    {
+      "definition": "CREATE INDEX solutions_evaluationauditevent_kind_0d02c90a_like ON public.solutions_evaluationauditevent USING btree (kind varchar_pattern_ops)",
+      "name": "solutions_evaluationauditevent_kind_0d02c90a_like",
+      "schema": "public",
+      "table": "solutions_evaluationauditevent"
+    },
+    {
+      "definition": "CREATE INDEX solutions_evaluationauditevent_target_id_e2114279 ON public.solutions_evaluationauditevent USING btree (target_id)",
+      "name": "solutions_evaluationauditevent_target_id_e2114279",
+      "schema": "public",
+      "table": "solutions_evaluationauditevent"
+    },
+    {
+      "definition": "CREATE INDEX solutions_evaluationcase_family_id_13120e62 ON public.solutions_evaluationcase USING btree (family_id)",
+      "name": "solutions_evaluationcase_family_id_13120e62",
+      "schema": "public",
+      "table": "solutions_evaluationcase"
+    },
+    {
+      "definition": "CREATE INDEX solutions_evaluationcase_prepared_by_id_78af8c30 ON public.solutions_evaluationcase USING btree (prepared_by_id)",
+      "name": "solutions_evaluationcase_prepared_by_id_78af8c30",
+      "schema": "public",
+      "table": "solutions_evaluationcase"
+    },
+    {
+      "definition": "CREATE INDEX solutions_evaluationcase_supersedes_id_9b8ff7a5 ON public.solutions_evaluationcase USING btree (supersedes_id)",
+      "name": "solutions_evaluationcase_supersedes_id_9b8ff7a5",
+      "schema": "public",
+      "table": "solutions_evaluationcase"
+    },
+    {
+      "definition": "CREATE INDEX solutions_evaluationdatasetsnapshot_digest_0c4aa05a_like ON public.solutions_evaluationdatasetsnapshot USING btree (digest varchar_pattern_ops)",
+      "name": "solutions_evaluationdatasetsnapshot_digest_0c4aa05a_like",
+      "schema": "public",
+      "table": "solutions_evaluationdatasetsnapshot"
+    },
+    {
+      "definition": "CREATE INDEX solutions_evaluationdatasetsnapshot_prepared_by_id_dbea8cd9 ON public.solutions_evaluationdatasetsnapshot USING btree (prepared_by_id)",
+      "name": "solutions_evaluationdatasetsnapshot_prepared_by_id_dbea8cd9",
+      "schema": "public",
+      "table": "solutions_evaluationdatasetsnapshot"
+    },
+    {
+      "definition": "CREATE INDEX solutions_evaluationfindingjudgment_actor_id_7701dc7b ON public.solutions_evaluationfindingjudgment USING btree (actor_id)",
+      "name": "solutions_evaluationfindingjudgment_actor_id_7701dc7b",
+      "schema": "public",
+      "table": "solutions_evaluationfindingjudgment"
+    },
+    {
+      "definition": "CREATE INDEX solutions_evaluationfindingjudgment_case_id_6d3810d1 ON public.solutions_evaluationfindingjudgment USING btree (case_id)",
+      "name": "solutions_evaluationfindingjudgment_case_id_6d3810d1",
+      "schema": "public",
+      "table": "solutions_evaluationfindingjudgment"
+    },
+    {
+      "definition": "CREATE INDEX solutions_evaluationfindingjudgment_run_id_975d2fb2 ON public.solutions_evaluationfindingjudgment USING btree (run_id)",
+      "name": "solutions_evaluationfindingjudgment_run_id_975d2fb2",
+      "schema": "public",
+      "table": "solutions_evaluationfindingjudgment"
+    },
+    {
+      "definition": "CREATE INDEX solutions_evaluationproblemfamily_prepared_by_id_e5c149e7 ON public.solutions_evaluationproblemfamily USING btree (prepared_by_id)",
+      "name": "solutions_evaluationproblemfamily_prepared_by_id_e5c149e7",
+      "schema": "public",
+      "table": "solutions_evaluationproblemfamily"
+    },
+    {
+      "definition": "CREATE INDEX solutions_evaluationrun_actor_id_b7b29844 ON public.solutions_evaluationrun USING btree (actor_id)",
+      "name": "solutions_evaluationrun_actor_id_b7b29844",
+      "schema": "public",
+      "table": "solutions_evaluationrun"
+    },
+    {
+      "definition": "CREATE INDEX solutions_evaluationrun_profile_id_14294894 ON public.solutions_evaluationrun USING btree (profile_id)",
+      "name": "solutions_evaluationrun_profile_id_14294894",
+      "schema": "public",
+      "table": "solutions_evaluationrun"
+    },
+    {
+      "definition": "CREATE INDEX solutions_evaluationrun_snapshot_id_51186c56 ON public.solutions_evaluationrun USING btree (snapshot_id)",
+      "name": "solutions_evaluationrun_snapshot_id_51186c56",
+      "schema": "public",
+      "table": "solutions_evaluationrun"
+    },
+    {
+      "definition": "CREATE INDEX solutions_hintrevealevent_actor_id_63122699 ON public.solutions_hintrevealevent USING btree (actor_id)",
+      "name": "solutions_hintrevealevent_actor_id_63122699",
+      "schema": "public",
+      "table": "solutions_hintrevealevent"
+    },
+    {
+      "definition": "CREATE INDEX solutions_hintrevealevent_review_id_4318e88b ON public.solutions_hintrevealevent USING btree (review_id)",
+      "name": "solutions_hintrevealevent_review_id_4318e88b",
+      "schema": "public",
+      "table": "solutions_hintrevealevent"
+    },
+    {
+      "definition": "CREATE INDEX solutions_readinessevidence_actor_id_cf6f62aa ON public.solutions_readinessevidence USING btree (actor_id)",
+      "name": "solutions_readinessevidence_actor_id_cf6f62aa",
+      "schema": "public",
+      "table": "solutions_readinessevidence"
+    },
+    {
+      "definition": "CREATE INDEX solutions_reviewbundleasset_bundle_id_3b253f5f ON public.solutions_reviewbundleasset USING btree (bundle_id)",
+      "name": "solutions_reviewbundleasset_bundle_id_3b253f5f",
+      "schema": "public",
+      "table": "solutions_reviewbundleasset"
+    },
+    {
+      "definition": "CREATE INDEX solutions_reviewconsent_actor_id_3192a1b0 ON public.solutions_reviewconsent USING btree (actor_id)",
+      "name": "solutions_reviewconsent_actor_id_3192a1b0",
+      "schema": "public",
+      "table": "solutions_reviewconsent"
+    },
+    {
+      "definition": "CREATE INDEX solutions_reviewerprofile_digest_fd36860a_like ON public.solutions_reviewerprofile USING btree (digest varchar_pattern_ops)",
+      "name": "solutions_reviewerprofile_digest_fd36860a_like",
+      "schema": "public",
+      "table": "solutions_reviewerprofile"
+    },
+    {
+      "definition": "CREATE INDEX solutions_reviewexecutionattempt_bundle_id_4f000ef2 ON public.solutions_reviewexecutionattempt USING btree (bundle_id)",
+      "name": "solutions_reviewexecutionattempt_bundle_id_4f000ef2",
+      "schema": "public",
+      "table": "solutions_reviewexecutionattempt"
+    },
+    {
+      "definition": "CREATE INDEX solutions_reviewexecutionattempt_profile_id_c1a709ea ON public.solutions_reviewexecutionattempt USING btree (profile_id)",
+      "name": "solutions_reviewexecutionattempt_profile_id_c1a709ea",
+      "schema": "public",
+      "table": "solutions_reviewexecutionattempt"
+    },
+    {
+      "definition": "CREATE INDEX solutions_reviewexecutionattempt_run_id_3c54eb35 ON public.solutions_reviewexecutionattempt USING btree (run_id)",
+      "name": "solutions_reviewexecutionattempt_run_id_3c54eb35",
+      "schema": "public",
+      "table": "solutions_reviewexecutionattempt"
+    },
+    {
+      "definition": "CREATE INDEX solutions_reviewinputbundle_digest_d2a45524 ON public.solutions_reviewinputbundle USING btree (digest)",
+      "name": "solutions_reviewinputbundle_digest_d2a45524",
+      "schema": "public",
+      "table": "solutions_reviewinputbundle"
+    },
+    {
+      "definition": "CREATE INDEX solutions_reviewinputbundle_digest_d2a45524_like ON public.solutions_reviewinputbundle USING btree (digest varchar_pattern_ops)",
+      "name": "solutions_reviewinputbundle_digest_d2a45524_like",
+      "schema": "public",
+      "table": "solutions_reviewinputbundle"
+    },
+    {
+      "definition": "CREATE INDEX solutions_reviewinputbundle_owner_id_add02bed ON public.solutions_reviewinputbundle USING btree (owner_id)",
+      "name": "solutions_reviewinputbundle_owner_id_add02bed",
+      "schema": "public",
+      "table": "solutions_reviewinputbundle"
+    },
+    {
+      "definition": "CREATE INDEX solutions_reviewspendevent_attempt_id_45348153 ON public.solutions_reviewspendevent USING btree (attempt_id)",
+      "name": "solutions_reviewspendevent_attempt_id_45348153",
+      "schema": "public",
+      "table": "solutions_reviewspendevent"
+    },
+    {
+      "definition": "CREATE UNIQUE INDEX evaluation_assignment_unique ON public.solutions_evaluationassignment USING btree (actor_id, role, scope_id)",
+      "name": "evaluation_assignment_unique",
+      "schema": "public",
+      "table": "solutions_evaluationassignment"
+    },
+    {
+      "definition": "CREATE UNIQUE INDEX evaluation_finding_judgment_unique ON public.solutions_evaluationfindingjudgment USING btree (run_id, case_id, actor_id)",
+      "name": "evaluation_finding_judgment_unique",
+      "schema": "public",
+      "table": "solutions_evaluationfindingjudgment"
+    },
+    {
+      "definition": "CREATE UNIQUE INDEX evaluation_hint_unique ON public.solutions_hintrevealevent USING btree (review_id, finding_id, content_digest, level)",
+      "name": "evaluation_hint_unique",
+      "schema": "public",
+      "table": "solutions_hintrevealevent"
+    },
+    {
+      "definition": "CREATE UNIQUE INDEX evaluation_judgment_unique ON public.solutions_coachjudgment USING btree (case_id, actor_id, kind)",
+      "name": "evaluation_judgment_unique",
+      "schema": "public",
+      "table": "solutions_coachjudgment"
+    },
+    {
+      "definition": "CREATE UNIQUE INDEX evaluation_spend_idempotent ON public.solutions_reviewspendevent USING btree (attempt_id, idempotency_key)",
+      "name": "evaluation_spend_idempotent",
+      "schema": "public",
+      "table": "solutions_reviewspendevent"
+    },
+    {
+      "definition": "CREATE UNIQUE INDEX solutions_activationauthorization_pkey ON public.solutions_activationauthorization USING btree (id)",
+      "name": "solutions_activationauthorization_pkey",
+      "schema": "public",
+      "table": "solutions_activationauthorization"
+    },
+    {
+      "definition": "CREATE UNIQUE INDEX solutions_assistancepolicy_pkey ON public.solutions_assistancepolicy USING btree (id)",
+      "name": "solutions_assistancepolicy_pkey",
+      "schema": "public",
+      "table": "solutions_assistancepolicy"
+    },
+    {
+      "definition": "CREATE UNIQUE INDEX solutions_coachjudgment_pkey ON public.solutions_coachjudgment USING btree (id)",
+      "name": "solutions_coachjudgment_pkey",
+      "schema": "public",
+      "table": "solutions_coachjudgment"
+    },
+    {
+      "definition": "CREATE UNIQUE INDEX solutions_evaluationassignment_pkey ON public.solutions_evaluationassignment USING btree (id)",
+      "name": "solutions_evaluationassignment_pkey",
+      "schema": "public",
+      "table": "solutions_evaluationassignment"
+    },
+    {
+      "definition": "CREATE UNIQUE INDEX solutions_evaluationauditevent_pkey ON public.solutions_evaluationauditevent USING btree (id)",
+      "name": "solutions_evaluationauditevent_pkey",
+      "schema": "public",
+      "table": "solutions_evaluationauditevent"
+    },
+    {
+      "definition": "CREATE UNIQUE INDEX solutions_evaluationcase_bundle_id_key ON public.solutions_evaluationcase USING btree (bundle_id)",
+      "name": "solutions_evaluationcase_bundle_id_key",
+      "schema": "public",
+      "table": "solutions_evaluationcase"
+    },
+    {
+      "definition": "CREATE UNIQUE INDEX solutions_evaluationcase_pkey ON public.solutions_evaluationcase USING btree (id)",
+      "name": "solutions_evaluationcase_pkey",
+      "schema": "public",
+      "table": "solutions_evaluationcase"
+    },
+    {
+      "definition": "CREATE UNIQUE INDEX solutions_evaluationdatasetsnapshot_digest_key ON public.solutions_evaluationdatasetsnapshot USING btree (digest)",
+      "name": "solutions_evaluationdatasetsnapshot_digest_key",
+      "schema": "public",
+      "table": "solutions_evaluationdatasetsnapshot"
+    },
+    {
+      "definition": "CREATE UNIQUE INDEX solutions_evaluationdatasetsnapshot_pkey ON public.solutions_evaluationdatasetsnapshot USING btree (id)",
+      "name": "solutions_evaluationdatasetsnapshot_pkey",
+      "schema": "public",
+      "table": "solutions_evaluationdatasetsnapshot"
+    },
+    {
+      "definition": "CREATE UNIQUE INDEX solutions_evaluationfindingjudgment_pkey ON public.solutions_evaluationfindingjudgment USING btree (id)",
+      "name": "solutions_evaluationfindingjudgment_pkey",
+      "schema": "public",
+      "table": "solutions_evaluationfindingjudgment"
+    },
+    {
+      "definition": "CREATE UNIQUE INDEX solutions_evaluationlifecycle_pkey ON public.solutions_evaluationlifecycle USING btree (target_id)",
+      "name": "solutions_evaluationlifecycle_pkey",
+      "schema": "public",
+      "table": "solutions_evaluationlifecycle"
+    },
+    {
+      "definition": "CREATE UNIQUE INDEX solutions_evaluationproblemfamily_pkey ON public.solutions_evaluationproblemfamily USING btree (id)",
+      "name": "solutions_evaluationproblemfamily_pkey",
+      "schema": "public",
+      "table": "solutions_evaluationproblemfamily"
+    },
+    {
+      "definition": "CREATE UNIQUE INDEX solutions_evaluationrun_pkey ON public.solutions_evaluationrun USING btree (id)",
+      "name": "solutions_evaluationrun_pkey",
+      "schema": "public",
+      "table": "solutions_evaluationrun"
+    },
+    {
+      "definition": "CREATE UNIQUE INDEX solutions_hintrevealevent_pkey ON public.solutions_hintrevealevent USING btree (id)",
+      "name": "solutions_hintrevealevent_pkey",
+      "schema": "public",
+      "table": "solutions_hintrevealevent"
+    },
+    {
+      "definition": "CREATE UNIQUE INDEX solutions_readinessevidence_pkey ON public.solutions_readinessevidence USING btree (id)",
+      "name": "solutions_readinessevidence_pkey",
+      "schema": "public",
+      "table": "solutions_readinessevidence"
+    },
+    {
+      "definition": "CREATE UNIQUE INDEX solutions_reviewbundleasset_pkey ON public.solutions_reviewbundleasset USING btree (id)",
+      "name": "solutions_reviewbundleasset_pkey",
+      "schema": "public",
+      "table": "solutions_reviewbundleasset"
+    },
+    {
+      "definition": "CREATE UNIQUE INDEX solutions_reviewconsent_pkey ON public.solutions_reviewconsent USING btree (id)",
+      "name": "solutions_reviewconsent_pkey",
+      "schema": "public",
+      "table": "solutions_reviewconsent"
+    },
+    {
+      "definition": "CREATE UNIQUE INDEX solutions_reviewerprofile_digest_key ON public.solutions_reviewerprofile USING btree (digest)",
+      "name": "solutions_reviewerprofile_digest_key",
+      "schema": "public",
+      "table": "solutions_reviewerprofile"
+    },
+    {
+      "definition": "CREATE UNIQUE INDEX solutions_reviewerprofile_pkey ON public.solutions_reviewerprofile USING btree (id)",
+      "name": "solutions_reviewerprofile_pkey",
+      "schema": "public",
+      "table": "solutions_reviewerprofile"
+    },
+    {
+      "definition": "CREATE UNIQUE INDEX solutions_reviewexecutionattempt_pkey ON public.solutions_reviewexecutionattempt USING btree (id)",
+      "name": "solutions_reviewexecutionattempt_pkey",
+      "schema": "public",
+      "table": "solutions_reviewexecutionattempt"
+    },
+    {
+      "definition": "CREATE UNIQUE INDEX solutions_reviewexecutionattempt_review_id_key ON public.solutions_reviewexecutionattempt USING btree (review_id)",
+      "name": "solutions_reviewexecutionattempt_review_id_key",
+      "schema": "public",
+      "table": "solutions_reviewexecutionattempt"
+    },
+    {
+      "definition": "CREATE UNIQUE INDEX solutions_reviewinputbundle_pkey ON public.solutions_reviewinputbundle USING btree (id)",
+      "name": "solutions_reviewinputbundle_pkey",
+      "schema": "public",
+      "table": "solutions_reviewinputbundle"
+    },
+    {
+      "definition": "CREATE UNIQUE INDEX solutions_reviewspendevent_pkey ON public.solutions_reviewspendevent USING btree (id)",
+      "name": "solutions_reviewspendevent_pkey",
+      "schema": "public",
+      "table": "solutions_reviewspendevent"
+    }
+  ],
+  "tables": [
+    {
+      "kind": "r",
+      "schema": "public",
+      "table": "solutions_activationauthorization"
+    },
+    {
+      "kind": "r",
+      "schema": "public",
+      "table": "solutions_assistancepolicy"
+    },
+    {
+      "kind": "r",
+      "schema": "public",
+      "table": "solutions_coachjudgment"
+    },
+    {
+      "kind": "r",
+      "schema": "public",
+      "table": "solutions_evaluationassignment"
+    },
+    {
+      "kind": "r",
+      "schema": "public",
+      "table": "solutions_evaluationauditevent"
+    },
+    {
+      "kind": "r",
+      "schema": "public",
+      "table": "solutions_evaluationcase"
+    },
+    {
+      "kind": "r",
+      "schema": "public",
+      "table": "solutions_evaluationdatasetsnapshot"
+    },
+    {
+      "kind": "r",
+      "schema": "public",
+      "table": "solutions_evaluationfindingjudgment"
+    },
+    {
+      "kind": "r",
+      "schema": "public",
+      "table": "solutions_evaluationlifecycle"
+    },
+    {
+      "kind": "r",
+      "schema": "public",
+      "table": "solutions_evaluationproblemfamily"
+    },
+    {
+      "kind": "r",
+      "schema": "public",
+      "table": "solutions_evaluationrun"
+    },
+    {
+      "kind": "r",
+      "schema": "public",
+      "table": "solutions_hintrevealevent"
+    },
+    {
+      "kind": "r",
+      "schema": "public",
+      "table": "solutions_readinessevidence"
+    },
+    {
+      "kind": "r",
+      "schema": "public",
+      "table": "solutions_reviewbundleasset"
+    },
+    {
+      "kind": "r",
+      "schema": "public",
+      "table": "solutions_reviewconsent"
+    },
+    {
+      "kind": "r",
+      "schema": "public",
+      "table": "solutions_reviewerprofile"
+    },
+    {
+      "kind": "r",
+      "schema": "public",
+      "table": "solutions_reviewexecutionattempt"
+    },
+    {
+      "kind": "r",
+      "schema": "public",
+      "table": "solutions_reviewinputbundle"
+    },
+    {
+      "kind": "r",
+      "schema": "public",
+      "table": "solutions_reviewspendevent"
+    }
+  ]
+}

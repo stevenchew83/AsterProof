@@ -159,8 +159,8 @@ requires its applicable operational authorization. No operation is dispatched he
 | B2 | Frozen partitions, exposure, lifecycle propagation | Governance/security tests; legitimate representative sampling pending |
 | C1 | Finding/root scoring, coverage, metamorphic checks | Deterministic scorer tests; actual mathematical model quality untested |
 | C2 | Coach workspace, hint reveals, restrictions, repair events | HTTP/CSRF/owner tests, client tests, desktop/narrow synthetic preview |
-| D1 | Isolated harness, PostgreSQL races, additive schema rehearsal | Local SQLite smoke passes; actual Docker/PG verification unavailable locally |
-| D2 | Readiness inventory, this contract and evidence map | Engineering gate remains unestablished until isolated acceptance artifacts exist |
+| D1 | Isolated harness, PostgreSQL races, additive schema rehearsal | Local SQLite smoke and credential-free CI Docker/PG acceptance; see readiness evidence |
+| D2 | Readiness inventory, this contract and evidence map | Readiness record binds isolated acceptance artifacts; human dataset evidence remains separate |
 
 T01/T03/T04: provider guard, imported origin and security suites.
 T02: isolation runner, credential-free Docker no-network and internal PostgreSQL modes.

@@ -133,8 +133,9 @@ PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 python -m pytest -o addopts= scripts/tests/test
 Those tests do not prove actual container isolation. If the Docker CLI, local
 daemon, prepared image or pinned PostgreSQL image is unavailable, record the
 container gate as **not verified**. Do not substitute an unrestricted local run
-or mark engineering readiness passed. The development environment used to create
-this harness had no Docker CLI, so actual container acceptance remains outstanding.
+or mark engineering readiness passed. The development environment has no Docker CLI. Actual container and PostgreSQL
+acceptance was subsequently executed in CI; see the source-bound run and artifact
+digests in [the readiness evidence](ai-solution-checking-readiness.md).
 
 Successful isolation testing neither activates AI review nor authorizes spending,
 provider experiments, deployment or use of real learner data.
@@ -169,3 +170,16 @@ The rehearsal does not claim an old-code compatibility smoke was run and does no
 establish engineering readiness or deployment authorization by itself. The CI
 selector routes the new migration to this new module without widening the old
 document-editor allowance.
+
+
+## Separate production release contract
+
+The local helper remains a diagnostic and never supplies production authority.
+The exact production allowance is now prepared separately in
+`solution_evaluation_schema.py`, with a hash-frozen PostgreSQL delta and
+`solution_evaluation_schema_rehearsal.py`. CI selects that rehearsal for the new
+migration and its release contract. It includes preservation plus an active-code
+compatibility smoke; the packaged proof is strictly validated by the bounded
+worker path. The document-editor allowance is unchanged. See
+[the release procedure](../deployment/offline-evaluation-release.md). Nothing in
+CI installs the allowance, dispatches production, activates AI or authorizes spend.
