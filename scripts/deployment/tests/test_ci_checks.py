@@ -40,6 +40,13 @@ def test_shared_auth_routing_and_shell_changes_cover_all_apps(path):
     assert {
         "inspinia/pages", "inspinia/training", "inspinia/solutions", "inspinia/rankings", "inspinia/website",
     } <= set(checks["tests"])
+    assert "inspinia/test_page_loading.py" in checks["tests"]
+
+
+@pytest.mark.parametrize("path", ["inspinia/templates/partials/sidenav.html", "inspinia/test_page_loading.py"])
+def test_navigation_changes_select_the_real_navigation_audit(path):
+    checks = select_checks([path])
+    assert "inspinia/test_page_loading.py" in checks["tests"]
 
 
 def test_public_website_changes_run_their_own_tests():
