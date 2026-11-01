@@ -39,31 +39,34 @@ class CommunityProblemForm(forms.ModelForm):
         model = CommunityProblem
         fields = CONTENT_FIELDS
         labels = {
-            "statement_latex": "Problem statement (text and LaTeX)",
-            "mohs": "Proposed MOHS difficulty (0-60)",
+            "statement_latex": "Problem statement",
+            "topic": "Subject",
+            "mohs": "Proposed MOHS (0-60)",
             "rationale": "Why this difficulty?",
-            "source_details": "Author / source attribution",
-            "solution_outline": "Solution outline (private to you and admins)",
+            "source_kind": "Problem origin",
+            "source_details": "Author or source",
+            "source_url": "Source link",
+            "solution_outline": "Solution outline",
         }
         help_texts = {
             "statement_latex": (
-                "Include all assumptions, variable domains, and the exact question. Diagram code stays as source."
+                "Use plain text and LaTeX. Include assumptions, variable domains, and the exact question."
             ),
             "topic_tags": (
-                "Separate techniques, objects, or theorems with commas; use library terminology where possible."
+                "Separate techniques, objects, or theorems with commas."
             ),
             "source_details": (
-                "For originals, give the author and composition context; otherwise give the original source."
+                "Credit the original author and source, or describe when you created the problem."
             ),
-            "core_ideas": "Describe the main mathematical ideas without claiming a complete proof.",
+            "core_ideas": "The main observation or approach; a full proof is optional.",
             "solution_outline": "Optional supporting evidence for reviewers. It is never shown on the community list.",
         }
         widgets = {
-            "statement_latex": forms.Textarea(attrs={"rows": 10, "spellcheck": "false"}),
-            "core_ideas": forms.Textarea(attrs={"rows": 3}),
-            "rationale": forms.Textarea(attrs={"rows": 3}),
+            "statement_latex": forms.Textarea(attrs={"rows": 6, "spellcheck": "false"}),
+            "core_ideas": forms.Textarea(attrs={"rows": 2}),
+            "rationale": forms.Textarea(attrs={"rows": 2}),
             "pitfalls": forms.Textarea(attrs={"rows": 2}),
-            "solution_outline": forms.Textarea(attrs={"rows": 5}),
+            "solution_outline": forms.Textarea(attrs={"rows": 4}),
         }
 
     def __init__(self, *args, **kwargs):
@@ -85,6 +88,34 @@ class CommunityProblemForm(forms.ModelForm):
             self.fields[name].max_length = limit
             self.fields[name].validators.append(MaxLengthValidator(limit))
             self.fields[name].widget.attrs["maxlength"] = limit
+        placeholders = {
+            "title": "A short, descriptive title",
+            "statement_latex": "Define the setting, then state what to prove or find…",
+            "mohs": "0-60",
+            "topic_tags": "e.g. AM-GM, SYMMETRY",
+            "core_ideas": "What makes the problem work?",
+            "rationale": "What is the main obstacle for the solver?",
+            "source_details": "Author, publication, or composition context",
+            "source_url": "https://…",
+            "contest_name": "Contest name",
+            "problem_code": "e.g. A1",
+            "pitfalls": "Common traps or easily missed cases",
+            "solution_outline": "A sketch or supporting argument for the reviewers",
+        }
+        for name, placeholder in placeholders.items():
+            self.fields[name].widget.attrs["placeholder"] = placeholder
+        for name, prompt in (("topic", "Choose a subject"), ("source_kind", "Choose an origin")):
+            self.fields[name].choices = [
+                (value, label if value else prompt) for value, label in self.fields[name].choices
+            ]
+        for name, field in self.fields.items():
+            if isinstance(field.widget, forms.HiddenInput):
+                continue
+            field_id = self[name].id_for_label
+            descriptions = [f"{field_id}_errors"]
+            if field.help_text:
+                descriptions.insert(0, f"{field_id}_helptext")
+            field.widget.attrs["aria-describedby"] = " ".join(descriptions)
         if self.instance.pk:
             self.fields["version"].initial = self.instance.version
 

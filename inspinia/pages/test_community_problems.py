@@ -2,6 +2,8 @@
 # ruff: noqa: PLR2004
 
 import pytest
+from django.test.html import Element
+from django.test.html import parse_html
 from django.urls import reverse
 
 from inspinia.pages.community_forms import CommunityProblemForm
@@ -15,6 +17,13 @@ from inspinia.users.models import User
 from inspinia.users.tests.factories import UserFactory
 
 pytestmark = pytest.mark.django_db
+
+
+def _html_nodes(element):
+    yield element
+    for child in element.children:
+        if isinstance(child, Element):
+            yield from _html_nodes(child)
 
 
 def payload(**updates):
@@ -142,10 +151,39 @@ def test_matches_need_acknowledgement_and_missing_index_cannot_pass(client, lear
     rebuild_similarity_index()
     checked = client.post(url, {**payload(), "action": "check"})
     assert checked.context["similarity"]["matches"]
+    nodes = list(_html_nodes(parse_html(checked.content.decode())))
+    # A new check must work before acknowledging an earlier set of matches.
+    buttons = [dict(node.attributes) for node in nodes if node.name == "button"]
+    checks = [attrs for attrs in buttons if attrs.get("value") == "check"]
+    assert checks
+    assert all("formnovalidate" in attrs for attrs in checks)
+    assert "formnovalidate" not in next(attrs for attrs in buttons if attrs.get("value") == "submit")
+    acknowledgement = next(dict(node.attributes) for node in nodes
+                           if dict(node.attributes).get("name") == "matches_acknowledged")
+    assert "required" in acknowledgement
     data = {**payload(), "action": "submit", "similarity_token": checked.context["similarity_token"]}
     client.post(url, data)
     assert not CommunityProblem.objects.exists()
     assert client.post(url, {**data, "matches_acknowledged": "1"}).status_code == 302
+
+
+@pytest.mark.parametrize(("field", "value"), [("source_url", "invalid-url"), ("solution_outline", "x" * 6001)])
+def test_optional_details_reopen_and_link_errors_after_validation(client, learner, field, value):
+    response = client.post(reverse("pages:community_problem_create"), {**payload(**{field: value}), "action": "check"})
+    nodes = list(_html_nodes(parse_html(response.content.decode())))
+    control = next(node for node in nodes if dict(node.attributes).get("name") == field)
+    attrs = dict(control.attributes)
+    disclosure = next(node for node in nodes if node.name == "details" and control in node)
+    assert "open" in dict(disclosure.attributes)
+    assert attrs["aria-invalid"] == "true"
+    assert f"id_{field}_errors" in attrs["aria-describedby"].split()
+    error = next(node for node in nodes if dict(node.attributes).get("id") == f"id_{field}_errors")
+    assert error.children
+    assert "hidden" not in dict(error.attributes)
+    assert any(dict(node.attributes).get("href") == f"#id_{field}" for node in nodes)
+    assert attrs.get("value", "".join(child for child in control.children if isinstance(child, str))) == value
+    assert not CommunityProblem.objects.exists()
+
 
 
 @pytest.mark.parametrize(
