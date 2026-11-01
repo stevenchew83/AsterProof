@@ -1,5 +1,6 @@
 from django.conf import settings
 
+from inspinia.pages.models import StatementIssueReport
 from inspinia.pages.shared_progress import LEARNER_LABELS
 from inspinia.pages.shared_progress import shared_progress_learners
 from inspinia.users.roles import user_can_access_app_features
@@ -27,6 +28,9 @@ def app_roles(request):
     shared_links = shared_progress_learners(request.user)
     return {
         "is_app_admin": admin,
+        "statement_report_open_count": (
+            StatementIssueReport.objects.filter(status=StatementIssueReport.Status.OPEN).count() if admin else 0
+        ),
         "is_app_approved": approved,
         "is_app_trainer": trainer,
         "show_training_dashboard_link": approved,

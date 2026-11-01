@@ -240,6 +240,32 @@ def collect_catalogue_behaviour(config: AuditConfig, *, runner: Any = subprocess
     }
 
 
+def collect_community_behaviour(config: AuditConfig, *, runner: Any = subprocess.run) -> dict[str, Any]:
+    """Only the existing catalogue and exact community trigger metadata."""
+    from scripts.deployment.catalogue_schema import behaviour_fingerprint
+    from scripts.deployment.community_schema import FUNCTION_SQL
+    from scripts.deployment.community_schema import TRIGGERS_SQL
+
+    identity = collect_identity(config, runner=runner)
+    if identity["database_identity_hash"] != config.expected_database_identity_hash:
+        raise MigrationAuditError("community audit database identity mismatch")
+    functions = _parse_csv(_run_query(config, FUNCTION_SQL, runner=runner), 6)
+    for row in functions:
+        if row[4] not in {"t", "f"}:
+            raise MigrationAuditError("community audit function security flag is invalid")
+        row[4] = row[4] == "t"
+        row[5] = row[5] or None
+    snapshot = {
+        "functions": functions,
+        "triggers": _parse_csv(_run_query(config, TRIGGERS_SQL, runner=runner), 5),
+    }
+    return {
+        "format_version": 1, **identity, "behaviour_fingerprint": behaviour_fingerprint(snapshot),
+        "function_count": len(snapshot["functions"]), "trigger_count": len(snapshot["triggers"]),
+        "metadata": snapshot,
+    }
+
+
 def collect_document_reader_floor(config: AuditConfig, *, runner: Any = subprocess.run) -> dict[str, Any]:
     """The additive schema establishes the reader floor before any author writes.
 
@@ -260,13 +286,17 @@ def collect_document_reader_floor(config: AuditConfig, *, runner: Any = subproce
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("command", choices=(
-        "fingerprint", "identity", "catalog-snapshot", "catalogue-behaviour", "document-reader-floor",
+        "fingerprint", "identity", "catalog-snapshot", "catalogue-behaviour",
+        "community-behaviour", "document-reader-floor",
     ))
     parser.add_argument("--config", type=Path, default=DEFAULT_CONFIG)
     parser.add_argument("--contract", type=Path)
     args = parser.parse_args()
     del args.contract
     config = AuditConfig.load(args.config)
+    if args.command == "community-behaviour":
+        print(json.dumps(collect_community_behaviour(config), sort_keys=True, separators=(",", ":")))
+        return 0
     if args.command == "document-reader-floor":
         print(json.dumps(collect_document_reader_floor(config), sort_keys=True, separators=(",", ":")))
         return 0

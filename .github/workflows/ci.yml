@@ -144,6 +144,12 @@ jobs:
           if ! git diff --quiet "$BASE_SHA" HEAD -- scripts/deployment/evaluation_schema.py inspinia/solutions/migrations/0010_offline_evaluation_contract.py; then
             rehearsal=scripts.deployment.evaluation_schema
             active_sha="$BASE_SHA"
+          elif ! git diff --quiet "$BASE_SHA" HEAD -- scripts/deployment/community_schema.py scripts/deployment/community_schema_rehearsal.py scripts/deployment/tests/fixtures/community-schema-delta.json inspinia/pages/migrations/0042_community_problems.py inspinia/pages/migrations/0043_statement_similarity_source.py; then
+            rehearsal=scripts.deployment.community_schema_rehearsal
+            active_sha="$BASE_SHA"
+          elif ! git diff --quiet "$BASE_SHA" HEAD -- scripts/deployment/statement_reports_schema.py scripts/deployment/statement_reports_schema_rehearsal.py scripts/deployment/tests/fixtures/statement-reports-schema-delta.json inspinia/pages/migrations/0041_statement_issue_reports.py; then
+            rehearsal=scripts.deployment.statement_reports_schema_rehearsal
+            active_sha="$BASE_SHA"
           elif ! git diff --quiet "$BASE_SHA" HEAD -- scripts/deployment/solution_document_schema.py scripts/deployment/solution_document_schema_rehearsal.py scripts/deployment/tests/fixtures/solution-document-schema-delta.json inspinia/solutions/migrations/0009_problemsolution_edit_version_solutionreviewpolicy_and_more.py; then
             rehearsal=scripts.deployment.solution_document_schema_rehearsal
             active_sha="$BASE_SHA"

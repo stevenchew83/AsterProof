@@ -7,7 +7,7 @@
   <header class="page-title-head app-page-header">
     {% include 'partials/page-header-intro.html' with title=problem_data.problem_label subtitle='Solution workspace' page_icon='ti-edit' back_url=problem_data.solutions_url back_label='All solutions' only %}
     <div class="app-page-header-actions">
-      <a href="#solution-editor-workspace" class="btn btn-primary btn-sm d-inline-flex align-items-center gap-2" data-start-writing><i class="ti ti-pencil" aria-hidden="true"></i>Start writing</a>
+      <a href="#solution-writing-area" class="btn btn-primary btn-sm d-inline-flex align-items-center gap-2" data-start-writing><i class="ti ti-pencil" aria-hidden="true"></i>Start writing</a>
       {% if problem_data.contest_archive_url %}<a href="{{ problem_data.contest_archive_url }}#{{ problem_data.problem_anchor }}" class="btn btn-outline-secondary btn-sm app-page-header-action-icon d-inline-flex align-items-center gap-2" aria-label="Contest archive" title="Contest archive"><i class="ti ti-arrow-up-right" aria-hidden="true"></i><span>Contest archive</span></a>{% endif %}
     </div>
       <div class="app-page-header-description solution-masthead-meta">
@@ -38,11 +38,13 @@
   {% endif %}
 
   <div class="solution-context-grid">
-    <section class="solution-reference" aria-labelledby="solution-problem-heading">
-      <div class="solution-context-heading">
-        <h2 id="solution-problem-heading"><i class="ti ti-book-2" aria-hidden="true"></i>Problem</h2>
-        {% if problem_data.statement_entry %}<span class="text-muted fs-xs">{{ problem_data.statement_entry.problem_code }}{% if problem_data.statement_entry.day_label %} · {{ problem_data.statement_entry.day_label }}{% endif %}</span>{% endif %}
-      </div>
+    <details class="solution-reference solution-context-disclosure" id="solution-problem-reference" aria-labelledby="solution-problem-heading">
+      <summary class="solution-context-heading">
+        <h2 id="solution-problem-heading"><i class="ti ti-book-2" aria-hidden="true"></i>Problem statement
+          {% if problem_data.statement_entry %}<span class="text-muted fs-xs fw-normal ms-auto">{{ problem_data.statement_entry.problem_code }}{% if problem_data.statement_entry.day_label %} · {{ problem_data.statement_entry.day_label }}{% endif %}</span>{% endif %}
+          <i class="ti ti-chevron-down solution-context-chevron" aria-hidden="true"></i>
+        </h2>
+      </summary>
       <div class="solution-reference-body">
         {% if problem_data.statement_entry %}{% include 'partials/statement-render-content.html' with segments=problem_data.statement_render_segments %}
         {% else %}<p class="text-muted mb-0">No linked statement is available. <a href="{{ problem_data.solutions_url }}">Open the problem page</a> for its available information.</p>{% endif %}
@@ -56,12 +58,14 @@
           <dt>Problem UUID</dt><dd><code>{{ problem_data.problem.problem_uuid }}</code></dd>
         </dl>
       </details>
-    </section>
-    <section class="solution-coverage" aria-labelledby="solution-coverage-heading">
-      <div class="solution-context-heading">
-        <h2 id="solution-coverage-heading"><i class="ti ti-topology-star-3" aria-hidden="true"></i>Areas &amp; concepts</h2>
-        <span class="text-muted fs-xs">{{ editor_coverage.concept_coverage|length }} {% if editor_coverage.assignment_projection %}accepted{% else %}concept{{ editor_coverage.concept_coverage|length|pluralize }}{% endif %}</span>
-      </div>
+    </details>
+    <details class="solution-coverage solution-context-disclosure" id="solution-concept-reference" aria-labelledby="solution-coverage-heading">
+      <summary class="solution-context-heading">
+        <h2 id="solution-coverage-heading"><i class="ti ti-topology-star-3" aria-hidden="true"></i>Areas &amp; concepts
+          <span class="text-muted fs-xs fw-normal ms-auto">{{ editor_coverage.concept_coverage|length }} {% if editor_coverage.assignment_projection %}accepted{% else %}concept{{ editor_coverage.concept_coverage|length|pluralize }}{% endif %}</span>
+          <i class="ti ti-chevron-down solution-context-chevron" aria-hidden="true"></i>
+        </h2>
+      </summary>
       <div class="solution-coverage-body">
         <div class="se-eyebrow">Areas</div>
         <div class="solution-area-list">
@@ -84,7 +88,7 @@
           <ul>{% for label in editor_coverage.concept_source_tags %}<li>{{ label }}</li>{% empty %}<li>No source tags assigned.</li>{% endfor %}</ul>
         </details>
       </div>
-    </section>
+    </details>
   </div>
 
   {% include 'solutions/partials/solution-editor-toolbar.html' %}

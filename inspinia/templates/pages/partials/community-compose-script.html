@@ -1,0 +1,84 @@
+<script>
+  (() => {
+    const form = document.getElementById('community-problem-form');
+    const page = form.closest('.community-compose');
+    const requiredFields = [...form.querySelectorAll('[required]:not([type="checkbox"]):not([type="hidden"])')];
+    const progress = page.querySelector('[data-completion-progress]');
+    const countLabel = page.querySelector('[data-completion-count]');
+    const checkButtons = [...page.querySelectorAll('[data-check-button]')];
+    const originalLabels = checkButtons.map(button => button.querySelector('[data-check-label]').textContent);
+    const token = form.querySelector('[name="similarity_token"]');
+    let checked = Boolean(token?.value);
+
+    function updateProgress() {
+      const complete = requiredFields.filter(field => field.value.trim() && field.validity.valid).length;
+      progress.max = requiredFields.length;
+      progress.value = complete;
+      const label = `${complete} of ${requiredFields.length} required details added`;
+      if (countLabel.textContent !== label) countLabel.textContent = label;
+      page.querySelector('[data-form-progress]').hidden = false;
+      page.querySelectorAll('[data-section-link]').forEach(link => {
+        const section = document.getElementById(link.dataset.sectionLink);
+        const fields = requiredFields.filter(field => section.contains(field));
+        const done = fields.filter(field => field.value.trim() && field.validity.valid).length;
+        link.classList.toggle('is-complete', done === fields.length);
+        link.querySelector('[data-section-count]').textContent = `${done}/${fields.length}`;
+      });
+    }
+
+    function onDetailsChanged(event) {
+      if (event.target.name === 'matches_acknowledged') return;
+      updateProgress();
+      if (!checked) return;
+      checked = false;
+      const submit = form.querySelector('[data-problem-submit]');
+      if (submit) submit.disabled = true;
+      if (token) token.value = '';
+      page.querySelector('[data-library-step]').classList.remove('is-complete');
+      page.querySelector('[data-library-state]').textContent = 'Details changed — check again';
+      const status = form.querySelector('[data-check-state]');
+      if (status) status.textContent = 'Details changed. Check for similar problems again before submitting.';
+    }
+
+    form.addEventListener('input', onDetailsChanged);
+    form.addEventListener('change', onDetailsChanged);
+    form.addEventListener('invalid', event => {
+      const disclosure = event.target.closest('details');
+      if (disclosure) disclosure.open = true;
+    }, true);
+    form.addEventListener('submit', event => {
+      if (event.submitter?.value !== 'check') return;
+      form.setAttribute('aria-busy', 'true');
+      checkButtons.forEach(button => {
+        button.setAttribute('aria-busy', 'true');
+        button.querySelector('[data-check-label]').textContent = 'Checking library…';
+        button.querySelector('[data-check-icon]').className = 'ti ti-loader-2 community-check-spinner me-1';
+      });
+      // Keep the named submitter enabled so action=check stays in the POST.
+    });
+    window.addEventListener('pageshow', () => {
+      form.removeAttribute('aria-busy');
+      checkButtons.forEach((button, index) => {
+        button.removeAttribute('aria-busy');
+        button.querySelector('[data-check-label]').textContent = originalLabels[index];
+        button.querySelector('[data-check-icon]').className = 'ti ti-search me-1';
+      });
+      updateProgress();
+    });
+    updateProgress();
+
+    const errorSummary = form.querySelector('[data-error-summary]');
+    const results = form.querySelector('[data-similarity-results]');
+    const focusTarget = errorSummary || results;
+    if (focusTarget) {
+      focusTarget.setAttribute('tabindex', '-1');
+      focusTarget.focus({
+        preventScroll: true
+      });
+      focusTarget.scrollIntoView({
+        behavior: 'auto',
+        block: 'start'
+      });
+    }
+  })();
+</script>

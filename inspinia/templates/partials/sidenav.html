@@ -90,6 +90,7 @@
             <li class="side-nav-title">Problems &amp; resources</li>
             {% include 'partials/sidenav-link.html' with route_name='pages:contest_papers' label='Contest papers' icon='files' only %}
             {% include 'partials/sidenav-link.html' with route_name='pages:problem_statement_list' label='Problem library' icon='file-text' only %}
+            {% include 'partials/sidenav-link.html' with route_name='pages:community_problem_list' label='Community problems' icon='messages' only %}
             {% if show_problem_lists_link %}
             {% include 'partials/sidenav-link.html' with route_name='problemsets:my_lists' label='Problem lists' icon='list-details' only %}
             {% endif %}
@@ -189,6 +190,13 @@
             {% endif %}
             {% if is_app_admin %}
             <li class="side-nav-title">Administration</li>
+            <li class="side-nav-item">
+                <a href="{% url 'pages:statement_report_list' %}" class="side-nav-link">
+                    <span class="menu-icon"><i class="ti ti-flag" aria-hidden="true"></i></span>
+                    <span class="menu-text">Statement reports</span>
+                    {% if statement_report_open_count %}<span class="badge bg-warning-subtle text-warning" aria-label="{{ statement_report_open_count }} open reports">{{ statement_report_open_count }}</span>{% endif %}
+                </a>
+            </li>
             {% include 'partials/sidenav-link.html' with route_name='solutions:admin_public_shares' label='Public solutions' icon='world' only %}
             {% include 'partials/sidenav-link.html' with route_name='solutions:admin_collections' label='Curated collections' icon='stack-2' only %}
             {% include 'partials/sidenav-link.html' with route_name='website:newsletter_dashboard' label='Newsletter' icon='mail' only %}

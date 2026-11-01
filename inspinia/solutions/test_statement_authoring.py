@@ -36,7 +36,7 @@ def test_start_uses_existing_statement_identity_and_preserves_unknown_metadata(w
     response = client.post(start_url(statement))
 
     assert response.status_code == HTTPStatus.FOUND
-    assert response.url == reverse("solutions:problem_solution_edit", args=[identity])
+    assert response.url == reverse("solutions:problem_solution_edit", args=[identity]) + "#solution-writing-area"
     statement.refresh_from_db()
     problem = ProblemSolveRecord.objects.get()
     assert statement.problem_uuid == identity == problem.problem_uuid

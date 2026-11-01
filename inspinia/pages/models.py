@@ -22,6 +22,14 @@ from inspinia.pages.catalogue_models import CatalogueState  # noqa: F401
 from inspinia.pages.catalogue_models import CatalogueSubject  # noqa: F401
 from inspinia.pages.catalogue_models import ConceptLibrarySnapshot  # noqa: F401
 from inspinia.pages.catalogue_models import UserConceptProgressSummary  # noqa: F401
+from inspinia.pages.community_models import CommunityProblem  # noqa: F401
+from inspinia.pages.community_models import CommunityProblemReview  # noqa: F401
+from inspinia.pages.community_models import StatementAIReview  # noqa: F401
+from inspinia.pages.community_models import StatementReviewPolicy  # noqa: F401
+from inspinia.pages.community_models import StatementSimilarityDocument  # noqa: F401
+from inspinia.pages.community_models import StatementSimilarityIndex  # noqa: F401
+from inspinia.pages.community_models import StatementSimilaritySource  # noqa: F401
+from inspinia.pages.community_models import StatementSimilarityTerm  # noqa: F401
 from inspinia.pages.contest_names import PROJECT_CONTEST_NAME_MAX_LENGTH
 from inspinia.pages.contest_names import normalize_contest_name
 from inspinia.pages.contest_names import normalize_text_list
@@ -275,6 +283,52 @@ class ContestProblemStatement(models.Model):
             }
 
         super().save(*args, **kwargs)
+
+
+class StatementIssueReport(models.Model):
+    """Reader feedback with the original statement preserved for admin review."""
+
+    class Status(models.TextChoices):
+        OPEN = "open", "Open"
+        RESOLVED = "resolved", "Resolved"
+        DISMISSED = "dismissed", "Dismissed"
+
+    statement = models.ForeignKey(
+        ContestProblemStatement,
+        on_delete=models.SET_NULL,
+        null=True,
+        related_name="issue_reports",
+    )
+    statement_uuid = models.UUIDField(editable=False)
+    problem_uuid = models.UUIDField(editable=False)
+    statement_label = models.CharField(max_length=160)
+    statement_snapshot = models.TextField()
+    description = models.TextField(max_length=2000)
+    reporter = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="statement_issue_reports",
+    )
+    submission_uuid = models.UUIDField(default=uuid.uuid4, unique=True, editable=False)
+    status = models.CharField(max_length=16, choices=Status.choices, default=Status.OPEN)
+    reviewed_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="reviewed_statement_issue_reports",
+    )
+    reviewed_at = models.DateTimeField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-created_at", "-pk"]
+        indexes = [models.Index(fields=["status", "-created_at"], name="pages_issue_status_created_idx")]
+
+    def __str__(self) -> str:
+        return f"{self.statement_label}: {self.get_status_display()}"
 
 
 class StatementTopicTechnique(models.Model):

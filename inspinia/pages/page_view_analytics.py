@@ -12,7 +12,13 @@ from urllib.parse import urlparse
 
 from django.db.models import Count
 from django.db.models import Max
+from django.db.models import Min
 from django.db.models import Q
+from django.db.models.functions import ExtractHour
+from django.db.models.functions import ExtractIsoWeekDay
+from django.db.models.functions import TruncDate
+from django.db.models.functions import TruncMonth
+from django.db.models.functions import TruncYear
 from django.urls import reverse
 from django.utils import timezone
 
@@ -24,6 +30,8 @@ if TYPE_CHECKING:
 
 TOP_PAGE_VIEW_LIMIT = 10
 RECENT_PAGE_VIEW_LIMIT = 50
+DAILY_TIMELINE_MAX_DAYS = 90
+MONTHLY_TIMELINE_MAX_DAYS = 3650
 PAGE_VIEW_DEFAULT_RANGE = "30d"
 PAGE_VIEW_ANONYMOUS_USER_FILTER = "__anonymous__"
 PAGE_VIEW_RANGE_OPTIONS = [
@@ -556,6 +564,117 @@ def _surface_options() -> list[dict[str, str]]:
     ]
 
 
+def _traffic_timeline(queryset, date_range, aggregate):
+    """Aggregate on the database and fill quiet periods, in the dashboard timezone."""
+    first_at = date_range.start_at or aggregate["first_at"]
+    start = timezone.localdate(first_at) if first_at else timezone.localdate()
+    end = (
+        timezone.localdate(date_range.end_at) - timedelta(days=1)
+        if date_range.end_at
+        else max(timezone.localdate(), timezone.localdate(aggregate["last_at"] or timezone.now()))
+    )
+    days = (end - start).days + 1
+    granularity = (
+        "day" if days <= DAILY_TIMELINE_MAX_DAYS else "month" if days <= MONTHLY_TIMELINE_MAX_DAYS else "year"
+    )
+    truncation = {"day": TruncDate, "month": TruncMonth, "year": TruncYear}[granularity]
+    grouped = (
+        queryset.order_by()
+        .annotate(
+            bucket=truncation("created_at", tzinfo=timezone.get_current_timezone()),
+        )
+        .values("bucket", "view_type")
+        .annotate(total=Count("id"))
+    )
+    totals = {}
+    for row in grouped:
+        bucket = row["bucket"]
+        if isinstance(bucket, datetime):
+            bucket = bucket.date()
+        totals[(bucket, row["view_type"])] = row["total"]
+
+    cursor = start if granularity == "day" else start.replace(day=1)
+    if granularity == "year":
+        cursor = cursor.replace(month=1)
+    buckets = []
+    while cursor <= end:
+        buckets.append(cursor)
+        if granularity == "day":
+            cursor += timedelta(days=1)
+        elif granularity == "month":
+            cursor = date(cursor.year + cursor.month // 12, cursor.month % 12 + 1, 1)
+        else:
+            cursor = date(cursor.year + 1, 1, 1)
+    labels = [bucket.isoformat() for bucket in buckets]
+    series = [
+        {
+            "name": _view_type_meta(view_type)["short_label"],
+            "data": [totals.get((bucket, view_type), 0) for bucket in buckets],
+        }
+        for view_type in VIEW_TYPE_ORDER
+    ]
+    return {
+        "labels": labels,
+        "series": series,
+        "granularity": granularity,
+        "interval_label": {"day": "Daily", "month": "Monthly", "year": "Yearly"}[granularity],
+        "days": days,
+        "rows": [
+            {"label": label, "values": [item["data"][index] for item in series]} for index, label in enumerate(labels)
+        ],
+    }
+
+
+def _activity_heatmap(queryset):
+    grouped = (
+        queryset.order_by()
+        .annotate(
+            weekday=ExtractIsoWeekDay("created_at", tzinfo=timezone.get_current_timezone()),
+            hour=ExtractHour("created_at", tzinfo=timezone.get_current_timezone()),
+        )
+        .values("weekday", "hour")
+        .annotate(total=Count("id"))
+    )
+    totals = {(row["weekday"], row["hour"]): row["total"] for row in grouped}
+    return [
+        {
+            "name": weekday,
+            "data": [{"x": f"{hour:02d}:00", "y": totals.get((index, hour), 0)} for hour in range(24)],
+        }
+        for index, weekday in enumerate(["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"], start=1)
+    ]
+
+
+def _top_reader_rows(queryset, params):
+    grouped = list(
+        queryset.filter(user__isnull=False)
+        .order_by()
+        .values("user_id", "user__name", "user__email")
+        .annotate(total=Count("id"), latest_at=Max("created_at"))
+        .order_by("-total", "user_id")[:5],
+    )
+    maximum = max((row["total"] for row in grouped), default=1)
+    rows = []
+    for row in grouped:
+        filters = params.copy() if params is not None else {}
+        filters["user"] = str(row["user_id"])
+        filters.pop("q", None)
+        filters.pop("surface", None)
+        query = filters.urlencode() if hasattr(filters, "urlencode") else urlencode(filters)
+        label = row["user__name"] or row["user__email"]
+        rows.append(
+            {
+                "label": label,
+                "initial": label[:1].upper(),
+                "total": row["total"],
+                "width": round(row["total"] / maximum * 100),
+                "latest": _datetime_title(row["latest_at"]),
+                "url": f"{reverse('pages:page_view_analytics')}?{query}#page-view-recent",
+            },
+        )
+    return rows
+
+
 def build_page_view_analytics_context(params: QueryDict | None = None) -> dict[str, object]:
     date_range = _resolve_date_range(params)
     include_admins, include_anonymous = _audience_flags(params)
@@ -586,10 +705,79 @@ def build_page_view_analytics_context(params: QueryDict | None = None) -> dict[s
         anonymous_view_total=Count("id", filter=Q(user__isnull=True)),
         known_user_total=Count("user", distinct=True),
         total=Count("id"),
+        active_days=Count(TruncDate("created_at", tzinfo=timezone.get_current_timezone()), distinct=True),
+        first_at=Min("created_at"),
+        last_at=Max("created_at"),
     )
-    counts_by_type = _counts_by_type(queryset)
+    kpi_rows = _kpi_rows(queryset, previous_queryset)
+    counts_by_type = {row["view_type"]: row["view_total"] for row in kpi_rows}
+    timeline = _traffic_timeline(queryset, date_range, aggregate)
+    previous_total = sum(row["previous_view_total"] or 0 for row in kpi_rows)
+    delta = aggregate["total"] - previous_total if previous_queryset is not None else None
+    known_views = aggregate["total"] - aggregate["anonymous_view_total"]
+    mix_rows = [
+        {**row, "share": round(row["view_total"] / aggregate["total"] * 100, 1) if aggregate["total"] else 0}
+        for row in kpi_rows
+    ]
+    top_statements = _top_object_rows(queryset, PageViewEvent.ViewType.PROBLEM_STATEMENT)
+    top_solutions = _top_object_rows(queryset, PageViewEvent.ViewType.SOLUTION)
+    top_lists = _top_list_rows(queryset)
+    top_contests = _top_contest_rows(queryset)
+    rankings = [
+        {
+            "key": "statements",
+            "label": "Statements",
+            "rows": top_statements,
+            "total": counts_by_type.get(PageViewEvent.ViewType.PROBLEM_STATEMENT, 0),
+        },
+        {
+            "key": "solutions",
+            "label": "Solutions",
+            "rows": top_solutions,
+            "total": counts_by_type.get(PageViewEvent.ViewType.SOLUTION, 0),
+        },
+        {
+            "key": "lists",
+            "label": "Lists",
+            "rows": top_lists,
+            "total": counts_by_type.get(PageViewEvent.ViewType.LIST, 0),
+        },
+        {
+            "key": "contests",
+            "label": "Contests",
+            "rows": top_contests,
+            "total": counts_by_type.get(PageViewEvent.ViewType.CONTEST, 0),
+        },
+    ]
+    busiest = max(rankings, key=lambda group: group["total"])
+    for group in rankings:
+        group["active"] = group is busiest
+        maximum = max((row["view_total"] for row in group["rows"]), default=1)
+        for row in group["rows"]:
+            row["width"] = round(row["view_total"] / maximum * 100)
 
     return {
+        "page_view_rankings": rankings,
+        "page_view_charts": {
+            "timeline": timeline,
+            "heatmap": _activity_heatmap(queryset),
+            "mix": {
+                "labels": [row["short_label"] for row in kpi_rows],
+                "series": [row["view_total"] for row in kpi_rows],
+            },
+            "timezone": timezone.get_current_timezone_name(),
+        },
+        "page_view_summary": {
+            "views_per_day": round(aggregate["total"] / max(timeline["days"], 1), 1),
+            "active_days": aggregate["active_days"],
+            "days": timeline["days"],
+            "delta_label": _delta_label(delta),
+            "delta_class": _delta_badge_class(delta),
+            "known_views": known_views,
+            "known_share": round(known_views / aggregate["total"] * 100, 1) if aggregate["total"] else 0,
+        },
+        "page_view_mix_rows": mix_rows,
+        "page_view_readers": _top_reader_rows(queryset, params),
         "page_view_date_range": date_range,
         "page_view_filters": {
             "end": date_range.end_label,
@@ -601,7 +789,7 @@ def build_page_view_analytics_context(params: QueryDict | None = None) -> dict[s
             "surface": surface,
             "user": user_filter,
         },
-        "page_view_kpi_rows": _kpi_rows(queryset, previous_queryset),
+        "page_view_kpi_rows": kpi_rows,
         "page_view_range_options": PAGE_VIEW_RANGE_OPTIONS,
         "page_view_recent_rows": _recent_rows(recent_queryset),
         "page_view_recent_unfiltered_rows": _recent_rows(queryset),
@@ -619,10 +807,10 @@ def build_page_view_analytics_context(params: QueryDict | None = None) -> dict[s
             "unique_user_total": int(aggregate["known_user_total"] or 0),
         },
         "page_view_surface_options": _surface_options(),
-        "page_view_top_contests": _top_contest_rows(queryset),
-        "page_view_top_lists": _top_list_rows(queryset),
-        "page_view_top_solutions": _top_object_rows(queryset, PageViewEvent.ViewType.SOLUTION),
-        "page_view_top_statements": _top_object_rows(queryset, PageViewEvent.ViewType.PROBLEM_STATEMENT),
+        "page_view_top_contests": top_contests,
+        "page_view_top_lists": top_lists,
+        "page_view_top_solutions": top_solutions,
+        "page_view_top_statements": top_statements,
         "page_view_type_rows": _type_rows(queryset),
         "page_view_user_options": _user_options(queryset, include_anonymous=include_anonymous),
     }

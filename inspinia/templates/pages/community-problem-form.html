@@ -1,0 +1,276 @@
+{% extends 'layouts/vertical.html' %}
+
+{% block title %}
+  {% if problem %}
+    Edit problem
+  {% else %}
+    Post a problem
+  {% endif %}
+{% endblock title %}
+{% block extra_css %}
+  {% include 'pages/partials/community-styles.html' %}
+  {% include 'pages/partials/community-compose-styles.html' %}
+{% endblock extra_css %}
+{% block page_content %}
+  {% url 'pages:community_problem_list' as community_list_url %}
+  <div class="container-fluid community-compose">
+    <header class="page-title-head app-page-header">
+      {% if problem %}
+        {% include 'partials/page-header-intro.html' with title='Edit problem' back_url=community_list_url back_label='Community problems' page_icon='ti-pencil' only %}
+      {% else %}
+        {% include 'partials/page-header-intro.html' with title='Post a problem' back_url=community_list_url back_label='Community problems' page_icon='ti-pencil-plus' only %}
+      {% endif %}
+    </header>
+    <div class="community-compose-intro">
+      <p class="text-muted mb-0">Share a clear statement, the ideas behind it, and its source.</p>
+      <ol class="community-compose-flow" aria-label="Submission process">
+        <li class="is-current">
+          <span>1</span> Write
+        </li>
+        <li data-library-step
+            {% if similarity.available and not form.errors %}class="is-complete"{% endif %}>
+          <span>2</span> Check library
+        </li>
+        <li>
+          <span>3</span> Admin review
+        </li>
+      </ol>
+    </div>
+    <div class="row g-3 align-items-start">
+      <div class="col-lg-8 col-xl-9">
+        <form method="post" id="community-problem-form">
+          {% csrf_token %}
+          {{ form.version }}
+          {% if form.errors %}
+            <div class="alert alert-danger"
+                 role="alert"
+                 tabindex="-1"
+                 data-error-summary>
+              <strong>Check the highlighted details.</strong>
+              {{ form.non_field_errors }}
+              {{ form.version.errors }}
+              <ul class="mb-0 mt-1 ps-3">
+                {% for field in form.visible_fields %}
+                  {% for error in field.errors %}
+                    <li>
+                      <a href="#{{ field.id_for_label }}" class="alert-link">{{ field.label }}: {{ error }}</a>
+                    </li>
+                  {% endfor %}
+                {% endfor %}
+              </ul>
+            </div>
+          {% endif %}
+          <div class="card community-compose-paper">
+            <section class="community-form-section"
+                     aria-labelledby="problem-content-heading"
+                     id="problem-content"
+                     data-required-section>
+              <div class="community-section-heading">
+                <span class="community-section-number" aria-hidden="true">01</span>
+                <div>
+                  <h2 id="problem-content-heading">The problem</h2>
+                  <p>Give solvers everything they need to begin.</p>
+                </div>
+                <span class="community-required-note">* Required</span>
+              </div>
+              <div class="community-section-fields">
+                {% include 'pages/partials/community-form-field.html' with field=form.title only %}
+                <div class="community-statement-field">
+                  {% include 'pages/partials/community-form-field.html' with field=form.statement_latex only %}
+                </div>
+              </div>
+            </section>
+            <section class="community-form-section"
+                     aria-labelledby="library-details-heading"
+                     id="library-details"
+                     data-required-section>
+              <div class="community-section-heading">
+                <span class="community-section-number" aria-hidden="true">02</span>
+                <div>
+                  <h2 id="library-details-heading">Library details</h2>
+                  <p>Help readers understand the ideas and level.</p>
+                </div>
+              </div>
+              <div class="row g-3">
+                <div class="col-sm-6">{% include 'pages/partials/community-form-field.html' with field=form.topic only %}</div>
+                <div class="col-sm-6">{% include 'pages/partials/community-form-field.html' with field=form.mohs only %}</div>
+                <div class="col-12">{% include 'pages/partials/community-form-field.html' with field=form.topic_tags only %}</div>
+                <div class="col-md-6">{% include 'pages/partials/community-form-field.html' with field=form.core_ideas only %}</div>
+                <div class="col-md-6">{% include 'pages/partials/community-form-field.html' with field=form.rationale only %}</div>
+              </div>
+            </section>
+            <section class="community-form-section"
+                     aria-labelledby="problem-source-heading"
+                     id="problem-source"
+                     data-required-section>
+              <div class="community-section-heading">
+                <span class="community-section-number" aria-hidden="true">03</span>
+                <div>
+                  <h2 id="problem-source-heading">Attribution</h2>
+                  <p>Give the author and source their credit.</p>
+                </div>
+              </div>
+              <div class="row g-3">
+                <div class="col-md-4">{% include 'pages/partials/community-form-field.html' with field=form.source_kind only %}</div>
+                <div class="col-md-8">
+                  {% include 'pages/partials/community-form-field.html' with field=form.source_details only %}
+                </div>
+              </div>
+              <details class="community-form-extra"
+                       {% if form.source_url.value or form.contest_name.value or form.contest_year.value or form.problem_code.value or form.source_url.errors or form.contest_name.errors or form.contest_year.errors or form.problem_code.errors %} open{% endif %}>
+                <summary>
+                  <i class="ti ti-link" aria-hidden="true"></i><span>Link or contest reference</span><span class="community-field-note">Optional</span><i class="ti ti-chevron-down community-disclosure-chevron"
+   aria-hidden="true"></i>
+                </summary>
+                <div class="row g-3 pt-3">
+                  <div class="col-12">{% include 'pages/partials/community-form-field.html' with field=form.source_url only %}</div>
+                  <div class="col-md-6">{% include 'pages/partials/community-form-field.html' with field=form.contest_name only %}</div>
+                  <div class="col-6 col-md-3">
+                    {% include 'pages/partials/community-form-field.html' with field=form.contest_year only %}
+                  </div>
+                  <div class="col-6 col-md-3">
+                    {% include 'pages/partials/community-form-field.html' with field=form.problem_code only %}
+                  </div>
+                  <p class="form-text mb-0">For a contest problem, include the name, year, and problem code together.</p>
+                </div>
+              </details>
+              <details class="community-form-extra"
+                       {% if form.pitfalls.value or form.solution_outline.value or form.pitfalls.errors or form.solution_outline.errors %} open{% endif %}>
+                <summary>
+                  <i class="ti ti-notes" aria-hidden="true"></i><span>Supporting notes</span><span class="community-field-note">Optional</span><i class="ti ti-chevron-down community-disclosure-chevron"
+   aria-hidden="true"></i>
+                </summary>
+                <div class="community-section-fields pt-3">
+                  {% include 'pages/partials/community-form-field.html' with field=form.pitfalls only %}
+                  {% include 'pages/partials/community-form-field.html' with field=form.solution_outline private=True only %}
+                </div>
+              </details>
+            </section>
+            <div class="community-compose-footer">
+              <div class="community-sharing form-check">
+                {{ form.sharing_confirmed }}
+                <label class="form-check-label"
+                       for="{{ form.sharing_confirmed.id_for_label }}">{{ form.sharing_confirmed.label }}</label>
+                <div class="community-field-errors"
+                     id="{{ form.sharing_confirmed.id_for_label }}_errors"
+                     role="alert">
+                  {% for error in form.sharing_confirmed.errors %}<p class="mb-0">{{ error }}</p>{% endfor %}
+                </div>
+              </div>
+              <div class="d-flex flex-wrap align-items-center gap-3 mt-3">
+                <button type="submit"
+                        name="action"
+                        value="check"
+                        formnovalidate
+                        class="btn btn-primary"
+                        data-check-button>
+                  <i class="ti ti-search me-1" aria-hidden="true" data-check-icon></i><span data-check-label>Check for similar problems</span>
+                </button>
+                <span class="community-field-note">Compare matches before submitting.</span>
+              </div>
+            </div>
+          </div>
+          {% include 'pages/partials/community-similarity.html' %}
+          {% if similarity.available %}
+            <details class="card community-statement-preview mt-3">
+              <summary>
+                <i class="ti ti-math" aria-hidden="true"></i> Preview your statement<i class="ti ti-chevron-down community-disclosure-chevron ms-auto"
+   aria-hidden="true"></i>
+              </summary>
+              <div class="community-problem-text p-3 border-top" data-community-math>{{ form.statement_latex.value }}</div>
+            </details>
+            <section class="card mt-3"
+                     data-submit-region
+                     aria-labelledby="community-submit-heading">
+              <div class="card-body">
+                <div class="d-flex align-items-center gap-2 mb-2">
+                  <i class="ti ti-send text-primary fs-20" aria-hidden="true"></i>
+                  <h2 class="header-title fs-16 mb-0" id="community-submit-heading">Review and submit</h2>
+                </div>
+                <input type="hidden" name="similarity_token" value="{{ similarity_token }}" />
+                {% if similarity.matches %}
+                  <div class="form-check my-3">
+                    <input type="checkbox"
+                           class="form-check-input"
+                           id="matches-acknowledged"
+                           name="matches_acknowledged"
+                           value="1"
+                           required />
+                    <label for="matches-acknowledged" class="form-check-label">
+                      I have reviewed these possible matches and still want to submit this problem for admin review.
+                    </label>
+                  </div>
+                {% endif %}
+                <p class="text-muted fs-sm" data-check-state>
+                  Details checked. Admins may use ChatGPT to review your statement, metadata, and optional private solution outline.
+                </p>
+                <button type="submit"
+                        name="action"
+                        value="submit"
+                        class="btn btn-primary"
+                        data-problem-submit>
+                  <i class="ti ti-arrow-right me-1" aria-hidden="true"></i>Submit for admin review
+                </button>
+              </div>
+            </section>
+          {% endif %}
+        </form>
+      </div>
+      <aside class="col-lg-4 col-xl-3 d-none d-lg-block"
+             aria-label="Submission guide">
+        <div class="community-compose-guide">
+          <div class="card community-readiness-card">
+            <div class="card-body">
+              <span class="community-guide-eyebrow">YOUR SUBMISSION</span>
+              <h2 class="fs-16 fw-semibold mt-2 mb-1">Submission checklist</h2>
+              <div class="community-readiness" data-form-progress hidden>
+                <p class="text-muted fs-sm mb-2"
+                   data-completion-count
+                   aria-live="polite">Required details</p>
+                <progress value="0"
+                          max="9"
+                          aria-label="Required details completed"
+                          data-completion-progress></progress>
+              </div>
+              <nav class="community-compose-checklist" aria-label="Problem details">
+                <a href="#problem-content" data-section-link="problem-content"><span class="community-check-icon"><i class="ti ti-pencil" aria-hidden="true"></i></span><span>The problem<small>Title and complete statement</small></span><span class="community-check-status" data-section-count>0/2</span></a>
+                <a href="#library-details" data-section-link="library-details"><span class="community-check-icon"><i class="ti ti-books" aria-hidden="true"></i></span><span>Library details<small>Subject, difficulty, and ideas</small></span><span class="community-check-status" data-section-count>0/5</span></a>
+                <a href="#problem-source" data-section-link="problem-source"><span class="community-check-icon"><i class="ti ti-at" aria-hidden="true"></i></span><span>Attribution<small>Origin and author credit</small></span><span class="community-check-status" data-section-count>0/2</span></a>
+              </nav>
+              <button type="submit"
+                      form="community-problem-form"
+                      name="action"
+                      value="check"
+                      formnovalidate
+                      class="btn btn-primary w-100"
+                      data-check-button>
+                <i class="ti ti-search me-1" aria-hidden="true" data-check-icon></i><span data-check-label>Check library</span>
+              </button>
+              <p class="community-field-note text-center mt-2 mb-0" data-library-state>
+                {% if similarity.available %}
+                  Library check complete
+                {% else %}
+                  Required before you can post
+                {% endif %}
+              </p>
+            </div>
+          </div>
+          <div class="community-compose-note">
+            <i class="ti ti-users-group" aria-hidden="true"></i>
+            <div>
+              <strong>A community contribution</strong>
+              <p>
+                Your post is visible to signed-in members. Approval keeps it in the community collection, separate from the main library.
+              </p>
+            </div>
+          </div>
+          <a href="{{ community_list_url }}" class="community-back-link"><i class="ti ti-arrow-left" aria-hidden="true"></i>Back to community problems</a>
+        </div>
+      </aside>
+    </div>
+  </div>
+{% endblock page_content %}
+{% block extra_javascript %}
+  {% include 'pages/partials/community-math.html' %}
+  {% include 'pages/partials/community-compose-script.html' %}
+{% endblock extra_javascript %}

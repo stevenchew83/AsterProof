@@ -121,6 +121,7 @@
             {% endif %}
             {% if row.statement %}
             {% include 'partials/statement-render-content.html' with segments=row.statement_render_segments render_style='classic' %}
+            <a href="{% url 'pages:statement_report_create' row.statement.statement_uuid %}" class="btn btn-outline-secondary btn-sm mt-3"><i class="ti ti-flag me-1" aria-hidden="true"></i>Report a statement error</a>
             {% else %}
             <div class="alert alert-light border mb-0" role="alert">
               No linked statement is available for this problem yet.
