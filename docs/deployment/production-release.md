@@ -231,6 +231,11 @@ Only when the user explicitly requests delayed monitoring, assign the named +1 h
 
 ## Offline mathematical evaluation schema
 
+The later four-table synthetic assessment prototype is a separate exact bundle.
+Follow [its release contract](assessment-prototype-release.md); it preserves the
+existing evidence workspace and requires a separately installed trusted allowance.
+Its source preparation does not authorize authority installation or enable AI.
+
 The separately bounded `solutions.0010_offline_evaluation_contract` release adds
 only nineteen empty evidence tables. Follow [offline evaluation release](offline-evaluation-release.md)
 for the frozen migration/delta, active-code PostgreSQL proof and future authority

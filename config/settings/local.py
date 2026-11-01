@@ -9,6 +9,7 @@ from .base import env
 # ------------------------------------------------------------------------------
 # https://docs.djangoproject.com/en/dev/ref/settings/#debug
 DEBUG = True
+SYNTHETIC_REVIEW_PROTOTYPE_ENABLED = True
 SOLUTION_DOCUMENT_WRITES_ENABLED = env.bool("SOLUTION_DOCUMENT_WRITES_ENABLED", default=True)
 LEARNING_MODULE_ENABLED = env.bool("LEARNING_MODULE_ENABLED", default=True)
 LEARNING_CONTRIBUTIONS_ENABLED = env.bool("LEARNING_CONTRIBUTIONS_ENABLED", default=True)

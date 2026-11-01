@@ -202,7 +202,10 @@ def rehearse(connection, *, root: Path = ROOT, source_sha: str = "local-worktree
     old_tables = set(connection.introspection.table_names())
     before = preserved_state(connection, old_tables)
     executor = MigrationExecutor(connection)
-    validate_plan(executor.migration_plan(executor.loader.graph.leaf_nodes()))
+    # This historical rehearsal exercises only its frozen migration, even after
+    # newer solution migrations exist. Production PLAN_CHECK still rejects any
+    # pending migration outside its exact release allowance.
+    validate_plan(executor.migration_plan([("solutions", MIGRATION_NAME)]))
     executor.migrate([("solutions", MIGRATION_NAME)])
     verify_preservation(connection, old_tables, before)
     report = {

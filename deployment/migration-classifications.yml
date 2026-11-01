@@ -280,6 +280,34 @@
         "verified_database_recovery_point"
       ],
       "rationale": "Adds separate community statement/proof revisions, explicit publication visibility, private attempts, immutable assets, moderation history and reports. The legacy audience flag is added with true only for existing posts, then its application default becomes false; no public publication, consent, proof or attempt rows are created. Community difficulty may become NULL and solution-dependent metadata may be absent. Previous application readers do not enforce new private/publication boundaries, and previous writers omit new required columns, so ordinary code rollback is prohibited. Existing source records and canonical identities are preserved. Requires a separately reviewed frozen deployment allowance, PostgreSQL preservation/privacy rehearsal and recovery proof; classification does not expand production authority."
+    },
+    "solutions.0011_problem_evaluation_packages": {
+      "classification": "backward-compatible-schema",
+      "recovery_required": false,
+      "code_rollback_permitted": true,
+      "data_preconditions": [
+        "exact_four_table_prototype_bundle",
+        "existing_evaluation_schema_applied",
+        "existing_records_sequences_and_triggers_preserved",
+        "new_package_approval_report_and_hint_tables_empty",
+        "student_statement_ai_and_synthetic_prototype_disabled",
+        "no_provider_or_worker_activation"
+      ],
+      "rationale": "Creates only four isolated immutable reference-package, human-decision, synthetic-report and hint-reveal tables across two frozen migrations. No backfill, account permission grants, publication, policy funding or provider activation. Existing evaluation workspace models and migration 0010 remain unchanged. Requires the exact PostgreSQL 17.9 preservation proof and a separately installed trusted allowance; this classification grants no production authority."
+    },
+    "solutions.0012_synthetic_review_prototype": {
+      "classification": "backward-compatible-schema",
+      "recovery_required": false,
+      "code_rollback_permitted": true,
+      "data_preconditions": [
+        "exact_four_table_prototype_bundle",
+        "existing_evaluation_schema_applied",
+        "existing_records_sequences_and_triggers_preserved",
+        "new_package_approval_report_and_hint_tables_empty",
+        "student_statement_ai_and_synthetic_prototype_disabled",
+        "no_provider_or_worker_activation"
+      ],
+      "rationale": "Creates only four isolated immutable reference-package, human-decision, synthetic-report and hint-reveal tables across two frozen migrations. No backfill, account permission grants, publication, policy funding or provider activation. Existing evaluation workspace models and migration 0010 remain unchanged. Requires the exact PostgreSQL 17.9 preservation proof and a separately installed trusted allowance; this classification grants no production authority."
     }
   }
 }

@@ -4,6 +4,7 @@ from django.contrib import admin
 
 from inspinia.users.roles import user_has_admin_role
 
+from . import admin_evaluation  # noqa: F401 - Register append-only mathematical curation.
 from .review_models import SolutionReviewPolicy
 
 

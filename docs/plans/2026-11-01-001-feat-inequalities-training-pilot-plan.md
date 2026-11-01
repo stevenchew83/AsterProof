@@ -27,14 +27,18 @@ Steven/coach content decisions, learner evaluation and production release are no
 marked complete by local implementation. No public content or production state
 was changed.
 
-## Community-first release baseline — 1 November 2026
+## Assessment → Community → Training release baseline — 1 November 2026
 
-Community deploys and qualifies before Training. Preserve its source, privacy,
-public-proof visibility, schema and AI-off controls. The historical Community
-migration is `pages.0045_community_proof_library`; the Training prerequisite
+The coordinated order is Assessment, then Community, then Training. Assessment
+PR #398 (`ae895563`) adds `solutions.0011_problem_evaluation_packages` and
+`solutions.0012_synthetic_review_prototype`; both must be applied before Training.
+Preserve Assessment and Community source, privacy, public-proof visibility, schema
+and AI-off controls. This order grants no AI activation, provider use, funded policy
+or access. Community uses `pages.0045_community_proof_library`; the Training
+prerequisite
 migration is now `pages.0046_prerequisitegraphstate_catalogueprerequisite`.
-Training still adds four migrations and 20 new tables, with 93 historical migration
-sources frozen against the Community-qualified baseline.
+Training still adds four migrations and 20 new tables, with 95 historical migration
+sources frozen against the Assessment-and-Community-qualified baseline.
 
 If the healthy Community data-class release is not rollback-eligible, qualify it
 through the ordinary protected `none` release before attempting the Training bridge.
@@ -45,7 +49,8 @@ migration records. The schema successor then requires that real, verified bridge
 as its eligible compatible recovery baseline.
 
 Earlier PostgreSQL reports retain their historical prerequisite 0045/92-source
-claims. Fresh Community-preservation and Training proof for the 0046/93 baseline
+claims. Any executed 93-source baseline reports remain historical as well. Fresh
+Assessment/Community-preservation and Training proof for the 0046/95 baseline
 is pending until the exact qualified release/source identities are bound to the
 actual rehearsal and packaged evidence. Do not reuse the earlier proof as approval
 of this changed baseline. See the [current release sequence](../deployment/training-2-bootstrap-recovery.md).
@@ -1163,7 +1168,8 @@ limited to the requested immediate checks unless delayed follow-up is explicitly
    U10 delivers Foundations and reusable packages; U11 delivers M2b–M2e; U12 delivers
    M3/M4; U13 qualifies M5. Use the complete area assignment rather than stopping
    implementation planning after Inequalities.
-3. Deploy and qualify Community first, including its 0045 migration, then satisfy
+3. Apply Assessment 0011/0012, then deploy and qualify Community including its
+   0045 migration before Training. Preserve all AI-off controls and then satisfy
    the strict eligible-baseline and hard-off bridge gates described above. Before
    a production proposal: revalidate actual active/target revisions, verified
    owner binding, private-root persistence/ownership/recovery, content mappings,

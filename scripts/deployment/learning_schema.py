@@ -50,8 +50,8 @@ MIGRATION_SHA256 = hashlib.sha256(canonical_json(MIGRATION_FILES)).hexdigest()
 # Freeze only from normalized actual PostgreSQL 17.9 catalog output.
 DELTA_SHA256 = "351ffd6792fc2dfbcd3f670cd78576391f7ebaeced08d7ff317bd3ad19603c24"
 APPROVED_POSTGRESQL_DELTA_SHA256 = DELTA_SHA256
-PRIOR_MIGRATION_SOURCE_SHA256 = "97c7440d16d6e7c258f5681c63c9d078506c3537312c710a0c7466f8bb40038a"
-PRIOR_MIGRATION_SOURCE_COUNT = 93
+PRIOR_MIGRATION_SOURCE_SHA256 = "d72d4cda2014462f662a693015246d414fb807641c768edcb23c2a2956e5fee7"
+PRIOR_MIGRATION_SOURCE_COUNT = 95
 MIGRATION_SUPPORT_FILES = {
     "inspinia/learning/migrations/__init__.py": hashlib.sha256(b"").hexdigest(),
 }
@@ -87,6 +87,8 @@ REQUIRED_BASE_MIGRATIONS = (
     *BASE_TARGETS,
     ("website", "0003_newsletter_automation"),
     ("solutions", "0010_offline_evaluation_contract"),
+    ("solutions", "0011_problem_evaluation_packages"),
+    ("solutions", "0012_synthetic_review_prototype"),
 )
 REQUIRED_BASE_TABLES = {
     "pages_catalogueconcept",
@@ -103,6 +105,10 @@ REQUIRED_BASE_TABLES = {
     "training_material",
     "website_librarylecture",
     "solutions_problemsolution",
+    "solutions_problemevaluationpackage",
+    "solutions_evaluationpackageapproval",
+    "solutions_syntheticreview",
+    "solutions_synthetichintreveal",
     "users_user",
     "website_newslettersubscriber",
 }
@@ -218,6 +224,21 @@ for label in labels:
         raise RuntimeError('Previous Community private report state changed')
     if ModerationEvent.objects.filter(problem=problem).count() != (5 if label=='withdrawn' else 4):
         raise RuntimeError('Previous Community moderation history changed')
+from inspinia.solutions.problem_evaluation_models import ProblemEvaluationPackage
+from inspinia.solutions.prototype_models import SyntheticReview
+package=ProblemEvaluationPackage.objects.get(problem__contest='LEARNING REHEARSAL',version=1)
+package.check_integrity()
+if package.content['statement'] != 'For real x, prove x^2 >= 0.' or package.approval_status != 'revoked':
+    raise RuntimeError('Previous Assessment package or revocation state changed')
+if list(package.approvals.order_by('pk').values_list('decision',flat=True)) != ['approved','revoked']:
+    raise RuntimeError('Previous Assessment immutable decision history changed')
+review=SyntheticReview.objects.get(case_id='synthetic-alg-development-invalid',mode='coach')
+review.check_integrity()
+if review.packet['provenance'] != 'synthetic_unapproved' or not review.private_hints:
+    raise RuntimeError('Previous Assessment private synthetic report changed')
+hint=review.hint_reveals.get()
+if hint.level != 1 or hint.finding_id not in review.private_hints or hint.reviewer_id != review.requested_by_id:
+    raise RuntimeError('Previous Assessment private hint attribution changed')
 """
 
 

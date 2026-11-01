@@ -40,6 +40,7 @@ def test_learning_bundle_uses_its_own_rehearsal_with_shared_arguments(monkeypatc
 @pytest.mark.parametrize(
     ("migration", "module"),
     [
+        ("solutions.0011_problem_evaluation_packages", "assessment_prototype_schema_rehearsal"),
         ("pages.0044_learning_page_activity", "learning_activity_schema_rehearsal"),
         ("solutions.0010_offline_evaluation_contract", "solution_evaluation_schema_rehearsal"),
         (

@@ -14,11 +14,16 @@ The exact additive bundle is:
 - learning.0002_contentdraft_is_archived
 - training.0006_learningpath_learningpathrevision_learningpathitem_and_more
 
-Community deploys first, including `pages.0045_community_proof_library`. Training
+The coordinated order is Assessment → Community → Training. Assessment PR #398
+(`ae895563`) includes `solutions.0011_problem_evaluation_packages` and
+`solutions.0012_synthetic_review_prototype`; both must be applied before Training.
+Community follows with `pages.0045_community_proof_library`. Training
 then adds exactly these four migrations and 20 new tables. Its allowance must bind
-the renumbered migration files and all 93 historical migration sources, preserving
-Community schema, records, visibility and AI-off controls. This document does not
-claim that the Community production release or its qualification has completed.
+the renumbered migration files and all 95 historical migration sources, preserving
+Assessment and Community schema, records, visibility and AI-off controls. This
+ordering enables no AI execution, provider use, funded policy or access grant.
+This document does not claim that the Community production release or its
+qualification has completed.
 
 The learning_schema.py deployment module binds the accepted migration files to their
 real SHA-256 digests. A local SQLite rehearsal upgrades the preceding schema and checks
@@ -41,12 +46,14 @@ Historical PostgreSQL 17.9 verification passed for the earlier bundle, where the
 Training prerequisite migration was numbered 0045 and the prior-source count was 92.
 See [the historical PostgreSQL verification record](../validation/training-2-postgresql17-verification.md).
 Those reports retain their original identifiers and proof claims; they do not
-qualify the new Community-first baseline or the renumbered 0046 bundle.
+qualify the new Assessment-and-Community baseline or the renumbered 0046 bundle.
+Earlier 93-source baseline reports likewise remain historical evidence; their
+executed identifiers and proof claims are not rewritten as 95-source proof.
 
-New-baseline proof is pending until the actual Community-qualified source and
-Training bridge/successor identities are bound to a fresh PostgreSQL 17.9 rehearsal.
-Freeze and verify its exact delta, all 93 historical sources, Community preservation,
-release identities and compatible reader before dispatch. Precommit evidence is
+New-baseline proof is pending until the actual Assessment-and-Community-qualified
+source and Training bridge/successor identities are bound to a fresh PostgreSQL 17.9
+rehearsal. Freeze and verify its exact delta, all 95 historical sources, Assessment
+and Community preservation, release identities and compatible reader before dispatch. Precommit evidence is
 not deployable release proof. CI and the protected release build must repeat the
 proof on the existing pinned Linux PostgreSQL 17.9 container. No local evidence
 installs production authority.
@@ -56,7 +63,7 @@ with verified learning-reader bytes. An ordinary previous reader cannot qualify.
 A production baseline without that verified reader cannot qualify; installation
 of schema support alone does not satisfy this recovery prerequisite.
 
-The approved [Community-first qualification and two-stage bootstrap/recovery sequence](training-2-bootstrap-recovery.md)
+The approved [Assessment/Community qualification and two-stage bootstrap/recovery sequence](training-2-bootstrap-recovery.md)
 establishes that baseline through a real no-DDL bridge activation before the schema
 release. It does not waive the pre-DDL recovery check or migration validation.
 

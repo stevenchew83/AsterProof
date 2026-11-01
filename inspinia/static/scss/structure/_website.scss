@@ -5,6 +5,10 @@
     --w-muted: #516461;
     --w-accent: #26766c;
     --w-line: #d9ded6;
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+    min-height: 100dvh;
     color: var(--w-ink);
     background: var(--w-paper);
     font-size: 14px;
@@ -21,6 +25,7 @@
     p { margin: 0 0 14px; }
     ::selection { background: #c9e2d8; color: #203544; }
 }
+.website > main { flex: 1 0 auto; }
 .website-container { width: min(1160px, calc(100% - 64px)); margin-inline: auto; }
 .website-skip { position: absolute; left: 24px; top: -100px; z-index: 20; padding: 10px 18px; background: #fff; &:focus { top: 12px; } }
 .website-header { position: relative; z-index: 5; border-bottom: 1px solid var(--w-line); }

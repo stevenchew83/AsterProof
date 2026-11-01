@@ -42,5 +42,6 @@ LEARNING_PUBLICATION_ENABLED = True
 LEARNING_PRIVATE_ASSET_ROOT = str(BASE_DIR / ".test-learning-assets")
 LEARNING_AGREEMENT_VERSION = "synthetic-rights-retained-v1"
 LEARNING_AGREEMENT_APPROVED = True
+SYNTHETIC_REVIEW_PROTOTYPE_ENABLED = True
 # Your stuff...
 # ------------------------------------------------------------------------------

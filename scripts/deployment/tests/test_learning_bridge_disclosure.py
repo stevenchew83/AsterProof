@@ -8,6 +8,7 @@ from types import SimpleNamespace
 
 import pytest
 
+from scripts.deployment import assessment_prototype_schema
 from scripts.deployment import community_proof_schema
 from scripts.deployment import learning_bridge
 from scripts.deployment import learning_schema
@@ -127,13 +128,26 @@ def test_successor_synthesizes_the_four_pending_migrations_despite_no_migration_
     assert history.calls == {"bridge": [], "schema": [history.root]}
 
 
-def test_community_qualification_bridge_and_successor_keep_separate_exact_plans(history, monkeypatch):
+def test_assessment_community_qualification_bridge_and_successor_keep_separate_exact_plans(history, monkeypatch):
+    for relative in (
+        assessment_prototype_schema.MIGRATION_PATH,
+        assessment_prototype_schema.SECOND_MIGRATION_PATH,
+    ):
+        history.write(relative, (ROOT / relative).read_bytes())
+    assessment_sha = history.commit("Synthetic Assessment prototype release")
+    assessment = disclose(history, history.baseline, assessment_sha, "backward-compatible-schema")
+    assert assessment["migrations"] == [
+        {"migration": f"{app}.{name}", "classification": "backward-compatible-schema"}
+        for app, name in assessment_prototype_schema.MIGRATIONS
+    ]
+    assert history.calls == {"bridge": [], "schema": []}
+
     proof_validated = []
     monkeypatch.setattr(community_proof_schema, "validate_candidate", proof_validated.append)
     for relative in community_proof_schema.INPUT_HASHES:
         history.write(relative, (ROOT / relative).read_bytes())
     community_sha = history.commit("Synthetic Community proof release")
-    proof = disclose(history, history.baseline, community_sha, "data-or-non-compatible")
+    proof = disclose(history, assessment_sha, community_sha, "data-or-non-compatible")
     assert proof["migrations"] == [
         {"migration": "pages.0045_community_proof_library", "classification": "data-or-non-compatible"},
     ]
@@ -166,10 +180,15 @@ def test_community_qualification_bridge_and_successor_keep_separate_exact_plans(
     assert history.calls == {"bridge": [history.root], "schema": [history.root]}
 
 
-def test_bridge_cannot_defer_the_community_proof_migration(history, monkeypatch):
+@pytest.mark.parametrize("other_plan", ["community_proof", "assessment"])
+def test_bridge_cannot_defer_another_reviewed_schema_plan(history, monkeypatch, other_plan):
     proof_validated = []
     monkeypatch.setattr(community_proof_schema, "validate_candidate", proof_validated.append)
-    for relative in community_proof_schema.INPUT_HASHES:
+    relatives = community_proof_schema.INPUT_HASHES if other_plan == "community_proof" else (
+        assessment_prototype_schema.MIGRATION_PATH,
+        assessment_prototype_schema.SECOND_MIGRATION_PATH,
+    )
+    for relative in relatives:
         history.write(relative, (ROOT / relative).read_bytes())
     bridge_sha = commit_bridge(history)
 

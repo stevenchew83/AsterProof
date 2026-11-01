@@ -408,6 +408,15 @@ def test_sqlite_upgrade_preserves_sources_progress_solutions_and_subscribers(tmp
             "pages_moderationevent": 21,
             "pages_problempublication": 5,
         }
+        assert {
+            table: connection.execute('SELECT count(*) FROM "' + table + '"').fetchone()[0]  # noqa: S608
+            for table in ASSESSMENT_TABLES
+        } == {
+            "solutions_problemevaluationpackage": 1,
+            "solutions_evaluationpackageapproval": 2,
+            "solutions_syntheticreview": 1,
+            "solutions_synthetichintreveal": 1,
+        }
     # Run the exact source-smoke checks too; SQLite remains explicitly non-release evidence.
     smoke = subprocess.run(
         [sys.executable, "-c", schema.smoke_command({"ENGINE": "django.db.backends.sqlite3", "NAME": str(database)})],
@@ -446,7 +455,7 @@ def refresh_starting_fingerprints(start):
 def test_learning_baseline_requires_community_before_its_four_migrations():
     assert schema.BASE_TARGETS[0] == ("pages", "0045_community_proof_library")
     assert schema.MIGRATIONS[0] == ("pages", "0046_prerequisitegraphstate_catalogueprerequisite")
-    assert schema.PRIOR_MIGRATION_SOURCE_COUNT == 93
+    assert schema.PRIOR_MIGRATION_SOURCE_COUNT == 95
     assert COMMUNITY_TABLES <= schema.REQUIRED_BASE_TABLES
     assert not COMMUNITY_TABLES & schema.TABLES
 
@@ -489,3 +498,45 @@ def test_reviewed_smoke_and_actual_rehearsal_share_exact_read_only_checks():
     assert old_reader_smoke() == schema.smoke_command()
     assert "CommunityPrivateAsset" in schema.smoke_command()
     assert "Previous Community held/withdrawn proof visibility changed" in schema.smoke_command()
+
+
+ASSESSMENT_TABLES = {
+    "solutions_problemevaluationpackage",
+    "solutions_evaluationpackageapproval",
+    "solutions_syntheticreview",
+    "solutions_synthetichintreveal",
+}
+
+
+def test_learning_requires_both_assessment_migrations_as_preserved_history():
+    assert ("solutions", "0011_problem_evaluation_packages") in schema.REQUIRED_BASE_MIGRATIONS
+    assert ("solutions", "0012_synthetic_review_prototype") in schema.REQUIRED_BASE_MIGRATIONS
+    assert ASSESSMENT_TABLES <= schema.REQUIRED_BASE_TABLES
+    assert not ASSESSMENT_TABLES & schema.TABLES
+
+
+@pytest.mark.parametrize("table", sorted(ASSESSMENT_TABLES))
+def test_learning_rejects_each_missing_assessment_table_even_with_valid_fingerprints(table):
+    start = starting_audit()
+    start["catalog_snapshot"]["tables"] = [row for row in start["catalog_snapshot"]["tables"] if row["table"] != table]
+    refresh_starting_fingerprints(start)
+    with pytest.raises(schema.LearningSchemaError, match="required preserved tables"):
+        schema.expected_catalog_audit(start, frozen_delta())
+
+
+@pytest.mark.parametrize("migration", ["0011_problem_evaluation_packages", "0012_synthetic_review_prototype"])
+def test_learning_rejects_missing_assessment_migrations_even_with_all_tables(migration):
+    start = starting_audit()
+    start["migration_rows"].remove(["solutions", migration])
+    refresh_starting_fingerprints(start)
+    with pytest.raises(schema.LearningSchemaError, match="previous migration baseline"):
+        schema.expected_catalog_audit(start, frozen_delta())
+
+
+@pytest.mark.parametrize("migration", ["0011_problem_evaluation_packages", "0012_synthetic_review_prototype"])
+def test_assessment_migrations_are_immutable_historical_learning_inputs(tmp_path, migration):
+    copy_candidate(tmp_path)
+    path = tmp_path / "inspinia/solutions/migrations" / (migration + ".py")
+    path.write_bytes(path.read_bytes() + b"\n")
+    with pytest.raises(schema.LearningSchemaError, match="Historical migration sources"):
+        schema.validate_candidate(tmp_path)

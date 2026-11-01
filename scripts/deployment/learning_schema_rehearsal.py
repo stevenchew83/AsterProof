@@ -187,6 +187,65 @@ def _seed_community(apps, user):
         )
 
 
+def _seed_assessment(apps, user, problem):
+    """Preserve populated synthetic evidence without enabling the prototype or grants."""
+    import uuid
+
+    from inspinia.solutions.evaluation_contracts import package_digest
+    from inspinia.solutions.synthetic_reviews import stored_review_digest
+    from inspinia.solutions.synthetic_reviews import synthetic_bundle
+
+    content = {
+        "schema_version": 1,
+        "statement": "For real x, prove x^2 >= 0.",
+        "assumptions": ["x is real"],
+        "domain": "ALG",
+        "level": "Synthetic preservation fixture",
+        "images": [],
+        "known_pitfalls": [],
+        "references": [
+            {
+                "id": "square",
+                "method": "direct",
+                "proof": "A real square is nonnegative.",
+                "source": "Synthetic fixture, not an actual mathematical approval",
+            },
+        ],
+        "rubric": None,
+    }
+    package = apps.get_model("solutions", "ProblemEvaluationPackage").objects.create(
+        problem=problem,
+        version=1,
+        content=content,
+        content_digest=package_digest(str(problem.problem_uuid), 1, content),
+        created_by=user,
+    )
+    for decision in ("approved", "revoked"):
+        apps.get_model("solutions", "EvaluationPackageApproval").objects.create(
+            package=package,
+            package_digest=package.content_digest,
+            reviewer=user,
+            decision=decision,
+            notes=f"Synthetic historical {decision} fixture, not a real approval.",
+        )
+    review = apps.get_model("solutions", "SyntheticReview")(
+        requested_by=user,
+        idempotency_key=uuid.uuid4(),
+        case_id="synthetic-alg-development-invalid",
+        mode="coach",
+        **synthetic_bundle("synthetic-alg-development-invalid", "coach"),
+    )
+    review.content_digest = stored_review_digest(review)
+    review.save()
+    finding_id = next(iter(review.private_hints))
+    apps.get_model("solutions", "SyntheticHintReveal").objects.create(
+        review=review,
+        reviewer=user,
+        finding_id=finding_id,
+        level=1,
+    )
+
+
 def _seed(apps):
     """Only synthetic records; historical models avoid current write-side hooks."""
     from django.utils import timezone
@@ -271,6 +330,7 @@ def _seed(apps):
         problem="P1",
         topic="ALG",
     )
+    _seed_assessment(apps, user, problem)
     solution = apps.get_model("solutions", "ProblemSolution").objects.create(
         author=user,
         problem=problem,
