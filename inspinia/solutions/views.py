@@ -64,6 +64,8 @@ from inspinia.solutions.document_source import solution_source
 from inspinia.solutions.forms import PDF_DISPLAY_FIELDS
 from inspinia.solutions.forms import ProblemSolutionBlockFormSet
 from inspinia.solutions.forms import ProblemSolutionForm
+from inspinia.solutions.image_access import editor_image_base_url
+from inspinia.solutions.image_access import internal_image_base_url
 from inspinia.solutions.models import ProblemSolution
 from inspinia.solutions.models import ProblemSolutionBlock
 from inspinia.solutions.models import SolutionBlockType
@@ -345,6 +347,7 @@ def _solution_card_rows(solutions: list[ProblemSolution]) -> list[dict]:
                 "block_count": solution.block_count if hasattr(solution, "block_count") else len(blocks),
                 "edit_url": reverse("solutions:problem_solution_edit", args=[solution.problem.problem_uuid]),
                 "id": solution.id,
+                "image_base_url": internal_image_base_url(solution.pk),
                 "is_published": solution.status == ProblemSolution.Status.PUBLISHED,
                 "has_public_link": bool(getattr(solution, "public_share_count", 0)),
                 "share_manage_url": reverse("solutions:problem_solution_share", args=[solution.problem.problem_uuid]),
@@ -656,7 +659,7 @@ def _solution_list_context(  # noqa: PLR0913
         "problem_list_next_url": request.get_full_path(),
         "selected_solution_id": selected_solution_id,
         "show_inline_draft_editor": show_inline_draft_editor or request.GET.get("edit") == "1",
-        "solution_media_base_url": _solution_media_base_url(request),
+        "solution_media_base_url": editor_image_base_url(problem.problem_uuid),
         "visible_solution_empty_message": visible_solution_empty_message,
         "visible_solution_rows": visible_solution_rows,
         "visible_solution_title": visible_solution_title,
@@ -1124,7 +1127,7 @@ def problem_solution_edit_view(request, problem_uuid):
             "solutions:solution_body_image_upload",
             args=[problem.problem_uuid],
         ),
-        "solution_media_base_url": _solution_media_base_url(request),
+        "solution_media_base_url": editor_image_base_url(problem.problem_uuid),
         "editor_coverage": editor_coverage,
         "solution_status_badge_class": _solution_status_badge(current_status),
         "solution_status_label": ProblemSolution.Status(current_status).label,
@@ -1177,7 +1180,7 @@ def problem_solution_share_view(request, problem_uuid):
                 or snapshot_digest(share.snapshot) != snapshot_digest(snapshot)
             ),
         ),
-        "solution_media_url": settings.MEDIA_URL,
+        "solution_media_url": internal_image_base_url(solution.pk),
         "review_snapshot": True,
         "review_digest": snapshot_digest(snapshot) if snapshot else "",
     }
@@ -1386,6 +1389,6 @@ def solution_body_image_upload_view(request, problem_uuid):  # noqa: C901, PLR09
     return JsonResponse(
         {
             "path": canonical_path,
-            "url": _absolute_media_file_url(request, row.file.url),
+            "url": request.build_absolute_uri(internal_image_base_url(solution.pk) + canonical_path),
         },
     )

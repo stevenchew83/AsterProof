@@ -1,4 +1,4 @@
-<article class="public-shared-paper"{% if shared_anchor %} id="{{ shared_anchor }}"{% endif %} aria-label="Shared solution">
+<article class="public-shared-paper" data-solution-image-base-url="{{ image_base_url|default:solution_media_url }}"{% if shared_anchor %} id="{{ shared_anchor }}"{% endif %} aria-label="Shared solution">
   <header>
     <p class="public-shared-kicker">A shared solution</p>
     {% if review_snapshot or shared_anchor %}<h2 class="public-shared-title">{{ snapshot.title }}</h2>{% else %}<h1>{{ snapshot.title }}</h1>{% endif %}

@@ -4,7 +4,9 @@ const {renderDocument} = require("./solution-document-preview.js");
 async function renderInto(container, source, config = {}) {
   const math = window.MathJax;
   if (math?.typesetClear) math.typesetClear([container]);
-  const result = renderDocument(container, source, {...(window.ASTERPROOF_SOLUTION_MEDIA || {}), origin: location.origin, ...config});
+  const scopedBase = container.closest("[data-solution-image-base-url]")?.dataset.solutionImageBaseUrl;
+  const scopedConfig = scopedBase ? {baseUrl: scopedBase, mediaUrlPrefix: scopedBase} : {};
+  const result = renderDocument(container, source, {...(window.ASTERPROOF_SOLUTION_MEDIA || {}), origin: location.origin, ...config, ...scopedConfig});
   const ready = window.AsterProofMathReady || math?.startup?.promise;
   if (ready) { try { await ready; } catch (_) { /* Source remains visible. */ } }
   if (window.MathJax?.typesetPromise) { try { await window.MathJax.typesetPromise(result.scopes); } catch (_) { /* Source remains visible. */ } }

@@ -1,5 +1,7 @@
 const assert = require('node:assert/strict');
 const {test} = require('node:test');
+const {readFileSync} = require('node:fs');
+const vm = require('node:vm');
 const {renderDocument, imageUrl} = require('../../inspinia/static/js/solution-document-preview.js');
 
 function dom() {
@@ -50,4 +52,44 @@ test('image resolution accepts only managed paths through a safe configured medi
   const image = descendants(container).find(node => node.tagName === 'img');
   assert.equal(image.src, '/media/' + path);
   assert.equal(image.style.width, '90%');
+});
+
+test('each collection paper overrides global media settings with its own share route', async () => {
+  const bases = ['/solutions/shared/one/assets/rev-one/', '/solutions/shared/two/assets/rev-two/'];
+  const captures = [];
+  const containers = bases.map(base => ({
+    textContent: 'proof', dataset: {}, classList: {remove() {}},
+    closest() { return {dataset: {solutionImageBaseUrl: base}}; },
+  }));
+  const document = {readyState: 'complete', querySelectorAll() { return containers; }};
+  const window = {ASTERPROOF_SOLUTION_MEDIA: {mediaUrlPrefix: '/media/'}, addEventListener() {}};
+  const source = readFileSync(require.resolve('../../inspinia/static/js/solution-document-preview-entry.js'), 'utf8');
+  vm.runInNewContext(source, {
+    document, window, location: {origin: 'https://asterproof.example'},
+    require() { return {renderDocument(container, body, config) { captures.push(config); return {scopes: []}; }}; },
+  });
+  await new Promise(setImmediate);
+  const path = 'solution_body_images/' + 'b'.repeat(32) + '.png';
+  assert.deepEqual(captures.map(config => imageUrl(path, config)), bases.map(base => base + path));
+});
+
+test('legacy image renderer uses the closest paper route before global media settings', async () => {
+  const images = [];
+  const node = () => ({setAttribute() {}, appendChild() {}, className: '', textContent: ''});
+  const document = {
+    createDocumentFragment: node,
+    createElement(tag) { const element = node(); if (tag === 'img') images.push(element); return element; },
+  };
+  const window = {ASTERPROOF_SOLUTION_MEDIA: {mediaUrlPrefix: '/media/'}, MathJax: {typesetPromise: async () => {}}};
+  const source = readFileSync(require.resolve('../../inspinia/static/js/solution-latex-hybrid.js'), 'utf8');
+  vm.runInNewContext(source, {document, window, URL});
+  const base = '/solutions/entries/12/assets/';
+  const container = {
+    closest() { return {dataset: {solutionImageBaseUrl: base}}; },
+    querySelectorAll() { return []; }, removeAttribute() {}, appendChild() {}, textContent: '',
+  };
+  const path = 'solution_body_images/' + 'b'.repeat(32) + '.png';
+  await window.AsterProofSolutionLatex.renderInto(container, '\\includegraphics{' + path + '}', '/media/');
+  assert.equal(images.length, 1);
+  assert.equal(images[0].src, base + path);
 });

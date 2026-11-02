@@ -8,6 +8,7 @@ from django.templatetags.static import static
 from django.urls import reverse
 from django.views.decorators.http import require_safe
 
+from inspinia.solutions.image_access import public_image_base_url
 from inspinia.solutions.models import SolutionCollection
 from inspinia.solutions.models import SolutionPublicShare
 from inspinia.solutions.share_analytics import record_public_view
@@ -58,7 +59,7 @@ def public_solution_view(request, token):
         "hide_newsletter": True,
         "noindex": True,
         "shared_solution": True,
-        "solution_media_url": settings.MEDIA_URL,
+        "solution_media_url": public_image_base_url(share),
     }))
     record_public_view(request, share)
     return response
@@ -85,7 +86,10 @@ def public_collection_view(request, token):
     ).select_related("share").defer("share__preview_image")
     if collection.kind == SolutionCollection.Kind.PERSONAL:
         entries = entries.filter(share__solution__author_id=collection.owner_id)
-    rows = [{"anchor": f"solution-{entry.anchor}", "snapshot": entry.share.snapshot} for entry in entries]
+    rows = [{
+        "anchor": f"solution-{entry.anchor}", "snapshot": entry.share.snapshot,
+        "image_base_url": public_image_base_url(entry.share),
+    } for entry in entries]
     url = public_collection_url(collection)
     return _private_cache(render(request, "website/shared_collection.html", {
         "collection": collection,
@@ -100,5 +104,5 @@ def public_collection_view(request, token):
         "hide_newsletter": True,
         "noindex": True,
         "shared_solution": True,
-        "solution_media_url": settings.MEDIA_URL,
+        "solution_media_url": "",
     }))
