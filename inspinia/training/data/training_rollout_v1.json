@@ -1,0 +1,979 @@
+{
+  "version": 1,
+  "scope": "whole-module",
+  "catalogue_source": "pages.0038_catalogue_seed",
+  "subjects": [
+    {
+      "id": "algebra",
+      "name": "Algebra"
+    },
+    {
+      "id": "geometry",
+      "name": "Geometry"
+    },
+    {
+      "id": "number-theory",
+      "name": "Number Theory"
+    },
+    {
+      "id": "combinatorics",
+      "name": "Combinatorics"
+    }
+  ],
+  "milestones": [
+    {
+      "id": "M0",
+      "title": "Shared module and complete discovery"
+    },
+    {
+      "id": "M1",
+      "title": "Inequalities first pilot"
+    },
+    {
+      "id": "M2a",
+      "title": "Complete Foundations starter pathway"
+    },
+    {
+      "id": "M2b",
+      "title": "Algebra core entry"
+    },
+    {
+      "id": "M2c",
+      "title": "Geometry core entry"
+    },
+    {
+      "id": "M2d",
+      "title": "Number Theory core entry"
+    },
+    {
+      "id": "M2e",
+      "title": "Combinatorics core entry"
+    },
+    {
+      "id": "M3",
+      "title": "Extended coverage"
+    },
+    {
+      "id": "M4",
+      "title": "Specialist coverage"
+    },
+    {
+      "id": "M5",
+      "title": "Whole-module acceptance"
+    }
+  ],
+  "areas": [
+    {
+      "id": "Algebra:inequalities",
+      "name": "Inequalities and optimization",
+      "subject": "algebra",
+      "milestone": "M1",
+      "status": "draft",
+      "concept_count": 33,
+      "pack": "inequalities_pilot_v1",
+      "entry_note_key": "lecture-am-gm-assumptions-a-square-and-equality",
+      "covered_concept_ids": [
+        "am-gm",
+        "equality-cases"
+      ],
+      "canonical_practice_link_status": "pending_review",
+      "rights_status": "unreviewed",
+      "editorial_review": "pending",
+      "public_release": "not_released",
+      "owner": "Steven"
+    },
+    {
+      "id": "Algebra:equations",
+      "name": "Equations, substitutions, and transformations",
+      "subject": "algebra",
+      "milestone": "M2b",
+      "status": "draft",
+      "concept_count": 21,
+      "pack": "algebra_core_v1",
+      "entry_note_key": "entry-algebra-equations",
+      "covered_concept_ids": [
+        "substitution",
+        "normalization"
+      ],
+      "canonical_practice_link_status": "pending_review",
+      "rights_status": "unreviewed",
+      "editorial_review": "pending",
+      "public_release": "not_released",
+      "owner": "Steven"
+    },
+    {
+      "id": "Algebra:polynomials",
+      "name": "Polynomials and algebraic manipulation",
+      "subject": "algebra",
+      "milestone": "M2b",
+      "status": "draft",
+      "concept_count": 37,
+      "pack": "algebra_core_v1",
+      "entry_note_key": "entry-algebra-polynomials",
+      "covered_concept_ids": [
+        "polynomials",
+        "polynomial-roots",
+        "polynomial-degree"
+      ],
+      "canonical_practice_link_status": "pending_review",
+      "rights_status": "unreviewed",
+      "editorial_review": "pending",
+      "public_release": "not_released",
+      "owner": "Steven"
+    },
+    {
+      "id": "Algebra:sequences",
+      "name": "Sequences, recurrences, and summation",
+      "subject": "algebra",
+      "milestone": "M2b",
+      "status": "draft",
+      "concept_count": 20,
+      "pack": "algebra_core_v1",
+      "entry_note_key": "entry-algebra-sequences",
+      "covered_concept_ids": [
+        "telescoping",
+        "recurrences"
+      ],
+      "canonical_practice_link_status": "pending_review",
+      "rights_status": "unreviewed",
+      "editorial_review": "pending",
+      "public_release": "not_released",
+      "owner": "Steven"
+    },
+    {
+      "id": "Algebra:shared",
+      "name": "Shared proof strategies",
+      "subject": "algebra",
+      "milestone": "M2b",
+      "status": "draft",
+      "concept_count": 7,
+      "pack": "algebra_core_v1",
+      "entry_note_key": "entry-algebra-shared",
+      "covered_concept_ids": [
+        "extremal-principle",
+        "descent"
+      ],
+      "canonical_practice_link_status": "pending_review",
+      "rights_status": "unreviewed",
+      "editorial_review": "pending",
+      "public_release": "not_released",
+      "owner": "Steven"
+    },
+    {
+      "id": "Algebra:analytic",
+      "name": "Complex, trigonometric, and analytic tools",
+      "subject": "algebra",
+      "milestone": "M3",
+      "status": "draft",
+      "concept_count": 16,
+      "pack": "algebra_extended_v1",
+      "entry_note_key": "entry-algebra-analytic",
+      "covered_concept_ids": [
+        "complex-numbers",
+        "roots-of-unity"
+      ],
+      "canonical_practice_link_status": "pending_review",
+      "rights_status": "unreviewed",
+      "editorial_review": "pending",
+      "public_release": "not_released",
+      "owner": "Steven"
+    },
+    {
+      "id": "Algebra:discrete",
+      "name": "Discrete functions, rounding, and finite dynamics",
+      "subject": "algebra",
+      "milestone": "M3",
+      "status": "draft",
+      "concept_count": 8,
+      "pack": "algebra_extended_v1",
+      "entry_note_key": "entry-algebra-discrete",
+      "covered_concept_ids": [
+        "floor-ceiling"
+      ],
+      "canonical_practice_link_status": "pending_review",
+      "rights_status": "unreviewed",
+      "editorial_review": "pending",
+      "public_release": "not_released",
+      "owner": "Steven"
+    },
+    {
+      "id": "Algebra:functional",
+      "name": "Functions and functional equations",
+      "subject": "algebra",
+      "milestone": "M3",
+      "status": "draft",
+      "concept_count": 19,
+      "pack": "algebra_extended_v1",
+      "entry_note_key": "entry-algebra-functional",
+      "covered_concept_ids": [
+        "additive-functions",
+        "integer-domain-functional-equations"
+      ],
+      "canonical_practice_link_status": "pending_review",
+      "rights_status": "unreviewed",
+      "editorial_review": "pending",
+      "public_release": "not_released",
+      "owner": "Steven"
+    },
+    {
+      "id": "Algebra:linear",
+      "name": "Linear algebra and quadratic forms",
+      "subject": "algebra",
+      "milestone": "M3",
+      "status": "draft",
+      "concept_count": 9,
+      "pack": "algebra_extended_v1",
+      "entry_note_key": "entry-algebra-linear",
+      "covered_concept_ids": [
+        "quadratic-forms",
+        "determinants"
+      ],
+      "canonical_practice_link_status": "pending_review",
+      "rights_status": "unreviewed",
+      "editorial_review": "pending",
+      "public_release": "not_released",
+      "owner": "Steven"
+    },
+    {
+      "id": "Algebra:structures",
+      "name": "Algebraic structures and finite fields",
+      "subject": "algebra",
+      "milestone": "M4",
+      "status": "draft",
+      "concept_count": 10,
+      "pack": "algebra_specialist_v1",
+      "entry_note_key": "entry-algebra-structures",
+      "covered_concept_ids": [
+        "finite-field-arithmetic",
+        "groups"
+      ],
+      "canonical_practice_link_status": "pending_review",
+      "rights_status": "unreviewed",
+      "editorial_review": "pending",
+      "public_release": "not_released",
+      "owner": "Steven"
+    },
+    {
+      "id": "Geometry:metric",
+      "name": "Area, metric identities, and inequalities",
+      "subject": "geometry",
+      "milestone": "M2c",
+      "status": "draft",
+      "concept_count": 29,
+      "pack": "geometry_core_v1",
+      "entry_note_key": "entry-geometry-metric",
+      "covered_concept_ids": [
+        "geo-area",
+        "geo-area-ratios"
+      ],
+      "canonical_practice_link_status": "pending_review",
+      "rights_status": "unreviewed",
+      "editorial_review": "pending",
+      "public_release": "not_released",
+      "owner": "Steven"
+    },
+    {
+      "id": "Geometry:circles",
+      "name": "Circles, tangency, and cyclicity",
+      "subject": "geometry",
+      "milestone": "M2c",
+      "status": "draft",
+      "concept_count": 45,
+      "pack": "geometry_core_v1",
+      "entry_note_key": "entry-geometry-circles",
+      "covered_concept_ids": [
+        "geo-power-of-a-point",
+        "geo-chords"
+      ],
+      "canonical_practice_link_status": "pending_review",
+      "rights_status": "unreviewed",
+      "editorial_review": "pending",
+      "public_release": "not_released",
+      "owner": "Steven"
+    },
+    {
+      "id": "Geometry:foundations",
+      "name": "Euclidean foundations and methods",
+      "subject": "geometry",
+      "milestone": "M2c",
+      "status": "draft",
+      "concept_count": 44,
+      "pack": "geometry_core_v1",
+      "entry_note_key": "entry-geometry-foundations",
+      "covered_concept_ids": [
+        "geo-angles",
+        "geo-triangles"
+      ],
+      "canonical_practice_link_status": "pending_review",
+      "rights_status": "unreviewed",
+      "editorial_review": "pending",
+      "public_release": "not_released",
+      "owner": "Steven"
+    },
+    {
+      "id": "Geometry:transformations",
+      "name": "Transformations and symmetry",
+      "subject": "geometry",
+      "milestone": "M2c",
+      "status": "draft",
+      "concept_count": 9,
+      "pack": "geometry_core_v1",
+      "entry_note_key": "entry-geometry-transformations",
+      "covered_concept_ids": [
+        "geo-homothety"
+      ],
+      "canonical_practice_link_status": "pending_review",
+      "rights_status": "unreviewed",
+      "editorial_review": "pending",
+      "public_release": "not_released",
+      "owner": "Steven"
+    },
+    {
+      "id": "Geometry:triangles",
+      "name": "Triangle centers and configurations",
+      "subject": "geometry",
+      "milestone": "M2c",
+      "status": "draft",
+      "concept_count": 67,
+      "pack": "geometry_core_v1",
+      "entry_note_key": "entry-geometry-triangles",
+      "covered_concept_ids": [
+        "geo-centroid-medians"
+      ],
+      "canonical_practice_link_status": "pending_review",
+      "rights_status": "unreviewed",
+      "editorial_review": "pending",
+      "public_release": "not_released",
+      "owner": "Steven"
+    },
+    {
+      "id": "Geometry:coordinates",
+      "name": "Coordinates, vectors, and trigonometry",
+      "subject": "geometry",
+      "milestone": "M3",
+      "status": "draft",
+      "concept_count": 21,
+      "pack": "geometry_extended_v1",
+      "entry_note_key": "entry-geometry-coordinates",
+      "covered_concept_ids": [
+        "geo-coordinate-methods",
+        "geo-dot-product"
+      ],
+      "canonical_practice_link_status": "pending_review",
+      "rights_status": "unreviewed",
+      "editorial_review": "pending",
+      "public_release": "not_released",
+      "owner": "Steven"
+    },
+    {
+      "id": "Geometry:discrete",
+      "name": "Discrete geometry and constructions",
+      "subject": "geometry",
+      "milestone": "M3",
+      "status": "draft",
+      "concept_count": 52,
+      "pack": "geometry_extended_v1",
+      "entry_note_key": "entry-geometry-discrete",
+      "covered_concept_ids": [
+        "geo-lattice-geometry",
+        "geo-finite-point-sets"
+      ],
+      "canonical_practice_link_status": "pending_review",
+      "rights_status": "unreviewed",
+      "editorial_review": "pending",
+      "public_release": "not_released",
+      "owner": "Steven"
+    },
+    {
+      "id": "Geometry:locus",
+      "name": "Loci, continuity, and geometric motion",
+      "subject": "geometry",
+      "milestone": "M3",
+      "status": "draft",
+      "concept_count": 5,
+      "pack": "geometry_extended_v1",
+      "entry_note_key": "entry-geometry-locus",
+      "covered_concept_ids": [
+        "geo-loci"
+      ],
+      "canonical_practice_link_status": "pending_review",
+      "rights_status": "unreviewed",
+      "editorial_review": "pending",
+      "public_release": "not_released",
+      "owner": "Steven"
+    },
+    {
+      "id": "Geometry:projective",
+      "name": "Projective, affine, and conic geometry",
+      "subject": "geometry",
+      "milestone": "M4",
+      "status": "draft",
+      "concept_count": 37,
+      "pack": "geometry_specialist_v1",
+      "entry_note_key": "entry-geometry-projective",
+      "covered_concept_ids": [
+        "geo-cross-ratio",
+        "geo-projective-transformations"
+      ],
+      "canonical_practice_link_status": "pending_review",
+      "rights_status": "unreviewed",
+      "editorial_review": "pending",
+      "public_release": "not_released",
+      "owner": "Steven"
+    },
+    {
+      "id": "Geometry:solid",
+      "name": "Spatial and spherical geometry",
+      "subject": "geometry",
+      "milestone": "M4",
+      "status": "draft",
+      "concept_count": 25,
+      "pack": "geometry_specialist_v1",
+      "entry_note_key": "entry-geometry-solid",
+      "covered_concept_ids": [
+        "geo-polyhedra",
+        "geo-euler-polyhedron"
+      ],
+      "canonical_practice_link_status": "pending_review",
+      "rights_status": "unreviewed",
+      "editorial_review": "pending",
+      "public_release": "not_released",
+      "owner": "Steven"
+    },
+    {
+      "id": "Number Theory:arithmetic-functions",
+      "name": "Arithmetic functions and divisor structure",
+      "subject": "number-theory",
+      "milestone": "M2d",
+      "status": "draft",
+      "concept_count": 24,
+      "pack": "number_theory_core_v1",
+      "entry_note_key": "entry-number-theory-arithmetic-functions",
+      "covered_concept_ids": [
+        "nt-tau",
+        "nt-arithmetic-functions"
+      ],
+      "canonical_practice_link_status": "pending_review",
+      "rights_status": "unreviewed",
+      "editorial_review": "pending",
+      "public_release": "not_released",
+      "owner": "Steven"
+    },
+    {
+      "id": "Number Theory:congruences",
+      "name": "Congruences, orders, and modular arithmetic",
+      "subject": "number-theory",
+      "milestone": "M2d",
+      "status": "draft",
+      "concept_count": 28,
+      "pack": "number_theory_core_v1",
+      "entry_note_key": "entry-number-theory-congruences",
+      "covered_concept_ids": [
+        "nt-modular-inverses",
+        "nt-modular-arithmetic"
+      ],
+      "canonical_practice_link_status": "pending_review",
+      "rights_status": "unreviewed",
+      "editorial_review": "pending",
+      "public_release": "not_released",
+      "owner": "Steven"
+    },
+    {
+      "id": "Number Theory:diophantine",
+      "name": "Diophantine equations, descent, and representations",
+      "subject": "number-theory",
+      "milestone": "M2d",
+      "status": "draft",
+      "concept_count": 32,
+      "pack": "number_theory_core_v1",
+      "entry_note_key": "entry-number-theory-diophantine",
+      "covered_concept_ids": [
+        "nt-diophantine-equations",
+        "nt-infinite-descent"
+      ],
+      "canonical_practice_link_status": "pending_review",
+      "rights_status": "unreviewed",
+      "editorial_review": "pending",
+      "public_release": "not_released",
+      "owner": "Steven"
+    },
+    {
+      "id": "Number Theory:divisibility",
+      "name": "Divisibility, primes, and factorization",
+      "subject": "number-theory",
+      "milestone": "M2d",
+      "status": "draft",
+      "concept_count": 38,
+      "pack": "number_theory_core_v1",
+      "entry_note_key": "entry-number-theory-divisibility",
+      "covered_concept_ids": [
+        "nt-gcd",
+        "nt-euclidean-algorithm"
+      ],
+      "canonical_practice_link_status": "pending_review",
+      "rights_status": "unreviewed",
+      "editorial_review": "pending",
+      "public_release": "not_released",
+      "owner": "Steven"
+    },
+    {
+      "id": "Number Theory:shared",
+      "name": "Shared objects and proof strategies",
+      "subject": "number-theory",
+      "milestone": "M2d",
+      "status": "draft",
+      "concept_count": 32,
+      "pack": "number_theory_core_v1",
+      "entry_note_key": "entry-number-theory-shared",
+      "covered_concept_ids": [
+        "nt-existence",
+        "nt-differences"
+      ],
+      "canonical_practice_link_status": "pending_review",
+      "rights_status": "unreviewed",
+      "editorial_review": "pending",
+      "public_release": "not_released",
+      "owner": "Steven"
+    },
+    {
+      "id": "Number Theory:additive",
+      "name": "Additive and multiplicative combinatorics",
+      "subject": "number-theory",
+      "milestone": "M3",
+      "status": "draft",
+      "concept_count": 22,
+      "pack": "number_theory_extended_v1",
+      "entry_note_key": "entry-number-theory-additive",
+      "covered_concept_ids": [
+        "nt-sumsets",
+        "nt-additive-combinatorics"
+      ],
+      "canonical_practice_link_status": "pending_review",
+      "rights_status": "unreviewed",
+      "editorial_review": "pending",
+      "public_release": "not_released",
+      "owner": "Steven"
+    },
+    {
+      "id": "Number Theory:digits",
+      "name": "Bases, digits, carries, and automata",
+      "subject": "number-theory",
+      "milestone": "M3",
+      "status": "draft",
+      "concept_count": 17,
+      "pack": "number_theory_extended_v1",
+      "entry_note_key": "entry-number-theory-digits",
+      "covered_concept_ids": [
+        "nt-base-representation",
+        "nt-digit-sums"
+      ],
+      "canonical_practice_link_status": "pending_review",
+      "rights_status": "unreviewed",
+      "editorial_review": "pending",
+      "public_release": "not_released",
+      "owner": "Steven"
+    },
+    {
+      "id": "Number Theory:residues",
+      "name": "Power residues and quadratic characters",
+      "subject": "number-theory",
+      "milestone": "M3",
+      "status": "draft",
+      "concept_count": 8,
+      "pack": "number_theory_extended_v1",
+      "entry_note_key": "entry-number-theory-residues",
+      "covered_concept_ids": [
+        "nt-quadratic-residues"
+      ],
+      "canonical_practice_link_status": "pending_review",
+      "rights_status": "unreviewed",
+      "editorial_review": "pending",
+      "public_release": "not_released",
+      "owner": "Steven"
+    },
+    {
+      "id": "Number Theory:approximation",
+      "name": "Rational approximation, floors, and fractional parts",
+      "subject": "number-theory",
+      "milestone": "M3",
+      "status": "draft",
+      "concept_count": 14,
+      "pack": "number_theory_extended_v1",
+      "entry_note_key": "entry-number-theory-approximation",
+      "covered_concept_ids": [
+        "nt-dirichlet-approximation",
+        "nt-fractional-parts"
+      ],
+      "canonical_practice_link_status": "pending_review",
+      "rights_status": "unreviewed",
+      "editorial_review": "pending",
+      "public_release": "not_released",
+      "owner": "Steven"
+    },
+    {
+      "id": "Number Theory:valuations",
+      "name": "Valuations and p-adic methods",
+      "subject": "number-theory",
+      "milestone": "M3",
+      "status": "draft",
+      "concept_count": 22,
+      "pack": "number_theory_extended_v1",
+      "entry_note_key": "entry-number-theory-valuations",
+      "covered_concept_ids": [
+        "nt-p-adic-valuation"
+      ],
+      "canonical_practice_link_status": "pending_review",
+      "rights_status": "unreviewed",
+      "editorial_review": "pending",
+      "public_release": "not_released",
+      "owner": "Steven"
+    },
+    {
+      "id": "Number Theory:algebraic",
+      "name": "Algebraic number theory",
+      "subject": "number-theory",
+      "milestone": "M4",
+      "status": "draft",
+      "concept_count": 19,
+      "pack": "number_theory_specialist_v1",
+      "entry_note_key": "entry-number-theory-algebraic",
+      "covered_concept_ids": [
+        "nt-gaussian-integers",
+        "nt-algebraic-norms"
+      ],
+      "canonical_practice_link_status": "pending_review",
+      "rights_status": "unreviewed",
+      "editorial_review": "pending",
+      "public_release": "not_released",
+      "owner": "Steven"
+    },
+    {
+      "id": "Number Theory:structures",
+      "name": "Finite fields, lattice methods, and arithmetic dynamics",
+      "subject": "number-theory",
+      "milestone": "M4",
+      "status": "draft",
+      "concept_count": 12,
+      "pack": "number_theory_specialist_v1",
+      "entry_note_key": "entry-number-theory-structures",
+      "covered_concept_ids": [
+        "nt-finite-fields"
+      ],
+      "canonical_practice_link_status": "pending_review",
+      "rights_status": "unreviewed",
+      "editorial_review": "pending",
+      "public_release": "not_released",
+      "owner": "Steven"
+    },
+    {
+      "id": "Combinatorics:Coloring, grids, tilings, and dissections",
+      "name": "Coloring, grids, tilings, and dissections",
+      "subject": "combinatorics",
+      "milestone": "M2e",
+      "status": "draft",
+      "concept_count": 22,
+      "pack": "combinatorics_core_v1",
+      "entry_note_key": "entry-combinatorics-coloring-grids-tilings-and-dissections",
+      "covered_concept_ids": [
+        "comb-tilings",
+        "comb-checkerboard-coloring"
+      ],
+      "canonical_practice_link_status": "pending_review",
+      "rights_status": "unreviewed",
+      "editorial_review": "pending",
+      "public_release": "not_released",
+      "owner": "Steven"
+    },
+    {
+      "id": "Combinatorics:Counting and enumeration",
+      "name": "Counting and enumeration",
+      "subject": "combinatorics",
+      "milestone": "M2e",
+      "status": "draft",
+      "concept_count": 52,
+      "pack": "combinatorics_core_v1",
+      "entry_note_key": "entry-combinatorics-counting-and-enumeration",
+      "covered_concept_ids": [
+        "comb-double-counting",
+        "comb-incidence-counting"
+      ],
+      "canonical_practice_link_status": "pending_review",
+      "rights_status": "unreviewed",
+      "editorial_review": "pending",
+      "public_release": "not_released",
+      "owner": "Steven"
+    },
+    {
+      "id": "Combinatorics:Games and adversarial methods",
+      "name": "Games and adversarial methods",
+      "subject": "combinatorics",
+      "milestone": "M2e",
+      "status": "draft",
+      "concept_count": 15,
+      "pack": "combinatorics_core_v1",
+      "entry_note_key": "entry-combinatorics-games-and-adversarial-methods",
+      "covered_concept_ids": [
+        "comb-impartial-games",
+        "comb-normal-play"
+      ],
+      "canonical_practice_link_status": "pending_review",
+      "rights_status": "unreviewed",
+      "editorial_review": "pending",
+      "public_release": "not_released",
+      "owner": "Steven"
+    },
+    {
+      "id": "Combinatorics:Graph structures and graph arguments",
+      "name": "Graph structures and graph arguments",
+      "subject": "combinatorics",
+      "milestone": "M2e",
+      "status": "draft",
+      "concept_count": 64,
+      "pack": "combinatorics_core_v1",
+      "entry_note_key": "entry-combinatorics-graph-structures-and-graph-arguments",
+      "covered_concept_ids": [
+        "comb-trees",
+        "comb-graph-paths"
+      ],
+      "canonical_practice_link_status": "pending_review",
+      "rights_status": "unreviewed",
+      "editorial_review": "pending",
+      "public_release": "not_released",
+      "owner": "Steven"
+    },
+    {
+      "id": "Combinatorics:Processes, invariants, and shared proof methods",
+      "name": "Processes, invariants, and shared proof methods",
+      "subject": "combinatorics",
+      "milestone": "M2e",
+      "status": "draft",
+      "concept_count": 32,
+      "pack": "combinatorics_core_v1",
+      "entry_note_key": "entry-combinatorics-processes-invariants-and-shared-proof-methods",
+      "covered_concept_ids": [
+        "invariants",
+        "comb-parity-invariants"
+      ],
+      "canonical_practice_link_status": "pending_review",
+      "rights_status": "unreviewed",
+      "editorial_review": "pending",
+      "public_release": "not_released",
+      "owner": "Steven"
+    },
+    {
+      "id": "Combinatorics:Algebraic and linear methods",
+      "name": "Algebraic and linear methods",
+      "subject": "combinatorics",
+      "milestone": "M3",
+      "status": "draft",
+      "concept_count": 16,
+      "pack": "combinatorics_extended_v1",
+      "entry_note_key": "entry-combinatorics-algebraic-and-linear-methods",
+      "covered_concept_ids": [
+        "comb-f2-linear-algebra",
+        "comb-rank-method"
+      ],
+      "canonical_practice_link_status": "pending_review",
+      "rights_status": "unreviewed",
+      "editorial_review": "pending",
+      "public_release": "not_released",
+      "owner": "Steven"
+    },
+    {
+      "id": "Combinatorics:Algorithms, words, automata, and reconstruction",
+      "name": "Algorithms, words, automata, and reconstruction",
+      "subject": "combinatorics",
+      "milestone": "M3",
+      "status": "draft",
+      "concept_count": 30,
+      "pack": "combinatorics_extended_v1",
+      "entry_note_key": "entry-combinatorics-algorithms-words-automata-and-reconstruction",
+      "covered_concept_ids": [
+        "comb-greedy-algorithm",
+        "comb-exchange-arguments"
+      ],
+      "canonical_practice_link_status": "pending_review",
+      "rights_status": "unreviewed",
+      "editorial_review": "pending",
+      "public_release": "not_released",
+      "owner": "Steven"
+    },
+    {
+      "id": "Combinatorics:Matching, covering, packing, and optimization",
+      "name": "Matching, covering, packing, and optimization",
+      "subject": "combinatorics",
+      "milestone": "M3",
+      "status": "draft",
+      "concept_count": 25,
+      "pack": "combinatorics_extended_v1",
+      "entry_note_key": "entry-combinatorics-matching-covering-packing-and-optimization",
+      "covered_concept_ids": [
+        "comb-hall-theorem",
+        "comb-bipartite-matching"
+      ],
+      "canonical_practice_link_status": "pending_review",
+      "rights_status": "unreviewed",
+      "editorial_review": "pending",
+      "public_release": "not_released",
+      "owner": "Steven"
+    },
+    {
+      "id": "Combinatorics:Probability, entropy, and coding",
+      "name": "Probability, entropy, and coding",
+      "subject": "combinatorics",
+      "milestone": "M3",
+      "status": "draft",
+      "concept_count": 21,
+      "pack": "combinatorics_extended_v1",
+      "entry_note_key": "entry-combinatorics-probability-entropy-and-coding",
+      "covered_concept_ids": [
+        "comb-expectation",
+        "comb-linearity-of-expectation"
+      ],
+      "canonical_practice_link_status": "pending_review",
+      "rights_status": "unreviewed",
+      "editorial_review": "pending",
+      "public_release": "not_released",
+      "owner": "Steven"
+    },
+    {
+      "id": "Combinatorics:Set systems, orders, and designs",
+      "name": "Set systems, orders, and designs",
+      "subject": "combinatorics",
+      "milestone": "M3",
+      "status": "draft",
+      "concept_count": 23,
+      "pack": "combinatorics_extended_v1",
+      "entry_note_key": "entry-combinatorics-set-systems-orders-and-designs",
+      "covered_concept_ids": [
+        "comb-chains-antichains",
+        "comb-set-systems"
+      ],
+      "canonical_practice_link_status": "pending_review",
+      "rights_status": "unreviewed",
+      "editorial_review": "pending",
+      "public_release": "not_released",
+      "owner": "Steven"
+    },
+    {
+      "id": "Combinatorics:Additive combinatorics",
+      "name": "Additive combinatorics",
+      "subject": "combinatorics",
+      "milestone": "M4",
+      "status": "draft",
+      "concept_count": 10,
+      "pack": "combinatorics_specialist_v1",
+      "entry_note_key": "entry-combinatorics-additive-combinatorics",
+      "covered_concept_ids": [
+        "nt-frobenius-coin"
+      ],
+      "canonical_practice_link_status": "pending_review",
+      "rights_status": "unreviewed",
+      "editorial_review": "pending",
+      "public_release": "not_released",
+      "owner": "Steven"
+    },
+    {
+      "id": "Combinatorics:Combinatorial geometry and topology",
+      "name": "Combinatorial geometry and topology",
+      "subject": "combinatorics",
+      "milestone": "M4",
+      "status": "draft",
+      "concept_count": 27,
+      "pack": "combinatorics_specialist_v1",
+      "entry_note_key": "entry-combinatorics-combinatorial-geometry-and-topology",
+      "covered_concept_ids": [
+        "geo-sylvester-gallai",
+        "comb-incidence-geometry"
+      ],
+      "canonical_practice_link_status": "pending_review",
+      "rights_status": "unreviewed",
+      "editorial_review": "pending",
+      "public_release": "not_released",
+      "owner": "Steven"
+    },
+    {
+      "id": "Combinatorics:Extremal combinatorics, Ramsey theory, and discrepancy",
+      "name": "Extremal combinatorics, Ramsey theory, and discrepancy",
+      "subject": "combinatorics",
+      "milestone": "M4",
+      "status": "draft",
+      "concept_count": 21,
+      "pack": "combinatorics_specialist_v1",
+      "entry_note_key": "entry-combinatorics-extremal-combinatorics-ramsey-theory-and-discrepancy",
+      "covered_concept_ids": [
+        "comb-ramsey-theorem",
+        "comb-ramsey-coloring"
+      ],
+      "canonical_practice_link_status": "pending_review",
+      "rights_status": "unreviewed",
+      "editorial_review": "pending",
+      "public_release": "not_released",
+      "owner": "Steven"
+    }
+  ],
+  "foundations": {
+    "slug": "foundations",
+    "title": "Foundations",
+    "milestone": "M2a",
+    "catalogue_subject": null,
+    "status": "draft",
+    "competencies": [
+      {
+        "title": "Mathematical proof-writing",
+        "note_key": "foundations-proof-writing",
+        "status": "draft"
+      },
+      {
+        "title": "Mathematical induction",
+        "note_key": "foundations-induction",
+        "status": "draft"
+      },
+      {
+        "title": "Extremal principle",
+        "note_key": "foundations-extremal",
+        "status": "draft"
+      },
+      {
+        "title": "WLOG and symmetry arguments",
+        "note_key": "foundations-symmetry",
+        "status": "draft"
+      },
+      {
+        "title": "Parity arguments",
+        "note_key": "foundations-parity",
+        "status": "draft"
+      },
+      {
+        "title": "Constructive proofs",
+        "note_key": "foundations-construction",
+        "status": "draft"
+      },
+      {
+        "title": "Bounding and estimation",
+        "note_key": "foundations-bounding",
+        "status": "draft"
+      },
+      {
+        "title": "Relations and equivalence classes",
+        "note_key": "foundations-equivalence",
+        "status": "draft"
+      },
+      {
+        "title": "Ordered structures",
+        "note_key": "foundations-orders",
+        "status": "draft"
+      }
+    ],
+    "pack": "foundations_v1",
+    "owner": "Steven"
+  },
+  "coverage": {
+    "areas": 45,
+    "canonical_concepts": 1109,
+    "concept_placements": 1140,
+    "accepted_areas": 0,
+    "released_areas": 0,
+    "note_depth": "Starter drafts cover selected representative concepts, not every catalogue concept."
+  }
+}

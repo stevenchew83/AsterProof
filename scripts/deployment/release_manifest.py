@@ -40,6 +40,7 @@ class ReleaseManifest:
     format_version: int = RELEASE_FORMAT_VERSION
     solution_document_reader: int = 0
     solution_image_reader: int = 0
+    learning_reader: int = 0
 
     def validate(self) -> None:
         if self.format_version != RELEASE_FORMAT_VERSION:
@@ -87,6 +88,13 @@ class ReleaseManifest:
 
             if not image_sources_match(self.files):
                 raise ManifestError("solution image reader bytes do not match the reviewed capability")
+        if type(self.learning_reader) is not int or self.learning_reader not in {0, 1}:
+            raise ManifestError("invalid learning reader capability")
+        if self.learning_reader:
+            from scripts.deployment.learning_compat import reader_sources_match
+
+            if not reader_sources_match(self.files):
+                raise ManifestError("learning reader bytes do not match the reviewed capability")
 
     def to_json_bytes(self) -> bytes:
         self.validate()
@@ -105,6 +113,8 @@ class ReleaseManifest:
             payload["solution_document_reader"] = self.solution_document_reader
         if self.solution_image_reader:
             payload["solution_image_reader"] = self.solution_image_reader
+        if self.learning_reader:
+            payload["learning_reader"] = self.learning_reader
         return (json.dumps(payload, sort_keys=True, separators=(",", ":")) + "\n").encode()
 
     @classmethod
@@ -125,6 +135,7 @@ class ReleaseManifest:
                 files=tuple(data["files"]),
                 solution_document_reader=data.get("solution_document_reader", 0),
                 solution_image_reader=data.get("solution_image_reader", 0),
+                learning_reader=data.get("learning_reader", 0),
             )
         except (KeyError, TypeError, ValueError, json.JSONDecodeError) as exc:
             raise ManifestError("malformed release manifest") from exc

@@ -27529,6 +27529,99 @@ html.solution-share-open {
   padding-block: 0.25rem;
 }
 
+.learning-reading {
+  max-width: 88rem;
+}
+
+.learning-prose {
+  font-size: 1rem;
+  line-height: 1.85;
+  overflow-wrap: anywhere;
+}
+
+.learning-prose > * {
+  max-width: 76ch;
+}
+
+.learning-prose h2, .learning-prose .h2, .learning-prose h3, .learning-prose .h3 {
+  margin-top: 1.6em;
+  line-height: 1.3;
+}
+
+.learning-prose img {
+  max-width: 100%;
+  height: auto;
+}
+
+.learning-prose figure {
+  margin: 1.5rem 0;
+}
+
+.learning-prose figcaption {
+  color: var(--bs-secondary-color);
+  font-size: 0.875rem;
+}
+
+.learning-prose pre, .learning-diff {
+  overflow-x: auto;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.learning-plain-text {
+  white-space: pre-wrap;
+}
+
+.learning-form-width {
+  max-width: 64rem;
+}
+
+.learning-editor-panes {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  min-height: 32rem;
+}
+
+.learning-editor-panes > section {
+  min-width: 0;
+}
+
+.learning-editor-panes textarea {
+  min-height: 32rem;
+  font-family: var(--bs-font-monospace);
+  border-radius: 0;
+}
+
+.learning-editor-panes .cm-editor {
+  height: 100%;
+  min-height: 32rem;
+}
+
+.learning-editor-panes .cm-scroller {
+  overflow: auto;
+}
+
+[data-learning-workspace][data-view=write] .learning-editor-panes {
+  grid-template-columns: 1fr;
+}
+
+[data-learning-workspace][data-view=write] .learning-editor-panes [data-learning-preview] {
+  display: none;
+}
+
+[data-learning-workspace][data-view=preview] .learning-editor-panes {
+  grid-template-columns: 1fr;
+}
+
+[data-learning-workspace][data-view=preview] .learning-editor-panes [data-learning-source] {
+  display: none;
+}
+
+@media (max-width: 767px) {
+  .learning-editor-panes {
+    grid-template-columns: 1fr;
+  }
+}
 @media print {
   .sidenav-menu,
   .page-title-head,

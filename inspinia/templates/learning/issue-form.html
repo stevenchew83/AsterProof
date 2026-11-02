@@ -1,0 +1,21 @@
+{% extends 'learning/base.html' %}
+
+{% block learning_content %}
+  <div class="card learning-form-width">
+    <div class="card-body">
+      <h1 class="h3">{{ title }}</h1>
+      <p class="text-muted">
+        Describe the correction and your mathematical reasoning. Reports do not change published content.
+      </p>
+      {% if sent %}
+        <div class="alert alert-success">Your report has been recorded for Steven’s review.</div>
+      {% else %}
+        <form method="post">
+          {% csrf_token %}
+          {% include 'learning/form.html' %}
+          <button class="btn btn-primary">Send report for review</button>
+        </form>
+      {% endif %}
+    </div>
+  </div>
+{% endblock %}

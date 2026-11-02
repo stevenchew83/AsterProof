@@ -1,0 +1,16 @@
+{% extends 'learning/base.html' %}
+
+{% block learning_content %}
+  <div class="card card-body learning-form-width">
+    <h1 class="h3">Propose a revision of {{ source.title }}</h1>
+    <p class="text-muted">
+      Choose the canonical identity explicitly. This creates a private draft and keeps the existing reader and progress records intact.
+    </p>
+    <form method="post">
+      {% csrf_token %}
+      <input type="hidden" name="source_context" value="{{ source_context }}" />
+      {% include 'learning/form.html' %}
+      <button class="btn btn-primary">Create private draft from this source</button>
+    </form>
+  </div>
+{% endblock %}

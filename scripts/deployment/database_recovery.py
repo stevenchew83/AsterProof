@@ -70,7 +70,7 @@ for _index, _table, _columns, _field, _values in (
     PG17_INDEX_REPARSE_EQUIVALENTS[_prefix + f"(ARRAY[{_array_cast}])::text[]))"] = (
         _prefix + f"ARRAY[{_element_cast}]))"
     )
-# The same PG17 cast redistribution affects only these two observed CHECKs.
+# Two Assessment CHECKs exhibit the same PG17 cast redistribution.
 # Bind the complete definition and object identity; every other change must fail.
 PG17_CHECK_REPARSE_EQUIVALENTS = {}
 for _table, _name, _field, _values in (
@@ -84,6 +84,22 @@ for _table, _name, _field, _values in (
     PG17_CHECK_REPARSE_EQUIVALENTS[(
         "public", _table, _name, "c", _prefix + _array_cast + "]::text[]))",
     )] = _prefix + _element_cast + "]))"
+
+# Exact native PG17.9 restore cast redistribution for the Training identity CHECK.
+PG17_CHECK_REPARSE_EQUIVALENTS[(
+    "public", "learning_contentdocument", "learning_document_canonical_identity", "c",
+    (
+        "CHECK (canonical_area_id IS NOT NULL AND canonical_concept_id IS NULL AND kind::text = "
+        "'overview'::text OR canonical_area_id IS NULL AND canonical_concept_id IS NOT NULL AND kind::text "
+        "= 'concept'::text OR (kind::text = ANY (ARRAY['lecture'::character varying, 'technique'::character"
+        " varying, 'standalone'::character varying]::text[])))"
+    ),
+)] = (
+    "CHECK (canonical_area_id IS NOT NULL AND canonical_concept_id IS NULL AND kind::text = "
+    "'overview'::text OR canonical_area_id IS NULL AND canonical_concept_id IS NOT NULL AND kind::text "
+    "= 'concept'::text OR (kind::text = ANY (ARRAY['lecture'::character varying::text, "
+    "'technique'::character varying::text, 'standalone'::character varying::text])))"
+)
 META_SQL = """SELECT json_build_object(
  'database',current_database(),'server_version',current_setting('server_version_num')::int,
  'database_bytes',pg_database_size(current_database()),'locale',d.datcollate,

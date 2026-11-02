@@ -33,6 +33,8 @@ from inspinia.pages.community_models import StatementSimilarityTerm  # noqa: F40
 from inspinia.pages.contest_names import PROJECT_CONTEST_NAME_MAX_LENGTH
 from inspinia.pages.contest_names import normalize_contest_name
 from inspinia.pages.contest_names import normalize_text_list
+from inspinia.pages.prerequisite_models import CataloguePrerequisite  # noqa: F401
+from inspinia.pages.prerequisite_models import PrerequisiteGraphState  # noqa: F401
 from inspinia.pages.proof_models import CommunityAttempt  # noqa: F401
 from inspinia.pages.proof_models import CommunityContentReport  # noqa: F401
 from inspinia.pages.proof_models import CommunityPrivateAsset  # noqa: F401

@@ -1,0 +1,41 @@
+{% extends 'learning/base.html' %}
+
+{% block learning_content %}
+  <h1 class="h2">{{ pack.title }}</h1>
+  <p class="text-muted">
+    Preview: private, unreviewed drafts. Choose up to 25 notes. Repeating the import returns the same drafts.
+  </p>
+  {% if error %}<div class="alert alert-warning">{{ error }}</div>{% endif %}
+  {% for error in preview.errors %}<div class="alert alert-warning">{{ error }}</div>{% endfor %}
+  <p>
+    <a href="{% url 'learning:pathway_editor' %}?pack={{ pack.id|urlencode }}">Prepare pathway from approved imported notes</a>
+  </p>
+  <form method="post">
+    {% csrf_token %}
+    <input type="hidden"
+           name="preview_token"
+           value="{{ preview.preview_token }}" />
+    <div class="list-group mb-3">
+      {% for note in preview.notes %}
+        <label class="list-group-item d-flex gap-3">
+          <input class="form-check-input"
+                 type="checkbox"
+                 name="notes"
+                 value="{{ note.key }}"
+                 {% if forloop.counter <= 25 %}checked{% endif %} />
+          <span>{{ note.title }} <small class="text-muted">{{ note.area_id|default:'Foundations' }}
+            {% if note.already_imported %}· Already imported{% endif %}
+          </small></span>
+        </label>
+      {% endfor %}
+    </div>
+    {% if preview.can_apply %}<button class="btn btn-primary">Import selected private drafts</button>{% endif %}
+  </form>
+  <details class="card card-body mt-4">
+    <summary>Read the source drafts</summary>
+    {% for note in pack.notes %}
+      <h2 class="h5 mt-4">{{ note.title }}</h2>
+      <pre class="learning-diff">{{ note.body_source }}</pre>
+    {% endfor %}
+  </details>
+{% endblock %}

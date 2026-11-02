@@ -383,6 +383,11 @@ jobs:
           print(f"- Target SHA: `{value['target_sha']}`")
           print(f"- Migration class: `{value['classification']}`")
           print(f"- Classified migrations: `{len(value['migrations'])}`")
+          if value.get('learning_reader_preparation'):
+              print('- Learning reader preparation: no database changes; four migrations remain deferred.')
+              print(json.dumps(value['learning_reader_preparation'], sort_keys=True, indent=2))
+          if value.get('learning_reader_successor'):
+              print('- Apply the four migrations deferred by the verified active reader bridge.')
           import os
           if os_disclosure := os.environ.get('SCHEMA_DISCLOSURE'):
               if value['classification'] == 'data-or-non-compatible':
@@ -411,12 +416,18 @@ jobs:
               else:
                   from scripts.deployment.additive_schema import schema_for_disclosure, validate_disclosure
                   approved = schema_for_disclosure(json.loads(os_disclosure))
-                  from scripts.deployment import assessment_prototype_schema
-                  if approved is assessment_prototype_schema:
-                      expected = [
-                          {'migration': f'{app}.{name}', 'classification': 'backward-compatible-schema'}
+                  from scripts.deployment import assessment_prototype_schema, learning_schema
+                  if approved is learning_schema:
+                      expected = sorted([
+                          {'migration': app + '.' + name, 'classification': 'backward-compatible-schema'}
+                          for app, name in learning_schema.MIGRATIONS
+                      ], key=lambda row: row['migration'])
+                  elif approved is assessment_prototype_schema:
+                      expected = sorted([
+                          {'migration': app + '.' + name, 'classification': 'backward-compatible-schema'}
                           for app, name in assessment_prototype_schema.MIGRATIONS
-                      ]
+                      ], key=lambda row: row['migration'])
+
                   else:
                       expected = [{'migration': approved.MIGRATION, 'classification': 'backward-compatible-schema'}]
               schema = validate_disclosure(json.loads(os_disclosure), target_sha=value['target_sha'])
