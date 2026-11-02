@@ -1,0 +1,117 @@
+{% extends 'layouts/vertical.html' %}
+
+{% block title %}
+  Solution review history
+{% endblock title %}
+{% block page_content %}
+  <div class="container-fluid solution-forum">
+    {% url 'solutions:solution_detail' solution.pk as detail_url %}
+    <header class="page-title-head app-page-header">
+      {% include 'partials/page-header-intro.html' with title='Review and moderation history' subtitle='Admin inspection' page_icon='ti-history' back_url=detail_url back_label='Back to solution' only %}
+    </header>
+    <p class="text-muted">
+      This history contains only snapshots captured while the solution was published to members. Private intermediate drafts are excluded.
+    </p>
+    <div class="row g-3">
+      <aside class="col-xl-3">
+        <section class="card">
+          <div class="card-header border-bottom">
+            <h2 class="h6 mb-0">Assessed versions</h2>
+          </div>
+          <div class="list-group list-group-flush">
+            {% for target in target_page %}
+              <a href="?target={{ target.pk }}"
+                 class="list-group-item list-group-item-action{% if selected_target.pk == target.pk %} active{% endif %}">{{ target.created_at|date:'j M Y, H:i' }}<span class="d-block fs-xs">
+                {% if target.revision_id %}
+                  Version {{ target.revision.sequence }}
+                {% else %}
+                  Legacy saved proof
+                {% endif %}
+              </span></a>{% empty %}
+              <p class="card-body text-muted mb-0">No assessed versions yet.</p>
+            {% endfor %}
+          </div>
+          {% include 'solutions/forum-pagination.html' with page=target_page %}
+        </section>
+      </aside>
+      <main class="col-xl-9">
+        {% if selected_target %}
+          <section class="card mb-3">
+            <div class="card-header border-bottom">
+              <h2 class="h5 mb-0">{{ selected_target.snapshot.title|default:'Saved solution' }}</h2>
+            </div>
+            <div class="card-body">
+              <details class="mb-3">
+                <summary>Statement at review time</summary>
+                <div class="forum-source mt-2" data-mathjax-scope="true">{{ selected_target.snapshot.statement.source }}</div>
+              </details>
+              <div class="forum-proof-body solution-block-body tex2jax_ignore"
+                   data-solution-document-source>{{ selected_target.snapshot.document.source }}</div>
+            </div>
+          </section>
+          <section class="card mb-3">
+            <div class="card-header border-bottom">
+              <h2 class="h5 mb-0">Trainer assessment history</h2>
+            </div>
+            {% for assessment in assessment_page %}
+              <article class="card-body border-bottom">
+                <h3 class="h6">{{ assessment.reviewer.name|default:'Former trainer' }} · {{ assessment.get_verdict_display }}</h3>
+                <p class="text-muted fs-xs">{{ assessment.created_at|date:'j M Y, H:i' }} · Assessment {{ assessment.sequence }}</p>
+                <div class="forum-source">{{ assessment.feedback }}</div>
+                {% if assessment.gaps %}
+                  <h4 class="fs-sm mt-3">Gaps or errors</h4>
+                  <div class="forum-source">{{ assessment.gaps }}</div>
+                {% endif %}
+                {% if assessment.next_steps %}
+                  <h4 class="fs-sm mt-3">Suggested next steps</h4>
+                  <div class="forum-source">{{ assessment.next_steps }}</div>
+                {% endif %}
+              </article>{% empty %}
+              <p class="card-body text-muted mb-0">No trainer assessments for this version.</p>
+            {% endfor %}
+            {% include 'solutions/forum-pagination.html' with page=assessment_page parameter='assessments_page' %}
+          </section>
+          <section class="card mb-3">
+            <div class="card-header border-bottom">
+              <h2 class="h5 mb-0">Admin decision history</h2>
+            </div>
+            {% for decision in decision_page %}
+              <article class="card-body border-bottom">
+                <h3 class="h6">
+                  {{ decision.admin.name|default:'Former admin' }} · {{ decision.get_action_display }}
+                  {% if decision.verdict %}· {{ decision.get_verdict_display }}{% endif %}
+                </h3>
+                <p class="text-muted fs-xs">{{ decision.created_at|date:'j M Y, H:i' }}</p>
+                <div class="forum-source">{{ decision.reason }}</div>
+              </article>{% empty %}
+              <p class="card-body text-muted mb-0">No admin decisions for this version.</p>
+            {% endfor %}
+            {% include 'solutions/forum-pagination.html' with page=decision_page parameter='decisions_page' %}
+          </section>
+        {% else %}
+          <div class="alert alert-info">Choose an assessed version to inspect its proof and review history.</div>
+        {% endif %}
+        <section class="card mb-3">
+          <div class="card-header border-bottom">
+            <h2 class="h5 mb-0">Comment edit and moderation history</h2>
+          </div>
+          {% for event in event_page %}
+            <article class="card-body border-bottom">
+              <h3 class="h6">{{ event.events__action|title }} · {{ event.events__actor__name|default:'Former member' }}</h3>
+              <p class="text-muted fs-xs">
+                {{ event.events__created_at|date:'j M Y, H:i' }} · Comment {{ event.pk }} · Version {{ event.events__version }}
+              </p>
+              <div class="forum-source">{{ event.events__body }}</div>
+              {% if event.events__reason %}<p class="mt-2 mb-0">Reason: {{ event.events__reason }}</p>{% endif %}
+            </article>{% empty %}
+            <p class="card-body text-muted mb-0">No comment events.</p>
+          {% endfor %}
+          {% include 'solutions/forum-pagination.html' with page=event_page parameter='events_page' %}
+        </section>
+      </main>
+    </div>
+  </div>
+{% endblock page_content %}
+{% block extra_javascript %}
+  {% include 'solutions/forum-math.html' %}
+{% endblock extra_javascript %}

@@ -651,13 +651,13 @@ def test_problem_solution_list_hides_solution_bodies_until_selected_link_opened(
     assert "Published proof" in response_html
     assert "My private draft block." not in response_html
     assert "A published proof block." not in response_html
-    assert f"?solution={my_solution.id}#solution-{my_solution.id}" in response_html
-    assert f"?solution={published_solution.id}#solution-{published_solution.id}" in response_html
+    assert reverse("solutions:solution_detail", args=[my_solution.pk]) in response_html
+    assert reverse("solutions:solution_detail", args=[published_solution.pk]) in response_html
     assert 'target="_blank"' in response_html
 
     selected_response = client.get(
         reverse("solutions:problem_solution_list", args=[problem.problem_uuid]),
-        {"solution": str(published_solution.id)},
+        {"solution": str(published_solution.id)}, follow=True,
     )
 
     assert selected_response.status_code == HTTPStatus.OK
@@ -690,7 +690,7 @@ def test_problem_solution_list_inline_draft_post_creates_solution_and_returns_to
 
     solution = ProblemSolution.objects.get(problem=problem, author=user)
     assert response.status_code == HTTPStatus.FOUND
-    assert response.url == f"{url}?solution={solution.id}#solution-{solution.id}"
+    assert response.url == reverse("solutions:solution_detail", args=[solution.pk])
     assert solution.title == "First draft from page"
     assert solution.summary == "Started without leaving the problem page."
     assert solution.status == ProblemSolution.Status.DRAFT
@@ -755,20 +755,17 @@ def test_problem_solution_list_highlights_selected_solution_from_query_string_fo
         {"solution": str(selected_solution.id)},
     )
 
-    assert response.status_code == HTTPStatus.OK
-    assert response.context["selected_solution_id"] == selected_solution.id
-    response_html = response.content.decode("utf-8")
-    assert f'id="solution-{selected_solution.id}"' in response_html
-    assert "solution-card-selected" in response_html
+    assert response.status_code == HTTPStatus.FOUND
+    assert response.url == reverse("solutions:solution_detail", args=[selected_solution.pk])
 
     own_response = client.get(
         reverse("solutions:problem_solution_list", args=[problem.problem_uuid]),
         {"solution": str(own_solution.id)},
     )
 
-    assert own_response.status_code == HTTPStatus.OK
-    own_html = own_response.content.decode("utf-8")
-    assert own_html.count(f'id="solution-{own_solution.id}"') == 1
+    assert own_response.status_code == HTTPStatus.FOUND
+    own_html = client.get(own_response.url).content.decode("utf-8")
+    assert reverse("solutions:solution_detail", args=[own_solution.pk]) == own_response.url
     assert own_html.count("Another visible solution.") == 1
 
 

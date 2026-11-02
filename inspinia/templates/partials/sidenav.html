@@ -103,6 +103,9 @@
             {% if show_solution_workspace_link %}
             {% include 'partials/sidenav-link.html' with route_name='solutions:my_solution_list' label='My solutions' icon='file-pencil' only %}
             {% endif %}
+            {% if show_training_trainer_links %}
+            {% include 'partials/sidenav-link.html' with route_name='solutions:forum_review_queue' label='Solution reviews' icon='messages' only %}
+            {% endif %}
             {% if evaluation_workspace_available %}
             {% include 'partials/sidenav-link.html' with route_name='solutions:evaluation_workspace' label='Coach evaluation' icon='clipboard-check' only %}
             {% endif %}
@@ -199,6 +202,7 @@
                     {% if statement_report_open_count %}<span class="badge bg-warning-subtle text-warning" aria-label="{{ statement_report_open_count }} open reports">{{ statement_report_open_count }}</span>{% endif %}
                 </a>
             </li>
+            {% include 'partials/sidenav-link.html' with route_name='solutions:forum_admin_queue' label='Solution verification' icon='rosette-discount-check' only %}
             {% include 'partials/sidenav-link.html' with route_name='solutions:admin_public_shares' label='Public solutions' icon='world' only %}
             {% include 'partials/sidenav-link.html' with route_name='solutions:admin_collections' label='Curated collections' icon='stack-2' only %}
             {% include 'partials/sidenav-link.html' with route_name='website:newsletter_dashboard' label='Newsletter' icon='mail' only %}

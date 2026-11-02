@@ -18,6 +18,8 @@ from scripts.deployment.release_manifest import ReleaseManifest
 from scripts.deployment.release_manifest import sha256_file
 from scripts.deployment.solution_document_compat import READER_VERSION
 from scripts.deployment.solution_document_compat import reader_sources_match
+from scripts.deployment.solution_image_compat import READER_VERSION as IMAGE_READER_VERSION
+from scripts.deployment.solution_image_compat import reader_sources_match as image_sources_match
 
 EXCLUDED_PARTS = {".git", ".venv", "node_modules", "__pycache__", "media"}
 EXCLUDED_NAMES = {".env"}
@@ -109,6 +111,9 @@ def build_release(
     reader_verified = reader_sources_match(files)
     if "inspinia/solutions/document_source.py" in entries and not reader_verified:
         raise ValueError("solution document reader changes require a reviewed capability refresh")
+    image_reader_verified = image_sources_match(files)
+    if "inspinia/solutions/image_access.py" in entries and not image_reader_verified:
+        raise ValueError("solution image reader changes require a reviewed capability refresh")
     manifest = ReleaseManifest(
         repository=repository,
         repository_id=repository_id,
@@ -119,6 +124,7 @@ def build_release(
         python_abi=python_abi,
         files=files,
         solution_document_reader=READER_VERSION if reader_verified else 0,
+        solution_image_reader=IMAGE_READER_VERSION if image_reader_verified else 0,
     )
     manifest_bytes = manifest.to_json_bytes()
 

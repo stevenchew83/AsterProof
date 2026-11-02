@@ -28,6 +28,7 @@ from scripts.deployment import solution_analytics_schema
 from scripts.deployment import solution_collections_schema
 from scripts.deployment import solution_document_schema
 from scripts.deployment import solution_evaluation_schema
+from scripts.deployment import solution_forum_schema
 from scripts.deployment import solution_pdf_schema
 from scripts.deployment import solution_sharing_schema
 from scripts.deployment import statement_authoring_schema
@@ -59,6 +60,8 @@ from scripts.deployment.server_activate import verify_release
 from scripts.deployment.server_activate import write_runtime_state
 from scripts.deployment.server_gate import DEFAULT_CONTRACT
 from scripts.deployment.solution_document_compat import verified_reader_release
+from scripts.deployment.solution_image_compat import reader_required as image_reader_required
+from scripts.deployment.solution_image_compat import verified_reader_release as verified_image_reader
 from scripts.deployment.target import TargetContract
 
 PREPARE_HELPER = Path("/usr/local/libexec/asterproof-prepare-release")
@@ -391,6 +394,21 @@ class WorkerBackend:
             contract, release, ["shell", "--command", assessment_prototype_schema.MIGRATION_APPLY], migration=True,
         )
 
+    def check_solution_forum_schema(self, contract: TargetContract, release: Path) -> None:
+        try:
+            if not image_reader_required(contract.registry_dir):
+                raise OperationError("image_privacy_cutover_required")
+        except (OSError, ValueError) as exc:
+            raise OperationError("image_reader_floor_unavailable") from exc
+        self.ensure_image_reader(contract, release)
+        solution_forum_schema.validate_candidate(release)
+        self._run_candidate(contract, release, ["shell", "--command", solution_forum_schema.PLAN_CHECK])
+
+    def migrate_solution_forum_schema(self, contract: TargetContract, release: Path) -> None:
+        self._run_candidate(
+            contract, release, ["shell", "--command", solution_forum_schema.MIGRATION_APPLY], migration=True,
+        )
+
     def check_solution_evaluation_schema(self, contract: TargetContract, release: Path) -> None:
         solution_evaluation_schema.validate_candidate(release)
         self._run_candidate(contract, release, ["shell", "--command", solution_evaluation_schema.PLAN_CHECK])
@@ -690,8 +708,17 @@ class WorkerBackend:
         return value["reader_required"]
 
     def ensure_document_reader(self, contract: TargetContract, release: Path, *, required: bool = False) -> None:
+        self.ensure_image_reader(contract, release)
         if (required or self.document_reader_required(contract)) and not verified_reader_release(release):
             raise OperationError("document_reader_required")
+
+    def ensure_image_reader(self, contract: TargetContract, release: Path) -> None:
+        try:
+            required = image_reader_required(contract.registry_dir)
+        except (OSError, ValueError) as exc:
+            raise OperationError("image_reader_floor_unavailable") from exc
+        if required and not verified_image_reader(release):
+            raise OperationError("image_reader_required")
 
     def legacy_service_matches(self, contract: TargetContract, source_root: Path) -> bool:
         try:
@@ -1016,7 +1043,10 @@ def _deploy(
             ):
                 raise OperationError("schema_starting_state_mismatch")
             try:
-                if disclosure["migration"] == assessment_prototype_schema.MIGRATION:
+                if disclosure["migration"] == solution_forum_schema.MIGRATION:
+                    solution_forum_schema.validate_build_evidence(release, disclosure)
+                    backend.check_solution_forum_schema(contract, release)
+                elif disclosure["migration"] == assessment_prototype_schema.MIGRATION:
                     assessment_prototype_schema.validate_build_evidence(release, disclosure)
                     backend.check_assessment_prototype_schema(contract, release)
                 elif disclosure["migration"] == solution_evaluation_schema.MIGRATION:
@@ -1067,7 +1097,9 @@ def _deploy(
             if not audit_matches(disclosure, backend.schema_audit(contract), stage="starting"):
                 raise OperationError("schema_starting_state_drift")
             transition(state_path, "migrating")
-            if disclosure["migration"] == assessment_prototype_schema.MIGRATION:
+            if disclosure["migration"] == solution_forum_schema.MIGRATION:
+                backend.migrate_solution_forum_schema(contract, release)
+            elif disclosure["migration"] == assessment_prototype_schema.MIGRATION:
                 backend.migrate_assessment_prototype_schema(contract, release)
             elif disclosure["migration"] == solution_evaluation_schema.MIGRATION:
                 backend.migrate_solution_evaluation_schema(contract, release)
