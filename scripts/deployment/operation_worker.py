@@ -63,6 +63,8 @@ from scripts.deployment.server_activate import verify_release
 from scripts.deployment.server_activate import write_runtime_state
 from scripts.deployment.server_gate import DEFAULT_CONTRACT
 from scripts.deployment.solution_document_compat import verified_reader_release
+from scripts.deployment.solution_image_compat import reader_required as image_reader_required
+from scripts.deployment.solution_image_compat import verified_reader_release as verified_image_reader
 from scripts.deployment.target import TargetContract
 
 PREPARE_HELPER = Path("/usr/local/libexec/asterproof-prepare-release")
@@ -721,8 +723,17 @@ class WorkerBackend:
         return value["reader_required"]
 
     def ensure_document_reader(self, contract: TargetContract, release: Path, *, required: bool = False) -> None:
+        self.ensure_image_reader(contract, release)
         if (required or self.document_reader_required(contract)) and not verified_reader_release(release):
             raise OperationError("document_reader_required")
+
+    def ensure_image_reader(self, contract: TargetContract, release: Path) -> None:
+        try:
+            required = image_reader_required(contract.registry_dir)
+        except (OSError, ValueError) as exc:
+            raise OperationError("image_reader_floor_unavailable") from exc
+        if required and not verified_image_reader(release):
+            raise OperationError("image_reader_required")
 
     def learning_reader_required(self, contract: TargetContract) -> bool:
         try:

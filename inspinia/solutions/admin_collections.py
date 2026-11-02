@@ -33,6 +33,7 @@ from django.views.decorators.http import require_http_methods
 from inspinia.solutions.collection_views import MAX_COLLECTION_BYTES
 from inspinia.solutions.collection_views import MAX_COLLECTION_SOLUTIONS
 from inspinia.solutions.forms import SolutionCollectionForm
+from inspinia.solutions.image_access import public_image_base_url
 from inspinia.solutions.models import ProblemSolution
 from inspinia.solutions.models import SolutionCollection
 from inspinia.solutions.models import SolutionCollectionEntry
@@ -246,7 +247,10 @@ def _review_rows(refs, *, lock=False):
         if total_bytes > MAX_COLLECTION_BYTES:
             message = "This collection is too large. Select fewer solutions."
             raise ValidationError(message)
-        rows.append({"share": share, "snapshot": share.snapshot, "anchor": f"review-share-{share.pk}"})
+        rows.append({
+            "share": share, "snapshot": share.snapshot, "anchor": f"review-share-{share.pk}",
+            "image_base_url": public_image_base_url(share),
+        })
         states.append({
             "id": share.pk, "token": str(share.token), "revision": str(share.revision),
             "digest": snapshot_digest(share.snapshot),

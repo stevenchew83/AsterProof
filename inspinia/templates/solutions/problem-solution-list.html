@@ -418,7 +418,7 @@
       </div>
       <div class="card-body">
         {% if my_solution_row %}
-        <article id="solution-{{ my_solution_row.id }}" class="solution-reference-card{% if selected_solution_id == my_solution_row.id %} solution-card-selected{% endif %}">
+        <article data-solution-image-base-url="{{ my_solution_row.image_base_url }}" id="solution-{{ my_solution_row.id }}" class="solution-reference-card{% if selected_solution_id == my_solution_row.id %} solution-card-selected{% endif %}">
           <div class="solution-reference-heading">
             <div class="solution-reference-identity">
               <h3 class="fs-sm fw-semibold mb-1">{{ my_solution_row.title }}</h3>
@@ -462,7 +462,7 @@
         <span class="text-muted fs-xs">Open a proof when you’re ready</span>
       </div>
       {% for row in visible_solution_rows %}
-      <article {% if row.id != my_solution_row.id %}id="solution-{{ row.id }}"{% endif %} class="solution-reference-card{% if selected_solution_id == row.id and row.id != my_solution_row.id %} solution-card-selected{% endif %}">
+      <article data-solution-image-base-url="{{ row.image_base_url }}" {% if row.id != my_solution_row.id %}id="solution-{{ row.id }}"{% endif %} class="solution-reference-card{% if selected_solution_id == row.id and row.id != my_solution_row.id %} solution-card-selected{% endif %}">
         <div class="solution-reference-heading">
           <div class="solution-reference-identity">
             <h3 class="fs-sm fw-semibold mb-1">{{ row.title }}</h3>
@@ -528,7 +528,7 @@ window.MathJax = {
 <script>
 window.ASTERPROOF_SOLUTION_MEDIA = {
   baseUrl: "{{ solution_media_base_url|escapejs }}",
-  mediaUrlPrefix: "{{ MEDIA_URL|escapejs }}",
+  mediaUrlPrefix: "{{ solution_media_base_url|escapejs }}",
   uploadUrl: "{{ solution_body_image_upload_url|escapejs }}"
 };
 </script>

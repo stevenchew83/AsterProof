@@ -93,7 +93,7 @@ def test_document_delta_is_real_frozen_and_only_additive():
 
 
 def test_reviewed_reader_capability_matches_the_actual_implementation_sources():
-    for relative, expected in compat.READER_SOURCES.items():
+    for relative, expected in compat.IMAGE_COMPATIBILITY_SOURCES.items():
         assert hashlib.sha256((ROOT / relative).read_bytes()).hexdigest() == expected
 
 
