@@ -458,8 +458,8 @@
 
     <section class="card solution-references-card" aria-labelledby="solution-references-title">
       <div class="card-header border-bottom d-flex flex-wrap align-items-center justify-content-between gap-2">
-        <h2 id="solution-references-title" class="solution-section-title"><i class="ti ti-books" aria-hidden="true"></i>{{ visible_solution_title }}<span class="badge bg-secondary-subtle text-secondary">{{ visible_solution_rows|length }}</span></h2>
-        <span class="text-muted fs-xs">Open a proof when you’re ready</span>
+        <h2 id="solution-references-title" class="solution-section-title"><i class="ti ti-books" aria-hidden="true"></i>{{ visible_solution_title }}<span class="badge bg-secondary-subtle text-secondary">{{ solution_page.paginator.count }}</span></h2>
+        <form method="get" class="d-flex gap-2 align-items-center"><label for="solution-sort" class="visually-hidden">Solution order</label><select id="solution-sort" name="sort" class="form-select form-select-sm"><option value="top" {% if solution_sort == 'top' %}selected{% endif %}>Top voted</option><option value="newest" {% if solution_sort == 'newest' %}selected{% endif %}>Newest</option></select><button class="btn btn-outline-secondary btn-sm">Sort</button></form>
       </div>
       {% for row in visible_solution_rows %}
       <article data-solution-image-base-url="{{ row.image_base_url }}" {% if row.id != my_solution_row.id %}id="solution-{{ row.id }}"{% endif %} class="solution-reference-card{% if selected_solution_id == row.id and row.id != my_solution_row.id %} solution-card-selected{% endif %}">
@@ -469,7 +469,7 @@
             <p class="text-muted fs-xs mb-0">By {{ row.author_label }} · Updated {{ row.updated_at_label }}</p>
           </div>
           <div class="solution-reference-actions">
-            <span class="badge {{ row.status_badge_class }}">{{ row.status_label }}</span>
+            <span class="badge {{ row.status_badge_class }}">{{ row.status_label }}</span><span class="text-muted fs-xs"><i class="ti ti-arrow-up" aria-hidden="true"></i> {{ row.upvote_count }}</span>
             <a href="{{ row.view_url }}" class="btn btn-outline-secondary btn-sm" target="_blank" rel="noopener noreferrer"><i class="ti ti-external-link me-1" aria-hidden="true"></i>Open solution<span class="visually-hidden"> by {{ row.author_label }} (new tab)</span></a>
           </div>
         </div>
@@ -481,6 +481,7 @@
       {% empty %}
       <div class="card-body"><p class="text-muted fs-sm mb-0">{{ visible_solution_empty_message }}</p></div>
       {% endfor %}
+      {% if solution_page.has_other_pages %}<nav class="card-footer d-flex justify-content-between" aria-label="Solution pages">{% if solution_page.has_previous %}<a href="?sort={{ solution_sort }}&amp;solutions_page={{ solution_page.previous_page_number }}">Previous</a>{% endif %}<span>Page {{ solution_page.number }} of {{ solution_page.paginator.num_pages }}</span>{% if solution_page.has_next %}<a href="?sort={{ solution_sort }}&amp;solutions_page={{ solution_page.next_page_number }}">Next</a>{% endif %}</nav>{% endif %}
     </section>
   </div>
 </div>

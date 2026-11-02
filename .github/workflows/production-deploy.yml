@@ -138,6 +138,28 @@ jobs:
           .release-quality/bin/python manage.py makemigrations --check --dry-run
           .release-quality/bin/python -m pytest
 
+      - name: Test forum privacy and concurrency on PostgreSQL 17.9
+        if: ${{ !inputs.skip_ci && inputs.migration_class == 'backward-compatible-schema' && fromJSON(inputs.schema_disclosure).migration == 'solutions.0013_solution_forum' }}
+        env:
+          DATABASE_URL: postgres://postgres@127.0.0.1:5432/asterproof_schema_rehearsal
+        run: |
+          .release-quality/bin/python - <<'PY'
+          from django.conf import settings
+          from scripts.deployment.schema_rehearsal import configure_rehearsal_database
+          configure_rehearsal_database(settings)
+          settings.DATABASES['default']['TEST'] = {'NAME': 'test_solution_forum_release_locks'}
+          import django
+          django.setup()
+          from django.db import connection
+          if connection.pg_version != 170009:
+              raise SystemExit('Forum privacy/concurrency checks require PostgreSQL 17.9')
+          import pytest
+          raise SystemExit(pytest.main([
+              'inspinia/solutions/test_forum.py',
+              'inspinia/solutions/test_image_access.py', '--create-db', '-q',
+          ]))
+          PY
+
       - name: Record CI exception
         if: ${{ inputs.skip_ci }}
         run: |

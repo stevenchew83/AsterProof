@@ -5,6 +5,7 @@ import copy
 import hashlib
 import json
 import os
+import shutil
 import sqlite3
 import subprocess
 import sys
@@ -76,7 +77,11 @@ def starting_audit():
 
 def copy_candidate(destination):
     for source in (ROOT / "inspinia").rglob("*"):
-        if source.parent.name == "migrations" and source.suffix in {".py", ".json"}:
+        # The exact Learning allowance predates this separately reviewed successor.
+        if (
+            source.parent.name == "migrations" and source.suffix in {".py", ".json"}
+            and source != ROOT / "inspinia/solutions/migrations/0013_solution_forum.py"
+        ):
             target = destination / source.relative_to(ROOT)
             target.parent.mkdir(parents=True, exist_ok=True)
             target.write_bytes(source.read_bytes())
@@ -103,6 +108,14 @@ def test_actual_learning_migration_bundle_and_entire_history_are_hash_bound(tmp_
     target = tmp_path / next(iter(schema.MIGRATION_FILES))
     target.write_bytes(target.read_bytes() + b"\n")
     with pytest.raises(schema.LearningSchemaError, match="migration bytes"):
+        schema.validate_candidate(tmp_path)
+
+
+def test_forum_successor_is_not_part_of_the_historical_learning_allowance(tmp_path):
+    copy_candidate(tmp_path)
+    relative = "inspinia/solutions/migrations/0013_solution_forum.py"
+    (tmp_path / relative).write_bytes((ROOT / relative).read_bytes())
+    with pytest.raises(schema.LearningSchemaError, match="Historical migration sources"):
         schema.validate_candidate(tmp_path)
 
 
@@ -365,6 +378,14 @@ def test_classification_explicitly_limits_recovery_to_verified_learning_readers(
 
 def test_sqlite_upgrade_preserves_sources_progress_solutions_and_subscribers(tmp_path):
     database, report = tmp_path / "learning.sqlite3", tmp_path / "report.json"
+    # Exercise the current rehearsal against its historical source boundary.
+    # Keep the trusted validator exact; the later forum migration is out of scope.
+    source = tmp_path / "historical-source"
+    for package in ("config", "inspinia", "scripts"):
+        shutil.copytree(
+            ROOT / package, source / package,
+            ignore=shutil.ignore_patterns("__pycache__", "static", "0013_solution_forum.py"),
+        )
     result = subprocess.run(
         [
             sys.executable,
@@ -375,8 +396,8 @@ def test_sqlite_upgrade_preserves_sources_progress_solutions_and_subscribers(tmp
             "--output",
             str(report),
         ],
-        cwd=ROOT,
-        env={**os.environ, "DJANGO_READ_DOT_ENV_FILE": "false"},
+        cwd=source,
+        env={**os.environ, "DJANGO_READ_DOT_ENV_FILE": "false", "PYTHONPATH": str(source)},
         check=False,
         capture_output=True,
         text=True,
@@ -420,8 +441,11 @@ def test_sqlite_upgrade_preserves_sources_progress_solutions_and_subscribers(tmp
     # Run the exact source-smoke checks too; SQLite remains explicitly non-release evidence.
     smoke = subprocess.run(
         [sys.executable, "-c", schema.smoke_command({"ENGINE": "django.db.backends.sqlite3", "NAME": str(database)})],
-        cwd=ROOT,
-        env={**os.environ, "DJANGO_READ_DOT_ENV_FILE": "false", "DJANGO_SETTINGS_MODULE": "config.settings.test"},
+        cwd=source,
+        env={
+            **os.environ, "DJANGO_READ_DOT_ENV_FILE": "false", "DJANGO_SETTINGS_MODULE": "config.settings.test",
+            "PYTHONPATH": str(source),
+        },
         check=False,
         capture_output=True,
         text=True,

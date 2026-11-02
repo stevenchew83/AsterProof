@@ -90,6 +90,10 @@ def _snapshot(connection):
 
 
 def _approved_rehearsal(disclosed_migration):  # noqa: C901, PLR0911, PLR0912 - Only literal, reviewed rehearsal imports.
+    if disclosed_migration == "solutions.0013_solution_forum":
+        from scripts.deployment.solution_forum_schema_rehearsal import run
+
+        return run
     if disclosed_migration == "solutions.0011_problem_evaluation_packages":
         from scripts.deployment.assessment_prototype_schema_rehearsal import run
 

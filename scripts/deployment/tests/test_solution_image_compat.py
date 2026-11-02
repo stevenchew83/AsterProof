@@ -54,6 +54,9 @@ def test_missing_marker_preserves_pre_cutover_behavior(tmp_path):
     WorkerBackend().ensure_image_reader(SimpleNamespace(registry_dir=tmp_path), tmp_path / "legacy")
 
 
+def test_forum_schema_cannot_run_before_privacy_cutover(tmp_path):
+    with pytest.raises(OperationError, match="image_privacy_cutover_required"):
+        WorkerBackend().check_solution_forum_schema(SimpleNamespace(registry_dir=tmp_path), tmp_path / "candidate")
 
 
 def test_exact_protected_owner_marker_requires_image_reader(tmp_path, monkeypatch):
@@ -139,6 +142,6 @@ def test_capability_type_and_version_are_strict(tmp_path, monkeypatch, value):
 
 
 def test_frozen_image_sources_match_the_reviewed_implementation():
-    assert compat.COMPATIBILITY_SOURCES
-    for relative, expected in compat.COMPATIBILITY_SOURCES.items():
+    assert compat.READER_SOURCES
+    for relative, expected in compat.READER_SOURCES.items():
         assert hashlib.sha256((ROOT / relative).read_bytes()).hexdigest() == expected

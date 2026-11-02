@@ -222,7 +222,12 @@ def test_learning_worker_uses_real_frozen_allowance_bytes_and_evidence(tmp_path)
             super().prepare(contract, request, destination)
             write_real_reader_fixture(destination)
             for source in (root / "inspinia").glob("**/migrations/*"):
-                if source.is_file() and source.suffix in {".py", ".json"}:
+                # This fixture represents the earlier Learning-only rollout.
+                # Its exact allowance correctly rejects the later forum migration.
+                if (
+                    source.is_file() and source.suffix in {".py", ".json"}
+                    and source != root / "inspinia/solutions/migrations/0013_solution_forum.py"
+                ):
                     target = destination / source.relative_to(root)
                     target.parent.mkdir(parents=True, exist_ok=True)
                     target.write_bytes(source.read_bytes())

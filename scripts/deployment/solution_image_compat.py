@@ -53,7 +53,7 @@ READER_SOURCES = {
         "409b530d40be0f2ddcd906a1526a503b7e1e5adb98b42d3a97106ee1b6380f41"
     ),
     "inspinia/solutions/forum.py": "3c0aa934fab6a1aff7fe2e348eb88248f08a3f0382bcf9d6281146a51eaaefc6",
-    "inspinia/solutions/forum_models.py": "433beebf0ad304cad730510a073d02d98ef12660556d1d579778555b7f0e5505",
+    "inspinia/solutions/forum_models.py": "8b5da3f755785d0a7fa7c9b7d1f26bc894e98e8a1286ce708f54af949935c9b3",
 }
 COMPATIBILITY_SOURCES = {
     "config/urls.py": "b28a9990734676bf566c78f78a69fc8fb8b4620a268598dda7a293f5b9a89317",

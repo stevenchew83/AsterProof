@@ -170,7 +170,8 @@ def test_problem_page_edits_only_the_current_users_solution(editor):
     own = ProblemSolution.objects.get(problem=problem)
     other = ProblemSolution.objects.create(problem=problem, author=UserFactory(), title="Other private draft")
     page_url = reverse("solutions:problem_solution_list", args=[problem.problem_uuid])
-    response = client.get(page_url, {"edit": "1", "solution": str(other.pk)})
+    assert client.get(page_url, {"edit": "1", "solution": str(other.pk)}).status_code == HTTPStatus.NOT_FOUND
+    response = client.get(page_url, {"edit": "1"})
     assert response.context["inline_draft_form"].instance.pk == own.pk
     assert response.context["show_inline_draft_editor"]
     html = response.content.decode()
