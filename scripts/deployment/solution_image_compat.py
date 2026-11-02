@@ -16,7 +16,7 @@ MAX_MARKER_BYTES = 1024
 # Frozen after integration. The build refuses to advertise this capability when
 # any required reader or consumer differs; the trusted worker verifies disk bytes.
 READER_SOURCES = {
-    "config/urls.py": "ba15614ec72f02720d15d28a5c5fe9a0c08a8707dd9f977b6910ef77878db448",
+    "config/urls.py": "b28a9990734676bf566c78f78a69fc8fb8b4620a268598dda7a293f5b9a89317",
     "inspinia/solutions/models.py": "1db394d5c101807e9caf695f5083ea5c763f386911bb171b10b4b564407d02af",
     "inspinia/solutions/document_source.py": "91d758d4940fba4cba4dae3a19876349029f9991f814438fce84299adc3a0da3",
     "inspinia/solutions/forum_access.py": "e90d1cb44c14c89368f68be47b8fd47c7a7da54f1496ff94aa8721a06658fe0d",
@@ -56,7 +56,7 @@ READER_SOURCES = {
     "inspinia/solutions/forum_models.py": "433beebf0ad304cad730510a073d02d98ef12660556d1d579778555b7f0e5505",
 }
 COMPATIBILITY_SOURCES = {
-    "config/urls.py": "ba15614ec72f02720d15d28a5c5fe9a0c08a8707dd9f977b6910ef77878db448",
+    "config/urls.py": "b28a9990734676bf566c78f78a69fc8fb8b4620a268598dda7a293f5b9a89317",
     "inspinia/solutions/models.py": "168ed26239f23ad27e6b2a8fab8e80e59f16254d05158176c4b76883cad6d8e7",
     "inspinia/solutions/document_source.py": "91d758d4940fba4cba4dae3a19876349029f9991f814438fce84299adc3a0da3",
     "inspinia/solutions/forum_access.py": "e90d1cb44c14c89368f68be47b8fd47c7a7da54f1496ff94aa8721a06658fe0d",

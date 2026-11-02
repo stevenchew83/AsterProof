@@ -13,9 +13,11 @@ import subprocess
 import tarfile
 from pathlib import Path
 
-BASELINE_SHA = "a2310561974401f208406051f521602d14a12198"
+BASELINE_SHA = "fd2bb2bc737004652d4e72d4b44f1b80170cc67d"
 COPY_PATHS = (
     "config/urls.py",
+    "deployment/solution-image-privacy.nginx.conf",
+    "docs/deployment/solution-image-privacy.md",
     "inspinia/solutions/forum_access.py",
     "inspinia/solutions/image_access.py",
     "inspinia/solutions/image_urls.py",
@@ -105,6 +107,35 @@ def _list(source):
     )
 
 
+def _worker(source):
+    source = _replace_once(
+        source,
+        "from scripts.deployment.solution_document_compat import verified_reader_release\n",
+        "from scripts.deployment.solution_document_compat import verified_reader_release\n"
+        "from scripts.deployment.solution_image_compat import reader_required as image_reader_required\n"
+        "from scripts.deployment.solution_image_compat import verified_reader_release as verified_image_reader\n",
+    )
+    document_guard = (
+        "    def ensure_document_reader(self, contract: TargetContract, release: Path, "
+        "*, required: bool = False) -> None:\n"
+    )
+    source = _replace_once(
+        source, document_guard, document_guard + "        self.ensure_image_reader(contract, release)\n",
+    )
+    return _replace_once(
+        source,
+        "    def learning_reader_required(self, contract: TargetContract) -> bool:\n",
+        "    def ensure_image_reader(self, contract: TargetContract, release: Path) -> None:\n"
+        "        try:\n"
+        "            required = image_reader_required(contract.registry_dir)\n"
+        "        except (OSError, ValueError) as exc:\n"
+        '            raise OperationError("image_reader_floor_unavailable") from exc\n'
+        "        if required and not verified_image_reader(release):\n"
+        '            raise OperationError("image_reader_required")\n\n'
+        "    def learning_reader_required(self, contract: TargetContract) -> bool:\n",
+    )
+
+
 def _compatibility_tests(source):
     tree = ast.parse(source)
     spans = []
@@ -114,7 +145,8 @@ def _compatibility_tests(source):
             or (node.module == "inspinia.solutions" and any(item.name == "forum" for item in node.names))
         )
         forum_test = isinstance(node, ast.FunctionDef) and any(
-            isinstance(item, ast.Name) and item.id in {"forum", "SolutionForumTarget"}
+            (isinstance(item, ast.Name) and item.id in {"forum", "SolutionForumTarget"})
+            or (isinstance(item, ast.Attribute) and item.attr == "check_solution_forum_schema")
             for item in ast.walk(node)
         )
         if forum_import or forum_test:
@@ -123,7 +155,7 @@ def _compatibility_tests(source):
     lines = source.splitlines(keepends=True)
     for start, end in reversed(spans):
         del lines[start - 1:end]
-    return "".join(lines)
+    return "".join(lines).rstrip() + "\n"
 
 
 def prepare(root: Path, output: Path):
@@ -146,10 +178,18 @@ def prepare(root: Path, output: Path):
         ("inspinia/solutions/views.py", _views),
         ("inspinia/solutions/urls.py", _urls),
         ("inspinia/templates/solutions/problem-solution-list.html", _list),
+        ("scripts/deployment/operation_worker.py", _worker),
     ):
         changes[relative] = transform((output / relative).read_text())
     changes["inspinia/solutions/test_image_compatibility.py"] = _compatibility_tests(
         (root / "inspinia/solutions/test_image_access.py").read_text(),
+    )
+    changes["scripts/deployment/tests/test_solution_image_compat.py"] = _compatibility_tests(
+        (root / "scripts/deployment/tests/test_solution_image_compat.py").read_text(),
+    ).replace("compat.READER_SOURCES", "compat.COMPATIBILITY_SOURCES")
+    changes["scripts/deployment/tests/test_solution_document_schema.py"] = (
+        (output / "scripts/deployment/tests/test_solution_document_schema.py").read_text()
+        .replace("compat.READER_SOURCES", "compat.IMAGE_COMPATIBILITY_SOURCES")
     )
     if (output / "inspinia/solutions/migrations/0013_solution_forum.py").exists():
         raise ValueError("Compatibility baseline unexpectedly contains the forum migration")

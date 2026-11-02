@@ -1,6 +1,7 @@
 # ruff: noqa: S607, SLF001
 """The compatibility extraction has no dependency on forum tables or reader routes."""
 
+import ast
 import subprocess
 from pathlib import Path
 
@@ -47,6 +48,8 @@ def test_compatibility_image_tests_do_not_import_or_create_forum_targets():
     assert "from inspinia.solutions import forum" not in source
     assert "test_public_image_is_bound_to_shared_snapshot_not_current_private_content" in source
     assert "test_private_image_requires_authentication" in source
+    assert source.endswith("\n")
+    assert not source.endswith("\n\n")
 
 
 def test_compatibility_copy_manifest_excludes_forum_migration_and_runtime():
@@ -56,3 +59,35 @@ def test_compatibility_copy_manifest_excludes_forum_migration_and_runtime():
         "migrations/" in path or path.endswith(("forum.py", "forum_views.py", "forum_models.py"))
         for path in preparation.COPY_PATHS
     )
+
+
+def test_image_only_worker_preserves_learning_and_all_existing_operation_paths():
+    original = baseline("scripts/deployment/operation_worker.py")
+    source = preparation._worker(original)
+    assert "solution_forum_schema" not in source
+    assert "check_solution_forum_schema" not in source
+    assert "from scripts.deployment.solution_image_compat import reader_required as image_reader_required" in source
+    assert "        self.ensure_image_reader(contract, release)\n" in source
+    assert 'raise OperationError("image_reader_required")' in source
+    original_tree, tree = ast.parse(original), ast.parse(source)
+    previous_backend = next(
+        node for node in original_tree.body if isinstance(node, ast.ClassDef) and node.name == "WorkerBackend"
+    )
+    backend = next(node for node in tree.body if isinstance(node, ast.ClassDef) and node.name == "WorkerBackend")
+    methods = {node.name: node for node in backend.body if isinstance(node, ast.FunctionDef)}
+    for node in previous_backend.body:
+        if isinstance(node, ast.FunctionDef) and node.name != "ensure_document_reader":
+            assert ast.dump(methods[node.name], include_attributes=False) == ast.dump(node, include_attributes=False)
+    for node in original_tree.body:
+        if isinstance(node, ast.FunctionDef):
+            current = next(item for item in tree.body if isinstance(item, ast.FunctionDef) and item.name == node.name)
+            assert ast.dump(current, include_attributes=False) == ast.dump(node, include_attributes=False)
+
+
+def test_compatibility_worker_tests_keep_image_floor_without_forum_schema():
+    source = preparation._compatibility_tests(
+        (ROOT / "scripts/deployment/tests/test_solution_image_compat.py").read_text(),
+    )
+    assert "check_solution_forum_schema" not in source
+    assert "test_exact_protected_owner_marker_requires_image_reader" in source
+    assert "test_compatible_reader_satisfies_cutover_and_document_guard_is_preserved" in source
