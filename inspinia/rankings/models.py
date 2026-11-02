@@ -622,3 +622,17 @@ class ImportRowIssue(models.Model):
             kwargs["update_fields"] = set(update_fields) | {"severity", "issue_code"}
 
         super().save(*args, **kwargs)
+
+
+# Keep the analytical review models separate without changing Django's model discovery.
+from .analysis_models import AssessmentAnalysisMetadata  # noqa: E402, F401
+from .analysis_models import AssessmentCategoryScale  # noqa: E402, F401
+from .analysis_models import OutcomeAlias  # noqa: E402, F401
+from .analysis_models import RankingCorrection  # noqa: E402, F401
+from .analysis_models import RankingCorrectionItem  # noqa: E402, F401
+from .analysis_models import RankingCorrectionReceipt  # noqa: E402, F401
+from .analysis_models import RankingImportConflict  # noqa: E402, F401
+from .analysis_models import RankingWriteLock  # noqa: E402, F401
+from .analysis_models import ResultSchoolAttribution  # noqa: E402, F401
+from .analysis_models import SchoolAlias  # noqa: E402, F401
+from .analysis_models import StudentIdentityReview  # noqa: E402, F401

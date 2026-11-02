@@ -1,4 +1,5 @@
 {% extends 'layouts/vertical.html' %}
+{% load static l10n %}
 
 {% block title %}Student result history{% endblock title %}
 
@@ -34,17 +35,18 @@
       <h2 class="header-title mb-1">{{ season|default:'Student' }} results and group history</h2>
       <p class="text-muted fs-xs mb-0">One row per student with results in this season. Select a student for their complete history. A dash means no recorded result.</p>
     </div>
-    <div class="card-body pt-2">
+    <div class="card-body pt-2" data-local-table>
+      {% include 'pages/rankings/local-table-tools.html' with table_id='result-history' only %}
       <div class="app-table-region table-responsive" tabindex="0" role="region" aria-label="Student history across assessments">
         <table id="result-history-table" class="app-table-compact table table-bordered table-striped align-middle mb-0">
-          <thead><tr><th scope="col">Student</th><th scope="col">Birth year</th><th scope="col">School</th>{% for assessment in assessments %}<th scope="col">{{ assessment.display_name }}</th>{% endfor %}</tr></thead>
+          <thead><tr><th scope="col" data-sort-type="text">Student</th><th scope="col" data-sort-type="number">Birth year</th><th scope="col" data-sort-type="text">School</th>{% for assessment in assessments %}<th scope="col" data-sort-type="mixed">{{ assessment.display_name }}</th>{% endfor %}</tr></thead>
           <tbody>
             {% for row in rows %}
-            <tr>
+            <tr data-local-row="{{ row.student.pk }}">
               <td><a href="{% url 'rankings:student_detail' row.student.pk %}">{{ row.student.full_name }}</a></td>
-              <td>{{ row.student.birth_year|default_if_none:'—' }}</td>
-              <td>{{ row.student.school.name|default:'—' }}</td>
-              {% for result in row.cells %}<td>{% include 'pages/rankings/result-cell.html' with result=result only %}</td>{% endfor %}
+              <td data-sort-value="{{ row.student.birth_year|default_if_none:''|unlocalize }}">{{ row.student.birth_year|default_if_none:'—' }}</td>
+              <td>{{ row.student.school_display|default:'—' }}</td>
+              {% for result in row.cells %}<td data-sort-value="{{ result.raw_score|default_if_none:''|unlocalize }}">{% include 'pages/rankings/result-cell.html' with result=result only %}</td>{% endfor %}
             </tr>
             {% empty %}<tr><td colspan="{{ assessments|length|add:'3' }}" class="text-muted py-4">No student history matches these filters. Import a sheet to add results.</td></tr>{% endfor %}
           </tbody>
@@ -55,3 +57,7 @@
   </div>
 </div>
 {% endblock page_content %}
+
+{% block extra_javascript %}
+<script src="{% static 'js/ranking-table-tools.js' %}" defer></script>
+{% endblock extra_javascript %}

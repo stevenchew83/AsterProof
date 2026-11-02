@@ -1,4 +1,5 @@
 {% extends 'layouts/vertical.html' %}
+{% load static l10n %}
 
 {% block title %}Assessment results{% endblock title %}
 
@@ -53,18 +54,19 @@
       <h2 class="header-title mb-1">{{ assessment.display_name|default:'No assessment results yet' }}</h2>
       <p class="text-muted fs-xs mb-0">Ranks use raw scores within each category. Equal scores share a rank; searches keep the original category ranks. Medals and group labels are shown as recorded.</p>
     </div>
-    <div class="card-body pt-2">
+    <div class="card-body pt-2" data-local-table>
+      {% include 'pages/rankings/local-table-tools.html' with table_id='assessment-results' only %}
       <div class="app-table-region table-responsive" tabindex="0" role="region" aria-label="Assessment results">
         <table id="assessment-results-table" class="app-table-compact table table-striped align-middle mb-0">
-          <thead><tr><th scope="col">Category rank</th><th scope="col">Student</th><th scope="col">School</th><th scope="col">Category</th><th scope="col">Raw score</th><th scope="col">Medal / group</th></tr></thead>
+          <thead><tr><th scope="col" data-sort-type="number">Category rank</th><th scope="col" data-sort-type="text">Student</th><th scope="col" data-sort-type="text">School</th><th scope="col" data-sort-type="text">Category</th><th scope="col" data-sort-type="number" data-sort-first="desc">Raw score</th><th scope="col" data-sort-type="text">Medal / group</th></tr></thead>
           <tbody>
             {% for result in page_obj %}
-            <tr>
-              <td>{{ result.category_rank|default_if_none:'—' }}</td>
+            <tr data-local-row="{{ result.pk }}">
+              <td data-sort-value="{{ result.category_rank|default_if_none:''|unlocalize }}">{{ result.category_rank|default_if_none:'—' }}</td>
               <td><a href="{% url 'rankings:student_detail' result.student_id %}">{{ result.student.full_name }}</a></td>
               <td>{{ result.school_display|default:'—' }}</td>
               <td>{{ result.band|default:'—' }}</td>
-              <td class="fw-semibold">{% if result.raw_score is not None %}{{ result.raw_score|floatformat:'-2' }}{% else %}—{% endif %}</td>
+              <td class="fw-semibold" data-sort-value="{{ result.raw_score|default_if_none:''|unlocalize }}">{% if result.raw_score is not None %}{{ result.raw_score|floatformat:'-2' }}{% else %}—{% endif %}</td>
               <td>{% if result.medal %}<span class="badge bg-warning-subtle text-warning-emphasis">{{ result.medal }}</span>{% endif %} {{ result.status_text }}{% if result.source_notes %}<details class="app-table-details"><summary>Source notes</summary><div class="app-table-details-body">{{ result.source_notes }}</div></details>{% endif %}</td>
             </tr>
             {% empty %}
@@ -78,3 +80,7 @@
   </div>
 </div>
 {% endblock page_content %}
+
+{% block extra_javascript %}
+<script src="{% static 'js/ranking-table-tools.js' %}" defer></script>
+{% endblock extra_javascript %}

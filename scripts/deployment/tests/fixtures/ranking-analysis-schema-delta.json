@@ -1,0 +1,1407 @@
+{
+  "columns": [
+    {
+      "collation": "default",
+      "column": "alias",
+      "default": null,
+      "nullable": false,
+      "position": 2,
+      "schema": "public",
+      "table": "rankings_schoolalias",
+      "type": "character varying(255)"
+    },
+    {
+      "collation": "default",
+      "column": "alias",
+      "default": null,
+      "nullable": false,
+      "position": 3,
+      "schema": "public",
+      "table": "rankings_outcomealias",
+      "type": "character varying(64)"
+    },
+    {
+      "collation": "default",
+      "column": "band",
+      "default": null,
+      "nullable": false,
+      "position": 2,
+      "schema": "public",
+      "table": "rankings_assessmentcategoryscale",
+      "type": "character varying(32)"
+    },
+    {
+      "collation": "default",
+      "column": "canonical",
+      "default": null,
+      "nullable": false,
+      "position": 5,
+      "schema": "public",
+      "table": "rankings_outcomealias",
+      "type": "character varying(64)"
+    },
+    {
+      "collation": "default",
+      "column": "comparable_scope",
+      "default": null,
+      "nullable": false,
+      "position": 5,
+      "schema": "public",
+      "table": "rankings_assessmentcategoryscale",
+      "type": "character varying(80)"
+    },
+    {
+      "collation": "default",
+      "column": "decision",
+      "default": null,
+      "nullable": false,
+      "position": 2,
+      "schema": "public",
+      "table": "rankings_studentidentityreview",
+      "type": "character varying(24)"
+    },
+    {
+      "collation": "default",
+      "column": "decision_reason",
+      "default": null,
+      "nullable": false,
+      "position": 5,
+      "schema": "public",
+      "table": "rankings_rankingcorrection",
+      "type": "text"
+    },
+    {
+      "collation": "default",
+      "column": "definition",
+      "default": null,
+      "nullable": false,
+      "position": 3,
+      "schema": "public",
+      "table": "rankings_assessmentanalysismetadata",
+      "type": "text"
+    },
+    {
+      "collation": "default",
+      "column": "evidence",
+      "default": null,
+      "nullable": false,
+      "position": 3,
+      "schema": "public",
+      "table": "rankings_resultschoolattribution",
+      "type": "text"
+    },
+    {
+      "collation": "default",
+      "column": "evidence",
+      "default": null,
+      "nullable": false,
+      "position": 3,
+      "schema": "public",
+      "table": "rankings_studentidentityreview",
+      "type": "text"
+    },
+    {
+      "collation": "default",
+      "column": "evidence",
+      "default": null,
+      "nullable": false,
+      "position": 4,
+      "schema": "public",
+      "table": "rankings_rankingcorrection",
+      "type": "text"
+    },
+    {
+      "collation": "default",
+      "column": "evidence",
+      "default": null,
+      "nullable": false,
+      "position": 6,
+      "schema": "public",
+      "table": "rankings_assessmentcategoryscale",
+      "type": "text"
+    },
+    {
+      "collation": "default",
+      "column": "family",
+      "default": null,
+      "nullable": false,
+      "position": 2,
+      "schema": "public",
+      "table": "rankings_assessmentanalysismetadata",
+      "type": "character varying(64)"
+    },
+    {
+      "collation": "default",
+      "column": "field",
+      "default": null,
+      "nullable": false,
+      "position": 2,
+      "schema": "public",
+      "table": "rankings_outcomealias",
+      "type": "character varying(16)"
+    },
+    {
+      "collation": "default",
+      "column": "kind",
+      "default": null,
+      "nullable": false,
+      "position": 2,
+      "schema": "public",
+      "table": "rankings_rankingcorrectionitem",
+      "type": "character varying(20)"
+    },
+    {
+      "collation": "default",
+      "column": "normalized_alias",
+      "default": null,
+      "nullable": false,
+      "position": 4,
+      "schema": "public",
+      "table": "rankings_outcomealias",
+      "type": "character varying(64)"
+    },
+    {
+      "collation": "default",
+      "column": "normalized_name",
+      "default": null,
+      "nullable": false,
+      "position": 3,
+      "schema": "public",
+      "table": "rankings_schoolalias",
+      "type": "character varying(255)"
+    },
+    {
+      "collation": "default",
+      "column": "reason",
+      "default": null,
+      "nullable": false,
+      "position": 3,
+      "schema": "public",
+      "table": "rankings_rankingcorrection",
+      "type": "text"
+    },
+    {
+      "collation": "default",
+      "column": "status",
+      "default": null,
+      "nullable": false,
+      "position": 2,
+      "schema": "public",
+      "table": "rankings_rankingcorrection",
+      "type": "character varying(16)"
+    },
+    {
+      "collation": "default",
+      "column": "status",
+      "default": null,
+      "nullable": false,
+      "position": 5,
+      "schema": "public",
+      "table": "rankings_rankingimportconflict",
+      "type": "character varying(16)"
+    },
+    {
+      "collation": null,
+      "column": "active",
+      "default": null,
+      "nullable": false,
+      "position": 4,
+      "schema": "public",
+      "table": "rankings_schoolalias",
+      "type": "boolean"
+    },
+    {
+      "collation": null,
+      "column": "active",
+      "default": null,
+      "nullable": false,
+      "position": 4,
+      "schema": "public",
+      "table": "rankings_studentidentityreview",
+      "type": "boolean"
+    },
+    {
+      "collation": null,
+      "column": "active",
+      "default": null,
+      "nullable": false,
+      "position": 6,
+      "schema": "public",
+      "table": "rankings_outcomealias",
+      "type": "boolean"
+    },
+    {
+      "collation": null,
+      "column": "actor_id",
+      "default": null,
+      "nullable": true,
+      "position": 4,
+      "schema": "public",
+      "table": "rankings_rankingcorrectionreceipt",
+      "type": "bigint"
+    },
+    {
+      "collation": null,
+      "column": "assessment_id",
+      "default": null,
+      "nullable": false,
+      "position": 7,
+      "schema": "public",
+      "table": "rankings_assessmentanalysismetadata",
+      "type": "bigint"
+    },
+    {
+      "collation": null,
+      "column": "assessment_id",
+      "default": null,
+      "nullable": false,
+      "position": 8,
+      "schema": "public",
+      "table": "rankings_assessmentcategoryscale",
+      "type": "bigint"
+    },
+    {
+      "collation": null,
+      "column": "assessment_id",
+      "default": null,
+      "nullable": false,
+      "position": 8,
+      "schema": "public",
+      "table": "rankings_outcomealias",
+      "type": "bigint"
+    },
+    {
+      "collation": null,
+      "column": "batch_id",
+      "default": null,
+      "nullable": false,
+      "position": 8,
+      "schema": "public",
+      "table": "rankings_rankingimportconflict",
+      "type": "bigint"
+    },
+    {
+      "collation": null,
+      "column": "before",
+      "default": null,
+      "nullable": false,
+      "position": 4,
+      "schema": "public",
+      "table": "rankings_rankingcorrectionitem",
+      "type": "jsonb"
+    },
+    {
+      "collation": null,
+      "column": "changes",
+      "default": null,
+      "nullable": false,
+      "position": 2,
+      "schema": "public",
+      "table": "rankings_rankingcorrectionreceipt",
+      "type": "jsonb"
+    },
+    {
+      "collation": null,
+      "column": "changes",
+      "default": null,
+      "nullable": false,
+      "position": 5,
+      "schema": "public",
+      "table": "rankings_rankingcorrectionitem",
+      "type": "jsonb"
+    },
+    {
+      "collation": null,
+      "column": "conflicts",
+      "default": null,
+      "nullable": false,
+      "position": 4,
+      "schema": "public",
+      "table": "rankings_rankingimportconflict",
+      "type": "jsonb"
+    },
+    {
+      "collation": null,
+      "column": "correction_id",
+      "default": null,
+      "nullable": false,
+      "position": 5,
+      "schema": "public",
+      "table": "rankings_rankingcorrectionreceipt",
+      "type": "bigint"
+    },
+    {
+      "collation": null,
+      "column": "correction_id",
+      "default": null,
+      "nullable": false,
+      "position": 6,
+      "schema": "public",
+      "table": "rankings_rankingcorrectionitem",
+      "type": "bigint"
+    },
+    {
+      "collation": null,
+      "column": "correction_id",
+      "default": null,
+      "nullable": true,
+      "position": 9,
+      "schema": "public",
+      "table": "rankings_rankingimportconflict",
+      "type": "bigint"
+    },
+    {
+      "collation": null,
+      "column": "created_at",
+      "default": null,
+      "nullable": false,
+      "position": 3,
+      "schema": "public",
+      "table": "rankings_rankingcorrectionreceipt",
+      "type": "timestamp with time zone"
+    },
+    {
+      "collation": null,
+      "column": "created_at",
+      "default": null,
+      "nullable": false,
+      "position": 6,
+      "schema": "public",
+      "table": "rankings_rankingimportconflict",
+      "type": "timestamp with time zone"
+    },
+    {
+      "collation": null,
+      "column": "created_at",
+      "default": null,
+      "nullable": false,
+      "position": 7,
+      "schema": "public",
+      "table": "rankings_rankingcorrection",
+      "type": "timestamp with time zone"
+    },
+    {
+      "collation": null,
+      "column": "created_by_id",
+      "default": null,
+      "nullable": true,
+      "position": 9,
+      "schema": "public",
+      "table": "rankings_rankingcorrection",
+      "type": "bigint"
+    },
+    {
+      "collation": null,
+      "column": "date_verified",
+      "default": null,
+      "nullable": false,
+      "position": 5,
+      "schema": "public",
+      "table": "rankings_assessmentanalysismetadata",
+      "type": "boolean"
+    },
+    {
+      "collation": null,
+      "column": "decided_at",
+      "default": null,
+      "nullable": true,
+      "position": 6,
+      "schema": "public",
+      "table": "rankings_rankingcorrection",
+      "type": "timestamp with time zone"
+    },
+    {
+      "collation": null,
+      "column": "decided_by_id",
+      "default": null,
+      "nullable": true,
+      "position": 10,
+      "schema": "public",
+      "table": "rankings_rankingcorrection",
+      "type": "bigint"
+    },
+    {
+      "collation": null,
+      "column": "definition_verified",
+      "default": null,
+      "nullable": false,
+      "position": 4,
+      "schema": "public",
+      "table": "rankings_assessmentanalysismetadata",
+      "type": "boolean"
+    },
+    {
+      "collation": null,
+      "column": "first_student_id",
+      "default": null,
+      "nullable": false,
+      "position": 6,
+      "schema": "public",
+      "table": "rankings_studentidentityreview",
+      "type": "bigint"
+    },
+    {
+      "collation": null,
+      "column": "id",
+      "default": null,
+      "nullable": false,
+      "position": 1,
+      "schema": "public",
+      "table": "rankings_assessmentanalysismetadata",
+      "type": "bigint"
+    },
+    {
+      "collation": null,
+      "column": "id",
+      "default": null,
+      "nullable": false,
+      "position": 1,
+      "schema": "public",
+      "table": "rankings_assessmentcategoryscale",
+      "type": "bigint"
+    },
+    {
+      "collation": null,
+      "column": "id",
+      "default": null,
+      "nullable": false,
+      "position": 1,
+      "schema": "public",
+      "table": "rankings_outcomealias",
+      "type": "bigint"
+    },
+    {
+      "collation": null,
+      "column": "id",
+      "default": null,
+      "nullable": false,
+      "position": 1,
+      "schema": "public",
+      "table": "rankings_rankingcorrection",
+      "type": "bigint"
+    },
+    {
+      "collation": null,
+      "column": "id",
+      "default": null,
+      "nullable": false,
+      "position": 1,
+      "schema": "public",
+      "table": "rankings_rankingcorrectionitem",
+      "type": "bigint"
+    },
+    {
+      "collation": null,
+      "column": "id",
+      "default": null,
+      "nullable": false,
+      "position": 1,
+      "schema": "public",
+      "table": "rankings_rankingcorrectionreceipt",
+      "type": "bigint"
+    },
+    {
+      "collation": null,
+      "column": "id",
+      "default": null,
+      "nullable": false,
+      "position": 1,
+      "schema": "public",
+      "table": "rankings_rankingimportconflict",
+      "type": "bigint"
+    },
+    {
+      "collation": null,
+      "column": "id",
+      "default": null,
+      "nullable": false,
+      "position": 1,
+      "schema": "public",
+      "table": "rankings_rankingwritelock",
+      "type": "smallint"
+    },
+    {
+      "collation": null,
+      "column": "id",
+      "default": null,
+      "nullable": false,
+      "position": 1,
+      "schema": "public",
+      "table": "rankings_resultschoolattribution",
+      "type": "bigint"
+    },
+    {
+      "collation": null,
+      "column": "id",
+      "default": null,
+      "nullable": false,
+      "position": 1,
+      "schema": "public",
+      "table": "rankings_schoolalias",
+      "type": "bigint"
+    },
+    {
+      "collation": null,
+      "column": "id",
+      "default": null,
+      "nullable": false,
+      "position": 1,
+      "schema": "public",
+      "table": "rankings_studentidentityreview",
+      "type": "bigint"
+    },
+    {
+      "collation": null,
+      "column": "max_score",
+      "default": null,
+      "nullable": true,
+      "position": 3,
+      "schema": "public",
+      "table": "rankings_assessmentcategoryscale",
+      "type": "numeric(10,2)"
+    },
+    {
+      "collation": null,
+      "column": "operations",
+      "default": null,
+      "nullable": false,
+      "position": 3,
+      "schema": "public",
+      "table": "rankings_rankingimportconflict",
+      "type": "jsonb"
+    },
+    {
+      "collation": null,
+      "column": "resolved_at",
+      "default": null,
+      "nullable": true,
+      "position": 7,
+      "schema": "public",
+      "table": "rankings_rankingimportconflict",
+      "type": "timestamp with time zone"
+    },
+    {
+      "collation": null,
+      "column": "resolved_by_id",
+      "default": null,
+      "nullable": true,
+      "position": 10,
+      "schema": "public",
+      "table": "rankings_rankingimportconflict",
+      "type": "bigint"
+    },
+    {
+      "collation": null,
+      "column": "result_id",
+      "default": null,
+      "nullable": false,
+      "position": 6,
+      "schema": "public",
+      "table": "rankings_resultschoolattribution",
+      "type": "bigint"
+    },
+    {
+      "collation": null,
+      "column": "reverses_id",
+      "default": null,
+      "nullable": true,
+      "position": 11,
+      "schema": "public",
+      "table": "rankings_rankingcorrection",
+      "type": "bigint"
+    },
+    {
+      "collation": null,
+      "column": "reviewed_at",
+      "default": null,
+      "nullable": false,
+      "position": 4,
+      "schema": "public",
+      "table": "rankings_resultschoolattribution",
+      "type": "timestamp with time zone"
+    },
+    {
+      "collation": null,
+      "column": "reviewed_by_id",
+      "default": null,
+      "nullable": true,
+      "position": 7,
+      "schema": "public",
+      "table": "rankings_resultschoolattribution",
+      "type": "bigint"
+    },
+    {
+      "collation": null,
+      "column": "reviewed_by_id",
+      "default": null,
+      "nullable": true,
+      "position": 8,
+      "schema": "public",
+      "table": "rankings_assessmentanalysismetadata",
+      "type": "bigint"
+    },
+    {
+      "collation": null,
+      "column": "row_number",
+      "default": null,
+      "nullable": false,
+      "position": 2,
+      "schema": "public",
+      "table": "rankings_rankingimportconflict",
+      "type": "integer"
+    },
+    {
+      "collation": null,
+      "column": "school_id",
+      "default": null,
+      "nullable": false,
+      "position": 6,
+      "schema": "public",
+      "table": "rankings_schoolalias",
+      "type": "bigint"
+    },
+    {
+      "collation": null,
+      "column": "school_id",
+      "default": null,
+      "nullable": false,
+      "position": 8,
+      "schema": "public",
+      "table": "rankings_resultschoolattribution",
+      "type": "bigint"
+    },
+    {
+      "collation": null,
+      "column": "second_student_id",
+      "default": null,
+      "nullable": false,
+      "position": 7,
+      "schema": "public",
+      "table": "rankings_studentidentityreview",
+      "type": "bigint"
+    },
+    {
+      "collation": null,
+      "column": "target_id",
+      "default": null,
+      "nullable": false,
+      "position": 3,
+      "schema": "public",
+      "table": "rankings_rankingcorrectionitem",
+      "type": "bigint"
+    },
+    {
+      "collation": null,
+      "column": "updated_at",
+      "default": null,
+      "nullable": false,
+      "position": 5,
+      "schema": "public",
+      "table": "rankings_resultschoolattribution",
+      "type": "timestamp with time zone"
+    },
+    {
+      "collation": null,
+      "column": "updated_at",
+      "default": null,
+      "nullable": false,
+      "position": 5,
+      "schema": "public",
+      "table": "rankings_schoolalias",
+      "type": "timestamp with time zone"
+    },
+    {
+      "collation": null,
+      "column": "updated_at",
+      "default": null,
+      "nullable": false,
+      "position": 5,
+      "schema": "public",
+      "table": "rankings_studentidentityreview",
+      "type": "timestamp with time zone"
+    },
+    {
+      "collation": null,
+      "column": "updated_at",
+      "default": null,
+      "nullable": false,
+      "position": 6,
+      "schema": "public",
+      "table": "rankings_assessmentanalysismetadata",
+      "type": "timestamp with time zone"
+    },
+    {
+      "collation": null,
+      "column": "updated_at",
+      "default": null,
+      "nullable": false,
+      "position": 7,
+      "schema": "public",
+      "table": "rankings_assessmentcategoryscale",
+      "type": "timestamp with time zone"
+    },
+    {
+      "collation": null,
+      "column": "updated_at",
+      "default": null,
+      "nullable": false,
+      "position": 7,
+      "schema": "public",
+      "table": "rankings_outcomealias",
+      "type": "timestamp with time zone"
+    },
+    {
+      "collation": null,
+      "column": "updated_at",
+      "default": null,
+      "nullable": false,
+      "position": 8,
+      "schema": "public",
+      "table": "rankings_rankingcorrection",
+      "type": "timestamp with time zone"
+    },
+    {
+      "collation": null,
+      "column": "verified",
+      "default": null,
+      "nullable": false,
+      "position": 2,
+      "schema": "public",
+      "table": "rankings_resultschoolattribution",
+      "type": "boolean"
+    },
+    {
+      "collation": null,
+      "column": "verified",
+      "default": null,
+      "nullable": false,
+      "position": 4,
+      "schema": "public",
+      "table": "rankings_assessmentcategoryscale",
+      "type": "boolean"
+    }
+  ],
+  "constraints": [
+    {
+      "definition": "CHECK (NOT verified OR max_score IS NOT NULL)",
+      "name": "rank_scale_verified_max",
+      "schema": "public",
+      "table": "rankings_assessmentcategoryscale",
+      "type": "c"
+    },
+    {
+      "definition": "CHECK (first_student_id < second_student_id)",
+      "name": "rank_identity_ordered_pair",
+      "schema": "public",
+      "table": "rankings_studentidentityreview",
+      "type": "c"
+    },
+    {
+      "definition": "CHECK (id = 1)",
+      "name": "rank_write_singleton",
+      "schema": "public",
+      "table": "rankings_rankingwritelock",
+      "type": "c"
+    },
+    {
+      "definition": "CHECK (id >= 0)",
+      "name": "rankings_rankingwritelock_id_check",
+      "schema": "public",
+      "table": "rankings_rankingwritelock",
+      "type": "c"
+    },
+    {
+      "definition": "CHECK (max_score IS NULL OR max_score > 0::numeric)",
+      "name": "rank_scale_positive_max",
+      "schema": "public",
+      "table": "rankings_assessmentcategoryscale",
+      "type": "c"
+    },
+    {
+      "definition": "CHECK (row_number >= 0)",
+      "name": "rankings_rankingimportconflict_row_number_check",
+      "schema": "public",
+      "table": "rankings_rankingimportconflict",
+      "type": "c"
+    },
+    {
+      "definition": "CHECK (target_id >= 0)",
+      "name": "rankings_rankingcorrectionitem_target_id_check",
+      "schema": "public",
+      "table": "rankings_rankingcorrectionitem",
+      "type": "c"
+    },
+    {
+      "definition": "FOREIGN KEY (actor_id) REFERENCES users_user(id) DEFERRABLE INITIALLY DEFERRED",
+      "name": "rankings_rankingcorr_actor_id_7da6aa98_fk_users_use",
+      "schema": "public",
+      "table": "rankings_rankingcorrectionreceipt",
+      "type": "f"
+    },
+    {
+      "definition": "FOREIGN KEY (assessment_id) REFERENCES rankings_assessment(id) DEFERRABLE INITIALLY DEFERRED",
+      "name": "rankings_assessmenta_assessment_id_3b0e7d0d_fk_rankings_",
+      "schema": "public",
+      "table": "rankings_assessmentanalysismetadata",
+      "type": "f"
+    },
+    {
+      "definition": "FOREIGN KEY (assessment_id) REFERENCES rankings_assessment(id) DEFERRABLE INITIALLY DEFERRED",
+      "name": "rankings_assessmentc_assessment_id_6412a429_fk_rankings_",
+      "schema": "public",
+      "table": "rankings_assessmentcategoryscale",
+      "type": "f"
+    },
+    {
+      "definition": "FOREIGN KEY (assessment_id) REFERENCES rankings_assessment(id) DEFERRABLE INITIALLY DEFERRED",
+      "name": "rankings_outcomealia_assessment_id_7e6a547b_fk_rankings_",
+      "schema": "public",
+      "table": "rankings_outcomealias",
+      "type": "f"
+    },
+    {
+      "definition": "FOREIGN KEY (batch_id) REFERENCES rankings_importbatch(id) DEFERRABLE INITIALLY DEFERRED",
+      "name": "rankings_rankingimpo_batch_id_eb91f5c1_fk_rankings_",
+      "schema": "public",
+      "table": "rankings_rankingimportconflict",
+      "type": "f"
+    },
+    {
+      "definition": "FOREIGN KEY (correction_id) REFERENCES rankings_rankingcorrection(id) DEFERRABLE INITIALLY DEFERRED",
+      "name": "rankings_rankingcorr_correction_id_bff5532d_fk_rankings_",
+      "schema": "public",
+      "table": "rankings_rankingcorrectionreceipt",
+      "type": "f"
+    },
+    {
+      "definition": "FOREIGN KEY (correction_id) REFERENCES rankings_rankingcorrection(id) DEFERRABLE INITIALLY DEFERRED",
+      "name": "rankings_rankingcorr_correction_id_f30d4c9a_fk_rankings_",
+      "schema": "public",
+      "table": "rankings_rankingcorrectionitem",
+      "type": "f"
+    },
+    {
+      "definition": "FOREIGN KEY (correction_id) REFERENCES rankings_rankingcorrection(id) DEFERRABLE INITIALLY DEFERRED",
+      "name": "rankings_rankingimpo_correction_id_5a1eddbd_fk_rankings_",
+      "schema": "public",
+      "table": "rankings_rankingimportconflict",
+      "type": "f"
+    },
+    {
+      "definition": "FOREIGN KEY (created_by_id) REFERENCES users_user(id) DEFERRABLE INITIALLY DEFERRED",
+      "name": "rankings_rankingcorr_created_by_id_1704f722_fk_users_use",
+      "schema": "public",
+      "table": "rankings_rankingcorrection",
+      "type": "f"
+    },
+    {
+      "definition": "FOREIGN KEY (decided_by_id) REFERENCES users_user(id) DEFERRABLE INITIALLY DEFERRED",
+      "name": "rankings_rankingcorr_decided_by_id_c55773ca_fk_users_use",
+      "schema": "public",
+      "table": "rankings_rankingcorrection",
+      "type": "f"
+    },
+    {
+      "definition": "FOREIGN KEY (first_student_id) REFERENCES rankings_student(id) DEFERRABLE INITIALLY DEFERRED",
+      "name": "rankings_studentiden_first_student_id_2ce52164_fk_rankings_",
+      "schema": "public",
+      "table": "rankings_studentidentityreview",
+      "type": "f"
+    },
+    {
+      "definition": "FOREIGN KEY (resolved_by_id) REFERENCES users_user(id) DEFERRABLE INITIALLY DEFERRED",
+      "name": "rankings_rankingimpo_resolved_by_id_779c857c_fk_users_use",
+      "schema": "public",
+      "table": "rankings_rankingimportconflict",
+      "type": "f"
+    },
+    {
+      "definition": "FOREIGN KEY (result_id) REFERENCES rankings_studentresult(id) DEFERRABLE INITIALLY DEFERRED",
+      "name": "rankings_resultschoo_result_id_98d3c07c_fk_rankings_",
+      "schema": "public",
+      "table": "rankings_resultschoolattribution",
+      "type": "f"
+    },
+    {
+      "definition": "FOREIGN KEY (reverses_id) REFERENCES rankings_rankingcorrection(id) DEFERRABLE INITIALLY DEFERRED",
+      "name": "rankings_rankingcorr_reverses_id_72cb9915_fk_rankings_",
+      "schema": "public",
+      "table": "rankings_rankingcorrection",
+      "type": "f"
+    },
+    {
+      "definition": "FOREIGN KEY (reviewed_by_id) REFERENCES users_user(id) DEFERRABLE INITIALLY DEFERRED",
+      "name": "rankings_assessmenta_reviewed_by_id_73b17933_fk_users_use",
+      "schema": "public",
+      "table": "rankings_assessmentanalysismetadata",
+      "type": "f"
+    },
+    {
+      "definition": "FOREIGN KEY (reviewed_by_id) REFERENCES users_user(id) DEFERRABLE INITIALLY DEFERRED",
+      "name": "rankings_resultschoo_reviewed_by_id_ccf474e4_fk_users_use",
+      "schema": "public",
+      "table": "rankings_resultschoolattribution",
+      "type": "f"
+    },
+    {
+      "definition": "FOREIGN KEY (school_id) REFERENCES rankings_school(id) DEFERRABLE INITIALLY DEFERRED",
+      "name": "rankings_resultschoo_school_id_4af60647_fk_rankings_",
+      "schema": "public",
+      "table": "rankings_resultschoolattribution",
+      "type": "f"
+    },
+    {
+      "definition": "FOREIGN KEY (school_id) REFERENCES rankings_school(id) DEFERRABLE INITIALLY DEFERRED",
+      "name": "rankings_schoolalias_school_id_50535cf1_fk_rankings_school_id",
+      "schema": "public",
+      "table": "rankings_schoolalias",
+      "type": "f"
+    },
+    {
+      "definition": "FOREIGN KEY (second_student_id) REFERENCES rankings_student(id) DEFERRABLE INITIALLY DEFERRED",
+      "name": "rankings_studentiden_second_student_id_f44bf93d_fk_rankings_",
+      "schema": "public",
+      "table": "rankings_studentidentityreview",
+      "type": "f"
+    },
+    {
+      "definition": "PRIMARY KEY (id)",
+      "name": "rankings_assessmentanalysismetadata_pkey",
+      "schema": "public",
+      "table": "rankings_assessmentanalysismetadata",
+      "type": "p"
+    },
+    {
+      "definition": "PRIMARY KEY (id)",
+      "name": "rankings_assessmentcategoryscale_pkey",
+      "schema": "public",
+      "table": "rankings_assessmentcategoryscale",
+      "type": "p"
+    },
+    {
+      "definition": "PRIMARY KEY (id)",
+      "name": "rankings_outcomealias_pkey",
+      "schema": "public",
+      "table": "rankings_outcomealias",
+      "type": "p"
+    },
+    {
+      "definition": "PRIMARY KEY (id)",
+      "name": "rankings_rankingcorrection_pkey",
+      "schema": "public",
+      "table": "rankings_rankingcorrection",
+      "type": "p"
+    },
+    {
+      "definition": "PRIMARY KEY (id)",
+      "name": "rankings_rankingcorrectionitem_pkey",
+      "schema": "public",
+      "table": "rankings_rankingcorrectionitem",
+      "type": "p"
+    },
+    {
+      "definition": "PRIMARY KEY (id)",
+      "name": "rankings_rankingcorrectionreceipt_pkey",
+      "schema": "public",
+      "table": "rankings_rankingcorrectionreceipt",
+      "type": "p"
+    },
+    {
+      "definition": "PRIMARY KEY (id)",
+      "name": "rankings_rankingimportconflict_pkey",
+      "schema": "public",
+      "table": "rankings_rankingimportconflict",
+      "type": "p"
+    },
+    {
+      "definition": "PRIMARY KEY (id)",
+      "name": "rankings_rankingwritelock_pkey",
+      "schema": "public",
+      "table": "rankings_rankingwritelock",
+      "type": "p"
+    },
+    {
+      "definition": "PRIMARY KEY (id)",
+      "name": "rankings_resultschoolattribution_pkey",
+      "schema": "public",
+      "table": "rankings_resultschoolattribution",
+      "type": "p"
+    },
+    {
+      "definition": "PRIMARY KEY (id)",
+      "name": "rankings_schoolalias_pkey",
+      "schema": "public",
+      "table": "rankings_schoolalias",
+      "type": "p"
+    },
+    {
+      "definition": "PRIMARY KEY (id)",
+      "name": "rankings_studentidentityreview_pkey",
+      "schema": "public",
+      "table": "rankings_studentidentityreview",
+      "type": "p"
+    },
+    {
+      "definition": "UNIQUE (assessment_id)",
+      "name": "rankings_assessmentanalysismetadata_assessment_id_key",
+      "schema": "public",
+      "table": "rankings_assessmentanalysismetadata",
+      "type": "u"
+    },
+    {
+      "definition": "UNIQUE (assessment_id, band)",
+      "name": "rank_scale_unique_cohort",
+      "schema": "public",
+      "table": "rankings_assessmentcategoryscale",
+      "type": "u"
+    },
+    {
+      "definition": "UNIQUE (assessment_id, field, normalized_alias)",
+      "name": "rank_outcome_unique_alias",
+      "schema": "public",
+      "table": "rankings_outcomealias",
+      "type": "u"
+    },
+    {
+      "definition": "UNIQUE (batch_id, row_number)",
+      "name": "rank_import_unique_held_row",
+      "schema": "public",
+      "table": "rankings_rankingimportconflict",
+      "type": "u"
+    },
+    {
+      "definition": "UNIQUE (correction_id)",
+      "name": "rankings_rankingcorrectionreceipt_correction_id_key",
+      "schema": "public",
+      "table": "rankings_rankingcorrectionreceipt",
+      "type": "u"
+    },
+    {
+      "definition": "UNIQUE (first_student_id, second_student_id)",
+      "name": "rank_identity_unique_pair",
+      "schema": "public",
+      "table": "rankings_studentidentityreview",
+      "type": "u"
+    },
+    {
+      "definition": "UNIQUE (normalized_name)",
+      "name": "rankings_schoolalias_normalized_name_key",
+      "schema": "public",
+      "table": "rankings_schoolalias",
+      "type": "u"
+    },
+    {
+      "definition": "UNIQUE (result_id)",
+      "name": "rankings_resultschoolattribution_result_id_key",
+      "schema": "public",
+      "table": "rankings_resultschoolattribution",
+      "type": "u"
+    }
+  ],
+  "extensions": [],
+  "indexes": [
+    {
+      "definition": "CREATE INDEX rank_correction_target_idx ON public.rankings_rankingcorrectionitem USING btree (kind, target_id)",
+      "name": "rank_correction_target_idx",
+      "schema": "public",
+      "table": "rankings_rankingcorrectionitem"
+    },
+    {
+      "definition": "CREATE INDEX rankings_assessmentanalysismetadata_reviewed_by_id_73b17933 ON public.rankings_assessmentanalysismetadata USING btree (reviewed_by_id)",
+      "name": "rankings_assessmentanalysismetadata_reviewed_by_id_73b17933",
+      "schema": "public",
+      "table": "rankings_assessmentanalysismetadata"
+    },
+    {
+      "definition": "CREATE INDEX rankings_assessmentcategoryscale_assessment_id_6412a429 ON public.rankings_assessmentcategoryscale USING btree (assessment_id)",
+      "name": "rankings_assessmentcategoryscale_assessment_id_6412a429",
+      "schema": "public",
+      "table": "rankings_assessmentcategoryscale"
+    },
+    {
+      "definition": "CREATE INDEX rankings_outcomealias_assessment_id_7e6a547b ON public.rankings_outcomealias USING btree (assessment_id)",
+      "name": "rankings_outcomealias_assessment_id_7e6a547b",
+      "schema": "public",
+      "table": "rankings_outcomealias"
+    },
+    {
+      "definition": "CREATE INDEX rankings_rankingcorrection_created_by_id_1704f722 ON public.rankings_rankingcorrection USING btree (created_by_id)",
+      "name": "rankings_rankingcorrection_created_by_id_1704f722",
+      "schema": "public",
+      "table": "rankings_rankingcorrection"
+    },
+    {
+      "definition": "CREATE INDEX rankings_rankingcorrection_decided_by_id_c55773ca ON public.rankings_rankingcorrection USING btree (decided_by_id)",
+      "name": "rankings_rankingcorrection_decided_by_id_c55773ca",
+      "schema": "public",
+      "table": "rankings_rankingcorrection"
+    },
+    {
+      "definition": "CREATE INDEX rankings_rankingcorrection_reverses_id_72cb9915 ON public.rankings_rankingcorrection USING btree (reverses_id)",
+      "name": "rankings_rankingcorrection_reverses_id_72cb9915",
+      "schema": "public",
+      "table": "rankings_rankingcorrection"
+    },
+    {
+      "definition": "CREATE INDEX rankings_rankingcorrection_status_cca9686d ON public.rankings_rankingcorrection USING btree (status)",
+      "name": "rankings_rankingcorrection_status_cca9686d",
+      "schema": "public",
+      "table": "rankings_rankingcorrection"
+    },
+    {
+      "definition": "CREATE INDEX rankings_rankingcorrection_status_cca9686d_like ON public.rankings_rankingcorrection USING btree (status varchar_pattern_ops)",
+      "name": "rankings_rankingcorrection_status_cca9686d_like",
+      "schema": "public",
+      "table": "rankings_rankingcorrection"
+    },
+    {
+      "definition": "CREATE INDEX rankings_rankingcorrectionitem_correction_id_f30d4c9a ON public.rankings_rankingcorrectionitem USING btree (correction_id)",
+      "name": "rankings_rankingcorrectionitem_correction_id_f30d4c9a",
+      "schema": "public",
+      "table": "rankings_rankingcorrectionitem"
+    },
+    {
+      "definition": "CREATE INDEX rankings_rankingcorrectionreceipt_actor_id_7da6aa98 ON public.rankings_rankingcorrectionreceipt USING btree (actor_id)",
+      "name": "rankings_rankingcorrectionreceipt_actor_id_7da6aa98",
+      "schema": "public",
+      "table": "rankings_rankingcorrectionreceipt"
+    },
+    {
+      "definition": "CREATE INDEX rankings_rankingimportconflict_batch_id_eb91f5c1 ON public.rankings_rankingimportconflict USING btree (batch_id)",
+      "name": "rankings_rankingimportconflict_batch_id_eb91f5c1",
+      "schema": "public",
+      "table": "rankings_rankingimportconflict"
+    },
+    {
+      "definition": "CREATE INDEX rankings_rankingimportconflict_correction_id_5a1eddbd ON public.rankings_rankingimportconflict USING btree (correction_id)",
+      "name": "rankings_rankingimportconflict_correction_id_5a1eddbd",
+      "schema": "public",
+      "table": "rankings_rankingimportconflict"
+    },
+    {
+      "definition": "CREATE INDEX rankings_rankingimportconflict_resolved_by_id_779c857c ON public.rankings_rankingimportconflict USING btree (resolved_by_id)",
+      "name": "rankings_rankingimportconflict_resolved_by_id_779c857c",
+      "schema": "public",
+      "table": "rankings_rankingimportconflict"
+    },
+    {
+      "definition": "CREATE INDEX rankings_rankingimportconflict_status_5f0bda0e ON public.rankings_rankingimportconflict USING btree (status)",
+      "name": "rankings_rankingimportconflict_status_5f0bda0e",
+      "schema": "public",
+      "table": "rankings_rankingimportconflict"
+    },
+    {
+      "definition": "CREATE INDEX rankings_rankingimportconflict_status_5f0bda0e_like ON public.rankings_rankingimportconflict USING btree (status varchar_pattern_ops)",
+      "name": "rankings_rankingimportconflict_status_5f0bda0e_like",
+      "schema": "public",
+      "table": "rankings_rankingimportconflict"
+    },
+    {
+      "definition": "CREATE INDEX rankings_resultschoolattribution_reviewed_by_id_ccf474e4 ON public.rankings_resultschoolattribution USING btree (reviewed_by_id)",
+      "name": "rankings_resultschoolattribution_reviewed_by_id_ccf474e4",
+      "schema": "public",
+      "table": "rankings_resultschoolattribution"
+    },
+    {
+      "definition": "CREATE INDEX rankings_resultschoolattribution_school_id_4af60647 ON public.rankings_resultschoolattribution USING btree (school_id)",
+      "name": "rankings_resultschoolattribution_school_id_4af60647",
+      "schema": "public",
+      "table": "rankings_resultschoolattribution"
+    },
+    {
+      "definition": "CREATE INDEX rankings_schoolalias_normalized_name_b683364a_like ON public.rankings_schoolalias USING btree (normalized_name varchar_pattern_ops)",
+      "name": "rankings_schoolalias_normalized_name_b683364a_like",
+      "schema": "public",
+      "table": "rankings_schoolalias"
+    },
+    {
+      "definition": "CREATE INDEX rankings_schoolalias_school_id_50535cf1 ON public.rankings_schoolalias USING btree (school_id)",
+      "name": "rankings_schoolalias_school_id_50535cf1",
+      "schema": "public",
+      "table": "rankings_schoolalias"
+    },
+    {
+      "definition": "CREATE INDEX rankings_studentidentityreview_first_student_id_2ce52164 ON public.rankings_studentidentityreview USING btree (first_student_id)",
+      "name": "rankings_studentidentityreview_first_student_id_2ce52164",
+      "schema": "public",
+      "table": "rankings_studentidentityreview"
+    },
+    {
+      "definition": "CREATE INDEX rankings_studentidentityreview_second_student_id_f44bf93d ON public.rankings_studentidentityreview USING btree (second_student_id)",
+      "name": "rankings_studentidentityreview_second_student_id_f44bf93d",
+      "schema": "public",
+      "table": "rankings_studentidentityreview"
+    },
+    {
+      "definition": "CREATE UNIQUE INDEX rank_identity_unique_pair ON public.rankings_studentidentityreview USING btree (first_student_id, second_student_id)",
+      "name": "rank_identity_unique_pair",
+      "schema": "public",
+      "table": "rankings_studentidentityreview"
+    },
+    {
+      "definition": "CREATE UNIQUE INDEX rank_import_unique_held_row ON public.rankings_rankingimportconflict USING btree (batch_id, row_number)",
+      "name": "rank_import_unique_held_row",
+      "schema": "public",
+      "table": "rankings_rankingimportconflict"
+    },
+    {
+      "definition": "CREATE UNIQUE INDEX rank_outcome_unique_alias ON public.rankings_outcomealias USING btree (assessment_id, field, normalized_alias)",
+      "name": "rank_outcome_unique_alias",
+      "schema": "public",
+      "table": "rankings_outcomealias"
+    },
+    {
+      "definition": "CREATE UNIQUE INDEX rank_scale_unique_cohort ON public.rankings_assessmentcategoryscale USING btree (assessment_id, band)",
+      "name": "rank_scale_unique_cohort",
+      "schema": "public",
+      "table": "rankings_assessmentcategoryscale"
+    },
+    {
+      "definition": "CREATE UNIQUE INDEX rankings_assessmentanalysismetadata_assessment_id_key ON public.rankings_assessmentanalysismetadata USING btree (assessment_id)",
+      "name": "rankings_assessmentanalysismetadata_assessment_id_key",
+      "schema": "public",
+      "table": "rankings_assessmentanalysismetadata"
+    },
+    {
+      "definition": "CREATE UNIQUE INDEX rankings_assessmentanalysismetadata_pkey ON public.rankings_assessmentanalysismetadata USING btree (id)",
+      "name": "rankings_assessmentanalysismetadata_pkey",
+      "schema": "public",
+      "table": "rankings_assessmentanalysismetadata"
+    },
+    {
+      "definition": "CREATE UNIQUE INDEX rankings_assessmentcategoryscale_pkey ON public.rankings_assessmentcategoryscale USING btree (id)",
+      "name": "rankings_assessmentcategoryscale_pkey",
+      "schema": "public",
+      "table": "rankings_assessmentcategoryscale"
+    },
+    {
+      "definition": "CREATE UNIQUE INDEX rankings_outcomealias_pkey ON public.rankings_outcomealias USING btree (id)",
+      "name": "rankings_outcomealias_pkey",
+      "schema": "public",
+      "table": "rankings_outcomealias"
+    },
+    {
+      "definition": "CREATE UNIQUE INDEX rankings_rankingcorrection_pkey ON public.rankings_rankingcorrection USING btree (id)",
+      "name": "rankings_rankingcorrection_pkey",
+      "schema": "public",
+      "table": "rankings_rankingcorrection"
+    },
+    {
+      "definition": "CREATE UNIQUE INDEX rankings_rankingcorrectionitem_pkey ON public.rankings_rankingcorrectionitem USING btree (id)",
+      "name": "rankings_rankingcorrectionitem_pkey",
+      "schema": "public",
+      "table": "rankings_rankingcorrectionitem"
+    },
+    {
+      "definition": "CREATE UNIQUE INDEX rankings_rankingcorrectionreceipt_correction_id_key ON public.rankings_rankingcorrectionreceipt USING btree (correction_id)",
+      "name": "rankings_rankingcorrectionreceipt_correction_id_key",
+      "schema": "public",
+      "table": "rankings_rankingcorrectionreceipt"
+    },
+    {
+      "definition": "CREATE UNIQUE INDEX rankings_rankingcorrectionreceipt_pkey ON public.rankings_rankingcorrectionreceipt USING btree (id)",
+      "name": "rankings_rankingcorrectionreceipt_pkey",
+      "schema": "public",
+      "table": "rankings_rankingcorrectionreceipt"
+    },
+    {
+      "definition": "CREATE UNIQUE INDEX rankings_rankingimportconflict_pkey ON public.rankings_rankingimportconflict USING btree (id)",
+      "name": "rankings_rankingimportconflict_pkey",
+      "schema": "public",
+      "table": "rankings_rankingimportconflict"
+    },
+    {
+      "definition": "CREATE UNIQUE INDEX rankings_rankingwritelock_pkey ON public.rankings_rankingwritelock USING btree (id)",
+      "name": "rankings_rankingwritelock_pkey",
+      "schema": "public",
+      "table": "rankings_rankingwritelock"
+    },
+    {
+      "definition": "CREATE UNIQUE INDEX rankings_resultschoolattribution_pkey ON public.rankings_resultschoolattribution USING btree (id)",
+      "name": "rankings_resultschoolattribution_pkey",
+      "schema": "public",
+      "table": "rankings_resultschoolattribution"
+    },
+    {
+      "definition": "CREATE UNIQUE INDEX rankings_resultschoolattribution_result_id_key ON public.rankings_resultschoolattribution USING btree (result_id)",
+      "name": "rankings_resultschoolattribution_result_id_key",
+      "schema": "public",
+      "table": "rankings_resultschoolattribution"
+    },
+    {
+      "definition": "CREATE UNIQUE INDEX rankings_schoolalias_normalized_name_key ON public.rankings_schoolalias USING btree (normalized_name)",
+      "name": "rankings_schoolalias_normalized_name_key",
+      "schema": "public",
+      "table": "rankings_schoolalias"
+    },
+    {
+      "definition": "CREATE UNIQUE INDEX rankings_schoolalias_pkey ON public.rankings_schoolalias USING btree (id)",
+      "name": "rankings_schoolalias_pkey",
+      "schema": "public",
+      "table": "rankings_schoolalias"
+    },
+    {
+      "definition": "CREATE UNIQUE INDEX rankings_studentidentityreview_pkey ON public.rankings_studentidentityreview USING btree (id)",
+      "name": "rankings_studentidentityreview_pkey",
+      "schema": "public",
+      "table": "rankings_studentidentityreview"
+    }
+  ],
+  "tables": [
+    {
+      "kind": "r",
+      "schema": "public",
+      "table": "rankings_assessmentanalysismetadata"
+    },
+    {
+      "kind": "r",
+      "schema": "public",
+      "table": "rankings_assessmentcategoryscale"
+    },
+    {
+      "kind": "r",
+      "schema": "public",
+      "table": "rankings_outcomealias"
+    },
+    {
+      "kind": "r",
+      "schema": "public",
+      "table": "rankings_rankingcorrection"
+    },
+    {
+      "kind": "r",
+      "schema": "public",
+      "table": "rankings_rankingcorrectionitem"
+    },
+    {
+      "kind": "r",
+      "schema": "public",
+      "table": "rankings_rankingcorrectionreceipt"
+    },
+    {
+      "kind": "r",
+      "schema": "public",
+      "table": "rankings_rankingimportconflict"
+    },
+    {
+      "kind": "r",
+      "schema": "public",
+      "table": "rankings_rankingwritelock"
+    },
+    {
+      "kind": "r",
+      "schema": "public",
+      "table": "rankings_resultschoolattribution"
+    },
+    {
+      "kind": "r",
+      "schema": "public",
+      "table": "rankings_schoolalias"
+    },
+    {
+      "kind": "r",
+      "schema": "public",
+      "table": "rankings_studentidentityreview"
+    }
+  ]
+}

@@ -25,6 +25,11 @@ from inspinia.rankings.models import ImportRowIssue
 from inspinia.rankings.models import Student
 from inspinia.rankings.models import StudentResult
 from inspinia.rankings.models import normalize_whitespace
+from inspinia.rankings.services.import_protection import begin_import
+from inspinia.rankings.services.import_protection import canonical_outcomes
+from inspinia.rankings.services.import_protection import guard_import_row
+from inspinia.rankings.services.import_protection import protected_changes
+from inspinia.rankings.services.import_protection import ranking_write_lock
 
 if TYPE_CHECKING:
     from collections.abc import Mapping
@@ -79,6 +84,7 @@ class AssessmentResultImportPreviewResult:
     matched_count: int = 0
     missing_student_count: int = 0
     invalid_count: int = 0
+    held_count: int = 0
     rows: list[PreparedAssessmentResultRow] = field(default_factory=list)
 
 
@@ -90,6 +96,7 @@ class AssessmentResultImportApplyResult:
     invalid_count: int = 0
     created_count: int = 0
     updated_count: int = 0
+    held_count: int = 0
     rows: list[PreparedAssessmentResultRow] = field(default_factory=list)
 
     @property
@@ -327,6 +334,7 @@ def prepare_assessment_result_rows(
     return prepared_rows
 
 
+@ranking_write_lock()
 def _apply_rows(  # noqa: PLR0913
     *,
     batch: ImportBatch,
@@ -336,6 +344,7 @@ def _apply_rows(  # noqa: PLR0913
     column_map: Mapping[str, str] | None,
     source_file_name: str | None,
 ) -> None:
+    begin_import(batch)
     resolved_source_file_name = _coerce_source_file_name(source_file_name, batch=batch)
     result.total_rows = len(result.rows)
     result.matched_count = sum(1 for row in result.rows if row.status == PREVIEW_STATUS_MATCHED)
@@ -346,15 +355,21 @@ def _apply_rows(  # noqa: PLR0913
         for row in result.rows:
             if row.status != PREVIEW_STATUS_MATCHED:
                 continue
-
+            values = canonical_outcomes(assessment.pk, {
+                "raw_score": row.raw_score, "medal": row.medal,
+                "band": row.band, "status_text": row.status_text,
+            })
+            existing = StudentResult.objects.filter(student_id=row.student_id, assessment=assessment).first()
+            if existing and guard_import_row(batch, row.row_number, [
+                {"kind": "result", "target_id": existing.pk, "values": values},
+            ]):
+                result.held_count += 1
+                continue
             _, created = StudentResult.objects.update_or_create(
                 student_id=row.student_id,
                 assessment=assessment,
                 defaults={
-                    "raw_score": row.raw_score,
-                    "medal": row.medal,
-                    "band": row.band,
-                    "status_text": row.status_text,
+                    **values,
                     "remarks": row.remarks,
                     "source_url": row.source_url,
                     "source_file_name": resolved_source_file_name,
@@ -380,6 +395,7 @@ def _apply_rows(  # noqa: PLR0913
         )
 
 
+@ranking_write_lock()
 def _finalize_preview(
     *,
     batch: ImportBatch,
@@ -388,6 +404,7 @@ def _finalize_preview(
     column_map: Mapping[str, str] | None,
     source_file_name: str | None,
 ) -> None:
+    begin_import(batch)
     result.total_rows = len(result.rows)
     result.matched_count = sum(1 for row in result.rows if row.status == PREVIEW_STATUS_MATCHED)
     result.missing_student_count = sum(1 for row in result.rows if row.status == PREVIEW_STATUS_MISSING_STUDENT)
@@ -396,6 +413,19 @@ def _finalize_preview(
     issues: list[ImportRowIssue] = []
     for row in result.rows:
         if row.status == PREVIEW_STATUS_MATCHED:
+            record = StudentResult.objects.filter(student_id=row.student_id, assessment=assessment).first()
+            values = canonical_outcomes(assessment.pk, {
+                "raw_score": row.raw_score, "medal": row.medal, "band": row.band, "status_text": row.status_text,
+            })
+            conflicts = protected_changes("result", record.pk, values) if record else []
+            if conflicts:
+                result.held_count += 1
+                issues.append(ImportRowIssue(
+                    import_batch=batch, row_number=row.row_number, severity=ImportRowIssue.Severity.WARNING,
+                    issue_code="REVIEWED_VALUE_CONFLICT",
+                    message="This source row will be held for correction review.",
+                    raw_row_json={"conflicts": conflicts},
+                ))
             continue
         issues.append(
             ImportRowIssue(
@@ -451,6 +481,8 @@ def _build_summary(
         "created_count": getattr(result, "created_count", 0),
         "updated_count": getattr(result, "updated_count", 0),
         "upserted_count": getattr(result, "upserted_count", 0),
+        "held_count": getattr(result, "held_count", 0),
+        "applied_rows": getattr(result, "upserted_count", 0),
         "source_file_name": source_file_name,
         "column_map": _normalize_column_map(column_map),
     }
@@ -459,7 +491,7 @@ def _build_summary(
 def _apply_batch_status(result: AssessmentResultImportApplyResult) -> str:
     if result.matched_count == 0:
         return ImportBatch.Status.FAILED
-    if result.missing_student_count or result.invalid_count:
+    if result.missing_student_count or result.invalid_count or result.held_count:
         return ImportBatch.Status.PARTIAL
     return ImportBatch.Status.APPLIED
 

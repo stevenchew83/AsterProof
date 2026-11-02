@@ -6,17 +6,16 @@ from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.core.paginator import Paginator
 from django.db.models import Case
-from django.db.models import CharField
 from django.db.models import Count
 from django.db.models import F
 from django.db.models import IntegerField
 from django.db.models import OuterRef
 from django.db.models import Prefetch
+from django.db.models import Q
 from django.db.models import Subquery
 from django.db.models import Value
 from django.db.models import When
 from django.db.models.functions import Coalesce
-from django.db.models.functions import Substr
 from django.http import Http404
 from django.shortcuts import get_object_or_404
 from django.shortcuts import redirect
@@ -33,6 +32,8 @@ from inspinia.rankings.models import Assessment
 from inspinia.rankings.models import ImportBatch
 from inspinia.rankings.models import Student
 from inspinia.rankings.models import StudentResult
+from inspinia.rankings.services.school_display import SOURCE_SCHOOL_PREFIX
+from inspinia.rankings.services.school_display import with_school_display
 from inspinia.rankings.views import _log_import_complete_event
 from inspinia.rankings.views import _log_import_preview_event
 from inspinia.rankings.views import _require_rankings_access
@@ -41,7 +42,6 @@ PAGE_SIZE = 50
 MAX_PK = 2**63 - 1
 MAX_PK_DIGITS = 19
 YEAR_DIGITS = 4
-SOURCE_SCHOOL_PREFIX = "School in source result: "
 
 
 def _positive_pk(value: str) -> int:
@@ -78,7 +78,7 @@ def _ranked_results(assessment: Assessment):
         .values("total")
     )
     # The subquery keeps ranks relative to the full category even after search.
-    return (
+    return with_school_display(
         StudentResult.objects.filter(assessment=assessment)
         .select_related("student__school")
         .annotate(
@@ -87,12 +87,8 @@ def _ranked_results(assessment: Assessment):
                 default=Coalesce(Subquery(higher_scores[:1]), Value(0)) + Value(1),
                 output_field=IntegerField(),
             ),
-            school_display=Case(
-                When(remarks__startswith=SOURCE_SCHOOL_PREFIX, then=Substr("remarks", len(SOURCE_SCHOOL_PREFIX) + 1)),
-                default=Coalesce("student__school__name", Value("")),
-                output_field=CharField(),
-            ),
-        )
+        ),
+        results=True,
     )
 
 
@@ -136,7 +132,7 @@ def assessment_results_view(request):
         bands = list(results.exclude(band="").order_by("band").values_list("band", flat=True).distinct())
         results = _search_students(results, query=query, school="", prefix="student__")
         if school:
-            results = results.filter(school_display__icontains=school)
+            results = results.filter(Q(school_display__icontains=school) | Q(recorded_school__icontains=school))
         if band:
             results = results.filter(band=band)
         results = results.order_by(*ordering[order])
@@ -186,7 +182,10 @@ def result_history_view(request):
     query = (request.GET.get("q") or "").strip()[:255]
     school = (request.GET.get("school") or "").strip()[:255]
     students = Student.objects.filter(results__assessment__in=assessments).select_related("school").distinct()
-    students = _search_students(students, query=query, school=school).order_by("normalized_name", "id")
+    students = with_school_display(_search_students(students, query=query, school=""))
+    if school:
+        students = students.filter(Q(school_display__icontains=school) | Q(recorded_school__icontains=school))
+    students = students.order_by("normalized_name", "id")
     students = students.prefetch_related(
         Prefetch(
             "results",
@@ -242,10 +241,11 @@ def olympiad_sheet_import_view(request):  # noqa: C901
                     messages.error(request, str(exc))
                 else:
                     _log_import_complete_event(request=request, batch=batch)
+                    applied_rows = batch.summary_json.get("applied_rows", batch.summary_json["student_count"])
                     messages.success(
                         request,
-                        f"Imported {batch.summary_json['student_count']} students "
-                        f"and {batch.summary_json['result_count']} results.",
+                        f"Import recorded: {applied_rows} source rows applied; "
+                        f"{batch.summary_json.get('held_count', 0)} rows held for correction review.",
                     )
                     return redirect("rankings:assessment_results")
         else:

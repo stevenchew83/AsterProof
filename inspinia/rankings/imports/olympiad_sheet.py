@@ -14,7 +14,7 @@ from dataclasses import field
 from decimal import Decimal
 from decimal import InvalidOperation
 
-from django.db import transaction
+from django.db.models import Q
 from django.utils import timezone
 
 from inspinia.rankings.models import Assessment
@@ -24,6 +24,13 @@ from inspinia.rankings.models import Student
 from inspinia.rankings.models import StudentResult
 from inspinia.rankings.models import normalize_name
 from inspinia.rankings.models import normalize_whitespace
+from inspinia.rankings.services.import_protection import begin_import
+from inspinia.rankings.services.import_protection import canonical_outcomes
+from inspinia.rankings.services.import_protection import canonical_school
+from inspinia.rankings.services.import_protection import guard_import_row
+from inspinia.rankings.services.import_protection import protected_changes
+from inspinia.rankings.services.import_protection import ranking_write_lock
+from inspinia.rankings.services.import_protection import reviewed_name_candidates
 
 MAX_SHEET_BYTES = 2_000_000
 MAX_SHEET_ROWS = 2000
@@ -261,7 +268,10 @@ def parse_olympiad_sheet(text: str) -> ParsedSheet:  # noqa: C901, PLR0912
 
 
 def _resolve_student(row: dict, *, lock: bool = False) -> tuple[Student | None, str]:
-    matches = Student.objects.select_related("school").filter(normalized_name=normalize_name(row["name"]))
+    former_ids = list(reviewed_name_candidates(row["name"]).values_list("pk", flat=True))
+    matches = Student.objects.select_related("school").filter(
+        Q(normalized_name=normalize_name(row["name"])) | Q(pk__in=former_ids),
+    )
     if lock:
         matches = matches.select_for_update(of=("self",))
     birth_year = row["birth_year"]
@@ -271,6 +281,8 @@ def _resolve_student(row: dict, *, lock: bool = False) -> tuple[Student | None, 
             return exact[0], "Name and birth year"
         matches = matches.filter(birth_year__isnull=True) if not exact else matches
     candidates = list(matches[:2])
+    if not candidates and former_ids:
+        candidates = list(Student.objects.select_related("school").filter(pk__in=former_ids)[:2])
     if len(candidates) > 1:
         msg = f"Row {row['source_row']}: multiple students match; resolve the identity before importing."
         raise ValueError(msg)
@@ -305,6 +317,10 @@ def prepare_sheet_preview(parsed: ParsedSheet) -> dict:
         student, match = _resolve_student(row)
         existing = _existing_results(student)
         results = [{**result, "previous": existing.get(_result_key(result))} for result in row["results"]]
+        conflicts = [
+            conflict for operation in _sheet_operations(row, student)
+            for conflict in protected_changes(operation["kind"], operation["target_id"], operation["values"])
+        ]
         rows.append(
             {
                 **row,
@@ -312,6 +328,7 @@ def prepare_sheet_preview(parsed: ParsedSheet) -> dict:
                 "student_id": student.pk if student else None,
                 "match": match,
                 "existing_school": student.school.name if student and student.school_id else "",
+                "protection_conflicts": conflicts,
             },
         )
     return {
@@ -326,20 +343,23 @@ def prepare_sheet_preview(parsed: ParsedSheet) -> dict:
         "new_students": sum(row["student_id"] is None for row in rows),
         "result_count": sum(len(row["results"]) for row in rows),
         "name_only_matches": sum(row["match"].startswith("Name only") for row in rows),
+        "held_count": sum(bool(row["protection_conflicts"]) for row in rows),
     }
 
 
-@transaction.atomic
+@ranking_write_lock()
 def apply_sheet_preview(*, batch_id: int, actor) -> ImportBatch:
     # Serialize applies across owners, including creation of identities with no
     # existing Student row to lock. Every apply has a committed preview batch.
-    ImportBatch.objects.select_for_update().order_by("pk").values_list("pk", flat=True).first()
     batch = ImportBatch.objects.select_for_update().get(pk=batch_id, created_by=actor)
+    begin_import(batch)
     summary = batch.summary_json
     if batch.status != ImportBatch.Status.PREVIEWED or summary.get("kind") != SHEET_KIND:
         msg = "This preview has already been applied or is not an olympiad sheet preview."
         raise ValueError(msg)
     assessments = {}
+    held = 0
+    applied = 0
     for row in summary["rows"]:
         student, _match = _resolve_student(row, lock=True)
         if (student.pk if student else None) != row["student_id"]:
@@ -349,6 +369,9 @@ def apply_sheet_preview(*, batch_id: int, actor) -> ImportBatch:
         if any(existing.get(_result_key(result)) != result["previous"] for result in row["results"]):
             msg = "Results changed since preview. Upload the sheet again to review the current values."
             raise ValueError(msg)
+        if _hold_sheet_row(batch, row, student):
+            held += 1
+            continue
         student = _save_student(student, row)
         for result in row["results"]:
             key = (result["code"], result["year"])
@@ -365,10 +388,45 @@ def apply_sheet_preview(*, batch_id: int, actor) -> ImportBatch:
                     },
                 )
             _save_result(student=student, assessment=assessments[key], result=result, batch=batch, actor=actor)
-    batch.status = ImportBatch.Status.APPLIED
+        applied += 1
+    batch.status = ImportBatch.Status.PARTIAL if held else ImportBatch.Status.APPLIED
     batch.summary_json = {key: value for key, value in summary.items() if key != "rows"}
+    batch.summary_json.update(applied_rows=applied, held_rows=held, held_count=held)
     batch.save(update_fields={"status", "summary_json", "updated_at"})
     return batch
+
+
+def _hold_sheet_row(batch, row, student):
+    return guard_import_row(batch, row["source_row"], _sheet_operations(row, student))
+
+
+def _sheet_operations(row, student):
+    if student is None:
+        return []
+    values = {}
+    if student.full_name != row["name"]:
+        values["full_name"] = row["name"]
+    if row["birth_year"] is not None:
+        values["birth_year"] = row["birth_year"]
+    if student.school_id is None and row["school"]:
+        school = canonical_school(row["school"])
+        values["school_id"] = school.pk if school else f"new:{normalize_name(row['school'])}"
+    operations = [{"kind": "student", "target_id": student.pk, "values": values}]
+    by_key = {
+        f"{record.assessment.season_year}:{record.assessment.code}": record
+        for record in student.results.select_related("assessment")
+    }
+    for incoming in row["results"]:
+        record = by_key.get(_result_key(incoming))
+        if record is None:
+            continue
+        changes = {
+            key: incoming[key] for key in ("raw_score", "medal", "band", "status_text")
+            if incoming[key] not in (None, "")
+        }
+        operations.append({"kind": "result", "target_id": record.pk,
+                           "values": canonical_outcomes(record.assessment_id, changes)})
+    return operations
 
 
 def _save_student(student: Student | None, row: dict) -> Student:
@@ -379,10 +437,11 @@ def _save_student(student: Student | None, row: dict) -> Student:
         student.birth_year = row["birth_year"]
         fields.add("birth_year")
     if student.school_id is None and row["school"]:
-        student.school, _created = School.objects.get_or_create(
-            normalized_name=normalize_name(row["school"]),
-            defaults={"name": row["school"]},
-        )
+        student.school = canonical_school(row["school"])
+        if student.school is None:
+            student.school, _created = School.objects.get_or_create(
+                normalized_name=normalize_name(row["school"]), defaults={"name": row["school"]},
+            )
         fields.add("school")
     if student.pk is None:
         student.save()
@@ -398,5 +457,6 @@ def _save_result(*, student: Student, assessment: Assessment, result: dict, batc
         for key in ("raw_score", "medal", "band", "status_text", "remarks")
         if result[key] not in (None, "")
     }
+    defaults = canonical_outcomes(assessment.pk, defaults)
     defaults.update(imported_by=actor, imported_at=timezone.now(), source_file_name=batch.original_filename)
     StudentResult.objects.update_or_create(student=student, assessment=assessment, defaults=defaults)
