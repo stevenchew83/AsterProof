@@ -239,7 +239,7 @@
                 <i class="ti ti-circle-check fs-22"></i>
               </span>
               <div class="flex-grow-1 ms-2">
-                <p class="text-muted mb-0 fs-xs text-uppercase fw-semibold">Solved</p>
+                <p class="text-muted mb-0 fs-xs text-uppercase fw-semibold">My solved</p>
                 <h3 class="mb-0">{{ contest_stats.solved_problem_total }} / {{ contest_stats.problem_count }}</h3>
                 <p class="text-muted fs-xs mb-0">{{ contest_stats.solved_rate|floatformat:1 }}% complete</p>
               </div>
@@ -248,12 +248,12 @@
           <div class="contest-progress-overview-item">
             <div class="d-flex align-items-center">
               <span class="avatar-title bg-primary-subtle text-primary rounded contest-progress-overview-icon">
-                <i class="ti ti-link fs-22"></i>
+                <i class="ti ti-tags fs-22"></i>
               </span>
               <div class="flex-grow-1 ms-2">
-                <p class="text-muted mb-0 fs-xs text-uppercase fw-semibold">Linked</p>
-                <h3 class="mb-0">{{ contest_stats.statement_problem_total }} / {{ contest_stats.problem_count }}</h3>
-                <p class="text-muted fs-xs mb-0">{{ contest_stats.linked_rate|floatformat:1 }}% statement coverage</p>
+                <p class="text-muted mb-0 fs-xs text-uppercase fw-semibold">Needs classification</p>
+                <h3 class="mb-0">{{ contest_stats.needs_metadata_total }}</h3>
+                <p class="text-muted fs-xs mb-0">Missing topic or MOHS</p>
               </div>
             </div>
           </div>
@@ -277,7 +277,7 @@
               <div class="flex-grow-1 ms-2">
                 <p class="text-muted mb-0 fs-xs text-uppercase fw-semibold">Avg MOHS</p>
                 <h3 class="mb-0">{{ contest_stats.avg_mohs|floatformat:2 }}</h3>
-                <p class="text-muted fs-xs mb-0">Max linked MOHS {{ contest_stats.max_mohs }}</p>
+                <p class="text-muted fs-xs mb-0">Max MOHS {{ contest_stats.max_mohs }}</p>
               </div>
             </div>
           </div>
@@ -316,7 +316,7 @@
         <div class="card-header border-bottom d-flex flex-wrap align-items-center gap-2">
           <div class="flex-grow-1">
             <h4 class="header-title mb-0">Completion heatmap</h4>
-            <p class="text-muted fs-xs mb-0">Year-by-problem coverage for this contest. Cells open linked solution workspaces when a statement is linked.</p>
+            <p class="text-muted fs-xs mb-0">Your progress by year and problem. Select a cell to open the problem.</p>
           </div>
           <span class="badge text-bg-light">
             {{ contest_completion_heatmap.year_total }} years &middot; {{ contest_completion_heatmap.problem_code_total }} codes
@@ -352,7 +352,7 @@
           </div>
           {% else %}
           <div class="alert alert-info mb-0" role="alert">
-            No statement-backed problem codes are available for this contest yet.
+            No problem codes are available for this contest yet.
           </div>
           {% endif %}
         </div>
@@ -376,8 +376,8 @@
                   <th>Avg MOHS</th>
                   <th>Max MOHS</th>
                   <th>Topics</th>
-                  <th>Linked</th>
-                  <th>Solved</th>
+                  <th>Needs classification</th>
+                  <th>My solved</th>
                 </tr>
               </thead>
               <tbody>
@@ -394,15 +394,7 @@
                   <td>{% if row.avg_mohs is not None %}{{ row.avg_mohs|floatformat:2 }}{% else %}<span class="text-muted">&mdash;</span>{% endif %}</td>
                   <td>{% if row.max_mohs is not None %}{{ row.max_mohs }}{% else %}<span class="text-muted">&mdash;</span>{% endif %}</td>
                   <td>{{ row.distinct_topics }}</td>
-                  <td class="contest-progress-mini-progress">
-                    <div class="d-flex justify-content-between gap-2 fs-xs mb-1">
-                      <span>{{ row.statement_problem_total }} / {{ row.problem_count }}</span>
-                      <span class="text-muted">{{ row.linked_rate|floatformat:1 }}%</span>
-                    </div>
-                    <div class="progress progress-sm">
-                      <div class="progress-bar bg-primary" role="progressbar" style="width: {{ row.linked_rate|floatformat:0 }}%;" aria-valuenow="{{ row.linked_rate|floatformat:0 }}" aria-valuemin="0" aria-valuemax="100"></div>
-                    </div>
-                  </td>
+                  <td>{{ row.needs_metadata_total }}</td>
                   <td class="contest-progress-mini-progress">
                     <div class="d-flex justify-content-between gap-2 fs-xs mb-1">
                       <span>{{ row.solved_problem_total }} / {{ row.problem_count }}</span>
@@ -508,7 +500,7 @@
               <thead>
                 <tr class="text-muted fs-xs text-uppercase">
                   <th>Problem</th>
-                  <th>Link</th>
+                  <th>Topic</th>
                   <th>Day</th>
                   <th>Updated</th>
                 </tr>
@@ -517,7 +509,7 @@
                 {% for row in recent_statement_rows %}
                 <tr>
                   <td class="fw-semibold">{{ row.problem_code }}</td>
-                  <td>{% if row.is_linked %}<span class="badge bg-success-subtle text-success border border-success-subtle">Linked</span>{% else %}<span class="badge text-bg-light border">Unlinked</span>{% endif %}</td>
+                  <td>{{ row.topic }}</td>
                   <td>{% if row.day_label %}{{ row.day_label }}{% else %}<span class="text-muted">&mdash;</span>{% endif %}</td>
                   <td>{{ row.updated_at_label }}</td>
                 </tr>
@@ -688,7 +680,7 @@
     tooltip: {
       custom: function (opts) {
         var point = opts.w.config.series[opts.seriesIndex].data[opts.dataPointIndex];
-        var action = point.solution_url ? "Open solution" : "No linked solution yet";
+        var action = point.solution_url ? "Open problem" : "No statement";
         return (
           '<div class="apexcharts-theme-light p-2 fs-xs">' +
           '<div class="fw-semibold">' + escapeHtml(point.title || "") + "</div>" +

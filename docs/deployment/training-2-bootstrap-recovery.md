@@ -6,7 +6,8 @@ This record describes the scoped sequence; it is not standing operational author
 
 ## Assessment → Community → Training baseline
 
-The coordinated owner order is Assessment, then Community, then Training.
+The coordinated owner order is Assessment, Community, the scheduled Library
+release, then Training.
 Assessment PR #398 (`ae895563`) adds `solutions.0011_problem_evaluation_packages`
 and `solutions.0012_synthetic_review_prototype`; both must be applied before
 Training. Preserve Assessment and Community source, schema, privacy and AI-off
@@ -16,12 +17,15 @@ Community includes `pages.0045_community_proof_library`; Training prerequisites 
 at four migrations and 20 new tables, with 95 historical migration sources.
 This ordering is a release gate, not a claim that Community is already deployed.
 If its actual data-class release remains ineligible for automatic rollback, establish
-eligibility
-through an ordinary protected `none` release first. Its packaged application,
-settings, locks, workflows and static bytes must be identical to the healthy
-Community release, with only documentation and expected release identity differing.
-Require an empty pending migration plan, unchanged database fingerprints and full
-postflight. Do not flip an eligibility flag or add another recovery selector.
+eligibility through an ordinary protected `none` release first. The scheduled
+Library update supplies that baseline only after its actual deployment is healthy,
+its record is rollback-eligible, its migration plan is empty and its database
+fingerprints are unchanged. Its reviewed application changes still require the
+normal checks and full postflight. If a separate documentation-only qualification
+is needed instead, keep its packaged application, settings, locks, workflows and
+static bytes identical to the healthy Community release; only documentation and
+expected release identity may differ. Do not flip an eligibility flag or add
+another recovery selector.
 
 This initial qualification has no automatic fallback while its baseline is
 ineligible. The strict bridge gate requires the actual active Community baseline

@@ -2,7 +2,7 @@
 
 {% load i18n statement_list static %}
 
-{% block title %}Problem statements{% endblock title %}
+{% block title %}Problem library{% endblock title %}
 
 {% block extra_css %}
 {% if statement_total > 0 %}
@@ -212,7 +212,7 @@
 {% block page_content %}
 <div class="container-fluid">
 
-  {% include 'partials/page-title.html' with title='Problem statements' subtitle='Library' page_icon='ti-files' %}
+  {% include 'partials/page-title.html' with title='Problem library' subtitle='Shared problems' page_icon='ti-files' %}
 
   {% if messages %}
   <div class="mt-3">
@@ -236,7 +236,7 @@
               </span>
             </div>
             <div class="flex-grow-1 ms-2">
-              <p class="text-muted mb-0 fs-xs text-uppercase fw-semibold">Statements</p>
+              <p class="text-muted mb-0 fs-xs text-uppercase fw-semibold">Total problems</p>
               <h3 class="mb-0">{{ statement_total }}</h3>
             </div>
           </div>
@@ -249,12 +249,13 @@
           <div class="d-flex align-items-center">
             <div class="flex-shrink-0">
               <span class="avatar-title bg-success-subtle text-success rounded">
-                <i class="ti ti-link fs-24"></i>
+                <i class="ti ti-check fs-24"></i>
               </span>
             </div>
             <div class="flex-grow-1 ms-2">
-              <p class="text-muted mb-0 fs-xs text-uppercase fw-semibold">Linked to problems</p>
-              <h3 class="mb-0">{{ statement_stats.linked_total }}</h3>
+              <p class="text-muted mb-0 fs-xs text-uppercase fw-semibold">{{ library_progress_label }}</p>
+              <h3 class="mb-0">{{ library_stats.solved_total }}</h3>
+              <span class="text-muted fs-xs">Solved problems</span>
             </div>
           </div>
         </div>
@@ -266,12 +267,13 @@
           <div class="d-flex align-items-center">
             <div class="flex-shrink-0">
               <span class="avatar-title bg-warning-subtle text-warning rounded">
-                <i class="ti ti-unlink fs-24"></i>
+                <i class="ti ti-tags fs-24"></i>
               </span>
             </div>
             <div class="flex-grow-1 ms-2">
-              <p class="text-muted mb-0 fs-xs text-uppercase fw-semibold">Unlinked</p>
-              <h3 class="mb-0">{{ statement_stats.unlinked_total }}</h3>
+              <p class="text-muted mb-0 fs-xs text-uppercase fw-semibold">Needs classification</p>
+              <h3 class="mb-0">{{ library_stats.needs_metadata }}</h3>
+              <span class="text-muted fs-xs">Missing topic or MOHS</span>
             </div>
           </div>
         </div>
@@ -283,12 +285,13 @@
           <div class="d-flex align-items-center">
             <div class="flex-shrink-0">
               <span class="avatar-title bg-info-subtle text-info rounded">
-                <i class="ti ti-calendar-stats fs-24"></i>
+                <i class="ti ti-file-text fs-24"></i>
               </span>
             </div>
             <div class="flex-grow-1 ms-2">
-              <p class="text-muted mb-0 fs-xs text-uppercase fw-semibold">Year span</p>
-              <h3 class="mb-0 fs-lg">{{ statement_stats.year_range_label }}</h3>
+              <p class="text-muted mb-0 fs-xs text-uppercase fw-semibold">Statement missing</p>
+              <h3 class="mb-0">{{ library_stats.missing_statements }}</h3>
+              <span class="text-muted fs-xs">Progress and solutions are retained</span>
             </div>
           </div>
         </div>
@@ -298,15 +301,16 @@
 
   {% if statement_total == 0 %}
   <div class="alert alert-info mt-4" role="alert">
-    <strong>No statement rows yet.</strong>
-    Save parsed results from <a href="{% url 'pages:latex_preview' %}" class="alert-link">LaTeX preview</a> to build this table.
+    <strong>No problems in the library yet.</strong>
+    Uploaded problems and existing problem records appear here together.
   </div>
   {% else %}
   <div class="row g-3 mt-1 mb-4">
     <div class="col-12">
       <div class="card">
         <div class="card-body">
-          <form id="statement-library-search" method="get" action="{% url 'pages:problem_statement_list' %}" role="search" aria-label="Statement library" class="mb-3">
+          <form id="statement-library-search" method="get" action="{% url 'pages:problem_statement_list' %}" role="search" aria-label="Problem library" class="mb-3">
+            {% if statement_list_filters.concept %}<input type="hidden" name="concept" value="{{ statement_list_filters.concept }}">{% endif %}
             <div class="statement-library-searchbar">
               <div class="statement-library-query">
                 <label class="form-label text-muted mb-1 fs-xs text-uppercase fw-semibold" for="statement-search-q">Search library</label>
@@ -319,6 +323,12 @@
                   placeholder="Contest, problem, UUID, topic or concept…"
                   autocomplete="off"
                 >
+              </div>
+              <div>
+                <label for="library-progress-learner" class="form-label text-muted mb-1 fs-xs text-uppercase fw-semibold">Progress for</label>
+                <select name="learner" id="library-progress-learner" class="form-select form-select-sm">
+                  {% for option in library_progress_options %}<option value="{{ option.value }}"{% if option.value == library_progress_selection %} selected{% endif %}>{{ option.label }}</option>{% endfor %}
+                </select>
               </div>
               <button type="submit" class="btn btn-primary btn-sm">
                 <i class="ti ti-search me-1" aria-hidden="true"></i>Search
@@ -334,7 +344,7 @@
                 <i class="ti ti-adjustments-horizontal me-1" aria-hidden="true"></i>Filters
               </button>
               {% if statement_has_active_filters %}
-              <a href="{% url 'pages:problem_statement_list' %}" class="btn btn-outline-secondary btn-sm">Clear</a>
+              <a href="{{ library_clear_url }}" class="btn btn-outline-secondary btn-sm">Clear</a>
               {% endif %}
             </div>
 
@@ -378,6 +388,7 @@
               </div>
             </div>
           </form>
+          <p class="text-muted fs-xs mb-3">Progress shown: {{ library_progress_label }}. Starting a solution opens your own workspace.</p>
 
           {% if statement_active_filter_chips %}
           <div class="d-flex flex-wrap gap-2 mb-3">
@@ -398,15 +409,6 @@
               {% endif %}
             </p>
             <div class="d-flex flex-wrap align-items-center gap-2">
-              {% if show_problem_import_link %}
-              <form method="post" class="d-inline-flex mb-0">
-                {% csrf_token %}
-                <input type="hidden" name="action" value="recheck_links">
-                <button type="submit" id="problem-statements-recheck-links" class="btn btn-outline-secondary btn-sm">
-                  <i class="ti ti-link-check me-1" aria-hidden="true"></i>Recheck links
-                </button>
-              </form>
-              {% endif %}
               <button type="button" id="problem-statements-copy" class="btn btn-outline-primary btn-sm">
                 <i class="ti ti-copy me-1"></i>Copy loaded rows
               </button>
@@ -428,7 +430,7 @@
                 <tr>
                   <th>Problem</th>
                   <th class="text-nowrap">Topic / MOHS</th>
-                  <th class="text-nowrap">Completion</th>
+                  <th class="text-nowrap">{{ library_progress_label }}</th>
                   <th>Area</th>
                   <th title="Canonical concepts covered by the problem">Coverage</th>
                   <th class="text-nowrap">Signals</th>
@@ -639,13 +641,13 @@
     var held = !isArea && heldCount
       ? '<span class="ms-2 text-warning-emphasis">Needs review (' + heldCount + ')</span>' : '';
     return '<button type="button" class="btn btn-link p-0 text-start statement-taxonomy-button" ' +
-      'aria-haspopup="dialog" aria-controls="statement-taxonomy-modal" data-statement-uuid="' +
-      escapeHtml(row.statement_uuid) + '" aria-label="View all areas, concepts and original tags for ' +
+      'aria-haspopup="dialog" aria-controls="statement-taxonomy-modal" data-problem-uuid="' +
+      escapeHtml(row.problem_uuid) + '" aria-label="View all areas, concepts and original tags for ' +
       escapeHtml(problemLabel(row)) + '" title="' + escapeHtml(labels.join(", ") || status) + '">' +
       '<span class="statement-taxonomy-label">' + escapeHtml(visible) + '</span>' + more + held + '</button>';
   }
 
-  var rowsByUuid = new Map(rows.map(function (row) { return [row.statement_uuid, row]; }));
+  var rowsByUuid = new Map(rows.map(function (row) { return [row.problem_uuid, row]; }));
   var taxonomyModal = document.getElementById("statement-taxonomy-modal");
   function fillList(id, values) {
     var list = document.getElementById(id);
@@ -658,7 +660,7 @@
   }
   document.getElementById("problem-statements-table").addEventListener("click", function (event) {
     var button = event.target.closest(".statement-taxonomy-button");
-    var row = button && rowsByUuid.get(button.getAttribute("data-statement-uuid"));
+    var row = button && rowsByUuid.get(button.getAttribute("data-problem-uuid"));
     if (!row) return;
     document.getElementById("statement-taxonomy-title").textContent = problemLabel(row);
     document.getElementById("statement-taxonomy-status").textContent = row.concept_coverage_status;
@@ -673,6 +675,7 @@
     document.getElementById("statement-taxonomy-review-section").hidden = !(row.concept_review_labels || []).length;
     fillList("statement-taxonomy-sources", row.concept_source_tags || []);
     document.getElementById("statement-taxonomy-detail").href = row.statement_detail_url;
+    document.getElementById("statement-taxonomy-detail").textContent = row.has_statement === false ? "Open problem" : "Open statement";
     taxonomyModal.showModal();
   });
   taxonomyModal.querySelectorAll("[data-taxonomy-close]").forEach(function (button) {
@@ -752,6 +755,7 @@
             escapeHtml(label) +
             "</span>" +
             (hasDay ? '<span class="statement-day-label text-muted fs-xs" title="' + escapeHtml(day) + '">\u00b7 ' + escapeHtml(day) + "</span>" : "") +
+            (row.has_statement === false ? '<span class="badge text-bg-light border">Statement missing</span>' : "") +
             action +
             "</div>"
           );

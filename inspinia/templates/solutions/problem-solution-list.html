@@ -144,7 +144,7 @@
           {% include 'partials/statement-render-content.html' with segments=problem_data.statement_render_segments %}
         </div>
         {% else %}
-        <p class="text-muted mb-3">A linked statement is not available for this problem yet.</p>
+        <p class="text-muted mb-3">Statement missing. Existing progress and solutions are retained.</p>
         {% endif %}
         <section class="solution-guide-panel" aria-labelledby="solution-hints-title">
           <div class="d-flex flex-wrap align-items-center justify-content-between gap-2">
@@ -376,7 +376,7 @@
           </div>
           <div class="text-danger fs-xs mt-1 d-none js-solution-difficulty-error" role="alert"></div>
           {% else %}
-          <div class="text-muted fs-sm">Link a statement before rating difficulty.</div>
+          <div class="text-muted fs-sm">A statement is needed before rating difficulty.</div>
           {% endif %}
         </div>
       </div>
