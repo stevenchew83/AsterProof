@@ -161,6 +161,56 @@ def test_summary_and_header_sorting_use_full_filtered_dataset_before_pagination(
     assert response.context["page_obj"].paginator.per_page == 50
 
 
+@pytest.mark.parametrize(
+    ("season", "select_older", "expected_records"),
+    [("", False, 57), ("2026", False, 54), ("", True, 3)],
+)
+def test_all_scope_survives_navigation_sorting_pagination_and_exports(client, season, select_older, expected_records):
+    login(client)
+    latest, older, other = assessment(), assessment("IMONST2_2025", 2025), assessment("CST_2026")
+    for event, count in [(latest, 52), (older, 3), (other, 2)]:
+        for index in range(count):
+            result(event, f"{event.code} Student {index:02}", Decimal(index))
+    selected = str(older.pk) if select_older else ""
+    response = client.get(reverse("rankings:analysis"), {"season": season, "assessment": selected})
+    assert response.status_code == 200
+    assert response.context["summary"]["records"] == expected_records
+    urls = [tab["url"] for tab in response.context["tabs"]]
+    urls.extend(column["url"] for column in response.context["columns"] if column["url"])
+    for url in urls:
+        linked = client.get(url)
+        assert linked.status_code == 200, url
+        assert linked.context["filter_form"]["season"].value() == season
+        assert linked.context["filter_form"]["assessment"].value() == selected
+        assert linked.context["summary"]["records"] == expected_records
+    if expected_records > 50:
+        page = client.get(reverse("rankings:analysis") + "?" + response.context["pagination_query"] + "&page=2")
+        assert page.status_code == 200
+        assert page.context["page_obj"].number == 2
+        assert page.context["page_obj"].paginator.count == expected_records
+        assert page.context["filter_form"]["season"].value() == season
+        assert page.context["filter_form"]["assessment"].value() == selected
+    csv_response = client.get(reverse("rankings:analysis_export") + response.context["export_csv_url"])
+    assert csv_response.status_code == 200
+    csv_rows = list(csv.reader(io.StringIO(csv_response.content.decode("utf-8-sig"))))
+    assert next(index for index, row in enumerate(csv_rows) if not row) - 1 == expected_records
+    excel_response = client.get(reverse("rankings:analysis_export") + response.context["export_xlsx_url"])
+    assert excel_response.status_code == 200
+    assert load_workbook(io.BytesIO(excel_response.content))["Analysis"].max_row == expected_records + 1
+
+
+def test_omitted_scope_still_defaults_to_latest_season_imonst2(client):
+    login(client)
+    latest, older, other = assessment(), assessment("IMONST2_2025", 2025), assessment("AAA_2026")
+    for event in [latest, older, other]:
+        result(event, event.code, Decimal(10))
+    response = client.get(reverse("rankings:analysis"))
+    assert response.status_code == 200
+    assert response.context["filter_form"]["season"].value() == "2026"
+    assert response.context["filter_form"]["assessment"].value() == str(latest.pk)
+    assert response.context["summary"]["records"] == 1
+
+
 def test_school_basis_never_falls_back_from_unverified_attribution(client):
     login(client)
     event = assessment()
