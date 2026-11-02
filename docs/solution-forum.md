@@ -73,10 +73,12 @@ Direct access to the solution-image media prefix must also be blocked by the
 local media server and production proxy before image privacy is considered
 released. See [the release procedure](deployment/solution-forum-release.md).
 
-## Local acceptance checklist
+## Acceptance checklist
 
-Checked items below were verified with synthetic local/test data. Production
-cutover and the pinned PostgreSQL 17.9 release gate remain separate.
+Application behavior and the role matrix were verified with isolated synthetic
+data. Release gates and read-only production checks are recorded separately
+below. Production acceptance did not submit votes, comments, assessments or
+verification decisions.
 
 - [x] Anonymous and unapproved reader/image access is denied.
 - [x] Member-published proofs open in the dashboard; drafts preserve existing access.
@@ -87,15 +89,42 @@ cutover and the pinned PostgreSQL 17.9 release gate remain separate.
 - [x] Only admins can verify; stale or changed targets cannot retain verification.
 - [x] Discussion, replies, ownership, reports and moderation preserve access and history.
 - [x] Internal images and shared-copy images enforce their separate audiences.
-- [ ] Direct media image access is blocked without breaking existing public copies.
+- [x] Direct media image access is blocked without breaking existing public copies.
 - [x] Progress, Training points, AI and notification settings remain unchanged.
 - [x] PostgreSQL 15.19 concurrency and schema-preservation checks pass locally.
-- [ ] The pinned PostgreSQL 17.9 protected-release rehearsal passes.
+- [x] The pinned PostgreSQL 17.9 protected-release rehearsal passes.
 - [x] Desktop/mobile and light/dark theme checks pass using synthetic content.
 - [x] Semantic controls and visible keyboard focus were inspected in the browser.
-- [ ] Native Tab/Enter activation: the available browser automation did not deliver
-  native default keyboard actions, so this acceptance check remains unverified.
-- [ ] Protected release and immediate production verification evidence is recorded.
+- [x] Tab navigation shows visible focus; Enter opens and closes the problem
+  statement, trainer assessment form and additional admin decisions in the live
+  Chrome reader.
+- [x] Protected release and immediate production verification evidence is recorded.
 
-This is an implementation and operator checklist. Unchecked items are not claims
-of completion or production readiness.
+### Release acceptance record — 2 November 2026
+
+- The image compatibility release, [PR #414](https://github.com/stevenchew83/AsterProof/pull/414),
+  deployed through [protected run 41401380312](https://github.com/stevenchew83/AsterProof/actions/runs/41401380312).
+  The installed proxy rule denied all 27 external and 27 host-local normalized
+  and encoded raw-image requests. A controlled public image still returned 200;
+  obsolete share revisions and unissued tokens were denied.
+- The forum and design release, [PR #415](https://github.com/stevenchew83/AsterProof/pull/415),
+  deployed commit `d3b8b99745dcf5b1db4a1f84ebff6918ae7302ff` through
+  [protected run 41405964397](https://github.com/stevenchew83/AsterProof/actions/runs/41405964397).
+  Its protected quality suite passed with **4,807 passed / 31 skipped**, and
+  **49 PostgreSQL forum/image checks passed**. Both the
+  [merged-commit CI run](https://github.com/stevenchew83/AsterProof/actions/runs/41404275431)
+  and protected build passed PostgreSQL 17.9 preservation rehearsals for the
+  additive `solutions.0013_solution_forum` migration. Production schema evidence
+  matched the frozen release disclosure.
+- Read-only postflight verified the reader and legacy redirect, anonymous login
+  gates, trainer/admin queues, protected internal images, existing public shares,
+  compiled assets, and desktop/phone layouts in light and dark themes. The
+  07:41:17–07:51:17 UTC stabilization window had no application errors or proxy
+  5xx responses. Nonadmin/pending-role scenarios and write workflows remained
+  synthetic checks; no production curated-collection fixture existed.
+- The keyboard follow-up used tab-scoped native input in the existing approved
+  admin Chrome session. Actual focus movement and disclosure `open` states
+  confirmed Tab navigation and Enter activation, replacing the earlier
+  automation limitation. All disclosures were restored closed and the temporary
+  QA tab was closed. Shift+Tab attempts were inconclusive and are not claimed as
+  verified; a full screen-reader audit was outside this check's scope.
