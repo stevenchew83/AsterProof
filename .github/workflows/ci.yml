@@ -355,6 +355,8 @@ jobs:
           raise SystemExit(pytest.main([
               'inspinia/solutions/test_admin_collection_concurrency.py',
               'inspinia/solutions/test_document_revisions.py',
+              'inspinia/solutions/test_forum.py',
+              'inspinia/solutions/test_image_access.py',
               'inspinia/learning/tests/test_domain_concurrency.py',
               'inspinia/learning/tests/test_assets.py',
               'inspinia/solutions/test_review_prototype.py',
