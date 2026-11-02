@@ -14,7 +14,7 @@
           <h4 class="header-title mb-1">Master Data</h4>
         </div>
         <div class="card-body pt-2">
-          <p class="mb-2"><strong>School:</strong> {{ student.school.name|default:'-' }}</p>
+          <p class="mb-2"><strong>School:</strong> {{ student.school_display|default:'-' }}</p>
           <p class="mb-2"><strong>State:</strong> {{ student.state|default:'-' }}</p>
           <p class="mb-2"><strong>Birth year:</strong> {{ student.birth_year|default:'-' }}</p>
           <p class="mb-2"><strong>External code:</strong> {{ student.external_code|default:'-' }}</p>

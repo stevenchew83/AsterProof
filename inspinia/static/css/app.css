@@ -22412,6 +22412,155 @@ table.app-table-compact .contest-row-meta {
   }
 }
 
+.ranking-analysis .analysis-export > summary {
+  list-style: none;
+}
+.ranking-analysis .analysis-export > summary::-webkit-details-marker {
+  display: none;
+}
+.ranking-analysis .analysis-export[open] > .dropdown-menu {
+  display: block;
+  left: auto;
+  right: 0;
+}
+.ranking-analysis .app-page-header-description {
+  grid-column: 1/-1;
+}
+.ranking-analysis .header-title {
+  font-size: 0.9375rem;
+  font-weight: 600;
+  line-height: 1.4;
+}
+.ranking-analysis .analysis-filters .form-label {
+  margin-bottom: 0.25rem;
+  font-size: 0.75rem;
+}
+.ranking-analysis .analysis-filters details summary {
+  width: -webkit-fit-content;
+  width: -moz-fit-content;
+  width: fit-content;
+}
+.ranking-analysis .analysis-tabs {
+  -ms-flex-wrap: wrap;
+      flex-wrap: wrap;
+  padding: 0.25rem;
+  background: var(--ins-secondary-bg);
+  border-radius: var(--ins-border-radius);
+}
+.ranking-analysis .analysis-tabs .nav-link {
+  padding: 0.5rem 0.875rem;
+  font-size: 0.8125rem;
+  font-weight: 600;
+}
+.ranking-analysis .analysis-stat-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.75rem 1rem;
+}
+.ranking-analysis .analysis-stat-grid dt {
+  color: var(--ins-secondary-color);
+  font-size: 0.75rem;
+  font-weight: 400;
+}
+.ranking-analysis .analysis-stat-grid dd {
+  font-variant-numeric: tabular-nums;
+  font-size: 1.125rem;
+  font-weight: 600;
+  margin: 0.125rem 0 0;
+}
+.ranking-analysis .analysis-chart {
+  min-height: 15rem;
+}
+.ranking-analysis .analysis-chart-values {
+  font-size: 0.75rem;
+  margin-top: 0.5rem;
+}
+.ranking-analysis .analysis-chart-values table {
+  font-size: 0.75rem;
+}
+.ranking-analysis .analysis-quality-item {
+  display: -webkit-box;
+  display: -ms-flexbox;
+  display: flex;
+  -webkit-box-align: center;
+      -ms-flex-align: center;
+          align-items: center;
+  gap: 0.5rem;
+  height: 100%;
+  padding: 0.875rem 1rem;
+  background: var(--ins-secondary-bg);
+  color: var(--ins-body-color);
+  border: 1px solid var(--ins-border-color);
+  border-radius: var(--ins-border-radius);
+}
+.ranking-analysis .analysis-quality-item span {
+  -webkit-box-flex: 1;
+      -ms-flex: 1;
+          flex: 1;
+  font-size: 0.8125rem;
+}
+.ranking-analysis .analysis-quality-item strong {
+  font-size: 1.125rem;
+  font-variant-numeric: tabular-nums;
+}
+.ranking-analysis .analysis-quality-item:hover {
+  border-color: var(--ins-primary);
+}
+.ranking-analysis .analysis-sort {
+  display: -webkit-inline-box;
+  display: -ms-inline-flexbox;
+  display: inline-flex;
+  -webkit-box-align: center;
+      -ms-flex-align: center;
+          align-items: center;
+}
+.ranking-analysis .analysis-main-table td {
+  font-variant-numeric: tabular-nums;
+}
+.ranking-analysis .analysis-chart-card .card-header {
+  min-height: 4.25rem;
+}
+@media (max-width: 575.98px) {
+  .ranking-analysis .app-page-header--with-stats {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .ranking-analysis .app-page-header-intro {
+    grid-row: 1;
+    grid-column: 1;
+  }
+  .ranking-analysis .app-page-header-actions {
+    grid-row: 2;
+    grid-column: 1;
+  }
+  .ranking-analysis .app-page-header-stats {
+    grid-row: 3;
+  }
+  .ranking-analysis .app-page-header-description {
+    grid-row: 4;
+  }
+  .ranking-analysis .analysis-stat-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .ranking-analysis .analysis-quality-item {
+    padding: 0.75rem;
+  }
+  .ranking-analysis .analysis-tabs .nav-link {
+    -webkit-box-flex: 1;
+        -ms-flex: 1 0 auto;
+            flex: 1 0 auto;
+    text-align: center;
+    padding: 0.5rem 0.625rem;
+  }
+  .ranking-analysis .analysis-chart {
+    min-height: 13rem;
+  }
+}
+@media (pointer: coarse) {
+  .ranking-analysis .btn, .ranking-analysis .analysis-tabs .nav-link, .ranking-analysis .form-select, .ranking-analysis .form-control {
+    min-height: 2.75rem;
+  }
+}
+
 .statement-analytics-page {
   padding-bottom: 1.5rem;
 }

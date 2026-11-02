@@ -1,5 +1,12 @@
 from django.urls import path
 
+from inspinia.rankings.analysis_views import ranking_analysis_export_view
+from inspinia.rankings.analysis_views import ranking_analysis_view
+from inspinia.rankings.correction_views import correction_detail
+from inspinia.rankings.correction_views import correction_history
+from inspinia.rankings.correction_views import correction_new
+from inspinia.rankings.correction_views import correction_queue
+from inspinia.rankings.correction_views import import_conflict_action
 from inspinia.rankings.result_views import assessment_results_view
 from inspinia.rankings.result_views import olympiad_sheet_import_view
 from inspinia.rankings.result_views import result_history_view
@@ -16,6 +23,13 @@ from inspinia.rankings.views import students_list_view
 app_name = "rankings"
 
 urlpatterns = [
+    path("analysis/corrections/", correction_queue, name="correction_queue"),
+    path("analysis/corrections/new/", correction_new, name="correction_new"),
+    path("analysis/corrections/history/", correction_history, name="correction_history"),
+    path("analysis/corrections/<int:pk>/", correction_detail, name="correction_detail"),
+    path("analysis/import-conflicts/<int:pk>/", import_conflict_action, name="import_conflict_action"),
+    path("analysis/", ranking_analysis_view, name="analysis"),
+    path("analysis/export/", ranking_analysis_export_view, name="analysis_export"),
     path("", ranking_table_view, name="ranking_table"),
     path("results/", assessment_results_view, name="assessment_results"),
     path("history/", result_history_view, name="result_history"),
