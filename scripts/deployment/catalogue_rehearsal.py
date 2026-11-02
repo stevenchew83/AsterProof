@@ -33,6 +33,17 @@ PRESERVED = (
 )
 
 
+def historical_baseline_targets(leaf_nodes):
+    """Keep later teaching and editorial dependencies out of the historical proof."""
+    return [node for node in leaf_nodes if node[0] not in {
+        "pages", "solutions", "website", "learning", "training",
+    }] + [
+        ("pages", "0036_concept_assignment_reviews"),
+        ("solutions", "0010_offline_evaluation_contract"),
+        ("training", "0005_subtopic_imo_syllabus_index"),
+    ]
+
+
 def apply_historical_catalogue(executor):
     """Check the bounded historical plan without admitting newer leaf migrations."""
     targets = [("pages", MIGRATIONS[-1])]
@@ -151,11 +162,7 @@ def main():
         raise ValueError("Catalogue rehearsal requires an empty isolated PostgreSQL 17.9 database")
     validate_candidate(Path.cwd())
     executor = MigrationExecutor(connection)
-    # Website and Assessment depend on pages 0039/0043, beyond this historical baseline.
-    targets = [n for n in executor.loader.graph.leaf_nodes() if n[0] not in {"pages", "solutions", "website"}] + [
-        ("pages", "0036_concept_assignment_reviews"),
-        ("solutions", "0010_offline_evaluation_contract"),
-    ]
+    targets = historical_baseline_targets(executor.loader.graph.leaf_nodes())
     executor.migrate(targets)
     old_apps = executor.loader.project_state(targets).apps
     seed_existing_records(old_apps)
@@ -191,15 +198,10 @@ def main():
     MigrationExecutor(connection).migrate([("pages", "0039_catalogue_revision_triggers")])
     if behaviour_snapshot(connection) != behaviour:
         raise ValueError("Trigger reinstall produced different definitions")
-    # Current runtime models require the later Website/Assessment schema. Keep
-    # the historical DDL/reader proof above separate from this synthetic fixture.
+    # Current runtime models require the full schema. Keep the historical
+    # DDL/reader proof above separate from this synthetic fixture.
     executor = MigrationExecutor(connection)
-    executor.migrate([
-        node for node in executor.loader.graph.leaf_nodes() if node[0] not in {"pages", "solutions"}
-    ] + [
-        ("pages", "0044_learning_page_activity"),
-        ("solutions", "0012_synthetic_review_prototype"),
-    ])
+    executor.migrate(executor.loader.graph.leaf_nodes())
     verify_publication_and_invalidation()
     result = {
         "format_version": 1, "source_sha": args.release_sha, "active_sha": args.active_sha,

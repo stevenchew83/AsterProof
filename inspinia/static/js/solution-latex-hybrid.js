@@ -27,7 +27,7 @@
     var p = normalizePath(path);
     if (!p) return "";
     var cfg = typeof window !== "undefined" ? window.ASTERPROOF_SOLUTION_MEDIA : null;
-    var prefix = cfg && cfg.mediaUrlPrefix ? String(cfg.mediaUrlPrefix).trim() : "";
+    var prefix = baseUrl || (cfg && cfg.mediaUrlPrefix ? String(cfg.mediaUrlPrefix).trim() : "");
     if (prefix) {
       var pre = prefix.endsWith("/") ? prefix : prefix + "/";
       if (pre.startsWith("http://") || pre.startsWith("https://")) {
@@ -156,6 +156,8 @@
    */
   function renderInto(el, text, baseUrl) {
     if (!el) return Promise.resolve();
+    var scoped = el.closest("[data-solution-image-base-url]");
+    if (scoped && scoped.dataset.solutionImageBaseUrl) baseUrl = scoped.dataset.solutionImageBaseUrl;
     var prev = Array.from(el.querySelectorAll("[data-mathjax-scope]"));
     if (prev.length && window.MathJax && typeof window.MathJax.typesetClear === "function") {
       window.MathJax.typesetClear(prev);

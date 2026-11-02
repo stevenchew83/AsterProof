@@ -146,11 +146,30 @@ jobs:
           DATABASE_URL: postgres://postgres@127.0.0.1:5432/asterproof_schema_rehearsal
         run: |
           rehearsal_args=()
-          if ! git diff --quiet "$BASE_SHA" HEAD -- scripts/deployment/community_proof_schema.py scripts/deployment/community_proof_schema_rehearsal.py scripts/deployment/tests/fixtures/community-proof-schema-delta.json inspinia/pages/migrations/0045_community_proof_library.py; then
-            rehearsal=scripts.deployment.community_proof_schema_rehearsal
+          # The active bridge already contains the four pending migrations.
+          # Rehearse their application even when the source migration diff is empty.
+          learning_successor=$(python - "$BASE_SHA" <<'PY'
+          import hashlib
+          import subprocess
+          import sys
+          from pathlib import Path
+          from scripts.deployment.learning_bridge import PRODUCTION_SETTINGS, PRODUCTION_SHA256, has_bridge_marker
+
+          baseline = subprocess.check_output(['git', 'show', sys.argv[1] + ':' + PRODUCTION_SETTINGS])
+          successor = hashlib.sha256(baseline).hexdigest() == PRODUCTION_SHA256 and not has_bridge_marker(Path.cwd())
+          print('true' if successor else 'false')
+          PY
+          )
+          if [ "$learning_successor" = true ] || ! git diff --quiet "$BASE_SHA" HEAD -- scripts/deployment/learning_schema.py scripts/deployment/learning_schema_rehearsal.py inspinia/learning/migrations inspinia/pages/migrations/0046_prerequisitegraphstate_catalogueprerequisite.py inspinia/training/migrations/0006_learningpath_learningpathrevision_learningpathitem_and_more.py; then
+            rehearsal=scripts.deployment.learning_schema_rehearsal
             active_sha="$BASE_SHA"
+            rehearsal_args+=(--delta-output "$RUNNER_TEMP/learning-schema-delta.json")
           elif ! git diff --quiet "$BASE_SHA" HEAD -- scripts/deployment/assessment_prototype_schema.py scripts/deployment/assessment_prototype_schema_rehearsal.py scripts/deployment/tests/fixtures/assessment-prototype-schema-delta.json inspinia/solutions/migrations/0011_problem_evaluation_packages.py inspinia/solutions/migrations/0012_synthetic_review_prototype.py; then
             rehearsal=scripts.deployment.assessment_prototype_schema_rehearsal
+            active_sha="$BASE_SHA"
+          elif ! git diff --quiet "$BASE_SHA" HEAD -- scripts/deployment/community_proof_schema.py scripts/deployment/community_proof_schema_rehearsal.py scripts/deployment/tests/fixtures/community-proof-schema-delta.json inspinia/pages/migrations/0045_community_proof_library.py; then
+            rehearsal=scripts.deployment.community_proof_schema_rehearsal
+
             active_sha="$BASE_SHA"
           elif ! git diff --quiet "$BASE_SHA" HEAD -- scripts/deployment/solution_evaluation_schema.py scripts/deployment/solution_evaluation_schema_rehearsal.py scripts/deployment/tests/fixtures/solution-evaluation-schema-delta.json inspinia/solutions/migrations/0010_offline_evaluation_contract.py; then
             rehearsal=scripts.deployment.solution_evaluation_schema_rehearsal
@@ -234,6 +253,7 @@ jobs:
           path: |
             ${{ runner.temp }}/website-schema-evidence.json
             ${{ runner.temp }}/evaluation-schema-delta.json
+            ${{ runner.temp }}/learning-schema-delta.json
             ${{ runner.temp }}/community-proof-schema-delta.json
           if-no-files-found: error
           retention-days: 7
@@ -332,6 +352,8 @@ jobs:
           raise SystemExit(pytest.main([
               'inspinia/solutions/test_admin_collection_concurrency.py',
               'inspinia/solutions/test_document_revisions.py',
+              'inspinia/learning/tests/test_domain_concurrency.py',
+              'inspinia/learning/tests/test_assets.py',
               'inspinia/solutions/test_review_prototype.py',
               'inspinia/solutions/test_reviews.py', '--create-db', '-q',
           ]))

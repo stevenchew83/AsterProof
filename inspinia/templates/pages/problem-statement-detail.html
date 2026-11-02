@@ -132,7 +132,7 @@
           <span class="badge bg-warning-subtle text-warning border border-warning-subtle">Asymptote</span>
         {% endif %}
         <span class="badge {% if problem_statement_context.completion_state_kind == 'solved' %}bg-success-subtle text-success border border-success-subtle{% elif problem_statement_context.completion_state_kind == 'unknown' %}bg-info-subtle text-info border border-info-subtle{% else %}bg-body-tertiary text-body border{% endif %}"
-              title="{{ problem_statement_context.completion_state_label }}">{{ problem_statement_context.completion_display }}</span>
+              title="My progress: {{ problem_statement_context.completion_state_label }}">{{ problem_statement_context.completion_display }}</span>
         {% if problem_statement_context.day_label %}<span>{{ problem_statement_context.day_label }}</span>{% endif %}
       </div>
     </header>

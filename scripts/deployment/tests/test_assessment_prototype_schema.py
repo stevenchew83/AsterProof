@@ -15,6 +15,8 @@ import yaml
 
 from scripts.deployment import additive_schema
 from scripts.deployment import assessment_prototype_schema as schema
+from scripts.deployment import community_proof_schema
+from scripts.deployment import learning_schema
 from scripts.deployment.operation_worker import WorkerBackend
 from scripts.deployment.operation_worker import run_operation
 from scripts.deployment.protocol import OperationEnvelope
@@ -224,6 +226,44 @@ def test_assessment_prototype_plan_guard_remains_literal_under_optimized_python(
             exec(command, {})  # noqa: S102 - exact fixed plan guard
     else:
         exec(command, {})  # noqa: S102 - exact fixed plan guard
+
+
+@pytest.mark.parametrize("other_plan", ["community_proof", "training"])
+def test_real_assessment_preflight_api_rejects_mixed_pending_plans(monkeypatch, other_plan):
+    from django.conf import settings
+
+    for name in (
+        "SOLUTION_AI_REVIEW_ENABLED", "PROBLEM_STATEMENT_AI_REVIEW_ENABLED", "SYNTHETIC_REVIEW_PROTOTYPE_ENABLED",
+    ):
+        monkeypatch.setattr(settings, name, False)
+    extra = (
+        [(
+            "pages", community_proof_schema.MIGRATIONS[0], False,
+            [signature[0] for signature in community_proof_schema.OPERATION_SIGNATURES],
+        )]
+        if other_plan == "community_proof" else learning_schema.EXPECTED_PLAN
+    )
+    plan = [
+        (SimpleNamespace(app_label=app, name=name, operations=[type(kind, (), {})() for kind in kinds]), backwards)
+        for app, name, backwards, kinds in [*schema.EXPECTED_PLAN, *extra]
+    ]
+    executor = SimpleNamespace(
+        loader=SimpleNamespace(graph=SimpleNamespace(leaf_nodes=list)),
+        migration_plan=lambda targets: plan,
+        migrate=lambda targets: pytest.fail("Assessment preflight must not apply migrations"),
+    )
+    monkeypatch.setattr("django.db.migrations.executor.MigrationExecutor", lambda connection: executor)
+    calls = []
+
+    def run_candidate(contract, release, arguments):
+        calls.append(arguments)
+        exec(compile(arguments[-1], "<exact-assessment-preflight>", "exec", optimize=2), {})  # noqa: S102
+
+    backend = WorkerBackend()
+    monkeypatch.setattr(backend, "_run_candidate", run_candidate)
+    with pytest.raises(RuntimeError, match="Unapproved pending migration plan"):
+        backend.check_assessment_prototype_schema(None, ROOT)
+    assert calls == [["shell", "--command", schema.PLAN_CHECK]]
 
 
 class AssessmentPrototypeBackend(SchemaBackend):

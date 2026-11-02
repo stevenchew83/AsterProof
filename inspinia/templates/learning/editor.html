@@ -1,0 +1,135 @@
+{% extends 'learning/base.html' %}
+
+{% load static %}
+
+{% block learning_content %}
+  <header class="d-flex justify-content-between flex-wrap gap-3 mb-3">
+    <div>
+      <p class="text-muted mb-1">Private draft · {{ draft.document.get_kind_display }}</p>
+      <h1 class="h3">{{ draft.title }}</h1>
+    </div>
+    <p class="text-muted" data-learning-status aria-live="polite">Saved version {{ draft.edit_version }}</p>
+  </header>
+  <form method="post"
+        data-learning-editor
+        data-save-url="{% url 'learning:draft_save' draft.pk %}"
+        data-preview-url="{% url 'learning:draft_preview' draft.pk %}"
+        data-upload-url="{% url 'learning:draft_upload' draft.pk %}"
+        data-status-url="{% url 'learning:draft_status' draft.pk %}">
+    {% csrf_token %}{{ form.non_field_errors }}
+    {% for field in form.hidden_fields %}{{ field }}{{ field.errors }}{% endfor %}
+    <div data-learning-feedback
+         class="alert alert-warning"
+         hidden
+         role="alert"></div>
+    <button type="button"
+            data-learning-reconcile
+            class="btn btn-warning mb-3"
+            hidden>Check save status</button>
+    <div class="row g-3 mb-3">
+      <div class="col-lg-7">
+        <label class="form-label" for="{{ form.title.id_for_label }}">Title</label>
+        {{ form.title }}{{ form.title.errors }}
+      </div>
+      <div class="col-lg-5">
+        <label class="form-label" for="{{ form.summary.id_for_label }}">Summary</label>
+        {{ form.summary }}{{ form.summary.errors }}
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-header d-flex justify-content-between flex-wrap gap-2">
+        <span>Markdown + LaTeX · Paste a diagram from your clipboard</span>
+        <div class="btn-group" aria-label="Editor view">
+          <button class="btn btn-sm btn-light" type="button" data-editor-view="write">Write</button>
+          <button class="btn btn-sm btn-light" type="button" data-editor-view="split">Split</button>
+          <button class="btn btn-sm btn-light" type="button" data-editor-view="preview">Preview</button>
+        </div>
+      </div>
+      <div class="learning-editor-panes" data-editor-mode="split">
+        <section data-learning-source>
+          <label class="visually-hidden" for="{{ form.body_source.id_for_label }}">Document source</label>
+          {{ form.body_source }}{{ form.body_source.errors }}
+        </section>
+        <section class="learning-prose p-4"
+                 data-learning-preview
+                 data-learning-math
+                 aria-label="Lecture preview">
+          {{ rendered_preview }}
+        </section>
+      </div>
+    </div>
+    <details class="card card-body">
+      <summary>Concept links and teaching details</summary>
+      <p class="text-muted mt-2">Link one lecture to several canonical concepts. Choose one primary concept.</p>
+      <label class="form-label" for="concept-links">Canonical concepts</label>
+      <select class="form-select"
+              multiple
+              id="concept-links"
+              data-learning-concepts>
+        {% for concept in editor_concepts %}
+          <option value="{{ concept.pk }}">{{ concept.name }} · {{ concept.pk }}</option>
+        {% endfor %}
+      </select>
+      <label for="primary-concept" class="form-label mt-2">Primary concept ID</label>
+      <input id="primary-concept" class="form-control" data-learning-primary />
+      <label class="form-label mt-2" for="note-level">Level</label>
+      <select class="form-select" id="note-level" data-learning-level>
+        <option value="">Unspecified</option>
+        <option value="core">Core</option>
+        <option value="advanced">Advanced</option>
+        <option value="specialist">Specialist</option>
+      </select>
+    </details>
+    <div class="card card-body" data-learning-assets></div>
+    <div class="card card-body">
+      <h2 class="h5">Submit for review</h2>
+      <p>
+        You retain your rights. Submission grants AsterProof permission to publish the exact submitted writing and assets in Training and the public library. Steven reviews every publication. Public credit is optional.
+      </p>
+      {% if agreement_ready %}
+        <div class="form-check mb-3">
+          {{ form.rights_confirmed }}
+          <label class="form-check-label"
+                 for="{{ form.rights_confirmed.id_for_label }}">{{ form.rights_confirmed.label }}</label>
+        </div>
+        <div class="form-check mb-3">
+          {{ form.editorial_changes_allowed }}
+          <label class="form-check-label"
+                 for="{{ form.editorial_changes_allowed.id_for_label }}">
+            Allow future editorial improvements within my AsterProof publication permission
+          </label>
+        </div>
+        {{ form.source_permissions.label_tag }}{{ form.source_permissions }}{{ form.source_permissions.errors }}{{ form.public_credit.label_tag }}{{ form.public_credit }}{{ form.public_credit.errors }}
+        <p class="form-text">Agreement version: {{ agreement_version }}</p>
+      {% else %}
+        <p class="text-muted">
+          Private authoring is available. Submission will open after the publication agreement is configured.
+        </p>
+      {% endif %}
+      <div class="d-flex flex-wrap gap-2 mt-3">
+        <button class="btn btn-outline-primary"
+                name="action"
+                value="checkpoint"
+                data-learning-action="checkpoint">Save checkpoint</button>
+        {% if agreement_ready %}
+          <button class="btn btn-primary"
+                  name="action"
+                  value="submit"
+                  data-learning-action="submit">Submit for Steven’s review</button>
+        {% endif %}
+      </div>
+    </div>
+  </form>
+  {% if draft.base_revision_id %}
+    <details class="card card-body">
+      <summary>Compare with the current published revision</summary>
+      <p class="text-muted">
+        If publication has changed, review the current source before deliberately rebasing your draft.
+      </p>
+      <a href="{% url 'learning:rebase' draft.pk %}">Compare and rebase</a>
+    </details>
+  {% endif %}
+{% endblock %}
+{% block learning_javascript %}
+  <script src="{% static 'js/learning-editor.bundle.js' %}" defer></script><script src="{% static 'js/learning-details.js' %}" defer></script>
+{% endblock %}

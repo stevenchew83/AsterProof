@@ -1,0 +1,21 @@
+{% extends 'website/base.html' %}
+
+{% block public_content %}
+  <section class="website-container website-section website-reading-width">
+    <h1>Report a mathematical error</h1>
+    {% if closed %}
+      <p>Report intake is currently closed. This lecture remains available to read.</p>
+    {% elif sent %}
+      <p>Your report has been recorded for review.</p>
+    {% else %}
+      <form method="post">
+        {% csrf_token %}
+        {% include 'learning/form.html' %}
+        <button type="submit">Submit report</button>
+      </form>
+    {% endif %}
+    <p>
+      <a href="{{ back_url }}">Return to the lecture</a>
+    </p>
+  </section>
+{% endblock %}

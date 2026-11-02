@@ -6,10 +6,13 @@ on:
       - .github/workflows/catalogue-rehearsal.yml
       - scripts/deployment/catalogue_*.py
       - scripts/deployment/database_recovery.py
+      - scripts/deployment/operation_worker.py
       - scripts/deployment/postgres_runtime.py
       - scripts/deployment/recovery_crypto.py
       - scripts/deployment/tests/test_database_recovery.py
       - scripts/deployment/tests/test_systemd_recovery.py
+      - scripts/deployment/tests/test_systemd_drain.py
+      - deployment/systemd/asterproof-deploy-operation@.service.in
       - scripts/deployment/tests/test_postgres_runtime.py
       - scripts/deployment/tests/test_recovery_crypto.py
       - scripts/deployment/tests/test_catalogue_*.py
@@ -86,8 +89,16 @@ jobs:
           PY
       - name: Reproduce a real stopped oneshot scheduler on the ephemeral runner
         run: |
-          sudo --preserve-env=GITHUB_ACTIONS,GITHUB_RUN_ID .catalogue-quality/bin/python -m pytest \
+          sudo --preserve-env=GITHUB_ACTIONS,GITHUB_RUN_ID,GITHUB_SHA,RUNNER_TEMP .catalogue-quality/bin/python -m pytest \
             scripts/deployment/tests/test_systemd_drain.py -q
+      - name: Retain normalized drain lifecycle evidence
+        if: always()
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v7.0.1
+        with:
+          name: drain-lifecycle-${{ github.sha }}
+          path: ${{ runner.temp }}/drain-lifecycle-*.json
+          if-no-files-found: ignore
+          retention-days: 7
       - name: Retain metadata-only rehearsal proof
         uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v7.0.1
         with:
@@ -121,6 +132,19 @@ jobs:
             ${{ runner.temp }}/postgres-runtime.manifest.json
             ${{ runner.temp }}/postgres-runtime-smoke.json
           retention-days: 30
+      - name: Prepare full current schema for recovery verification
+        run: |
+          .catalogue-quality/bin/python - <<'PY'
+          from django.conf import settings
+          from scripts.deployment.schema_rehearsal import configure_rehearsal_database
+          configure_rehearsal_database(settings)
+          import django
+          django.setup()
+          from django.db import connection
+          from django.db.migrations.executor import MigrationExecutor
+          executor = MigrationExecutor(connection)
+          executor.migrate(executor.loader.graph.leaf_nodes())
+          PY
       - name: Verify encrypted snapshot and complete isolated database restore
         run: |
           .catalogue-quality/bin/python -m scripts.deployment.database_recovery smoke

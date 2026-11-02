@@ -1,0 +1,32 @@
+{% extends 'learning/base.html' %}
+
+{% block learning_content %}
+  <h1 class="h3">Compare before rebasing</h1>
+  <p class="text-muted">
+    Your draft remains unchanged. Compare it with the current publication, then deliberately adopt that revision as your base.
+  </p>
+  {% if error %}<div class="alert alert-warning">{{ error }}</div>{% endif %}
+  <div class="row g-3">
+    <div class="col-md-6">
+      <h2 class="h5">Your draft</h2>
+      <pre class="card card-body learning-diff">{{ draft.body_source }}</pre>
+    </div>
+    <div class="col-md-6">
+      <h2 class="h5">Current published source</h2>
+      <pre class="card card-body learning-diff">{{ current_source }}</pre>
+    </div>
+  </div>
+  <form method="post">
+    {% csrf_token %}
+    <input type="hidden" name="context" value="{{ context }}" />
+    <input type="hidden" name="edit_version" value="{{ draft.edit_version }}" />
+    <input type="hidden"
+           name="publication_version"
+           value="{{ publication.version }}" />
+    <label class="form-check my-3">
+      <input class="form-check-input" type="checkbox" name="confirmed" required />
+      I compared the revisions and will preserve or merge the changes in my draft.
+    </label>
+    <button class="btn btn-primary">Rebase without changing my draft text</button>
+  </form>
+{% endblock %}

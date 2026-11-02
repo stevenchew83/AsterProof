@@ -47,7 +47,7 @@
       </summary>
       <div class="solution-reference-body">
         {% if problem_data.statement_entry %}{% include 'partials/statement-render-content.html' with segments=problem_data.statement_render_segments %}
-        {% else %}<p class="text-muted mb-0">No linked statement is available. <a href="{{ problem_data.solutions_url }}">Open the problem page</a> for its available information.</p>{% endif %}
+        {% else %}<p class="text-muted mb-0">Statement missing. <a href="{{ problem_data.solutions_url }}">Open the problem page</a> for its available information.</p>{% endif %}
       </div>
       <details class="solution-context-details">
         <summary>Problem details</summary>
@@ -164,7 +164,7 @@ window.MathJax = {
 <script>
 window.ASTERPROOF_SOLUTION_MEDIA = {
   baseUrl: "{{ solution_media_base_url|escapejs }}",
-  mediaUrlPrefix: "{{ MEDIA_URL|escapejs }}",
+  mediaUrlPrefix: "{{ solution_media_base_url|escapejs }}",
   uploadUrl: "{{ solution_body_image_upload_url|escapejs }}"
 };
 </script>
