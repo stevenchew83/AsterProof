@@ -9,6 +9,7 @@ from http import HTTPStatus
 import pytest
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.urls import reverse
+from django.utils import translation
 
 from inspinia.rankings.forms import OlympiadSheetImportForm
 from inspinia.rankings.imports.olympiad_sheet import HISTORY_HEADERS
@@ -237,6 +238,25 @@ def test_results_and_history_search_all_rows_before_pagination_and_escape_source
         assert "120101-01-1234" not in html
     student_page = client.get(reverse("rankings:student_detail", args=[target.student_id]))
     assert ">0.00</td>" in student_page.content.decode()
+
+
+@pytest.mark.parametrize("route", ["assessment_results", "result_history"])
+def test_local_table_tools_keep_numeric_sort_values_unlocalized(client, route):
+    client.force_login(UserFactory(role=User.Role.MODERATOR))
+    assessment = _assessment()
+    _result("Fractional Score", Decimal("10.25"), "PIONEER", assessment)
+    _result("Zero Score", 0, "PIONEER", assessment)
+    with translation.override("de"):
+        response = client.get(reverse(f"rankings:{route}"))
+    html = response.content.decode()
+    assert response.status_code == HTTPStatus.OK
+    assert html.count("js/ranking-table-tools.js") == 1
+    assert 'data-sort-value="10.25"' in html
+    assert 'data-sort-value="0.00"' in html
+    assert html.count("data-local-row=") == 2  # noqa: PLR2004
+    assert "Filter this page" in html
+    assert "Copy visible rows" in html
+    assert "apply only to this page" in html
 
 
 def test_preview_apply_flow_requires_confirmation_is_owner_scoped_and_retains_no_raw_upload(client):

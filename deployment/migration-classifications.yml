@@ -322,6 +322,18 @@
         "no_provider_or_worker_activation"
       ],
       "rationale": "Creates only eight isolated member-forum target, request, assessment, verification, comment, audit, upvote and report tables with constraints and indexes. No backfill, public sharing, account permission, completion, Training or AI changes. Requires exact frozen PostgreSQL17.9 delta, preservation rehearsal and separately installed bounded authority. Recovery retains forum records and is restricted to an image-aware artifact; raw media protection remains in force."
+    },
+    "rankings.0005_ranking_analysis_review": {
+      "classification": "backward-compatible-schema",
+      "recovery_required": false,
+      "code_rollback_permitted": true,
+      "data_preconditions": [
+        "ranking_review_tables_absent",
+        "existing_students_results_and_links_preserved",
+        "new_review_tables_empty",
+        "exact_frozen_postgresql_delta_and_prior_reader_proof"
+      ],
+      "rationale": "Creates eleven supporting ranking analysis, metadata, attribution, alias, identity-review, correction, durable receipt, import-conflict and serialization-lock tables. No data migration, source-record rewrite, identity consolidation or permission expansion. Existing ranking records and links are preserved; code recovery retains audit/correction data. Requires the hash-frozen PostgreSQL 17.9 preservation proof and separately installed bounded release authority."
     }
   }
 }

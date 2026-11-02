@@ -39,6 +39,8 @@ from inspinia.rankings.models import Student
 from inspinia.rankings.models import StudentSelectionStatus
 from inspinia.rankings.services.privacy import mask_nric
 from inspinia.rankings.services.privacy import user_can_view_full_nric
+from inspinia.rankings.services.school_display import with_school_display
+from inspinia.rankings.services.snapshot_freshness import snapshot_freshness
 from inspinia.users.models import AuditEvent
 from inspinia.users.monitoring import record_event
 from inspinia.users.roles import user_has_moderator_or_admin_role
@@ -133,9 +135,7 @@ def _assessment_columns_for_formula(formula: RankingFormula | None) -> list[dict
         return []
 
     items = list(
-        formula.items.select_related("assessment")
-        .order_by("sort_order", "id")
-        .all(),
+        formula.items.select_related("assessment").order_by("sort_order", "id").all(),
     )
     return [
         {
@@ -207,8 +207,7 @@ def _build_ranking_queryset(*, filter_data: dict, formula: RankingFormula | None
     search_text = (filter_data.get("q") or "").strip()
     if search_text:
         queryset = queryset.filter(
-            Q(student__full_name__icontains=search_text)
-            | Q(student__school__name__icontains=search_text),
+            Q(student__full_name__icontains=search_text) | Q(student__school__name__icontains=search_text),
         )
 
     return queryset.order_by("rank_overall", "student__normalized_name", "student_id")
@@ -227,8 +226,7 @@ def _build_ranking_rows(
         breakdown_values = _serialize_breakdown_values(snapshot)
         nric_value = student.full_nric if can_view_nric else mask_nric(student.masked_nric or student.full_nric)
         assessment_scores = {
-            column["field"]: breakdown_values.get(column["assessment_id"], "")
-            for column in assessment_columns
+            column["field"]: breakdown_values.get(column["assessment_id"], "") for column in assessment_columns
         }
         assessment_score_list = [assessment_scores[column["field"]] for column in assessment_columns]
         rows.append(
@@ -266,13 +264,12 @@ def _ranking_filters_context() -> dict:
             School.objects.filter(is_active=True).order_by("name").values_list("name", flat=True),
         ),
         "state_options": [
-            state
-            for state in Student.objects.order_by("state").values_list("state", flat=True).distinct()
-            if state
+            state for state in Student.objects.order_by("state").values_list("state", flat=True).distinct() if state
         ],
         "formula_options": list(
-            RankingFormula.objects.order_by("-season_year", "division", "name", "-version")
-            .values("id", "name", "season_year", "division", "version", "is_active"),
+            RankingFormula.objects.order_by("-season_year", "division", "name", "-version").values(
+                "id", "name", "season_year", "division", "version", "is_active",
+            ),
         ),
     }
 
@@ -310,6 +307,7 @@ def ranking_table_view(request):
         "assessment_columns": assessment_columns,
         "ranking_rows": ranking_rows,
         "ranking_row_limit": RANKING_TABLE_MAX_ROWS,
+        **snapshot_freshness(formula),
         **_ranking_filters_context(),
     }
     return render(request, "pages/rankings/ranking-table.html", context)
@@ -460,6 +458,7 @@ def ranking_dashboard_view(request):
         "top_rows": top_rows,
         "selected_count": selected_count,
         "watchlist_count": watchlist_count,
+        **snapshot_freshness(formula),
         "school_stats": school_stats,
         "state_stats": state_stats,
         **_ranking_filters_context(),
@@ -515,12 +514,11 @@ def students_list_view(request):
 def student_detail_view(request, student_id: int):
     _require_rankings_access(request)
     student = get_object_or_404(
-        Student.objects.select_related("school"),
+        with_school_display(Student.objects.select_related("school")),
         pk=student_id,
     )
     results = list(
-        student.results.select_related("assessment")
-        .order_by(
+        student.results.select_related("assessment").order_by(
             "-assessment__season_year",
             "-assessment__assessment_date",
             "assessment__sort_order",
@@ -528,12 +526,12 @@ def student_detail_view(request, student_id: int):
         ),
     )
     selection_statuses = list(
-        student.selection_statuses.select_related("created_by")
-        .order_by("-season_year", "division", "status", "id"),
+        student.selection_statuses.select_related("created_by").order_by("-season_year", "division", "status", "id"),
     )
     ranking_history = list(
-        student.ranking_snapshots.select_related("ranking_formula")
-        .order_by("season_year", "division", "rank_overall", "id"),
+        student.ranking_snapshots.select_related("ranking_formula").order_by(
+            "season_year", "division", "rank_overall", "id",
+        ),
     )
 
     trend_points = [
@@ -600,8 +598,9 @@ def assessments_list_view(request):
 def formulas_list_view(request):
     _require_rankings_access(request)
     formulas = list(
-        RankingFormula.objects.prefetch_related("items__assessment")
-        .order_by("-season_year", "division", "name", "-version", "id"),
+        RankingFormula.objects.prefetch_related("items__assessment").order_by(
+            "-season_year", "division", "name", "-version", "id",
+        ),
     )
     context = {
         "formulas": formulas,
@@ -651,7 +650,7 @@ def _log_import_complete_event(*, request, batch: ImportBatch) -> None:
 
 
 @login_required
-def import_center_view(request):  # noqa: C901, PLR0911, PLR0915
+def import_center_view(request):  # noqa: C901, PLR0911, PLR0912, PLR0915 - Four import workflows.
     _require_rankings_access(request)
     context = _base_import_center_context()
 
@@ -690,13 +689,19 @@ def import_center_view(request):  # noqa: C901, PLR0911, PLR0915
             pk=request.POST.get("batch_id"),
             import_type=ImportBatch.ImportType.STUDENT_MASTER,
         )
-        preview = preview_student_master_import(import_batch=batch, actor=request.user)
-        result = apply_student_master_import(preview=preview, import_batch=batch, actor=request.user)
+        try:
+            preview = preview_student_master_import(import_batch=batch, actor=request.user)
+            result = apply_student_master_import(preview=preview, import_batch=batch, actor=request.user)
+        except ValueError:
+            messages.error(
+                request, "This import changed or was already consumed. Review a fresh preview before applying.",
+            )
+            return redirect("rankings:import_center")
         _log_import_complete_event(request=request, batch=batch)
         messages.success(
             request,
             "Student master import applied: "
-            f"{result.created} created, {result.updated} updated.",
+            f"{result.created} created, {result.updated} updated; {result.held_count} source rows held for review.",
         )
         return redirect("rankings:import_center")
 
@@ -773,18 +778,25 @@ def import_center_view(request):  # noqa: C901, PLR0911, PLR0915
             "source_url": (request.POST.get("source_url") or "").strip(),
         }
         dataframe = assessment_result_dataframe_from_source(batch.uploaded_file.path)
-        result = apply_assessment_result_import(
-            dataframe,
-            batch=batch,
-            assessment=assessment,
-            imported_by=request.user,
-            column_map=mapping,
-            source_file_name=batch.original_filename,
-        )
+        try:
+            result = apply_assessment_result_import(
+                dataframe,
+                batch=batch,
+                assessment=assessment,
+                imported_by=request.user,
+                column_map=mapping,
+                source_file_name=batch.original_filename,
+            )
+        except ValueError:
+            messages.error(
+                request, "This import changed or was already consumed. Review a fresh preview before applying.",
+            )
+            return redirect("rankings:import_center")
         _log_import_complete_event(request=request, batch=batch)
         messages.success(
             request,
-            f"Assessment result import applied: {result.upserted_count} row(s) upserted.",
+            f"Assessment result import: {result.upserted_count} rows applied; "
+            f"{result.held_count} rows held for review.",
         )
         return redirect("rankings:import_center")
 
@@ -801,7 +813,9 @@ def import_center_view(request):  # noqa: C901, PLR0911, PLR0915
             upload=upload,
         )
         dataframe = _read_tabular_upload(upload)
-        preview = preview_legacy_wide_import(dataframe=dataframe, import_batch=batch)
+        preview = preview_legacy_wide_import(
+            dataframe=dataframe, import_batch=batch, season_year=form.cleaned_data["season_year"],
+        )
         _log_import_preview_event(request=request, batch=batch)
 
         context.update(
@@ -827,20 +841,26 @@ def import_center_view(request):  # noqa: C901, PLR0911, PLR0915
             raise Http404(msg)
 
         dataframe = _read_tabular_upload(batch.uploaded_file.path)
-        preview = preview_legacy_wide_import(dataframe=dataframe, import_batch=batch)
-        result = apply_legacy_wide_import(
-            preview=preview,
-            import_batch=batch,
-            actor=request.user,
-            season_year=int(season_year),
-        )
+        try:
+            preview = preview_legacy_wide_import(dataframe=dataframe, import_batch=batch, season_year=int(season_year))
+            result = apply_legacy_wide_import(
+                preview=preview,
+                import_batch=batch,
+                actor=request.user,
+                season_year=int(season_year),
+            )
+        except ValueError:
+            messages.error(
+                request, "This import changed or was already consumed. Review a fresh preview before applying.",
+            )
+            return redirect("rankings:import_center")
         _log_import_complete_event(request=request, batch=batch)
         messages.success(
             request,
             "Legacy wide import applied: "
             f"{result.created_results} result(s), "
             f"{result.created_statuses} status row(s), "
-            f"{result.created_assessments} assessment(s).",
+            f"{result.created_assessments} assessment(s); {result.held_count} source rows held for review.",
         )
         return redirect("rankings:import_center")
 

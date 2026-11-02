@@ -15,6 +15,7 @@
     </div>
     <div class="card-body pt-2">
       {% if preview.name_only_matches %}<div class="alert alert-warning" role="alert">{{ preview.name_only_matches }} students match by name only. Review these identities before applying.</div>{% endif %}
+      {% if preview.held_count %}<div class="alert alert-warning" role="status">{{ preview.held_count }} source rows conflict with approved corrections and will be held unchanged. Other source rows can apply. <a href="{% url 'rankings:correction_queue' %}" class="alert-link">Review corrections</a></div>{% endif %}
       <details class="mb-3" open><summary class="fw-semibold">Column mapping and excluded information</summary>
         <ul class="mt-2 mb-2">{% for exclusion in preview.exclusions %}<li>{{ exclusion }}</li>{% endfor %}</ul>
         <ul class="text-muted fs-sm mb-0">{% for mapping in preview.mappings %}<li>{{ mapping }}</li>{% endfor %}</ul>
@@ -24,7 +25,7 @@
         <table class="app-table-compact table table-striped align-middle mb-0">
           <thead><tr><th scope="col">Source row</th><th scope="col">Student</th><th scope="col">Birth year</th><th scope="col">School in list</th><th scope="col">Match</th><th scope="col">Results</th></tr></thead>
           <tbody>{% for row in page_obj %}<tr>
-            <td>{{ row.source_row }}</td><td>{% if row.student_id %}<a href="{% url 'rankings:student_detail' row.student_id %}">{{ row.name }}</a>{% else %}{{ row.name }}{% endif %}</td>
+            <td>{{ row.source_row }}{% if row.protection_conflicts %}<span class="badge bg-warning-subtle text-warning-emphasis ms-1">Will be held</span>{% endif %}</td><td>{% if row.student_id %}<a href="{% url 'rankings:student_detail' row.student_id %}">{{ row.name }}</a>{% else %}{{ row.name }}{% endif %}</td>
             <td>{{ row.birth_year|default_if_none:'—' }}</td><td>{{ row.school|default:'—' }}{% if row.existing_school and row.existing_school != row.school %}<span class="app-table-meta">Kept school: {{ row.existing_school }}</span>{% endif %}</td><td>{{ row.match }}</td>
             <td><details class="app-table-details"><summary>{{ row.results|length }} result{{ row.results|length|pluralize }}</summary><div class="app-table-details-body"><ul class="mb-0">{% for result in row.results %}<li>{{ result.label }}: {% if result.raw_score is not None %}{{ result.raw_score }}{% endif %} {{ result.medal }} {{ result.band }} {{ result.status_text }}{% if result.remarks %} · {{ result.remarks }}{% endif %}{% if result.previous %}<span class="d-block text-muted">Existing: {{ result.previous.raw_score|default_if_none:'' }} {{ result.previous.medal }} {{ result.previous.band }} {{ result.previous.status_text }} {{ result.previous.remarks }}</span>{% endif %}</li>{% endfor %}</ul></div></details></td>
           </tr>{% endfor %}</tbody>
