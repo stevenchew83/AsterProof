@@ -28,7 +28,6 @@ from inspinia.solutions.views import solution_guide_preference_view
 from . import evaluation_views as evaluation
 from .evaluation_consent_views import solution_reuse_consent_create_view
 from .evaluation_consent_views import solution_reuse_consent_withdraw_view
-
 from .image_urls import urlpatterns as image_patterns
 
 app_name = "solutions"
