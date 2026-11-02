@@ -1,0 +1,19 @@
+{% if row.document_source %}
+  <div class="solution-block-body tex2jax_ignore"
+       data-solution-document-source>{{ row.document_source }}</div>
+{% else %}
+  {% for block in row.blocks %}
+    <section class="forum-proof-block">
+      {% if block.title %}
+        <h3 class="forum-proof-block-title">{{ block.title }}</h3>
+      {% elif block.block_type %}
+        <h3 class="forum-proof-block-title">{{ block.block_type.label }}</h3>
+      {% endif %}
+      {% if block.body_format == 'latex' %}
+        <div class="solution-block-body solution-block-body-latex">{{ block.body_source }}</div>
+      {% else %}
+        <div class="solution-block-body" data-mathjax-scope="true">{{ block.body_source }}</div>
+      {% endif %}
+    </section>
+  {% endfor %}
+{% endif %}

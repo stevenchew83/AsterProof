@@ -31,7 +31,11 @@ BRIDGE_PRODUCTION = Path(__file__).parent / "fixtures/learning-bridge-production
 def write_bridge(release):
     write_real_reader_fixture(release)
     for source in (ROOT / "inspinia").glob("**/migrations/*"):
-        if source.is_file() and source.suffix in {".py", ".json"}:
+        # This fixture is the historical bridge before the forum schema existed.
+        if (
+            source.is_file() and source.suffix in {".py", ".json"}
+            and source != ROOT / "inspinia/solutions/migrations/0013_solution_forum.py"
+        ):
             target = release / source.relative_to(ROOT)
             target.parent.mkdir(parents=True, exist_ok=True)
             target.write_bytes(source.read_bytes())

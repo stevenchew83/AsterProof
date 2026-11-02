@@ -1,0 +1,59 @@
+{% load static %}
+
+<script>
+  window.MathJax = {
+    loader: {
+      load: ["ui/safe", "[tex]/textmacros"]
+    },
+    tex: {
+      packages: {
+        "[+]": ["textmacros"]
+      },
+      inlineMath: [
+        ["$", "$"],
+        ["\\(", "\\)"]
+      ],
+      displayMath: [
+        ["$$", "$$"],
+        ["\\[", "\\]"]
+      ]
+    },
+    options: {
+      skipHtmlTags: ["script", "noscript", "style", "textarea", "pre", "code"],
+      safeOptions: {
+        allow: {
+          URLs: "safe",
+          classes: "none",
+          cssIDs: "none",
+          styles: "none"
+        },
+        safeProtocols: {
+          http: true,
+          https: true,
+          file: false,
+          javascript: false,
+          data: false
+        }
+      }
+    },
+    startup: {
+      ready: function() {
+        MathJax.startup.defaultReady();
+        window.dispatchEvent(new Event("asterproof:mathjax-ready"));
+      }
+    }
+  };
+  window.ASTERPROOF_SOLUTION_MEDIA = {
+    baseUrl: "{{ solution_media_base_url|escapejs }}",
+    mediaUrlPrefix: "{{ solution_media_base_url|escapejs }}"
+  };
+</script>
+<script defer
+        src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+<script src="{% static 'js/solution-latex-hybrid.js' %}"></script>
+<script defer src="{% static 'js/solution-document-preview.bundle.js' %}"></script>
+<script>
+  document.addEventListener("DOMContentLoaded", function() {
+    if (window.AsterProofSolutionLatex) window.AsterProofSolutionLatex.initSolutionListBodies(document.body, window.ASTERPROOF_SOLUTION_MEDIA.baseUrl);
+  });
+</script>

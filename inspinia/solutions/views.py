@@ -14,12 +14,14 @@ from django.core.exceptions import FieldError
 from django.core.exceptions import PermissionDenied
 from django.core.exceptions import ValidationError
 from django.core.files.base import ContentFile
+from django.core.paginator import Paginator
 from django.db import DatabaseError
 from django.db import IntegrityError
 from django.db import transaction
 from django.db.models import Avg
 from django.db.models import Case
 from django.db.models import Count
+from django.db.models import F
 from django.db.models import IntegerField
 from django.db.models import Max
 from django.db.models import Prefetch
@@ -27,6 +29,7 @@ from django.db.models import Q
 from django.db.models import Value
 from django.db.models import When
 from django.http import FileResponse
+from django.http import Http404
 from django.http import HttpResponseBadRequest
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404
@@ -64,6 +67,7 @@ from inspinia.solutions.document_source import solution_source
 from inspinia.solutions.forms import PDF_DISPLAY_FIELDS
 from inspinia.solutions.forms import ProblemSolutionBlockFormSet
 from inspinia.solutions.forms import ProblemSolutionForm
+from inspinia.solutions.forum_access import visible_solutions
 from inspinia.solutions.image_access import editor_image_base_url
 from inspinia.solutions.image_access import internal_image_base_url
 from inspinia.solutions.models import ProblemSolution
@@ -105,6 +109,7 @@ from inspinia.users.roles import user_has_admin_role
 logger = logging.getLogger(__name__)
 
 STATEMENT_BACKED_PROBLEM_LIST_LIMIT = 100
+SOLUTION_ID_MAX_DIGITS = 19
 
 SOLUTION_BODY_IMAGE_MAX_BYTES = 3 * 1024 * 1024
 SOLUTION_BODY_IMAGE_ALLOWED_TYPES = frozenset(
@@ -319,14 +324,13 @@ def _solution_status_badge(status: str) -> str:
     return {
         ProblemSolution.Status.ARCHIVED: "text-bg-secondary",
         ProblemSolution.Status.DRAFT: "text-bg-warning",
-        ProblemSolution.Status.PUBLISHED: "text-bg-success",
+        ProblemSolution.Status.PUBLISHED: "text-bg-secondary",
         ProblemSolution.Status.SUBMITTED: "text-bg-info",
     }.get(status, "text-bg-light")
 
 
 def _solution_reference_url(solution: ProblemSolution) -> str:
-    problem_url = reverse("solutions:problem_solution_list", args=[solution.problem.problem_uuid])
-    return f"{problem_url}?{urlencode({'solution': solution.id})}#solution-{solution.id}"
+    return reverse("solutions:solution_detail", args=[solution.pk])
 
 
 def _solution_card_rows(solutions: list[ProblemSolution]) -> list[dict]:
@@ -348,6 +352,7 @@ def _solution_card_rows(solutions: list[ProblemSolution]) -> list[dict]:
                 "edit_url": reverse("solutions:problem_solution_edit", args=[solution.problem.problem_uuid]),
                 "id": solution.id,
                 "image_base_url": internal_image_base_url(solution.pk),
+                "upvote_count": getattr(solution, "upvote_count", 0),
                 "is_published": solution.status == ProblemSolution.Status.PUBLISHED,
                 "has_public_link": bool(getattr(solution, "public_share_count", 0)),
                 "share_manage_url": reverse("solutions:problem_solution_share", args=[solution.problem.problem_uuid]),
@@ -358,7 +363,10 @@ def _solution_card_rows(solutions: list[ProblemSolution]) -> list[dict]:
                 "problem_url": problem_url,
                 "status": solution.status,
                 "status_badge_class": _solution_status_badge(solution.status),
-                "status_label": solution.get_status_display(),
+                "status_label": (
+                    "Published to members"
+                    if solution.status == ProblemSolution.Status.PUBLISHED else solution.get_status_display()
+                ),
                 "summary": solution.summary,
                 "title": solution.title or "Untitled solution",
                 "updated_at_label": timezone.localtime(solution.updated_at).strftime("%Y-%m-%d %H:%M"),
@@ -552,9 +560,13 @@ def _saved_document_json(solution):
 
 def _selected_solution_id(request) -> int | None:
     selected_solution_value = (request.GET.get("solution") or "").strip()
-    if not selected_solution_value.isdigit():
+    if (
+        not selected_solution_value.isascii() or not selected_solution_value.isdigit()
+        or len(selected_solution_value) > SOLUTION_ID_MAX_DIGITS
+    ):
         return None
-    return int(selected_solution_value)
+    value = int(selected_solution_value)
+    return value if value <= 2**63 - 1 else None
 
 
 def _inline_draft_block_form(formset):
@@ -613,22 +625,17 @@ def _solution_list_context(  # noqa: PLR0913
 ) -> dict:
     admin_view = user_has_admin_role(request.user)
     my_solution = solution_queryset.filter(author=request.user).first()
-    if admin_view:
-        visible_solutions = list(
-            solution_queryset.order_by("-published_at", "-updated_at", "-id"),
-        )
-        visible_solution_rows = _solution_card_rows(visible_solutions)
-        visible_solution_title = "All user solutions"
-        visible_solution_empty_message = "No saved solutions are available for this problem yet."
-    else:
-        visible_solutions = list(
-            solution_queryset.filter(status=ProblemSolution.Status.PUBLISHED)
-            .exclude(author=request.user)
-            .order_by("-published_at", "-updated_at", "-id"),
-        )
-        visible_solution_rows = _solution_card_rows(visible_solutions)
-        visible_solution_title = "Published solutions"
-        visible_solution_empty_message = "No other published solutions are available for this problem yet."
+    visible_queryset = solution_queryset.exclude(author=request.user)
+    if not admin_view:
+        visible_queryset = visible_queryset.filter(status=ProblemSolution.Status.PUBLISHED)
+    sort = "newest" if request.GET.get("sort") == "newest" else "top"
+    visible_queryset = visible_queryset.annotate(upvote_count=Count("upvotes", distinct=True))
+    published_order = F("published_at").desc(nulls_last=True)
+    ordering = (published_order, "-id") if sort == "newest" else ("-upvote_count", published_order, "-id")
+    solution_page = Paginator(visible_queryset.order_by(*ordering), 20).get_page(request.GET.get("solutions_page"))
+    visible_solution_rows = _solution_card_rows(list(solution_page))
+    visible_solution_title = "All user solutions" if admin_view else "Published solutions"
+    visible_solution_empty_message = "No other published solutions are available for this problem yet."
     published_total = solution_queryset.filter(status=ProblemSolution.Status.PUBLISHED).count()
     statement_entry = problem_data["statement_entry"]
     inline_form_context = inline_form_context or _problem_solution_list_inline_form_context(
@@ -662,10 +669,12 @@ def _solution_list_context(  # noqa: PLR0913
         "solution_media_base_url": editor_image_base_url(problem.problem_uuid),
         "visible_solution_empty_message": visible_solution_empty_message,
         "visible_solution_rows": visible_solution_rows,
+        "solution_page": solution_page,
+        "solution_sort": sort,
         "visible_solution_title": visible_solution_title,
         "solution_stats": {
             "published_total": published_total,
-            "visible_total": len(visible_solutions) + (0 if admin_view else (1 if my_solution is not None else 0)),
+            "visible_total": solution_page.paginator.count + (1 if my_solution is not None else 0),
         },
     }
 
@@ -955,8 +964,11 @@ def problem_solution_list_view(request, problem_uuid):
         .prefetch_related(_problem_solution_prefetch())
     )
     selected_solution_id = _selected_solution_id(request)
-    if selected_solution_id is not None and not solution_queryset.filter(pk=selected_solution_id).exists():
-        selected_solution_id = None
+    if request.method == "GET" and "solution" in request.GET:
+        selected = visible_solutions(request.user).filter(pk=selected_solution_id, problem=problem).first()
+        if selected is None:
+            raise Http404
+        return redirect(_solution_reference_url(selected))
 
     my_solution = solution_queryset.filter(author=request.user).first()
     if request.method == "POST":

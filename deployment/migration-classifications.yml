@@ -308,6 +308,20 @@
         "no_provider_or_worker_activation"
       ],
       "rationale": "Creates only four isolated immutable reference-package, human-decision, synthetic-report and hint-reveal tables across two frozen migrations. No backfill, account permission grants, publication, policy funding or provider activation. Existing evaluation workspace models and migration 0010 remain unchanged. Requires the exact PostgreSQL 17.9 preservation proof and a separately installed trusted allowance; this classification grants no production authority."
+    },
+    "solutions.0013_solution_forum": {
+      "classification": "backward-compatible-schema",
+      "recovery_required": false,
+      "code_rollback_permitted": true,
+      "data_preconditions": [
+        "forum_tables_absent",
+        "image_aware_compatibility_baseline_verified",
+        "direct_solution_media_blocked",
+        "existing_records_schema_triggers_sequences_preserved",
+        "ai_disabled_and_unfunded",
+        "no_provider_or_worker_activation"
+      ],
+      "rationale": "Creates only eight isolated member-forum target, request, assessment, verification, comment, audit, upvote and report tables with constraints and indexes. No backfill, public sharing, account permission, completion, Training or AI changes. Requires exact frozen PostgreSQL17.9 delta, preservation rehearsal and separately installed bounded authority. Recovery retains forum records and is restricted to an image-aware artifact; raw media protection remains in force."
     }
   }
 }

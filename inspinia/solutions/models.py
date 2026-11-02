@@ -393,6 +393,14 @@ from inspinia.solutions.evaluation_models import ReviewerProfile  # noqa: E402, 
 from inspinia.solutions.evaluation_models import ReviewExecutionAttempt  # noqa: E402, F401
 from inspinia.solutions.evaluation_models import ReviewInputBundle  # noqa: E402, F401
 from inspinia.solutions.evaluation_models import ReviewSpendEvent  # noqa: E402, F401
+from inspinia.solutions.forum_models import SolutionComment  # noqa: E402, F401
+from inspinia.solutions.forum_models import SolutionCommentEvent  # noqa: E402, F401
+from inspinia.solutions.forum_models import SolutionForumReport  # noqa: E402, F401
+from inspinia.solutions.forum_models import SolutionForumTarget  # noqa: E402, F401
+from inspinia.solutions.forum_models import SolutionHumanAssessment  # noqa: E402, F401
+from inspinia.solutions.forum_models import SolutionReviewRequest  # noqa: E402, F401
+from inspinia.solutions.forum_models import SolutionUpvote  # noqa: E402, F401
+from inspinia.solutions.forum_models import SolutionVerificationDecision  # noqa: E402, F401
 from inspinia.solutions.problem_evaluation_models import EvaluationPackageApproval  # noqa: E402, F401
 from inspinia.solutions.problem_evaluation_models import ProblemEvaluationPackage  # noqa: E402, F401
 from inspinia.solutions.prototype_models import SyntheticHintReveal  # noqa: E402, F401

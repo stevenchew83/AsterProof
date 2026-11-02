@@ -13,6 +13,8 @@ from django.urls import reverse
 from PIL import Image
 
 from inspinia.pages.models import ProblemSolveRecord
+from inspinia.solutions import forum
+from inspinia.solutions.forum_models import SolutionForumTarget
 from inspinia.solutions.image_access import editor_image_base_url
 from inspinia.solutions.image_access import image_paths
 from inspinia.solutions.image_access import internal_image_base_url
@@ -132,6 +134,19 @@ def test_image_ownership_is_checked_even_when_proof_references_another_solution(
     assert client.get(internal_image_base_url(foreign.pk) + rows[0].file.name).status_code == HTTPStatus.NOT_FOUND
 
 
+def test_member_can_read_published_assessment_snapshot_image_but_not_a_private_intermediate_upload(client, images):
+    _owner, solution, rows = images
+    SolutionForumTarget.objects.create(
+        solution=solution, key="a" * 64, solution_updated_at=solution.updated_at,
+        snapshot=snapshot(rows[0].file.name), image_paths=[rows[0].file.name],
+    )
+    solution.blocks.update(body_source="A revised published proof without an image.")
+    client.force_login(UserFactory())
+    assert fetch(client, internal_image_base_url(solution.pk) + rows[0].file.name).status_code == HTTPStatus.OK
+    assert client.get(internal_image_base_url(solution.pk) + rows[1].file.name).status_code == HTTPStatus.NOT_FOUND
+    solution.status = "draft"
+    solution.save()
+    assert client.get(internal_image_base_url(solution.pk) + rows[0].file.name).status_code == HTTPStatus.NOT_FOUND
 
 
 @pytest.mark.parametrize("legacy", [False, True])
@@ -238,3 +253,18 @@ def test_managed_reference_extraction_obeys_unescaped_tex_comments():
     assert image_paths("Proof.\n" + graphics + " % visible diagram") == [valid]
     assert image_paths(r"\% " + graphics) == [valid]
     assert image_paths(r"\\% " + graphics) == []
+
+
+@pytest.mark.parametrize("reference", ["bare", "comment"])
+def test_unused_image_mentioned_in_prose_or_comment_stays_private_after_review_capture(client, images, reference):
+    owner, solution, rows = images
+    path = rows[1].file.name
+    body = "The proof is complete.\n" + (path if reference == "bare" else rf"% \includegraphics{{{path}}}")
+    solution.blocks.update(body_source=body)
+    client.force_login(UserFactory())
+    url = internal_image_base_url(solution.pk) + path
+    assert client.get(url).status_code == HTTPStatus.NOT_FOUND
+    target = forum.current_target_data(solution)
+    assert target["payload"]["image_paths"] == []
+    forum.write(owner, solution.pk, "request_review", {"target_key": target["key"]})
+    assert client.get(url).status_code == HTTPStatus.NOT_FOUND
