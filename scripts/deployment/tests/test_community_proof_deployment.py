@@ -18,6 +18,7 @@ from django.urls import resolve
 from scripts.deployment import community_proof_schema as schema
 from scripts.deployment import community_schema
 from scripts.deployment import validate_dispatch
+from scripts.deployment.learning_bridge import PRODUCTION_SETTINGS
 from scripts.deployment.operation_worker import OperationError
 from scripts.deployment.operation_worker import WorkerBackend
 from scripts.deployment.operation_worker import run_operation
@@ -26,6 +27,7 @@ from scripts.deployment.release_state import read_json
 from scripts.deployment.tests.test_catalogue_maintenance import END
 from scripts.deployment.tests.test_catalogue_maintenance import START
 from scripts.deployment.tests.test_catalogue_maintenance import CatalogueBackend
+from scripts.deployment.tests.test_learning_bridge import write_bridge
 from scripts.deployment.tests.test_operation_worker import NEW_SHA
 from scripts.deployment.tests.test_operation_worker import OLD_SHA
 from scripts.deployment.tests.test_operation_worker import _contract
@@ -82,6 +84,9 @@ class ProofBackend(CatalogueBackend):
 
     def verify_community_proof_records(self, contract, run_id, active_sha):
         return super().verify_catalogue_records(contract, run_id, active_sha)
+
+    def verify_catalogue_records(self, contract, run_id, active_sha):
+        pytest.fail("The proof library must use its Community-specific record preservation")
 
     def check_catalogue_schema(self, contract, release):
         pytest.fail("The proof library must not use the catalogue migration plan")
@@ -158,25 +163,53 @@ def test_backend_uses_only_the_frozen_plan_and_bounded_ai_off_read(monkeypatch):
     assert calls[2][1] == {"runtime_seconds": 60}
 
 
-def test_dispatch_requires_only_the_one_frozen_proof_migration(monkeypatch):
+def test_dispatch_requires_only_the_one_frozen_proof_migration(tmp_path, monkeypatch):
     changes = ["A\t" + path for path in schema.INPUT_HASHES]
     validated = []
     monkeypatch.setattr(schema, "validate_candidate", validated.append)
+    settings = tmp_path / PRODUCTION_SETTINGS
+    settings.parent.mkdir(parents=True)
+    settings.write_bytes(b"LEARNING_READER_BRIDGE = False\n")
+
+    def git_result(arguments, **kwargs):
+        if arguments[:2] == ["git", "diff"]:
+            return SimpleNamespace(stdout="\n".join(changes))
+        assert arguments[:2] == ["git", "show"]
+        return SimpleNamespace(stdout=settings.read_bytes(), returncode=0)
+
     monkeypatch.setattr(
-        validate_dispatch.subprocess, "run", lambda *args, **kwargs: SimpleNamespace(stdout="\n".join(changes)),
+        validate_dispatch.subprocess, "run", git_result,
     )
     args = {
-        "repository": ROOT, "active_sha": OLD_SHA, "target_sha": NEW_SHA,
+        "repository": tmp_path, "active_sha": OLD_SHA, "target_sha": NEW_SHA,
         "registry_path": ROOT / "deployment/migration-classifications.yml", "declared_class": "data-or-non-compatible",
     }
     result = validate_dispatch.build_migration_disclosure(**args)
     assert result["migrations"] == [
         {"migration": "pages.0045_community_proof_library", "classification": "data-or-non-compatible"},
     ]
-    assert validated == [ROOT]
+    assert validated == [tmp_path]
     changes.append("A\tinspinia/pages/migrations/0044_learning_page_activity.py")
     with pytest.raises(validate_dispatch.DispatchValidationError, match="exact frozen"):
         validate_dispatch.build_migration_disclosure(**args)
+
+
+def test_proof_migration_cannot_run_through_a_learning_bridge(tmp_path):
+    class ProofBridgeBackend(ProofBackend):
+        def prepare(self, contract, request, destination):
+            super().prepare(contract, request, destination)
+            write_bridge(destination)
+
+    contract = _contract(tmp_path)
+    seed_request(contract)
+    backend = ProofBridgeBackend()
+
+    result = run_operation(contract, "42", backend=backend)
+
+    assert result["state"] == "failed"
+    assert result["error_code"] == "learning_bridge_requires_none"
+    assert backend.events == []
+    assert (contract.release_root / "current").resolve().name == OLD_SHA
 
 
 def test_generated_compatibility_reader_passes_resolved_problem_id_to_detail_views():

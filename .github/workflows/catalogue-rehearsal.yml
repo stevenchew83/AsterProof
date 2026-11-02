@@ -132,6 +132,19 @@ jobs:
             ${{ runner.temp }}/postgres-runtime.manifest.json
             ${{ runner.temp }}/postgres-runtime-smoke.json
           retention-days: 30
+      - name: Prepare full current schema for recovery verification
+        run: |
+          .catalogue-quality/bin/python - <<'PY'
+          from django.conf import settings
+          from scripts.deployment.schema_rehearsal import configure_rehearsal_database
+          configure_rehearsal_database(settings)
+          import django
+          django.setup()
+          from django.db import connection
+          from django.db.migrations.executor import MigrationExecutor
+          executor = MigrationExecutor(connection)
+          executor.migrate(executor.loader.graph.leaf_nodes())
+          PY
       - name: Verify encrypted snapshot and complete isolated database restore
         run: |
           .catalogue-quality/bin/python -m scripts.deployment.database_recovery smoke

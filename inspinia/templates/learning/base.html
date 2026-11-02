@@ -1,0 +1,28 @@
+{% extends "layouts/vertical.html" %}
+
+{% load static %}
+
+{% block title %}
+  {% block learning_title %}Training{% endblock %}
+{% endblock %}
+{% block page_content %}
+  <div class="container-fluid learning-workspace" data-learning-workspace>
+    {% include 'partials/page-title.html' with title='Training' subtitle='Learn · Explore · Contribute' page_icon='ti-school' %}
+    <nav class="d-flex gap-2 flex-wrap mb-4" aria-label="Training navigation">
+      <a class="btn btn-light" href="{% url 'learning:learn' %}">Learn</a><a class="btn btn-light" href="{% url 'learning:explore' %}">Explore the catalogue</a>
+      {% if learning_can_contribute %}
+        <a class="btn btn-light" href="{% url 'learning:my_drafts' %}">My notes</a>
+      {% endif %}
+      <a class="btn btn-light" href="{% url 'training:legacy_roadmap' %}">Earlier training</a>
+      {% if learning_is_publisher %}
+        <a class="btn btn-outline-primary"
+           href="{% url 'learning:review_queue' %}">Review proposals</a><a class="btn btn-light" href="{% url 'learning:packs' %}">Rollout & content packs</a><a class="btn btn-light" href="{% url 'learning:issues' %}">Reports</a>
+      {% endif %}
+    </nav>
+    {% block learning_content %}{% endblock %}
+  </div>
+{% endblock %}
+{% block extra_javascript %}
+  <script src="{% static 'js/learning-math.bundle.js' %}" defer></script>
+  {% block learning_javascript %}{% endblock %}
+{% endblock %}

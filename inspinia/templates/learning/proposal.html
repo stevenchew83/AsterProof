@@ -1,0 +1,72 @@
+{% extends 'learning/base.html' %}
+
+{% block learning_content %}
+  <h1 class="h2">{{ revision.title }}</h1>
+  <p class="text-muted">Proposed revision {{ revision.sequence }} · {{ proposal.get_status_display }}</p>
+  {% if error %}<div class="alert alert-warning">{{ error }}</div>{% endif %}
+  {% if proposal.feedback %}<div class="alert alert-info">{{ proposal.feedback }}</div>{% endif %}
+  <div class="row g-3">
+    <div class="col-lg-8">
+      <article class="card card-body learning-prose" data-learning-math>{{ rendered_content }}</article>
+      <details class="card card-body">
+        <summary>Source changes from base revision</summary>
+        <pre class="mt-3 learning-diff">{{ source_diff }}</pre>
+      </details>
+    </div>
+    <aside class="col-lg-4">
+      {% if is_publisher %}
+        <div class="card card-body">
+          <h2 class="h5">Review details</h2>
+          <dl>
+            <dt>Public credit</dt>
+            <dd>
+              {{ revision.permission.public_credit|default:'No public credit' }}
+            </dd>
+            <dt>Source and asset permission</dt>
+            <dd>
+              {{ revision.permission.rights_declaration.sources|default:'No additional source declaration' }}
+            </dd>
+            <dt>Future editorial changes allowed</dt>
+            <dd>
+              {{ revision.permission.rights_declaration.editorial_changes_allowed|yesno:'Yes,No' }}
+            </dd>
+          </dl>
+          <details>
+            <summary>Frozen metadata and affected pathways</summary>
+            <pre class="learning-diff">{{ revision.metadata }}</pre><pre class="learning-diff">{{ publication_impact }}</pre>
+          </details>
+        </div>
+        <form method="post" class="card card-body">
+          {% csrf_token %}
+          <input type="hidden" name="context" value="{{ review_context }}" />
+          <input type="hidden" name="expected_version" value="{{ expected_version }}" />
+          <input type="hidden" name="operation_id" value="{{ operation_id }}" />
+          <h2 class="h5">Review exact revision</h2>
+          <label for="review-feedback" class="form-label">Feedback</label>
+          <textarea class="form-control mb-3"
+                    id="review-feedback"
+                    name="feedback"
+                    maxlength="2000"></textarea>
+          <div class="d-flex gap-2 flex-wrap">
+            <button class="btn btn-outline-primary" name="action" value="approve">Approve revision</button>
+            <button class="btn btn-light" name="action" value="changes_requested">Request changes</button>
+            <button class="btn btn-outline-danger" name="action" value="decline">Decline</button>
+          </div>
+          <hr />
+          <h2 class="h5">Publish approved revision</h2>
+          <label class="form-check mb-3">
+            <input class="form-check-input" type="checkbox" name="public" />
+            Also release in the public library
+          </label>
+          <button class="btn btn-primary" name="action" value="publish">Publish to Training</button>
+          <p class="form-text">Publication replaces the current approved reading revision. No newsletter is sent.</p>
+        </form>
+      {% else %}
+        <div class="card card-body">
+          <p>Your submission is a frozen revision. You can continue improving your private draft.</p>
+          <a href="{% url 'learning:my_drafts' %}">Return to my notes</a>
+        </div>
+      {% endif %}
+    </aside>
+  </div>
+{% endblock %}

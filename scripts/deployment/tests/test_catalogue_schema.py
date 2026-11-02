@@ -9,8 +9,10 @@ from types import SimpleNamespace
 from unittest.mock import Mock
 
 import pytest
+from django.db.migrations.loader import MigrationLoader
 
 from scripts.deployment.catalogue_rehearsal import apply_historical_catalogue
+from scripts.deployment.catalogue_rehearsal import historical_baseline_targets
 from scripts.deployment.catalogue_schema import BEHAVIOUR_SHA256
 from scripts.deployment.catalogue_schema import DELTA_SHA256
 from scripts.deployment.catalogue_schema import INPUT_HASHES
@@ -22,6 +24,18 @@ from scripts.deployment.catalogue_schema import validate_candidate
 from scripts.deployment.catalogue_schema import validate_rehearsal_evidence
 
 ROOT = Path(__file__).resolve().parents[3]
+
+
+def test_historical_baseline_ancestors_exclude_catalogue_and_later_teaching_schema():
+    loader = MigrationLoader(connection=None)
+    targets = historical_baseline_targets(loader.graph.leaf_nodes())
+    ancestors = {ancestor for target in targets for ancestor in loader.graph.forwards_plan(target)}
+    assert ("pages", "0036_concept_assignment_reviews") in ancestors
+    assert ("solutions", "0010_offline_evaluation_contract") in ancestors
+    assert ("training", "0005_subtopic_imo_syllabus_index") in ancestors
+    assert not any(app in {"learning", "website"} for app, name in ancestors)
+    assert not any(app == "pages" and name >= "0037" for app, name in ancestors)
+    assert ("training", "0006_learningpath_learningpathrevision_learningpathitem_and_more") not in ancestors
 
 
 @pytest.mark.parametrize("change", [None, "later", "backwards", "operations", "missing"])

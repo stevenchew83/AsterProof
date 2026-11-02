@@ -20,6 +20,8 @@ from scripts.deployment import community_proof_schema
 from scripts.deployment import community_schema
 from scripts.deployment import curated_collections_schema
 from scripts.deployment import learning_activity_schema
+from scripts.deployment import learning_bridge
+from scripts.deployment import learning_schema
 from scripts.deployment import maintenance_schema
 from scripts.deployment import newsletter_automation_schema
 from scripts.deployment import newsletter_schema
@@ -40,6 +42,8 @@ from scripts.deployment.concept_schema import ConceptSchemaError
 from scripts.deployment.concept_schema import audit_matches
 from scripts.deployment.concept_schema import validate_build_evidence
 from scripts.deployment.concept_schema import validate_candidate
+from scripts.deployment.learning_compat import READER_VERSION as LEARNING_READER_VERSION
+from scripts.deployment.learning_compat import verified_reader_release as verified_learning_reader
 from scripts.deployment.protocol import DIGEST_RE
 from scripts.deployment.protocol import NUMERIC_RE
 from scripts.deployment.protocol import SHA_RE
@@ -67,6 +71,7 @@ RUNUSER = Path("/usr/sbin/runuser")
 SYSTEMD_RUN = Path("/usr/bin/systemd-run")
 MAX_RETAINED_RELEASES = 5
 MIN_RETAINED_RELEASES = 2
+BRIDGE_PGOPTIONS = "-c default_transaction_read_only=on -c lock_timeout=2s -c statement_timeout=30s"
 DRAIN_TIMEOUT_SECONDS = 300
 STOP_REQUEST_TIMEOUT_SECONDS = 30
 DRAIN_POLL_SECONDS = 0.25
@@ -235,6 +240,7 @@ class WorkerBackend:
         arguments: list[str],
         *,
         migration: bool = False,
+        read_only: bool = False,
         runtime_seconds: int | None = None,
     ) -> None:
         subprocess.run(
@@ -247,6 +253,10 @@ class WorkerBackend:
                 f"--uid={contract.app_user}",
                 "--setenv=DJANGO_READ_DOT_ENV_FILE=False",
                 *(["--setenv=PGOPTIONS=-c lock_timeout=2s -c statement_timeout=30s"] if migration else []),
+                *([
+                    "--setenv=PGOPTIONS=-c default_transaction_read_only=on "
+                    "-c lock_timeout=2s -c statement_timeout=30s",
+                ] if read_only else []),
                 f"--property=WorkingDirectory={release}",
                 f"--property=EnvironmentFile={contract.environment_file}",
                 "--property=NoNewPrivileges=yes",
@@ -255,6 +265,12 @@ class WorkerBackend:
                 "--property=ProtectSystem=strict",
                 "--property=RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6",
                 *([f"--property=RuntimeMaxSec={runtime_seconds}s"] if runtime_seconds else []),
+                # EnvironmentFile overrides systemd Environment assignments.
+                # Apply these fixed bridge-only values after that merge so even
+                # Django setup cannot inherit a writable connection default.
+                *([
+                    "/usr/bin/env", "DJANGO_READ_DOT_ENV_FILE=False", f"PGOPTIONS={BRIDGE_PGOPTIONS}",
+                ] if read_only else []),
                 str(release / ".venv/bin/python"),
                 str(release / "manage.py"),
                 *arguments,
@@ -271,6 +287,12 @@ class WorkerBackend:
 
     def candidate_migrations_applied(self, contract: TargetContract, release: Path) -> None:
         self._run_candidate(contract, release, ["migrate", "--check"])
+
+    def check_learning_bridge(self, contract: TargetContract, release: Path) -> None:
+        learning_bridge.validate_bridge_candidate(release)
+        self._run_candidate(
+            contract, release, ["shell", "--command", learning_bridge.PLAN_CHECK], read_only=True, runtime_seconds=60,
+        )
 
     def migrate(self, contract: TargetContract, release: Path) -> None:
         self._run_candidate(contract, release, ["migrate", "--noinput"])
@@ -403,6 +425,15 @@ class WorkerBackend:
     def check_learning_activity_schema(self, contract: TargetContract, release: Path) -> None:
         learning_activity_schema.validate_candidate(release)
         self._run_candidate(contract, release, ["shell", "--command", learning_activity_schema.PLAN_CHECK])
+
+    def check_learning_schema(self, contract: TargetContract, release: Path) -> None:
+        learning_schema.validate_candidate(release)
+        self._run_candidate(contract, release, ["shell", "--command", learning_schema.PLAN_CHECK])
+
+    def migrate_learning_schema(self, contract: TargetContract, release: Path) -> None:
+        self._run_candidate(
+            contract, release, ["shell", "--command", learning_schema.MIGRATION_APPLY], migration=True,
+        )
 
     def migrate_learning_activity_schema(self, contract: TargetContract, release: Path) -> None:
         self._run_candidate(
@@ -693,6 +724,33 @@ class WorkerBackend:
         if (required or self.document_reader_required(contract)) and not verified_reader_release(release):
             raise OperationError("document_reader_required")
 
+    def learning_reader_required(self, contract: TargetContract) -> bool:
+        try:
+            result = subprocess.run(
+                [str(MIGRATION_AUDIT_HELPER), "learning-reader-floor", "--contract", str(self.contract_path)],
+                check=True,
+                capture_output=True,
+                text=True,
+                timeout=30,
+            )
+            value = json.loads(result.stdout)
+            if (
+                not isinstance(value, dict)
+                or type(value.get("format_version")) is not int
+                or value.get("format_version") != 1
+                or type(value.get("reader_required")) is not bool
+                or type(value.get("minimum_reader_version")) is not int
+                or value["minimum_reader_version"] != (LEARNING_READER_VERSION if value["reader_required"] else 0)
+            ):
+                raise ValueError
+        except (OSError, ValueError, subprocess.SubprocessError) as exc:
+            raise OperationError("learning_reader_floor_unavailable") from exc
+        return value["reader_required"]
+
+    def ensure_learning_reader(self, contract: TargetContract, release: Path, *, required: bool = False) -> None:
+        if (required or self.learning_reader_required(contract)) and not verified_learning_reader(release):
+            raise OperationError("learning_reader_required")
+
     def legacy_service_matches(self, contract: TargetContract, source_root: Path) -> bool:
         try:
             result = subprocess.run(
@@ -934,7 +992,24 @@ def _deploy(
     backend.prepare(contract, request, staging)
     backend.publish_permissions(contract, staging, release)
     try:
+        try:
+            bridge = learning_bridge.is_bridge_source(release)
+            bridge_marker = learning_bridge.has_bridge_marker(release)
+        except (OSError, ValueError) as exc:
+            raise OperationError("learning_bridge_invalid") from exc
+        if bridge_marker:
+            if not bridge:
+                raise OperationError("learning_bridge_invalid")
+            if request["migration_class"] != "none" or "schema_disclosure" in request:
+                raise OperationError("learning_bridge_requires_none")
+            if baseline_sha is None or baseline_record.get("rollback_eligible") is not True:
+                raise OperationError("learning_bridge_eligible_baseline_required")
+            try:
+                learning_bridge.validate_bridge_candidate(release)
+            except (OSError, ValueError) as exc:
+                raise OperationError("learning_bridge_invalid") from exc
         backend.ensure_document_reader(contract, release)
+        backend.ensure_learning_reader(contract, release)
         backend.candidate_check(contract, release)
         transition(state_path, "prepared")
         if request["migration_class"] == "data-or-non-compatible":
@@ -1009,7 +1084,12 @@ def _deploy(
             disclosure = request.get("schema_disclosure")
             if disclosure is None:
                 raise OperationError("migration_disclosure_contract_missing")
-            if disclosure["active_sha"] != baseline_sha or not audit_matches(
+            schema_audit_matches = (
+                learning_schema.audit_matches
+                if disclosure["migration"] == learning_schema.MIGRATION
+                else audit_matches
+            )
+            if disclosure["active_sha"] != baseline_sha or not schema_audit_matches(
                 disclosure,
                 backend.schema_audit(contract),
                 stage="starting",
@@ -1025,6 +1105,23 @@ def _deploy(
                 elif disclosure["migration"] == learning_activity_schema.MIGRATION:
                     learning_activity_schema.validate_build_evidence(release, disclosure)
                     backend.check_learning_activity_schema(contract, release)
+                elif disclosure["migration"] == learning_schema.MIGRATION:
+                    backend.ensure_learning_reader(contract, release, required=True)
+                    # The schema makes old readers ineligible immediately, even
+                    # when empty. Verify the actual existing recovery target
+                    # before DDL; never invent a different selector or baseline.
+                    if baseline_sha is None or baseline_record.get("rollback_eligible") is not True:
+                        raise OperationError("learning_recovery_reader_required")
+                    try:
+                        backend.ensure_learning_reader(
+                            contract,
+                            safe_release_path(contract.releases_dir, baseline_sha),
+                            required=True,
+                        )
+                    except OperationError as exc:
+                        raise OperationError("learning_recovery_reader_required") from exc
+                    learning_schema.validate_build_evidence(release, disclosure)
+                    backend.check_learning_schema(contract, release)
                 elif disclosure["migration"] == statement_reports_schema.MIGRATION:
                     statement_reports_schema.validate_build_evidence(release, disclosure)
                     backend.check_statement_reports_schema(contract, release)
@@ -1064,7 +1161,7 @@ def _deploy(
                     backend.check_concept_schema(contract, release)
             except ConceptSchemaError as exc:
                 raise OperationError("schema_candidate_invalid") from exc
-            if not audit_matches(disclosure, backend.schema_audit(contract), stage="starting"):
+            if not schema_audit_matches(disclosure, backend.schema_audit(contract), stage="starting"):
                 raise OperationError("schema_starting_state_drift")
             transition(state_path, "migrating")
             if disclosure["migration"] == assessment_prototype_schema.MIGRATION:
@@ -1073,6 +1170,8 @@ def _deploy(
                 backend.migrate_solution_evaluation_schema(contract, release)
             elif disclosure["migration"] == learning_activity_schema.MIGRATION:
                 backend.migrate_learning_activity_schema(contract, release)
+            elif disclosure["migration"] == learning_schema.MIGRATION:
+                backend.migrate_learning_schema(contract, release)
             elif disclosure["migration"] == statement_reports_schema.MIGRATION:
                 backend.migrate_statement_reports_schema(contract, release)
             elif disclosure["migration"] == solution_document_schema.MIGRATION:
@@ -1097,9 +1196,12 @@ def _deploy(
                 backend.migrate_newsletter_automation_schema(contract, release)
             else:
                 backend.migrate_concept_schema(contract, release)
-            if not audit_matches(disclosure, backend.schema_audit(contract), stage="expected"):
+            if not schema_audit_matches(disclosure, backend.schema_audit(contract), stage="expected"):
                 raise OperationError("schema_ending_state_mismatch")
-        backend.candidate_migrations_applied(contract, release)
+        if bridge and not backend.learning_reader_required(contract):
+            backend.check_learning_bridge(contract, release)
+        else:
+            backend.candidate_migrations_applied(contract, release)
         ending_fingerprint = backend.state_fingerprint(contract)
         if request["migration_class"] in {"backward-compatible-schema", "data-or-non-compatible"} and (
             ending_fingerprint != request["schema_disclosure"]["expected"]["state_fingerprint"]
@@ -1118,6 +1220,13 @@ def _deploy(
             backend.discard_candidate(contract, release)
         raise
     transition(state_path, "activating")
+    # Recheck after a schema operation, under the same global operation lock.
+    # Installing even an empty learning schema makes the capability mandatory.
+    backend.ensure_learning_reader(
+        contract,
+        release,
+        required=request.get("schema_disclosure", {}).get("migration") == learning_schema.MIGRATION,
+    )
     backend.activate(contract, request["release_sha"])
     try:
         health = backend.restart_and_verify(contract, request["release_sha"], request["artifact_digest"])
@@ -1139,6 +1248,7 @@ def _deploy(
         # Check before touching the current/previous symlinks. The schema floor
         # also applies to automatic recovery after activation failure.
         backend.ensure_document_reader(contract, safe_release_path(contract.releases_dir, baseline_sha))
+        backend.ensure_learning_reader(contract, safe_release_path(contract.releases_dir, baseline_sha))
         try:
             if backend.state_fingerprint(contract) != ending_fingerprint:
                 raise OperationError("rollback_database_state_drift")
@@ -1216,6 +1326,7 @@ def _rollback(
     if previous_sha != request["release_sha"]:
         raise OperationError("rollback_target_not_previous")
     backend.ensure_document_reader(contract, safe_release_path(contract.releases_dir, request["release_sha"]))
+    backend.ensure_learning_reader(contract, safe_release_path(contract.releases_dir, request["release_sha"]))
     before_fingerprint = backend.state_fingerprint(contract)
     if (
         current_record["state_fingerprint"] != before_fingerprint

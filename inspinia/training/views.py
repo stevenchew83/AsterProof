@@ -219,7 +219,12 @@ def dashboard_view(request):
 
 
 @login_required
-def roadmap_view(request):
+def roadmap_view(request, *, legacy=False):
+    from inspinia.learning.permissions import module_enabled
+
+    if module_enabled() and not legacy:
+        return redirect("learning:learn")
+
     return render(request, "training/roadmap.html", _training_overview_context(request.user))
 
 
@@ -301,6 +306,22 @@ def subtopic_detail_view(request, topic_slug: str, subtopic_slug: str):
 @require_http_methods(["GET", "POST"])
 def material_detail_view(request, material_slug: str):
     material = get_object_or_404(_material_queryset_for_user(request.user), slug=material_slug)
+    from inspinia.website.learning import schema_ready
+
+    if schema_ready():
+        from inspinia.learning.legacy import legacy_publication
+
+        cutover, publication = legacy_publication(material)
+        if cutover:
+            from django.http import Http404
+
+            from inspinia.learning.permissions import module_enabled
+
+            if not module_enabled() or not publication or not publication.training_visible:
+                raise Http404
+            if request.method == "POST":
+                complete_material(user=request.user, material=material)
+            return redirect("learning:read", document_id=publication.document_id)
     if request.method == "POST":
         complete_material(user=request.user, material=material)
         messages.success(request, "Material marked complete.")
@@ -467,9 +488,7 @@ def _selected_training_topic(topics: list[Topic], topic: Topic | None, subtopic:
 def _topic_workspace_stats(topics: list[Topic], subtopics: list[Subtopic]) -> dict[str, int]:
     published_topic_count = sum(1 for topic in topics if topic.is_published)
     published_subtopic_count = sum(
-        1
-        for subtopic in subtopics
-        if subtopic.is_published and subtopic.topic.is_published
+        1 for subtopic in subtopics if subtopic.is_published and subtopic.topic.is_published
     )
     return {
         "topic_total": len(topics),
@@ -543,6 +562,12 @@ def _handle_checkpoint_material_post(request, selected_subtopic: Subtopic | None
 
 
 def _handle_material_post(request):
+    from inspinia.learning.permissions import module_enabled
+
+    if module_enabled():
+        message = "Shared teaching notes use private drafts and Steven's publication review."
+        raise PermissionDenied(message)
+
     material = _trainer_material_by_id(request.POST.get("item_id"))
     selected_subtopic = (
         material.subtopic if material is not None else _trainer_subtopic_by_id(request.POST.get("subtopic"))
@@ -681,6 +706,7 @@ def trainer_materials_view(request):
             **_trainer_materials_workspace_context(request, selected_subtopic),
         },
     )
+
 
 @login_required
 @require_http_methods(["GET", "POST"])

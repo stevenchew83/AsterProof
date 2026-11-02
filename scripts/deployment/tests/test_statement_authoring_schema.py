@@ -199,6 +199,9 @@ def test_authoring_backend_uses_only_its_frozen_plan_and_migration_command(monke
 
 
 def test_release_disclosure_admits_only_the_exact_new_migration(monkeypatch):
+    # This fixture models an ordinary maintenance source, not the reader bridge.
+    monkeypatch.setattr("scripts.deployment.learning_bridge.is_bridge_source", lambda root: False)
+    monkeypatch.setattr("scripts.deployment.validate_dispatch._active_learning_bridge", lambda *args: False)
     monkeypatch.setattr(validate_dispatch.subprocess, "run", lambda *args, **kwargs: SimpleNamespace(
         stdout=f"A\t{schema.MIGRATION_PATH.as_posix()}\n",
     ))

@@ -171,3 +171,9 @@ LOGGING = {
 
 # Your stuff...
 # ------------------------------------------------------------------------------
+
+# Training 2.0 recovery bridge: activate compatible readers before any schema change.
+LEARNING_READER_BRIDGE = True
+LEARNING_MODULE_ENABLED = False
+LEARNING_CONTRIBUTIONS_ENABLED = False
+LEARNING_PUBLICATION_ENABLED = False
