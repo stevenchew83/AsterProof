@@ -148,8 +148,16 @@ def display(value):
     return str(value)
 
 
+def filter_params(filters):
+    # Empty scope selections mean "all"; omitted scope keys select defaults.
+    return {
+        key: str(value) for key, value in filters.items()
+        if value is not None and value is not False and (value != "" or key in {"season", "assessment"})
+    }
+
+
 def link(filters, **updates):
-    params = {key: str(value) for key, value in filters.items() if value not in (None, "") and value is not False}
+    params = filter_params(filters)
     params.pop("page", None)
     params.update({key: str(value) for key, value in updates.items() if value is not None and value is not False})
     for key, value in updates.items():

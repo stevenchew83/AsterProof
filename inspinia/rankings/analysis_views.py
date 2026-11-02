@@ -23,6 +23,7 @@ from inspinia.rankings.services.analysis import alias_maps
 from inspinia.rankings.services.analysis import available_assessments
 from inspinia.rankings.services.analysis import build_workspace
 from inspinia.rankings.services.analysis import display
+from inspinia.rankings.services.analysis import filter_params
 from inspinia.rankings.services.analysis import link
 from inspinia.rankings.views import _require_rankings_access
 from inspinia.users.roles import user_has_admin_role
@@ -147,17 +148,9 @@ def workspace(params):
     page = Paginator(rows, 50).get_page(filters.get("page"))
     context["page_obj"] = page
     context["pagination_query"] = urlencode(
-        {
-            key: value for key, value in filters.items()
-            if value not in (None, "") and value is not False and key != "page"
-        },
+        {key: value for key, value in filter_params(filters).items() if key != "page"},
     )
-    context["export_query"] = urlencode(
-        {
-            key: value for key, value in filters.items()
-            if value not in (None, "") and value is not False and key != "page"
-        },
-    )
+    context["export_query"] = context["pagination_query"]
     context["export_csv_url"] = "?" + context["export_query"] + "&format=csv"
     context["export_xlsx_url"] = "?" + context["export_query"] + "&format=xlsx"
     for panel in content.get("panels", []):
