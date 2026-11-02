@@ -80,7 +80,10 @@ def copy_candidate(destination):
         # The exact Learning allowance predates this separately reviewed successor.
         if (
             source.parent.name == "migrations" and source.suffix in {".py", ".json"}
-            and source != ROOT / "inspinia/solutions/migrations/0013_solution_forum.py"
+            and source not in {
+                ROOT / "inspinia/solutions/migrations/0013_solution_forum.py",
+                ROOT / "inspinia/rankings/migrations/0005_ranking_analysis_review.py",
+            }
         ):
             target = destination / source.relative_to(ROOT)
             target.parent.mkdir(parents=True, exist_ok=True)
@@ -379,12 +382,14 @@ def test_classification_explicitly_limits_recovery_to_verified_learning_readers(
 def test_sqlite_upgrade_preserves_sources_progress_solutions_and_subscribers(tmp_path):
     database, report = tmp_path / "learning.sqlite3", tmp_path / "report.json"
     # Exercise the current rehearsal against its historical source boundary.
-    # Keep the trusted validator exact; the later forum migration is out of scope.
+    # Keep the trusted validator exact; later forum/ranking migrations are out of scope.
     source = tmp_path / "historical-source"
     for package in ("config", "inspinia", "scripts"):
         shutil.copytree(
             ROOT / package, source / package,
-            ignore=shutil.ignore_patterns("__pycache__", "static", "0013_solution_forum.py"),
+            ignore=shutil.ignore_patterns(
+                "__pycache__", "static", "0013_solution_forum.py", "0005_ranking_analysis_review.py",
+            ),
         )
     result = subprocess.run(
         [
