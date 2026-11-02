@@ -36,6 +36,7 @@ def test_image_only_urls_and_templates_preserve_nonforum_navigation():
     urls = preparation._urls(baseline("inspinia/solutions/urls.py"))
     assert "*image_patterns" in urls
     assert "forum_patterns" not in urls
+    assert "\n\nfrom .image_urls" not in urls
     template = preparation._list(baseline("inspinia/templates/solutions/problem-solution-list.html"))
     assert 'data-solution-image-base-url="{{ row.image_base_url }}"' in template
     assert 'data-solution-image-base-url="{{ my_solution_row.image_base_url }}"' in template
