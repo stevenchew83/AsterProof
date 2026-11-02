@@ -144,14 +144,14 @@ def test_data_preservation_evidence_must_be_explicit_true(tmp_path, field, value
 @pytest.mark.parametrize("change", ["none", "extra", "renamed", "backwards", "funded"])
 def test_ranking_analysis_plan_guard_remains_literal_under_optimized_python(monkeypatch, change):
     operations = [type(kind, (), {"name": name, "model_name": model})() for kind, name, model in schema.OPERATIONS]
-    migration = SimpleNamespace(app_label="solutions", name=schema.MIGRATION_NAME, operations=operations)
+    migration = SimpleNamespace(app_label="rankings", name=schema.MIGRATION_NAME, operations=operations)
     plan = [(migration, False)]
     if change == "extra":
         plan.append((SimpleNamespace(app_label="users", name="unapproved", operations=operations), False))
     executor = SimpleNamespace(
         loader=SimpleNamespace(
             graph=SimpleNamespace(
-                leaf_nodes=lambda: [("solutions", schema.MIGRATION_NAME)],
+                leaf_nodes=lambda: [("rankings", schema.MIGRATION_NAME)],
             ),
         ),
         migration_plan=lambda targets: plan,
@@ -246,7 +246,7 @@ def starting_audit():
 
     snapshot = {field: [] for field in ("tables", "columns", "constraints", "indexes", "extensions")}
     snapshot["tables"] = [{"schema": "public", "table": "rankings_studentresult", "kind": "r"}]
-    migrations = [["solutions", "0012_synthetic_review_prototype"]]
+    migrations = [["rankings", "0004_remove_rankingsnapshot_rank_snap_season_idx_and_more"]]
     state = {"schema": schema_state(snapshot), "migration": migration_state(migrations)}
     return {
         "server_version_num": schema.POSTGRES_VERSION,
@@ -272,7 +272,7 @@ def test_expected_audit_adds_only_the_frozen_table_and_one_migration_record():
         == migration_state(
             [
                 *start["migration_rows"],
-                ["solutions", schema.MIGRATION_NAME],
+                ["rankings", schema.MIGRATION_NAME],
             ],
         )["fingerprint"]
     )
@@ -323,7 +323,7 @@ def test_expected_audit_rejects_starting_drift_or_already_recorded_migration(cha
             start["migration_rows"].clear()
             start["state"]["migration"] = migration_state(start["migration_rows"])
         else:
-            start["migration_rows"].append(["solutions", schema.MIGRATION_NAME])
+            start["migration_rows"].append(["rankings", schema.MIGRATION_NAME])
             start["state"]["migration"] = migration_state(start["migration_rows"])
         start["state_fingerprint"] = hashlib.sha256(canonical_json(start["state"])).hexdigest()
     with pytest.raises(schema.RankingAnalysisSchemaError):
@@ -340,22 +340,22 @@ def test_plan_refuses_any_enabled_ai_pipeline_before_inspecting_or_applying_migr
 
 
 def test_production_rehearsal_route_is_separate_from_completed_document_allowance():
-    from scripts.deployment.schema_rehearsal import _approved_rehearsal
     from scripts.deployment.ranking_analysis_schema_rehearsal import run
+    from scripts.deployment.schema_rehearsal import _approved_rehearsal
 
     assert _approved_rehearsal(schema.MIGRATION) is run
     assert schema.MIGRATION_NAME not in (ROOT / "scripts/deployment/solution_document_schema.py").read_text()
 
 
-def test_ranking review_migration_has_exact_compatible_classification_without_activation_authority():
+def test_ranking_review_migration_has_exact_compatible_classification_without_activation_authority():
     from scripts.deployment.migration_plan import load_registry
 
     entry = load_registry(ROOT / "deployment/migration-classifications.yml")[schema.MIGRATION]
     assert entry["classification"] == "backward-compatible-schema"
     assert entry["code_rollback_permitted"] is True
     assert entry["recovery_required"] is False
-    assert "ai_disabled_and_unfunded" in entry["data_preconditions"]
-    assert "no_provider_or_worker_activation" in entry["data_preconditions"]
+    assert "existing_students_results_and_links_preserved" in entry["data_preconditions"]
+    assert "new_review_tables_empty" in entry["data_preconditions"]
 
 
 def test_local_sqlite_preservation_is_real_and_never_claims_production_readiness(tmp_path):
@@ -363,7 +363,7 @@ def test_local_sqlite_preservation_is_real_and_never_claims_production_readiness
     import subprocess
     import sys
 
-    output = tmp_path / "ranking review-preservation.json"
+    output = tmp_path / "ranking-analysis-preservation.json"
     environment = {key: value for key, value in os.environ.items()
                    if not key.startswith(("OPENAI", "AWS_", "AZURE_", "DATABASE_URL", "DJANGO_"))}
     result = subprocess.run(
