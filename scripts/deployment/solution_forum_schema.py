@@ -53,8 +53,8 @@ OPERATIONS = [
 ]
 TABLES = frozenset(f"solutions_{name.lower()}" for name in MODELS)
 MIGRATION_PATH = Path("inspinia/solutions/migrations/0013_solution_forum.py")
-MIGRATION_SHA256 = "613fa982b8d80c67b774922320e9df6126c0f090a1f74602baa15f34e1436e14"
-DELTA_SHA256 = "328598d9ab361136d031392733cc627f080758cfb49349f3bd7ab954dc1c06dd"
+MIGRATION_SHA256 = "778f4531a615fcb694a556fefaf12c2cadc46a6b23c7e904109d1bcdfc9fff96"
+DELTA_SHA256 = "fe77a04789ccc6edaf9a8be260c10805cf7e68768574e3234cb49ebf4fe187bd"
 EVIDENCE_PATH = "deployment-schema-evidence.json"
 POSTGRES_VERSION = 170009
 PRIOR_MIGRATIONS = {

@@ -660,7 +660,7 @@
       "type": "c"
     },
     {
-      "definition": "CHECK (action::text = ANY (ARRAY['verify'::character varying, 'adjudicate'::character varying, 'revoke'::character varying]::text[]))",
+      "definition": "CHECK (action::text = 'verify'::text OR action::text = 'adjudicate'::text OR action::text = 'revoke'::text)",
       "name": "forum_decision_action",
       "schema": "public",
       "table": "solutions_solutionverificationdecision",
@@ -695,35 +695,35 @@
       "type": "c"
     },
     {
-      "definition": "CHECK (state::text = ANY (ARRAY['visible'::character varying, 'removed'::character varying, 'hidden'::character varying]::text[]))",
+      "definition": "CHECK (state::text = 'visible'::text OR state::text = 'removed'::text OR state::text = 'hidden'::text)",
       "name": "forum_comment_state",
       "schema": "public",
       "table": "solutions_solutioncomment",
       "type": "c"
     },
     {
-      "definition": "CHECK (status::text = ANY (ARRAY['open'::character varying, 'resolved'::character varying]::text[]))",
+      "definition": "CHECK (status::text = 'open'::text OR status::text = 'resolved'::text)",
       "name": "forum_report_state",
       "schema": "public",
       "table": "solutions_solutionforumreport",
       "type": "c"
     },
     {
-      "definition": "CHECK (status::text = ANY (ARRAY['pending'::character varying, 'answered'::character varying]::text[]))",
+      "definition": "CHECK (status::text = 'pending'::text OR status::text = 'answered'::text)",
       "name": "forum_request_state",
       "schema": "public",
       "table": "solutions_solutionreviewrequest",
       "type": "c"
     },
     {
-      "definition": "CHECK (verdict::text = ANY (ARRAY[''::character varying, 'correct'::character varying, 'minor_gaps'::character varying, 'partial'::character varying, 'incorrect'::character varying, 'undetermined'::character varying]::text[]))",
+      "definition": "CHECK (verdict::text = ''::text OR verdict::text = 'correct'::text OR verdict::text = 'minor_gaps'::text OR verdict::text = 'partial'::text OR verdict::text = 'incorrect'::text OR verdict::text = 'undetermined'::text)",
       "name": "forum_decision_verdict",
       "schema": "public",
       "table": "solutions_solutionverificationdecision",
       "type": "c"
     },
     {
-      "definition": "CHECK (verdict::text = ANY (ARRAY['correct'::character varying, 'minor_gaps'::character varying, 'partial'::character varying, 'incorrect'::character varying, 'undetermined'::character varying]::text[]))",
+      "definition": "CHECK (verdict::text = 'correct'::text OR verdict::text = 'minor_gaps'::text OR verdict::text = 'partial'::text OR verdict::text = 'incorrect'::text OR verdict::text = 'undetermined'::text)",
       "name": "forum_assessment_verdict",
       "schema": "public",
       "table": "solutions_solutionhumanassessment",

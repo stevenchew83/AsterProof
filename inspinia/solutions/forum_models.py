@@ -76,7 +76,9 @@ class SolutionReviewRequest(models.Model):
 
     class Meta:
         constraints = [
-            models.CheckConstraint(condition=models.Q(status__in=["pending", "answered"]), name="forum_request_state"),
+            models.CheckConstraint(
+                condition=models.Q(status="pending") | models.Q(status="answered"), name="forum_request_state",
+            ),
         ]
 
 
@@ -96,7 +98,13 @@ class SolutionHumanAssessment(ForumHistory):
             models.UniqueConstraint(
                 fields=["target", "reviewer_identity", "sequence"], name="forum_assessment_sequence",
             ),
-            models.CheckConstraint(condition=models.Q(verdict__in=Verdict.values), name="forum_assessment_verdict"),
+            models.CheckConstraint(
+                condition=(
+                    models.Q(verdict="correct") | models.Q(verdict="minor_gaps") | models.Q(verdict="partial")
+                    | models.Q(verdict="incorrect") | models.Q(verdict="undetermined")
+                ),
+                name="forum_assessment_verdict",
+            ),
             models.CheckConstraint(condition=models.Q(sequence__gte=1), name="forum_assessment_positive_seq"),
         ]
 
@@ -115,10 +123,15 @@ class SolutionVerificationDecision(ForumHistory):
         ordering = ["created_at", "pk"]
         constraints = [
             models.CheckConstraint(
-                condition=models.Q(action__in=["verify", "adjudicate", "revoke"]), name="forum_decision_action",
+                condition=models.Q(action="verify") | models.Q(action="adjudicate") | models.Q(action="revoke"),
+                name="forum_decision_action",
             ),
             models.CheckConstraint(
-                condition=models.Q(verdict__in=["", *Verdict.values]), name="forum_decision_verdict",
+                condition=(
+                    models.Q(verdict="") | models.Q(verdict="correct") | models.Q(verdict="minor_gaps")
+                    | models.Q(verdict="partial") | models.Q(verdict="incorrect") | models.Q(verdict="undetermined")
+                ),
+                name="forum_decision_verdict",
             ),
             models.CheckConstraint(
                 condition=~models.Q(action="verify") | models.Q(verdict="correct"), name="forum_verified_correct_only",
@@ -148,7 +161,8 @@ class SolutionComment(models.Model):
         indexes = [models.Index(fields=["solution", "parent", "created_at"], name="forum_comment_thread")]
         constraints = [
             models.CheckConstraint(
-                condition=models.Q(state__in=["visible", "removed", "hidden"]), name="forum_comment_state",
+                condition=models.Q(state="visible") | models.Q(state="removed") | models.Q(state="hidden"),
+                name="forum_comment_state",
             ),
             models.CheckConstraint(condition=models.Q(version__gte=1), name="forum_comment_positive_ver"),
         ]
@@ -195,7 +209,9 @@ class SolutionForumReport(models.Model):
     class Meta:
         ordering = ["created_at", "pk"]
         constraints = [
-            models.CheckConstraint(condition=models.Q(status__in=["open", "resolved"]), name="forum_report_state"),
+            models.CheckConstraint(
+                condition=models.Q(status="open") | models.Q(status="resolved"), name="forum_report_state",
+            ),
             models.UniqueConstraint(
                 fields=["comment", "reporter"], condition=models.Q(status="open"), name="forum_one_open_report",
             ),
