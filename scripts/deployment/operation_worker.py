@@ -26,6 +26,7 @@ from scripts.deployment import maintenance_schema
 from scripts.deployment import newsletter_automation_schema
 from scripts.deployment import newsletter_schema
 from scripts.deployment import onboarding_schema
+from scripts.deployment import ranking_analysis_schema
 from scripts.deployment import solution_analytics_schema
 from scripts.deployment import solution_collections_schema
 from scripts.deployment import solution_document_schema
@@ -438,6 +439,15 @@ class WorkerBackend:
     def migrate_solution_evaluation_schema(self, contract: TargetContract, release: Path) -> None:
         self._run_candidate(
             contract, release, ["shell", "--command", solution_evaluation_schema.MIGRATION_APPLY], migration=True,
+        )
+
+    def check_ranking_analysis_schema(self, contract: TargetContract, release: Path) -> None:
+        ranking_analysis_schema.validate_candidate(release)
+        self._run_candidate(contract, release, ["shell", "--command", ranking_analysis_schema.PLAN_CHECK])
+
+    def migrate_ranking_analysis_schema(self, contract: TargetContract, release: Path) -> None:
+        self._run_candidate(
+            contract, release, ["shell", "--command", ranking_analysis_schema.MIGRATION_APPLY], migration=True,
         )
 
     def check_learning_activity_schema(self, contract: TargetContract, release: Path) -> None:
@@ -1123,7 +1133,10 @@ def _deploy(
             ):
                 raise OperationError("schema_starting_state_mismatch")
             try:
-                if disclosure["migration"] == solution_forum_schema.MIGRATION:
+                if disclosure["migration"] == ranking_analysis_schema.MIGRATION:
+                    ranking_analysis_schema.validate_build_evidence(release, disclosure)
+                    backend.check_ranking_analysis_schema(contract, release)
+                elif disclosure["migration"] == solution_forum_schema.MIGRATION:
                     solution_forum_schema.validate_build_evidence(release, disclosure)
                     backend.check_solution_forum_schema(contract, release)
                 elif disclosure["migration"] == assessment_prototype_schema.MIGRATION:
@@ -1194,7 +1207,9 @@ def _deploy(
             if not schema_audit_matches(disclosure, backend.schema_audit(contract), stage="starting"):
                 raise OperationError("schema_starting_state_drift")
             transition(state_path, "migrating")
-            if disclosure["migration"] == solution_forum_schema.MIGRATION:
+            if disclosure["migration"] == ranking_analysis_schema.MIGRATION:
+                backend.migrate_ranking_analysis_schema(contract, release)
+            elif disclosure["migration"] == solution_forum_schema.MIGRATION:
                 backend.migrate_solution_forum_schema(contract, release)
             elif disclosure["migration"] == assessment_prototype_schema.MIGRATION:
                 backend.migrate_assessment_prototype_schema(contract, release)
