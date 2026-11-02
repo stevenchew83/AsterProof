@@ -61,7 +61,7 @@ EXPECTED_DEFAULT_BLOCK_TYPES = {
     "remark",
 }
 EXPECTED_VISIBLE_SOLUTION_TOTAL = 2
-EXPECTED_STATEMENT_BACKED_PROBLEM_TOTAL = 3
+EXPECTED_STATEMENT_BACKED_PROBLEM_TOTAL = 4
 EXPECTED_DIFFICULTY_RATING_COUNT = 2
 EXPECTED_USER_DIFFICULTY_RATING = 37
 OTHER_USER_DIFFICULTY_RATING = 17
@@ -254,7 +254,7 @@ def test_my_solution_list_counts_blocks_without_reading_proof_bodies(client):
     assert "A large canonical proof." not in response.content.decode()
 
 
-def test_problem_solution_create_view_lists_only_statement_backed_problems(client):
+def test_problem_solution_create_view_lists_the_shared_library(client):
     user = UserFactory()
     other_user = UserFactory()
     client.force_login(user)
@@ -307,13 +307,14 @@ def test_problem_solution_create_view_lists_only_statement_backed_problems(clien
     assert response.context["statement_problem_list_is_capped"] is False
     assert response.context["create_stats"]["statement_problem_total"] == EXPECTED_STATEMENT_BACKED_PROBLEM_TOTAL
     assert response.context["create_stats"]["started_total"] == 1
-    assert response.context["create_stats"]["ready_total"] == 2  # noqa: PLR2004
+    assert response.context["create_stats"]["ready_total"] == 3  # noqa: PLR2004
     assert [row["problem_label"] for row in response.context["statement_problem_rows"]] == [
         "IMO 2026 P1",
         "USAMO 2025 P2",
         "Unlinked contest 2025 P3",
+        "BMO 2024 P3",
     ]
-    first_row, second_row, unlinked_row = response.context["statement_problem_rows"]
+    first_row, second_row, unlinked_row, missing_statement_row = response.context["statement_problem_rows"]
     assert first_row["editor_button_label"] == "Continue solution"
     assert first_row["solution_status_label"] == "Draft"
     assert second_row["editor_button_label"] == "Start solution"
@@ -325,11 +326,13 @@ def test_problem_solution_create_view_lists_only_statement_backed_problems(clien
     assert second_editor_url in response_html
     assert unlinked_row["solution_start_url"] in response_html
     assert unlinked_row["editor_url"] == ""
+    assert missing_statement_row["statement_label"] == "Statement missing"
+    assert missing_statement_row["editor_button_label"] == "Start solution"
     assert 'method="post"' in response_html
     assert "Unlinked contest" in response_html
 
 
-def test_problem_solution_create_view_shows_empty_state_without_active_statements(client):
+def test_problem_solution_create_view_shows_empty_state_without_active_problems(client):
     user = UserFactory()
     client.force_login(user)
 
@@ -338,7 +341,7 @@ def test_problem_solution_create_view_shows_empty_state_without_active_statement
     assert response.status_code == HTTPStatus.OK
     assert response.context["create_stats"]["statement_problem_total"] == 0
     assert response.context["statement_problem_list_is_capped"] is False
-    assert "No active problem statements are available yet." in response.content.decode("utf-8")
+    assert "No active problems are available yet." in response.content.decode("utf-8")
 
 
 def test_problem_solution_create_view_caps_statement_rows_at_100(client):
