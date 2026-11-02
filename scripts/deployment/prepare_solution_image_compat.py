@@ -82,8 +82,9 @@ def _views(source):
 def _urls(source):
     source = _replace_once(
         source,
-        'app_name = "solutions"',
-        'from .image_urls import urlpatterns as image_patterns\n\napp_name = "solutions"',
+        "from .evaluation_consent_views import solution_reuse_consent_withdraw_view\n",
+        "from .evaluation_consent_views import solution_reuse_consent_withdraw_view\n"
+        "from .image_urls import urlpatterns as image_patterns\n",
     )
     return _replace_once(source, "urlpatterns = [\n", "urlpatterns = [\n    *image_patterns,\n")
 

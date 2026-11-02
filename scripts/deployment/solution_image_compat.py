@@ -63,7 +63,7 @@ COMPATIBILITY_SOURCES = {
     "inspinia/solutions/image_access.py": "abb7dd9e978e63f54d29a1e1a5c642cf8d4079a75eba1a0cc251b994c9b52cf1",
     "inspinia/solutions/image_urls.py": "81485468f8900ee2ab92d3f8c19f4db86913ebb9497adbc9da31aa58880401cf",
     "inspinia/solutions/views.py": "2dae12f4d3a22724979c36a4eb57f439724e533519c3a6145d47374b1a977c69",
-    "inspinia/solutions/urls.py": "c99e395572978806ec076072e0a229b678b5886ecd3a21119d6c86f5ebd310f2",
+    "inspinia/solutions/urls.py": "76fd36aa3859f52b29c9f0b45ad76bbe42f4933f35cc2c60134cfa9a24e5e5b1",
     "inspinia/solutions/public_views.py": "0b111d152ab9a71fdb9d601215c4ec42c7671f27cd49ddf8870387c79135245c",
     "inspinia/solutions/collection_views.py": "6c28fcc098b0e04e089c692690421a32305d21b8693021b22555c7cf49694da2",
     "inspinia/solutions/admin_collections.py": "be9e018e5164f8639e160dcd74e003cb8c8c9737ff8f247a0744750250bb98ec",
