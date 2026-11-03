@@ -164,6 +164,11 @@ Both the clean Actions runtime and the server install those wheels offline with
 hash checking and source builds disabled. The original source lock, generated
 wheel lock, and wheel bytes are all included in the attested release.
 
+The ranking achievement profile allowance is documented in
+[ranking profile release](ranking-profile-release.md). It requires the separately
+installed exact two-table data-class helper, verified recovery and its durable
+reader floor.
+
 ## Dispatch and approval
 
 For a release with no migrations:

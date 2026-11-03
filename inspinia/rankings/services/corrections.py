@@ -21,6 +21,8 @@ from inspinia.rankings.models import RankingCorrection
 from inspinia.rankings.models import RankingCorrectionItem
 from inspinia.rankings.models import RankingCorrectionReceipt
 from inspinia.rankings.models import RankingImportConflict
+from inspinia.rankings.models import ResultClaim
+from inspinia.rankings.models import ResultProfile
 from inspinia.rankings.models import ResultSchoolAttribution
 from inspinia.rankings.models import School
 from inspinia.rankings.models import SchoolAlias
@@ -29,6 +31,7 @@ from inspinia.rankings.models import StudentIdentityReview
 from inspinia.rankings.models import StudentResult
 from inspinia.rankings.models import normalize_name
 from inspinia.rankings.models import normalize_whitespace
+from inspinia.rankings.services.achievement_records import result_fingerprint
 from inspinia.rankings.services.import_protection import ranking_write_lock
 from inspinia.users.roles import user_has_admin_role
 from inspinia.users.roles import user_has_moderator_or_admin_role
@@ -43,9 +46,14 @@ FIELDS = {
     "school_alias": ("alias", "school_id", "active"),
     "outcome_alias": ("field", "alias", "canonical", "active"),
     "identity": ("second_student_id", "decision", "evidence", "active"),
+    "profile": ("record_type", "discipline", "scope", "scope_detail", "participation", "featured", "active"),
+    "claim": (
+        "claim_type", "claim_label", "award_kind", "verification_status", "source_type", "source_label", "source_url",
+        "evidence", "active",
+    ),
 }
 BASE_MODELS = {"student": Student, "result": StudentResult, "assessment": Assessment}
-BOOLEAN_FIELDS = {"definition_verified", "date_verified", "verified", "active"}
+BOOLEAN_FIELDS = {"definition_verified", "date_verified", "verified", "active", "featured"}
 MAX_ITEMS = 2000
 MAX_TEXT_LENGTH = 4000
 MIN_BIRTH_YEAR = 1900
@@ -91,6 +99,11 @@ def _target(kind, target_id, values):  # noqa: PLR0911 - Each typed target has a
     if kind == "attribution":
         StudentResult.objects.get(pk=target_id)
         return ResultSchoolAttribution.objects.filter(result_id=target_id).first()
+    if kind in {"profile", "claim"}:
+        StudentResult.objects.get(pk=target_id)
+        if kind == "profile":
+            return ResultProfile.objects.filter(result_id=target_id).first()
+        return ResultClaim.objects.filter(result_id=target_id, claim_type=values.get("claim_type", "award")).first()
     if kind == "school_alias":
         School.objects.get(pk=target_id)
         return SchoolAlias.objects.filter(normalized_name=normalize_name(values.get("alias", ""))).first()
@@ -126,8 +139,12 @@ def snapshot(kind, target_id, values):
         }
         if kind == "outcome_alias":
             state["dependency"]["cohort"] = _alias_population(target_id, values, obj)
-    elif kind == "attribution":
-        state["dependency"] = {"result_version": StudentResult.objects.get(pk=target_id).updated_at.isoformat()}
+    elif kind in {"attribution", "profile", "claim"}:
+        result = StudentResult.objects.select_related("assessment").get(pk=target_id)
+        state["dependency"] = {"result_version": result.updated_at.isoformat()}
+        if kind in {"profile", "claim"}:
+            state["dependency"]["result_fingerprint"] = result_fingerprint(result)
+            state["reviewed_fingerprint"] = obj.result_fingerprint if obj else None
     elif kind == "school_alias":
         state["dependency"] = {"school_version": School.objects.get(pk=target_id).updated_at.isoformat()}
     elif kind == "identity":
@@ -225,7 +242,11 @@ def clean_values(kind, values):
     if kind not in FIELDS or not isinstance(values, dict) or not values or set(values) - set(FIELDS[kind]):
         message = "Only the displayed correction fields may be changed."
         raise ValidationError(message)
-    return {key: _clean_field_value(key, value) for key, value in values.items()}
+    cleaned = {key: _clean_field_value(key, value) for key, value in values.items()}
+    if kind == "claim" and cleaned.get("claim_type") not in ResultClaim.ClaimType.values:
+        message = "Choose the specific award, score or ranking claim."
+        raise ValidationError(message)
+    return cleaned
 
 
 def current_values(kind, target_id, hints=None):
@@ -281,11 +302,17 @@ def create_proposal(*, actor, reason, evidence, operations, submit=False, revers
                 if kind == "school_alias"
                 else {"second_student_id"}
                 if kind == "identity"
+                else {"claim_type"}
+                if kind == "claim"
                 else set()
             )
             changed = {
                 key: value for key, value in values.items() if key in keys or before["values"].get(key) != value
             }
+            if kind in {"profile", "claim"} and before.get("reviewed_fingerprint") != before["dependency"][
+                "result_fingerprint"
+            ]:
+                changed = dict(values)
             if not before["exists"] or any(key not in keys for key in changed):
                 prepared.append((kind, target_id, before, changed))
             prepared.extend(
@@ -368,6 +395,7 @@ def _prepared_key(kind, target_id, values):
         "outcome_alias": (values.get("field"), normalize_name(values.get("alias", ""))),
         "school_alias": (normalize_name(values.get("alias", "")),),
         "identity": (values.get("second_student_id"),),
+        "claim": (values.get("claim_type"),),
     }
     return kind, target_id, selectors.get(kind, ())
 
@@ -398,6 +426,8 @@ def _updated_object(kind, target_id, values, *, actor, evidence, save):  # noqa:
             "school_alias": SchoolAlias,
             "outcome_alias": lambda: OutcomeAlias(assessment_id=target_id),
             "identity": lambda: StudentIdentityReview(first_student_id=target_id),
+            "profile": lambda: ResultProfile(result_id=target_id),
+            "claim": lambda: ResultClaim(result_id=target_id),
         }
         obj = constructors[kind]()
     for key, raw_value in values.items():
@@ -505,6 +535,20 @@ def _updated_object(kind, target_id, values, *, actor, evidence, save):  # noqa:
             msg = "Provide evidence for the identity decision."
             raise ValidationError(msg)
         obj.evidence = evidence or obj.evidence
+    if kind in {"profile", "claim"}:
+        result = StudentResult.objects.select_related("assessment").get(pk=target_id)
+        obj.result_fingerprint = result_fingerprint(result)
+        obj.reviewed_by, obj.reviewed_at = actor, timezone.now()
+        if kind == "claim":
+            obj.evidence = evidence or obj.evidence
+            if obj.claim_type == "score" and obj.active:
+                if result.raw_score is None:
+                    message = "This result has no recorded score to verify."
+                    raise ValidationError(message)
+                expected = format(Decimal(str(result.raw_score)), ".2f")
+                if obj.claim_label != expected:
+                    message = "The score claim must match the recorded raw score exactly (two decimal places)."
+                    raise ValidationError(message)
     # Snapshot fields are deliberately unrelated to Student private identifiers.
     obj.full_clean()
     if save:
@@ -573,6 +617,8 @@ def _lock_targets(items):
         "scale": Assessment,
         "outcome_alias": Assessment,
         "attribution": StudentResult,
+        "profile": StudentResult,
+        "claim": StudentResult,
         "school_alias": School,
         "identity": Student,
     }
@@ -624,6 +670,8 @@ def reverse_proposal(*, proposal_id, actor, reason):
                 values.update(max_score=None, verified=False, comparable_scope="", evidence="")
             elif item.kind == "attribution":
                 values["verified"] = False
+            elif item.kind in {"profile", "claim"}:
+                values["active"] = False
             else:
                 values["active"] = False
         operations.append({"kind": item.kind, "target_id": item.target_id, "values": values})

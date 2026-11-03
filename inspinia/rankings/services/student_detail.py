@@ -15,31 +15,26 @@ from urllib.parse import urlencode
 from urllib.parse import urlsplit
 
 from django.core.exceptions import ValidationError
+from django.core.paginator import Page
 from django.core.paginator import Paginator
 from django.core.validators import URLValidator
+from django.urls import reverse
+from django.utils.functional import cached_property
 
 from inspinia.rankings.forms import StudentDetailFilterForm
 from inspinia.rankings.imports.olympiad_sheet import HISTORY_COLUMNS
 from inspinia.rankings.models import OutcomeAlias
 from inspinia.rankings.models import SchoolAlias
-from inspinia.rankings.models import StudentSelectionStatus
 from inspinia.rankings.models import normalize_name
+from inspinia.rankings.services.achievement_records import presentation_metadata
 from inspinia.rankings.services.school_display import SOURCE_SCHOOL_PREFIX
+from inspinia.rankings.services.student_charts import achievement_charts
+from inspinia.rankings.services.student_charts import matches_evidence
 
 PAGE_SIZE = 50
-TIMELINE_BUCKET_LIMIT = 6
 LEGACY_GROUP_CODES = frozenset(column[1] for column in HISTORY_COLUMNS if column[4] == "status_text")
-GROUP_LABELS = frozenset(
-    {
-        *(value for value in StudentSelectionStatus.Status.values if value != "none"),
-        "junior squad",
-        "senior squad",
-        "primary squad",
-        "junior team",
-        "senior team",
-        "primary team",
-    },
-)
+EXPLICIT_SELECTION_LABELS = frozenset({"squad", "team", "watchlist", "junior squad", "senior squad",
+                                       "primary squad", "junior team", "senior team", "primary team"})
 LEGACY_NAME = re.compile(r"(?P<title>.+) \(legacy source(?: (?P<date>\d{4}-\d{2}-\d{2}))?\)")
 SOURCE_TRAILER = re.compile(r"(?P<file>.+) \[Sheet1 row (?P<row>\d+); sha256 (?P<sha>[0-9a-f]{64})\]")
 MEDAL_LABEL = re.compile(r"(gold|silver|bronze)(?: medal| award| medalist)?")
@@ -90,23 +85,16 @@ def _event_time(assessment):
 
 
 def _group_labels(assessment, band, status):
-    labels = []
-    for value in (band, status):
-        if value and search_text(value) in GROUP_LABELS and value not in labels:
-            labels.append(value)
-    if assessment.code in LEGACY_GROUP_CODES and status and status not in labels:
-        labels.append(status)
-    return labels
+    # Primary/Junior in a competition category is not a selection event.
+    if assessment.code in LEGACY_GROUP_CODES and status:
+        return [status]
+    return [status] if search_text(status) in EXPLICIT_SELECTION_LABELS else []
 
 
 def _outcomes(medal, status):
     def item(label):
         match = MEDAL_LABEL.fullmatch(search_text(label))
         tone = match[1] if match else "neutral"
-        if not match:
-            words = re.findall(r"\b(gold|silver|bronze)\b", search_text(label))
-            if len(set(words)) == 1:
-                tone = words[0]
         return {"label": label, "tone": tone}
 
     if not medal:
@@ -155,8 +143,33 @@ def _record(result, aliases, schools):
         school_basis = "Recorded in source"
     display_school = schools.get(normalize_name(historical_school), historical_school)
     group_labels = _group_labels(assessment, values["band"], values["status_text"])
+    presentation = presentation_metadata(
+        result, medal=values["medal"], status=values["status_text"], is_group=bool(group_labels),
+    )
+    if presentation["record_type"] != "selection":
+        group_labels = []
+    elif not group_labels:
+        group_labels = [values["status_text"] or values["band"] or "Selection record"]
     outcomes = _outcomes(values["medal"], values["status_text"])
+    for claim in presentation["claims"]:
+        claim["url"] = _safe_url(claim["url"])
+        claim["review_url"] = reverse("rankings:correction_new") + "?" + urlencode({
+            "kind": "claim", "target": result.pk, "claim_type": claim["kind"],
+        })
+        if claim["kind"] == "award" and claim["explicit"] and not claim["stale"]:
+            outcomes = _outcomes(claim["label"], "")
+    primary = presentation["primary_claim"]
+    if primary["kind"] == "ranking" and primary["explicit"] and not primary["stale"]:
+        outcomes = _outcomes(primary["label"], "")
+    if presentation["primary_claim"]["award_kind"] != "medal" or (
+        presentation["evidence_status"] not in {"verified", "reported"}
+    ) or (
+        presentation["primary_claim"]["source_type"] in {"family", "unknown"}
+    ):
+        outcomes = [{**outcome, "tone": "neutral"} for outcome in outcomes]
+    review_url = reverse("rankings:correction_new") + "?" + urlencode({"kind": "profile", "target": result.pk})
     return {
+        **presentation,
         "id": result.pk,
         "year": assessment.season_year,
         "assessment_id": assessment.pk,
@@ -173,7 +186,7 @@ def _record(result, aliases, schools):
         "score": result.raw_score,
         "outcomes": outcomes,
         "is_group": bool(group_labels),
-        "has_outcome": bool(values["medal"] or (values["status_text"] and values["status_text"] not in group_labels)),
+        "has_outcome": presentation["record_type"] == "achievement",
         "group_labels": group_labels,
         "time": _event_time(assessment),
         "division": assessment.division_scope,
@@ -197,11 +210,52 @@ def _record(result, aliases, schools):
                     result.band,
                     result.medal,
                     result.status_text,
+                    result.remarks,
+                    presentation["discipline_label"],
+                    presentation["scope_detail"],
+                    *(claim["label"] for claim in presentation["claims"]),
                 ],
             ),
         ),
         "sort_order": assessment.sort_order,
+        "review_url": review_url,
+        "claim_review_url": reverse("rankings:correction_new") + "?" + urlencode({
+            "kind": "claim", "target": result.pk, "claim_type": "award",
+        }),
     }
+
+
+class CompleteYearPage(Page):
+    def start_index(self):
+        if not self.paginator.count:
+            return 0
+        return sum(len(rows) for rows in self.paginator.year_pages[:self.number - 1]) + 1
+
+    def end_index(self):
+        return self.start_index() + len(self.object_list) - 1 if self.paginator.count else 0
+
+
+class CompleteYearPaginator(Paginator):
+    """Use a target page size while never splitting a student's year across pages."""
+
+    def __init__(self, records, per_page):
+        super().__init__(records, per_page)
+        by_year = defaultdict(list)
+        for row in records:
+            by_year[row["year"]].append(row)
+        self.year_pages = [[]]
+        for rows in by_year.values():
+            if len(self.year_pages[-1]) >= per_page:
+                self.year_pages.append([])
+            self.year_pages[-1].extend(rows)
+
+    @cached_property
+    def num_pages(self):
+        return len(self.year_pages)
+
+    def page(self, number):
+        number = self.validate_number(number)
+        return CompleteYearPage(self.year_pages[number - 1], number, self)
 
 
 def _timeline(records, statuses):
@@ -283,7 +337,8 @@ def build_student_detail(student, params, path):
             "assessment",
             "assessment__analysis_metadata",
             "school_attribution__school",
-        ),
+            "profile",
+        ).prefetch_related("claims"),
     )
     assessment_ids = {result.assessment_id for result in results}
     aliases = {
@@ -312,16 +367,21 @@ def build_student_detail(student, params, path):
     titles = Counter((row["year"], row["title"]) for row in records)
     for row in records:
         row["disambiguation"] = row["full_title"] if titles[row["year"], row["title"]] > 1 else ""
-    timeline = _timeline(records, student.selection_statuses.order_by("season_year", "pk"))
+    selection_statuses = list(student.selection_statuses.order_by("season_year", "pk"))
+    timeline = _timeline(records, selection_statuses)
     sources = _sources(records)
-    years = sorted({row["year"] for row in records}, reverse=True)
+    years = sorted(
+        {row["year"] for row in records} | {status.season_year for status in selection_statuses}, reverse=True,
+    )
     form = StudentDetailFilterForm(params, years=years)
     valid = form.is_valid()
     filters = form.cleaned_data if valid else {}
     query = search_text(filters.get("q", ""))
     year = filters.get("year", "")
-    kind = filters.get("type") or "all"
-    active = bool(query or year or kind != "all")
+    kind = filters.get("type") or "achievements"
+    discipline = filters.get("discipline", "")
+    evidence = filters.get("evidence", "")
+    active = bool(query or year or discipline or evidence)
     matched = [
         row
         for row in records
@@ -330,41 +390,77 @@ def build_student_detail(student, params, path):
         and all(word in row["search"] for word in query.split())
         and (
             kind == "all"
-            or (kind == "scores" and row["score"] is not None)
-            or (kind == "outcomes" and row["has_outcome"])
+            or (kind == "scores" and (row["score"] is not None or row["record_type"] == "performance"))
+            or (kind == "achievements" and row["has_outcome"])
             or (kind == "groups" and row["is_group"])
+            or (kind == "sources" and row["record_type"] == "context")
         )
+        and (not discipline or row["discipline"] == discipline)
+        and matches_evidence(row, evidence)
     ]
+    if kind == "groups":
+        visible_statuses = [
+            status for status in selection_statuses
+            if valid and not discipline and evidence in {"", "unreviewed"}
+            and (not year or status.season_year == int(year))
+            and all(word in search_text(
+                f"{status.get_status_display()} {status.division} {status.season_year}",
+            ) for word in query.split())
+        ]
+        timeline = _timeline(matched, visible_statuses)
     counts = Counter(row["year"] for row in matched)
-    page = Paginator(matched, PAGE_SIZE).get_page(params.get("page"))
+    page = CompleteYearPaginator(matched, PAGE_SIZE).get_page(params.get("page"))
     groups = defaultdict(list)
     for row in page:
         groups[row["year"]].append(row)
     year_groups = [
-        {"year": value, "rows": rows, "count": counts[value], "shown": len(rows), "open": active or index == 0}
-        for index, (value, rows) in enumerate(groups.items())
+        {"year": value, "rows": rows, "count": counts[value], "shown": len(rows)}
+        for value, rows in groups.items()
     ]
     pagination = {
         key: value
-        for key, value in {"q": filters.get("q", ""), "year": year, "type": kind if kind != "all" else ""}.items()
+        for key, value in {
+            "q": filters.get("q", ""), "year": year, "type": kind if kind != "achievements" else "",
+            "discipline": discipline, "evidence": evidence,
+        }.items()
         if value
     }
     canonical = {**pagination, **({"page": page.number} if page.number > 1 else {})}
     canonical_query = urlencode(canonical) if valid else params.urlencode()
+    navigation = []
+    for value, label in (("achievements", "Achievements"), ("scores", "Scores & participation"),
+                         ("groups", "Selection history"), ("all", "All records"), ("sources", "Sources & notes")):
+        view_query = {**pagination, "type": value}
+        if value == "achievements":
+            view_query.pop("type", None)
+        navigation.append({"label": label, "kind": value, "active": value == kind,
+                           "url": path + ("?" + urlencode(view_query) if view_query else "")})
+    highlights = [row for row in records if row["featured"]][:6]
+    for row in highlights:
+        row["highlight_url"] = path + "?" + urlencode({"year": row["year"]}) + f"#student-record-{row['id']}"
     return {
         "student": student,
         "form": form,
         "results": records,
         "page_obj": page,
         "year_groups": year_groups,
+        "match_count": sum(bucket["count"] for bucket in timeline) if kind == "groups" else page.paginator.count,
+        "kind": kind,
+        "navigation": navigation,
+        "view_label": next(item["label"] for item in navigation if item["active"]),
+        "show_score": kind in {"all", "scores"},
+        "highlights": highlights,
+        "show_highlights": kind == "achievements" and not active,
+        "charts": achievement_charts(matched, filters, path) if kind == "achievements" and valid else {},
+        "show_charts": kind == "achievements" and valid,
         "summary": {
             "count": len(records),
             "coverage": f"{min(years)}\u2013{max(years)}" if years else "Not recorded",
             "sources": len(sources),
+            "achievements": sum(row["has_outcome"] for row in records),
             "initials": "".join(part[0] for part in student.full_name.split()[:2]).upper(),
         },
         "timeline": timeline,
-        "timeline_preview": timeline[-TIMELINE_BUCKET_LIMIT:],
         "timeline_count": sum(bucket["count"] for bucket in timeline),
         "sources": sources,
         "rankings": list(

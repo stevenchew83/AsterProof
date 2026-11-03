@@ -38,6 +38,8 @@ TARGET_MODELS = {
     "identity": Student,
     "result": StudentResult,
     "attribution": StudentResult,
+    "profile": StudentResult,
+    "claim": StudentResult,
     "school_alias": School,
     "assessment": Assessment,
     "metadata": Assessment,
@@ -49,6 +51,13 @@ TARGET_MODELS = {
 def _common(request):
     _require_rankings_access(request)
     return {"can_apply_corrections": user_has_admin_role(request.user), "current": "analysis"}
+
+
+def _profile_target_choices(kind, targets, target):
+    if kind not in {"profile", "claim"}:
+        return targets
+    # Profile links identify a result; never render the full result archive in a select.
+    return targets.filter(pk=target.pk) if target else targets.order_by("-pk")[:200]
 
 
 @login_required
@@ -114,7 +123,7 @@ def correction_new(request):  # noqa: C901 - One preview endpoint handles all ty
     if kind not in FIELDS:
         raise Http404
     targets = TARGET_MODELS[kind].objects.all()
-    if kind in {"result", "attribution"}:
+    if kind in {"result", "attribution", "profile", "claim"}:
         targets = targets.select_related("student", "assessment")
     target = None
     target_id = "" if request.method == "GET" and params.get("choose_type") else params.get("target", "")
@@ -127,7 +136,9 @@ def correction_new(request):  # noqa: C901 - One preview endpoint handles all ty
         ):
             raise Http404
         target = get_object_or_404(targets, pk=int(target_id))
-    hints = {key: params[key] for key in ("band", "alias", "field", "second_student_id") if params.get(key)}
+    hints = {
+        key: params[key] for key in ("band", "alias", "field", "second_student_id", "claim_type") if params.get(key)
+    }
     if "second_student_id" in hints:
         if (
             len(hints["second_student_id"]) > MAX_PK_DIGITS
@@ -165,7 +176,7 @@ def correction_new(request):  # noqa: C901 - One preview endpoint handles all ty
         kind=kind,
         kinds=RankingCorrectionItem.Kind.choices,
         target=target,
-        targets=targets,
+        targets=_profile_target_choices(kind, targets, target),
         form=form,
         hints=hints,
     )
@@ -266,7 +277,7 @@ def _display_items(items):
             student_ids.add(item.target_id)
             if item.kind == "identity":
                 student_ids.add(item.changes.get("second_student_id"))
-        elif item.kind in {"result", "attribution"}:
+        elif item.kind in {"result", "attribution", "profile", "claim"}:
             result_ids.add(item.target_id)
         elif item.kind in {"assessment", "metadata", "scale", "outcome_alias"}:
             assessment_ids.add(item.target_id)
@@ -313,7 +324,7 @@ def _display_item(item, students, results, assessments, schools):
         other = students.get(item.changes.get("second_student_id"))
         if item.kind == "identity" and other:
             label += f" / {other.full_name} · birth year {other.birth_year or 'not recorded'} · student #{other.pk}"
-    elif item.kind in {"result", "attribution"} and item.target_id in results:
+    elif item.kind in {"result", "attribution", "profile", "claim"} and item.target_id in results:
         result = results[item.target_id]
         label = (
             f"{result.student.full_name} · {result.assessment.display_name} · "

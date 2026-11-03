@@ -229,6 +229,7 @@ def test_learning_worker_uses_real_frozen_allowance_bytes_and_evidence(tmp_path)
                     and source not in {
                         root / "inspinia/solutions/migrations/0013_solution_forum.py",
                         root / "inspinia/rankings/migrations/0005_ranking_analysis_review.py",
+                        root / "inspinia/rankings/migrations/0006_student_achievement_profiles.py",
                     }
                 ):
                     target = destination / source.relative_to(root)

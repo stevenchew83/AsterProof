@@ -636,3 +636,5 @@ from .analysis_models import RankingWriteLock  # noqa: E402, F401
 from .analysis_models import ResultSchoolAttribution  # noqa: E402, F401
 from .analysis_models import SchoolAlias  # noqa: E402, F401
 from .analysis_models import StudentIdentityReview  # noqa: E402, F401
+from .profile_models import ResultClaim  # noqa: E402, F401
+from .profile_models import ResultProfile  # noqa: E402, F401

@@ -1,0 +1,48 @@
+<section data-student-charts class="student-charts" aria-labelledby="student-charts-title" {% if not show_charts %}hidden{% endif %}>
+  <div class="student-chart-heading">
+    <h3 id="student-charts-title" class="student-section-title" tabindex="-1">Achievement overview</h3>
+    <span class="student-muted">{{ charts.total }} matching achievement record{{ charts.total|pluralize }} · All pages</span>
+  </div>
+  {% if charts.total %}
+  <div class="student-chart-grid">
+    <figure class="student-chart student-year-chart" aria-labelledby="student-year-chart-title">
+      <figcaption><h4 id="student-year-chart-title" class="h6 mb-1">Yearly achievements</h4><p class="student-muted mb-0">Select a year or discipline to filter. Counts include awards, titles and recognition.</p></figcaption>
+      <div class="student-year-plot" tabindex="0" role="region" aria-label="Achievement records by year and discipline">
+        <div class="student-year-columns" style="--student-chart-years: {{ charts.years|length }};">
+          {% for year in charts.years %}
+          <div class="student-chart-year" data-chart-year="{{ year.year }}" data-chart-count="{{ year.count }}">
+            <div class="student-chart-column">
+              <div class="student-chart-stack" style="height: {{ year.height }}%;">
+                <span class="student-chart-total" aria-hidden="true">{{ year.count }}</span>
+                {% for segment in year.segments %}<a href="{{ segment.url }}" class="student-chart-segment student-discipline-{{ segment.discipline }}" style="height: {{ segment.height }}%;" data-student-chart-filter="segment-{{ year.year }}-{{ segment.discipline }}" aria-label="{{ year.year }}, {{ segment.label }}: {{ segment.count }} achievement record{{ segment.count|pluralize }}. {% if segment.active %}Clear year and discipline filters{% else %}Filter by this year and discipline{% endif %}" title="{{ year.year }} · {{ segment.label }}: {{ segment.count }}" {% if segment.active %}aria-current="true"{% endif %}></a>{% endfor %}
+              </div>
+            </div>
+            <a href="{{ year.url }}" class="student-chart-year-link" data-student-chart-filter="year-{{ year.year }}" aria-label="{{ year.year }}: {{ year.count }} achievement record{{ year.count|pluralize }}. {% if year.active %}Clear year filter{% else %}Filter by this year{% endif %}" {% if year.active %}aria-current="true"{% endif %}>{{ year.year }}</a>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+      <ul class="student-chart-legend" aria-label="Filter achievements by discipline">
+        {% for discipline in charts.disciplines %}<li><a href="{{ discipline.url }}" data-student-chart-filter="discipline-{{ discipline.value }}" aria-label="{{ discipline.label }}: {{ discipline.count }} achievement record{{ discipline.count|pluralize }}. {% if discipline.active %}Clear discipline filter{% else %}Filter by this discipline{% endif %}" {% if discipline.active %}aria-current="true"{% endif %}><span class="student-chart-swatch student-discipline-{{ discipline.value }}" aria-hidden="true"></span>{{ discipline.label }} <strong>{{ discipline.count }}</strong></a></li>{% endfor %}
+      </ul>
+      <details id="student-chart-data" class="student-chart-data">
+        <summary>View yearly counts</summary>
+        <div class="table-responsive mt-2"><table class="table table-sm"><caption class="visually-hidden">Achievement record counts by year and discipline</caption><thead><tr><th scope="col">Year</th>{% for discipline in charts.disciplines %}<th scope="col">{{ discipline.label }}</th>{% endfor %}<th scope="col">Total</th></tr></thead><tbody>
+        {% for year in charts.years %}<tr><th scope="row">{{ year.year }}</th>{% for count in year.cells %}<td>{{ count }}</td>{% endfor %}<td>{{ year.count }}</td></tr>{% endfor %}
+        </tbody></table></div>
+      </details>
+    </figure>
+    <figure class="student-chart student-evidence-chart" aria-labelledby="student-evidence-chart-title">
+      <figcaption><h4 id="student-evidence-chart-title" class="h6 mb-1">Award / placing evidence</h4><p class="student-muted mb-0">One award or placing claim per record. Score reviews are separate.</p></figcaption>
+      <ul class="student-evidence-bars" aria-label="Filter achievements by award or placing evidence">
+        {% for item in charts.evidence %}<li>
+          {% if item.count %}<a href="{{ item.url }}" data-student-chart-filter="evidence-{{ item.value }}" aria-label="{{ item.label }}: {{ item.count }} of {{ charts.total }} achievement records. {% if item.active %}Clear award or placing evidence filter{% else %}Filter by award or placing evidence{% endif %}" {% if item.active %}aria-current="true"{% endif %}>{% else %}<span class="student-evidence-bar-empty">{% endif %}
+            <span class="student-evidence-bar-label">{{ item.label }}</span><span class="student-evidence-bar-track" aria-hidden="true"><span class="student-evidence-bar-fill student-chart-evidence-{{ item.value }}" style="width: {{ item.width }}%;"></span></span><strong>{{ item.count }}</strong>
+          {% if item.count %}</a>{% else %}</span>{% endif %}
+        </li>{% endfor %}
+      </ul>
+      <p class="student-muted mb-0">Reported includes family records and supplied sources. These counts describe evidence review, not medal totals.</p>
+    </figure>
+  </div>
+  {% else %}<p class="student-muted mb-0">No achievement records match these filters.</p>{% endif %}
+</section>

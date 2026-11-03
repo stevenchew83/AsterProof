@@ -4,7 +4,9 @@ from django import forms
 
 from inspinia.rankings.imports.olympiad_sheet import MAX_SHEET_BYTES
 from inspinia.rankings.models import Assessment
+from inspinia.rankings.models import ResultProfile
 from inspinia.rankings.models import StudentSelectionStatus
+from inspinia.rankings.profile_models import EvidenceStatus
 
 _EXCEL_ACCEPT = ".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
 
@@ -13,12 +15,12 @@ class StudentDetailFilterForm(forms.Form):
     q = forms.CharField(
         required=False,
         max_length=255,
-        label="Search results",
+        label="Search records",
         widget=forms.TextInput(
             attrs={
                 "type": "search",
                 "class": "form-control",
-                "placeholder": "Search assessments, categories or outcomes…",
+                "placeholder": "Search competitions, awards or context…",
                 "id": "student-result-search",
                 "autocomplete": "off",
             },
@@ -32,17 +34,40 @@ class StudentDetailFilterForm(forms.Form):
     type = forms.ChoiceField(
         required=False,
         label="Type",
-        initial="all",
+        initial="achievements",
         choices=[
+            ("achievements", "Achievements"),
             ("all", "All records"),
-            ("scores", "Scores"),
+            ("scores", "Scores & participation"),
             ("outcomes", "Awards & outcomes"),
             ("groups", "Groups & selections"),
+            ("sources", "Sources & notes"),
         ],
-        widget=forms.Select(attrs={"class": "form-select", "id": "student-result-type"}),
+        widget=forms.HiddenInput(attrs={"id": "student-result-type"}),
+    )
+    discipline = forms.ChoiceField(
+        required=False, label="Discipline",
+        choices=[("", "All disciplines"), *ResultProfile.Discipline.choices],
+        widget=forms.Select(attrs={"class": "form-select", "id": "student-result-discipline"}),
+    )
+    evidence = forms.ChoiceField(
+        required=False, label="Evidence",
+        choices=[
+            ("", "All evidence states"),
+            ("Award / placing claim", [(f"achievement_{value}", f"Award/placing: {label}")
+                                       for value, label in EvidenceStatus.choices]),
+            ("Any claim", list(EvidenceStatus.choices)),
+        ],
+        widget=forms.Select(attrs={"class": "form-select", "id": "student-result-evidence"}),
     )
 
     def __init__(self, *args, years=(), **kwargs):
+        if args and args[0] is not None:
+            data = args[0].copy()
+            data["type"] = data.get("type") or "achievements"
+            if data["type"] == "outcomes":
+                data["type"] = "achievements"
+            args = (data, *args[1:])
         super().__init__(*args, **kwargs)
         self.fields["year"].choices = [("", "All years"), *[(str(year), str(year)) for year in years]]
 

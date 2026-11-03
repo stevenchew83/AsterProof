@@ -7,7 +7,7 @@
     <span class="badge {% if student.active %}bg-primary-subtle text-primary{% else %}bg-secondary-subtle text-secondary{% endif %}">{{ student.active|yesno:'Active,Inactive' }}</span>
     <span>Birth year <strong>{{ student.birth_year|default_if_none:'Not recorded' }}</strong></span>
     <span>Current school <strong>{{ student.school_display|default:'Not recorded' }}</strong></span>
-    <p class="student-history-summary"><strong>{{ summary.count }}</strong> records <span aria-hidden="true">·</span> {{ summary.coverage }} <span aria-hidden="true">·</span> <a href="#student-sources" data-open-disclosure>{{ summary.sources }} source{{ summary.sources|pluralize }}</a></p>
+    <p class="student-history-summary"><strong>{{ summary.count }}</strong> total records <span aria-hidden="true">·</span> {{ summary.achievements }} achievement records <span aria-hidden="true">·</span> {{ summary.coverage }} <span aria-hidden="true">·</span> <a href="{% url 'rankings:student_detail' student.pk %}?type=sources#student-sources">{{ summary.sources }} import file{{ summary.sources|pluralize }}</a></p>
   </div>
   <details id="student-profile-details" class="student-profile-details">
     <summary>Profile details</summary>

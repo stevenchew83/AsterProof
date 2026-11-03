@@ -4,16 +4,19 @@
 {% block page_content %}
 <div class="container-fluid app-table-page student-detail" data-student-detail data-student-id="{{ student.pk }}">
   {% include 'pages/rankings/student-profile-header.html' %}
-  {% include 'pages/rankings/student-profile-timeline.html' %}
+  {% include 'pages/rankings/student-profile-highlights.html' %}
   <section class="card student-explorer" aria-labelledby="student-results-title">
+    {% include 'pages/rankings/student-profile-navigation.html' %}
     <div class="student-results-heading">
-      <h2 id="student-results-title" class="student-section-title">Results</h2>
+      <h2 id="student-results-title" class="student-section-title" data-student-view-title>{{ view_label }}</h2>
       <form method="get" action="{% url 'rankings:student_detail' student.pk %}" data-student-filters class="student-filters" role="search">
-        <div class="student-search"><label for="student-result-search" class="visually-hidden">Search results</label>{{ form.q }}</div>
+        {{ form.type }}
+        <div class="student-search"><label for="student-result-search" class="visually-hidden">Search records</label>{{ form.q }}</div>
         <div><label for="student-result-year" class="visually-hidden">Year</label>{{ form.year }}</div>
-        <div><label for="student-result-type" class="visually-hidden">Type</label>{{ form.type }}</div>
+        <div><label for="student-result-discipline" class="visually-hidden">Discipline</label>{{ form.discipline }}</div>
+        <div class="student-evidence-filter"><label for="student-result-evidence" class="visually-hidden">Evidence</label>{{ form.evidence }}</div>
         <button type="submit" class="btn btn-primary student-filters-apply">Apply</button>
-        <a href="{% url 'rankings:student_detail' student.pk %}" data-student-reset class="btn btn-link px-1" {% if not filters_active and filters_valid %}hidden{% endif %}>Reset</a>
+        <a href="{% url 'rankings:student_detail' student.pk %}?type={{ kind }}" data-student-reset class="btn btn-link px-1" {% if not filters_active and filters_valid %}hidden{% endif %}>Reset filters</a>
       </form>
     </div>
     <div class="student-request-state">
@@ -21,8 +24,10 @@
       <span data-student-feedback role="status" aria-live="polite" aria-atomic="true"></span>
       <button type="button" class="btn btn-link btn-sm" data-student-retry hidden>Retry</button>
     </div>
+    {% include 'pages/rankings/student-profile-charts.html' %}
     {% include 'pages/rankings/student-profile-results.html' %}
   </section>
+  {% include 'pages/rankings/student-profile-timeline.html' %}
   {% include 'pages/rankings/student-profile-secondary.html' %}
 </div>
 {% endblock %}

@@ -83,6 +83,7 @@ def copy_candidate(destination):
             and source not in {
                 ROOT / "inspinia/solutions/migrations/0013_solution_forum.py",
                 ROOT / "inspinia/rankings/migrations/0005_ranking_analysis_review.py",
+                ROOT / "inspinia/rankings/migrations/0006_student_achievement_profiles.py",
             }
         ):
             target = destination / source.relative_to(ROOT)
@@ -389,6 +390,7 @@ def test_sqlite_upgrade_preserves_sources_progress_solutions_and_subscribers(tmp
             ROOT / package, source / package,
             ignore=shutil.ignore_patterns(
                 "__pycache__", "static", "0013_solution_forum.py", "0005_ranking_analysis_review.py",
+                "0006_student_achievement_profiles.py",
             ),
         )
     result = subprocess.run(

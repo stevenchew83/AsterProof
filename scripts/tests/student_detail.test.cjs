@@ -1,6 +1,6 @@
 const {test} = require('node:test');
 const assert = require('node:assert/strict');
-const {createRequests, filterURL} = require('../../inspinia/static/js/student-detail.js');
+const {createRequests, filterURL, filterValues} = require('../../inspinia/static/js/student-detail.js');
 
 function deferred() { let resolve, reject; const promise = new Promise((a,b) => {resolve=a; reject=b;}); return {promise, resolve, reject}; }
 const flush = () => new Promise(resolve => setImmediate(resolve));
@@ -21,7 +21,9 @@ function harness() {
 test('filters encode literal text, omit defaults and reset page/hash', () => {
     assert.equal(filterURL('https://local.test/rankings/students/3/?page=8#old',{q:'A [B].* & C',year:'2024',type:'scores'}),
         'https://local.test/rankings/students/3/?q=A+%5BB%5D.*+%26+C&year=2024&type=scores');
-    assert.equal(filterURL('https://local.test/rankings/students/3/?page=8',{type:'all'}),'https://local.test/rankings/students/3/');
+    assert.equal(filterURL('https://local.test/rankings/students/3/?page=8',{type:'achievements'}),'https://local.test/rankings/students/3/');
+    assert.equal(filterURL('https://local.test/rankings/students/3/',{type:'all',discipline:'music',evidence:'pending'}),
+        'https://local.test/rankings/students/3/?type=all&discipline=music&evidence=pending');
 });
 test('search debounces for 250ms and coalesces input', async () => {
     const h=harness(); h.requests.run('/a',true); h.requests.run('/ab',true);
@@ -29,6 +31,12 @@ test('search debounces for 250ms and coalesces input', async () => {
     h.fire(); assert.equal(h.calls.length,1); assert.equal(h.calls[0].url,'/ab');
     assert.equal(h.calls[0].options.cache,'no-store'); assert.equal(h.calls[0].options.credentials,'same-origin');
     h.calls[0].resolve(ok('new')); await flush(); assert.deepEqual(h.events.at(-2),{html:'new',url:'/ab'});
+});
+test('chart links sync form filters and omit pagination or detail anchors', () => {
+    assert.deepEqual(filterValues('https://local.test/students/3/?q=A+%26+B&year=2025&discipline=music&evidence=achievement_verified&page=4#student-record-1'),
+        {q:'A & B',year:'2025',type:'achievements',discipline:'music',evidence:'achievement_verified'});
+    assert.deepEqual(filterValues('https://local.test/students/3/'),
+        {q:'',year:'',type:'achievements',discipline:'',evidence:''});
 });
 test('new request aborts earlier one; late success cannot overwrite', async () => {
     const h=harness(); h.requests.run('/old',false); h.requests.run('/new',false);
