@@ -40,7 +40,7 @@ from scripts.deployment.schema_rehearsal import _snapshot
 AUTHORITY = Path("/usr/local/libexec/asterproof-authority")
 AUDIT_CONFIG = Path("/etc/asterproof/migration-audit.json")
 AUTHORITY_MANIFEST = Path("/etc/asterproof/authority-manifest.json")
-MAX_SOURCE_BYTES = 1024 * 1024 * 1024
+MAX_SOURCE_BYTES = 2 * 1024 * 1024 * 1024
 MAX_METADATA_BYTES = 2 * 1024 * 1024
 MAX_AGE_SECONDS = 1800
 PRIVATE_DIRECTORY_MODE = 0o700

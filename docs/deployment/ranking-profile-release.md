@@ -62,6 +62,14 @@ sizes and permissions. Only its source-provenance manifest changes; runtime
 software, accounts, credentials and network controls remain unchanged. The
 ordinary installer still rejects a mismatching existing runtime.
 
+The separately reviewed recovery-capacity extension bounds the source database
+at 2 GiB. The storage gate still requires the configured 2 GiB free reserve plus
+twice the actual database size, after candidate preparation. Preserve all retained
+releases and recovery artifacts when provisioning capacity. The source version,
+locale, encoding, provider, extensions, isolated restore, encryption and timeout
+checks are unchanged. Capacity and cost authorization remain separate from an
+application deploy request.
+
 Follow [production bootstrap](production-bootstrap.md) and
 [production release](production-release.md). Review the literal helper diff from
 the installed authority, install from the exact clean merged revision, audit it,

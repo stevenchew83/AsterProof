@@ -107,11 +107,15 @@ def test_corrupt_or_exposed_recovery_material_is_rejected(receipt, which):
 def test_source_scope_and_isolation_commands_are_bounded():
     good = {"server_version": 170009, "encoding": "UTF8", "locale": "en_US.UTF-8", "provider": "c",
             "extensions": {"plpgsql": "1.0"}, "database_bytes": 478181043}
+    reviewed_source_bound = 2 * 1024**3
+    assert reviewed_source_bound == recovery.MAX_SOURCE_BYTES
     recovery.validate_source_metadata(good)
+    recovery.validate_source_metadata({**good, "database_bytes": 1024**3 + 1})
+    recovery.validate_source_metadata({**good, "database_bytes": recovery.MAX_SOURCE_BYTES})
     with pytest.raises(recovery.RecoveryError, match="scope"):
         recovery.validate_source_metadata({**good, "extensions": {"unreviewed": "1"}})
     with pytest.raises(recovery.RecoveryError, match="scope"):
-        recovery.validate_source_metadata({**good, "database_bytes": 2 * 1024**3})
+        recovery.validate_source_metadata({**good, "database_bytes": recovery.MAX_SOURCE_BYTES + 1})
     contract = SimpleNamespace(
         releases_dir=Path("/safe/releases"), app_user="asterproof", environment_file="/safe/env",
     )
