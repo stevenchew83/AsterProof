@@ -1,0 +1,24 @@
+<div data-student-results data-canonical-url="{{ canonical_url }}" data-match-count="{{ page_obj.paginator.count }}" data-total-count="{{ summary.count }}" data-filters-valid="{{ filters_valid|yesno:'true,false' }}" aria-busy="false">
+  {% if form.errors %}<div class="alert alert-danger" role="alert"><strong>Check the filters.</strong><ul class="mb-0">{% for field in form %}{% if field.errors %}<li id="{{ field.auto_id }}_error"><a href="#{{ field.id_for_label }}">{{ field.label }}: {{ field.errors|join:' ' }}</a></li>{% endif %}{% endfor %}</ul></div>{% endif %}
+  {% if year_groups %}
+  <div class="student-results-region app-table-region" tabindex="0" role="region" aria-label="Student results grouped by year">
+    <table class="table student-results-table mb-0" role="table">
+      <thead role="rowgroup"><tr role="row"><th scope="col" id="student-col-assessment">Assessment</th><th scope="col" id="student-col-category">Category</th><th scope="col" id="student-col-score" class="student-score">Score</th><th scope="col" id="student-col-outcome">Award / recorded status</th></tr></thead>
+      {% for group in year_groups %}
+      <tbody class="student-year-heading" role="rowgroup"><tr role="row"><th colspan="4" scope="rowgroup"><button disabled type="button" data-year-toggle="student-year-{{ group.year }}" aria-controls="student-year-{{ group.year }}" aria-expanded="true"><i class="ti ti-chevron-down" aria-hidden="true"></i><strong>{{ group.year }}</strong><span>{{ group.count }} matching record{{ group.count|pluralize }}{% if group.shown != group.count %} · {{ group.shown }} on this page{% endif %}</span></button></th></tr></tbody>
+      <tbody id="student-year-{{ group.year }}" role="rowgroup" data-student-year data-default-open="{{ group.open|yesno:'true,false' }}">
+      {% for row in group.rows %}
+        <tr id="student-result-{{ row.id }}" role="row">
+          <td headers="student-col-assessment" role="cell" class="student-assessment"><details class="student-record" id="student-record-{{ row.id }}"><summary><span>{{ row.title }}{% if row.disambiguation %}<small>{{ row.disambiguation }}</small>{% endif %}</span><span class="visually-hidden"> — record details</span></summary>{% include 'pages/rankings/student-result-details.html' %}</details></td>
+          <td headers="student-col-category" role="cell" data-label="Category">{{ row.band|default:'—' }}</td>
+          <td headers="student-col-score" role="cell" class="student-score" data-label="Score">{% if row.score != None %}{{ row.score|floatformat:'2' }}{% else %}<span aria-label="Score not recorded">—</span>{% endif %}</td>
+          <td headers="student-col-outcome" role="cell" data-label="Award / recorded status">{% for outcome in row.outcomes %}<span class="student-outcome student-outcome-{{ outcome.tone }}">{{ outcome.label }}</span>{% empty %}—{% endfor %}</td>
+        </tr>
+      {% endfor %}
+      </tbody>
+      {% endfor %}
+    </table>
+  </div>
+  {% elif filters_valid %}<p class="student-empty">{% if summary.count %}No records match these filters.{% else %}No result history recorded.{% endif %}</p>{% endif %}
+  {% include 'pages/rankings/result-pagination.html' with item_label='matching record' %}
+</div>

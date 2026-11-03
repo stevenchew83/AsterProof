@@ -1,0 +1,16 @@
+<section class="student-secondary" data-student-secondary aria-label="Sources and saved rankings">
+  <details id="student-sources" class="student-secondary-disclosure">
+    <summary>Sources &amp; provenance <span class="student-muted">{{ summary.sources }} source{{ summary.sources|pluralize }}</span></summary>
+    <p class="student-muted mt-2">Provenance for attached records, rather than a complete correction audit. Times include their timezone.</p>
+    <div class="table-responsive"><table class="table table-sm"><thead><tr><th scope="col">Source</th><th scope="col">Records</th><th scope="col">Latest import</th></tr></thead><tbody>
+    {% for source in sources %}<tr><td>{{ source.label }}{% if source.checksum %}<small>SHA-256 {{ source.checksum }}</small>{% endif %}<details><summary>Original source labels</summary><ul>{% for label in source.labels %}<li>{{ label }}</li>{% endfor %}</ul></details></td><td>{{ source.count }}</td><td>{{ source.latest|date:'j M Y, H:i T'|default:'Not recorded' }}</td></tr>{% empty %}<tr><td colspan="3">No source metadata recorded.</td></tr>{% endfor %}
+    </tbody></table></div>
+  </details>
+  {% if rankings %}
+  <details id="student-saved-rankings" class="student-secondary-disclosure"><summary>Saved rankings <span class="student-muted">{{ rankings|length }} snapshot{{ rankings|length|pluralize }}</span></summary>
+    <div class="table-responsive mt-2"><table class="table table-sm"><thead><tr><th scope="col">Season</th><th scope="col">Formula / version</th><th scope="col">Division</th><th scope="col">Saved total</th><th scope="col">Overall rank</th><th scope="col">Division rank</th><th scope="col">Computed</th></tr></thead><tbody>
+    {% for snapshot in rankings %}<tr><td>{{ snapshot.season_year }}</td><td>{{ snapshot.ranking_formula.name }}<small>{{ snapshot.formula_version_label|default:'Version not recorded' }}</small>{% if snapshot.formula_version_hash %}<code>{{ snapshot.formula_version_hash }}</code>{% endif %}</td><td>{{ snapshot.division|default:'Overall' }}</td><td>{{ snapshot.total_score|floatformat:'-4' }}</td><td>{{ snapshot.rank_overall|default_if_none:'—' }}</td><td>{{ snapshot.rank_within_division|default_if_none:'—' }}</td><td>{{ snapshot.last_computed_at|date:'j M Y, H:i T' }}</td></tr>{% endfor %}
+    </tbody></table></div>
+  </details>
+  {% else %}<p class="student-ranking-empty">No ranking snapshots recorded.</p>{% endif %}
+</section>
