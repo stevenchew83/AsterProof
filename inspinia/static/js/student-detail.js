@@ -49,11 +49,17 @@
         const url = new URL(action);
         url.search = '';
         url.hash = '';
-        ['q', 'year', 'type'].forEach(key => {
+        ['q', 'year', 'type', 'discipline', 'evidence'].forEach(key => {
             const value = values[key] || '';
-            if (value && !(key === 'type' && value === 'all')) url.searchParams.set(key, value);
+            if (value && !(key === 'type' && value === 'achievements')) url.searchParams.set(key, value);
         });
         return url.href;
+    }
+
+    function filterValues(href) {
+        const url = new URL(href);
+        return Object.fromEntries(['q', 'year', 'type', 'discipline', 'evidence'].map(name =>
+            [name, url.searchParams.get(name) || (name === 'type' ? 'achievements' : '')]));
     }
 
     function mount(root) {
@@ -64,18 +70,9 @@
         const retry = root.querySelector('[data-student-retry]');
         const reset = root.querySelector('[data-student-reset]');
         const state = loading.parentElement;
-        const fields = ['q', 'year', 'type'];
+        const fields = ['q', 'year', 'type', 'discipline', 'evidence'];
         let displayedSearch = global.location.search;
         function results() { return root.querySelector('[data-student-results]'); }
-        function expandYears() {
-            root.querySelectorAll('[data-year-toggle]').forEach(button => {
-                const body = root.querySelector('#' + button.dataset.yearToggle);
-                const open = body.dataset.defaultOpen === 'true';
-                body.hidden = !open;
-                button.disabled = false;
-                button.setAttribute('aria-expanded', String(open));
-            });
-        }
         function openTarget(hash, focus) {
             // Only local, existing IDs; never interpret source text as markup/selectors.
             const id = hash.slice(1);
@@ -84,13 +81,8 @@
             for (let node = target; node && node !== root; node = node.parentElement) {
                 if (node.tagName === 'DETAILS') node.open = true;
             }
-            const year = target.closest('[data-student-year]');
-            if (year) {
-                year.hidden = false;
-                root.querySelector('[data-year-toggle="' + year.id + '"]').setAttribute('aria-expanded', 'true');
-            }
             if (focus) {
-                (target.querySelector('summary') || target).focus();
+                (target.querySelector('summary') || target).focus({preventScroll: true});
                 target.scrollIntoView({block: 'nearest'});
             }
         }
@@ -111,24 +103,30 @@
                 const page = incoming.querySelector('[data-student-detail]');
                 if (!page) { global.location.assign(requestedURL); return; }
                 if (page.dataset.studentId !== root.dataset.studentId) throw new Error('Unexpected student');
-                const selectors = ['[data-student-results]', '[data-student-header]', '[data-student-timeline]', '[data-student-secondary]'];
+                const selectors = ['[data-student-results]', '[data-student-header]', '[data-student-timeline]', '[data-student-secondary]', '[data-student-navigation]', '[data-student-highlights]', '[data-student-charts]'];
                 const replacements = selectors.map(selector => [root.querySelector(selector), page.querySelector(selector)]);
                 if (replacements.some(pair => !pair[0] || !pair[1])) throw new Error('Incomplete page');
                 const canonical = new URL(page.querySelector('[data-student-results]').dataset.canonicalUrl, global.location.href);
                 if (canonical.origin !== global.location.origin || canonical.pathname !== global.location.pathname) throw new Error('Unexpected route');
-                const openIDs = Array.from(root.querySelectorAll('details[open][id]:not(.student-record)')).map(el => el.id);
+                const openIDs = Array.from(root.querySelectorAll('details[open][id]')).map(el => el.id);
                 const focusWasResults = results().contains(document.activeElement);
+                const focusedView = document.activeElement && document.activeElement.dataset.studentView;
+                const focusedChart = document.activeElement && document.activeElement.dataset.studentChartFilter;
                 replacements.forEach(([old, next]) => old.replaceWith(next));
+                root.querySelector('[data-student-view-title]').textContent = page.querySelector('[data-student-view-title]').textContent;
                 fields.forEach(name => {
                     const old = form.elements.namedItem(name), next = page.querySelector('[data-student-filters]').elements.namedItem(name);
+                    if (name === 'type') old.value = next.value;
                     ['aria-invalid', 'aria-describedby'].forEach(attr => {
                         if (next.hasAttribute(attr)) old.setAttribute(attr, next.getAttribute(attr));
                         else old.removeAttribute(attr);
                     });
                 });
                 reset.hidden = page.querySelector('[data-student-reset]').hidden;
-                openIDs.forEach(id => { const el = document.getElementById(id); if (el && root.contains(el)) el.open = true; });
-                expandYears();
+                openIDs.forEach(id => {
+                    const detail = document.getElementById(id);
+                    if (detail && root.contains(detail)) detail.open = true;
+                });
                 global.history.replaceState(null, '', canonical.href);
                 displayedSearch = canonical.search;
                 const valid = results().dataset.filtersValid === 'true';
@@ -137,6 +135,12 @@
                     const region = results().querySelector('[role="region"]');
                     if (region) region.focus();
                     else { feedback.tabIndex = -1; feedback.focus(); }
+                } else if (focusedView) {
+                    const view = Array.from(root.querySelectorAll('[data-student-view]')).find(link => link.dataset.studentView === focusedView);
+                    if (view) view.focus();
+                } else if (focusedChart) {
+                    const link = Array.from(root.querySelectorAll('[data-student-chart-filter]')).find(item => item.dataset.studentChartFilter === focusedChart);
+                    (link || root.querySelector('#student-charts-title')).focus({preventScroll: true});
                 }
             }
         });
@@ -147,23 +151,26 @@
         form.addEventListener('submit', event => { event.preventDefault(); apply(false); });
         form.elements.namedItem('q').addEventListener('input', event => { if (!event.isComposing) apply(true); });
         form.elements.namedItem('q').addEventListener('compositionend', () => apply(true));
-        ['year', 'type'].forEach(name => form.elements.namedItem(name).addEventListener('change', () => apply(false)));
+        ['year', 'type', 'discipline', 'evidence'].forEach(name => form.elements.namedItem(name).addEventListener('change', () => apply(false)));
         retry.addEventListener('click', () => requests.retry());
         root.addEventListener('click', event => {
-            const toggle = event.target.closest('[data-year-toggle]');
-            if (toggle) {
-                const body = document.getElementById(toggle.dataset.yearToggle);
-                body.hidden = !body.hidden;
-                toggle.setAttribute('aria-expanded', String(!body.hidden));
-                return;
-            }
             const link = event.target.closest('a');
             if (!link || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
-            if (link.matches('[data-open-disclosure]')) {
+            if (link.matches('.student-record-link')) {
                 openTarget(link.hash, true);
+            } else if (link.matches('[data-student-chart-filter]')) {
+                event.preventDefault();
+                const url = new URL(link.href);
+                const values = filterValues(url.href);
+                fields.forEach(name => { form.elements.namedItem(name).value = values[name]; });
+                requests.run(url.href, false);
+            } else if (link.matches('[data-student-view]')) {
+                event.preventDefault();
+                form.elements.namedItem('type').value = link.dataset.studentView;
+                apply(false);
             } else if (link.matches('[data-student-reset]')) {
                 event.preventDefault();
-                fields.forEach(name => { form.elements.namedItem(name).value = name === 'type' ? 'all' : ''; });
+                fields.filter(name => name !== 'type').forEach(name => { form.elements.namedItem(name).value = ''; });
                 apply(false);
             } else if (link.closest('[data-student-results] nav')) {
                 event.preventDefault(); requests.run(link.href, false);
@@ -175,12 +182,15 @@
                 openTarget(url.hash, true);
                 return;
             }
-            fields.forEach(name => { form.elements.namedItem(name).value = url.searchParams.get(name) || (name === 'type' ? 'all' : ''); });
+            const values = filterValues(url.href);
+            fields.forEach(name => { form.elements.namedItem(name).value = values[name]; });
             requests.run(url.href, false);
         });
         global.addEventListener('pagehide', () => requests.cancel());
-        root.classList.add('is-enhanced'); expandYears(); openTarget(global.location.hash, false);
+        global.addEventListener('hashchange', () => openTarget(global.location.hash, true));
+        root.classList.add('is-enhanced');
+        openTarget(global.location.hash, false);
     }
-    if (typeof module !== 'undefined' && module.exports) module.exports = {createRequests, filterURL, mount};
+    if (typeof module !== 'undefined' && module.exports) module.exports = {createRequests, filterURL, filterValues, mount};
     if (typeof document !== 'undefined') document.querySelectorAll('[data-student-detail]').forEach(mount);
 })(typeof window !== 'undefined' ? window : globalThis);

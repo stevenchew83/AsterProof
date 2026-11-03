@@ -183,6 +183,8 @@ class RankingCorrectionItem(models.Model):
         SCHOOL_ALIAS = "school_alias", "School alias"
         OUTCOME_ALIAS = "outcome_alias", "Outcome alias"
         IDENTITY = "identity", "Identity review"
+        PROFILE = "profile", "Record classification"
+        CLAIM = "claim", "Achievement claim evidence"
 
     correction = models.ForeignKey(RankingCorrection, on_delete=models.PROTECT, related_name="items")
     kind = models.CharField(max_length=20, choices=Kind.choices)

@@ -334,6 +334,18 @@
         "exact_frozen_postgresql_delta_and_prior_reader_proof"
       ],
       "rationale": "Creates eleven supporting ranking analysis, metadata, attribution, alias, identity-review, correction, durable receipt, import-conflict and serialization-lock tables. No data migration, source-record rewrite, identity consolidation or permission expansion. Existing ranking records and links are preserved; code recovery retains audit/correction data. Requires the hash-frozen PostgreSQL 17.9 preservation proof and separately installed bounded release authority."
+    },
+    "rankings.0006_student_achievement_profiles": {
+      "classification": "data-or-non-compatible",
+      "recovery_required": true,
+      "code_rollback_permitted": false,
+      "data_preconditions": [
+        "profile_and_claim_tables_absent",
+        "existing_students_results_and_provenance_preserved",
+        "new_profile_and_claim_tables_empty",
+        "exact_frozen_postgresql_delta_and_compatible_review_reader_required"
+      ],
+      "rationale": "Creates two additive result classification and per-claim evidence tables; extends correction-kind choices without rewriting existing results or backfilling verified claims. New profile/claim correction records require a reader that recognizes these kinds, so ordinary code rollback to the preceding correction reader is disabled. No permission changes, public sharing, ranking recomputation or automatic verification. Production application requires a separately prepared frozen schema allowance and preservation/compatibility evidence; this classification supplies no deployment authority."
     }
   }
 }

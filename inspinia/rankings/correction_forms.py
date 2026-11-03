@@ -3,9 +3,14 @@
 from django import forms
 
 from inspinia.rankings.models import OutcomeAlias
+from inspinia.rankings.models import ResultClaim
+from inspinia.rankings.models import ResultProfile
 from inspinia.rankings.models import School
 from inspinia.rankings.models import Student
 from inspinia.rankings.models import StudentIdentityReview
+from inspinia.rankings.models import StudentResult
+from inspinia.rankings.profile_models import EvidenceSource
+from inspinia.rankings.profile_models import EvidenceStatus
 from inspinia.rankings.services.corrections import current_values
 
 
@@ -126,6 +131,37 @@ class CorrectionForm(forms.Form):
                 "decision": forms.ChoiceField(choices=StudentIdentityReview.Decision.choices),
                 "active": forms.BooleanField(required=False, initial=True),
             }
+        elif kind == "profile":
+            dynamic = {
+                "record_type": forms.ChoiceField(choices=ResultProfile.RecordType.choices),
+                "discipline": forms.ChoiceField(choices=ResultProfile.Discipline.choices),
+                "scope": forms.ChoiceField(choices=ResultProfile.Scope.choices),
+                "scope_detail": forms.CharField(required=False, max_length=255,
+                                                help_text="Record the exact stage or region, such as Kedah-Perlis."),
+                "participation": forms.ChoiceField(choices=ResultProfile.Participation.choices),
+                "featured": forms.BooleanField(required=False, label="Selected highlight",
+                                               help_text="Also requires a reviewed award/ranking claim and source."),
+                "active": forms.BooleanField(required=False, initial=True, label="Use this classification"),
+            }
+        elif kind == "claim":
+            dynamic = {
+                "claim_type": forms.ChoiceField(choices=ResultClaim.ClaimType.choices, initial="award"),
+                "claim_label": forms.CharField(
+                    max_length=255, label="Specific claim",
+                    help_text="Review awards and rankings separately. Scores use two decimals.",
+                ),
+                "award_kind": forms.ChoiceField(choices=ResultClaim.AwardKind.choices,
+                                                help_text="Use Not classified for a score or ranking claim."),
+                "verification_status": forms.ChoiceField(choices=EvidenceStatus.choices),
+                "source_type": forms.ChoiceField(choices=EvidenceSource.choices),
+                "source_label": forms.CharField(max_length=255, required=False),
+                "source_url": forms.URLField(max_length=500, required=False),
+                "active": forms.BooleanField(required=False, initial=True, label="Use this claim"),
+            }
+            if not initial and hints.get("claim_type") == "score":
+                result = StudentResult.objects.get(pk=target_id)
+                if result.raw_score is not None:
+                    dynamic["claim_label"].initial = format(result.raw_score, ".2f")
         for name, field in dynamic.items():
             if name in initial:
                 field.initial = initial[name]
@@ -150,6 +186,6 @@ class CorrectionForm(forms.Form):
                 values[name] = values[name].pk if values[name] else None
         if self.kind == "school_alias":
             values["school_id"] = self.target_id
-        if self.kind in {"attribution", "identity", "scale"}:
+        if self.kind in {"attribution", "identity", "scale", "claim"}:
             values["evidence"] = self.cleaned_data["evidence"]
         return [{"kind": self.kind, "target_id": self.target_id, "values": values}]

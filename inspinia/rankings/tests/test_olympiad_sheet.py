@@ -236,7 +236,7 @@ def test_results_and_history_search_all_rows_before_pagination_and_escape_source
         assert "&lt;script&gt;" in html
         assert "<script>source note</script>" not in html
         assert "120101-01-1234" not in html
-    student_page = client.get(reverse("rankings:student_detail", args=[target.student_id]))
+    student_page = client.get(reverse("rankings:student_detail", args=[target.student_id]), {"type": "scores"})
     assert ">0.00</td>" in student_page.content.decode()
 
 

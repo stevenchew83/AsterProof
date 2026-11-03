@@ -1,24 +1,48 @@
-<div data-student-results data-canonical-url="{{ canonical_url }}" data-match-count="{{ page_obj.paginator.count }}" data-total-count="{{ summary.count }}" data-filters-valid="{{ filters_valid|yesno:'true,false' }}" aria-busy="false">
-  {% if form.errors %}<div class="alert alert-danger" role="alert"><strong>Check the filters.</strong><ul class="mb-0">{% for field in form %}{% if field.errors %}<li id="{{ field.auto_id }}_error"><a href="#{{ field.id_for_label }}">{{ field.label }}: {{ field.errors|join:' ' }}</a></li>{% endif %}{% endfor %}</ul></div>{% endif %}
-  {% if year_groups %}
-  <div class="student-results-region app-table-region" tabindex="0" role="region" aria-label="Student results grouped by year">
-    <table class="table student-results-table mb-0" role="table">
-      <thead role="rowgroup"><tr role="row"><th scope="col" id="student-col-assessment">Assessment</th><th scope="col" id="student-col-category">Category</th><th scope="col" id="student-col-score" class="student-score">Score</th><th scope="col" id="student-col-outcome">Award / recorded status</th></tr></thead>
+<div data-student-results data-canonical-url="{{ canonical_url }}" data-match-count="{{ match_count }}" data-total-count="{{ summary.count }}" data-filters-valid="{{ filters_valid|yesno:'true,false' }}" aria-busy="false">
+  {% if form.errors %}<div class="alert alert-danger" role="alert"><strong>Check the filters.</strong><ul>{% for field in form %}{% if field.errors %}<li id="{{ field.auto_id }}_error"><a href="#{{ field.id_for_label }}">{{ field.label }}: {{ field.errors|join:' ' }}</a></li>{% endif %}{% endfor %}</ul></div>{% endif %}
+  {% if kind == 'groups' %}<p class="student-muted mb-0">Explicit group and selection events are shown below. Competition categories such as Primary and Junior do not establish squad membership.</p>{% endif %}
+  {% if kind == 'sources' %}<p class="student-muted">Research context is retained here. It does not count as an award or establish verification.</p>{% endif %}
+  {% if year_groups and kind != 'groups' %}
+  <div class="student-results-region app-table-region table-responsive" tabindex="0" role="region" aria-label="Student results grouped by year">
+    <table class="table student-results-table mb-0 {% if show_score %}student-results-with-score{% endif %}" role="table">
+      <thead role="rowgroup"><tr role="row">
+        <th scope="col" id="student-col-assessment">{% if kind == 'sources' %}Context record{% else %}Competition / event{% endif %}</th>
+        <th scope="col" id="student-col-outcome">{% if kind == 'achievements' %}Award / achievement{% else %}Recorded outcome{% endif %}</th>
+        <th scope="col" id="student-col-category">Division &amp; scope</th>
+        {% if show_score %}<th scope="col" id="student-col-score" class="student-score">Score</th>{% endif %}
+        <th scope="col" id="student-col-evidence">Claim evidence</th>
+      </tr></thead>
       {% for group in year_groups %}
-      <tbody class="student-year-heading" role="rowgroup"><tr role="row"><th colspan="4" scope="rowgroup"><button disabled type="button" data-year-toggle="student-year-{{ group.year }}" aria-controls="student-year-{{ group.year }}" aria-expanded="true"><i class="ti ti-chevron-down" aria-hidden="true"></i><strong>{{ group.year }}</strong><span>{{ group.count }} matching record{{ group.count|pluralize }}{% if group.shown != group.count %} · {{ group.shown }} on this page{% endif %}</span></button></th></tr></tbody>
-      <tbody id="student-year-{{ group.year }}" role="rowgroup" data-student-year data-default-open="{{ group.open|yesno:'true,false' }}">
+      <tbody class="student-year-heading" role="rowgroup"><tr role="row"><th colspan="{% if show_score %}5{% else %}4{% endif %}" scope="rowgroup"><div class="student-year-label"><strong>{{ group.year }}</strong><span>{{ group.count }} matching record{{ group.count|pluralize }}</span></div></th></tr></tbody>
+      <tbody id="student-year-{{ group.year }}" role="rowgroup">
       {% for row in group.rows %}
         <tr id="student-result-{{ row.id }}" role="row">
-          <td headers="student-col-assessment" role="cell" class="student-assessment"><details class="student-record" id="student-record-{{ row.id }}"><summary><span>{{ row.title }}{% if row.disambiguation %}<small>{{ row.disambiguation }}</small>{% endif %}</span><span class="visually-hidden"> — record details</span></summary>{% include 'pages/rankings/student-result-details.html' %}</details></td>
-          <td headers="student-col-category" role="cell" data-label="Category">{{ row.band|default:'—' }}</td>
-          <td headers="student-col-score" role="cell" class="student-score" data-label="Score">{% if row.score != None %}{{ row.score|floatformat:'2' }}{% else %}<span aria-label="Score not recorded">—</span>{% endif %}</td>
-          <td headers="student-col-outcome" role="cell" data-label="Award / recorded status">{% for outcome in row.outcomes %}<span class="student-outcome student-outcome-{{ outcome.tone }}">{{ outcome.label }}</span>{% empty %}—{% endfor %}</td>
+          <td headers="student-col-assessment" role="cell" class="student-assessment">
+            <a href="#student-record-{{ row.id }}" class="student-record-link"><span>{{ row.title }}{% if row.disambiguation %}<small>{{ row.disambiguation }}</small>{% endif %}</span><span class="visually-hidden"> — evidence and context</span></a>
+            {% if row.discipline_label %}<small class="mt-1">{{ row.discipline_label }}</small>{% endif %}
+          </td>
+          <td headers="student-col-outcome" role="cell" data-label="Achievement / outcome">
+            {% for outcome in row.outcomes %}<span class="student-outcome student-outcome-{{ outcome.tone }}">{{ outcome.label }}</span>{% empty %}<span class="student-muted">{% if row.record_type == 'context' %}Research context{% else %}No award recorded{% endif %}</span>{% endfor %}
+            {% if not show_score and row.score != None %}<small>{{ row.score|floatformat:'-2' }} points</small>{% endif %}
+          </td>
+          <td headers="student-col-category" role="cell" data-label="Division & scope">
+            {% if row.band %}<span>{{ row.band }}</span>{% endif %}
+            {% if row.scope_label or row.scope_detail %}<small>{{ row.scope_label }}{% if row.scope_detail %} · {{ row.scope_detail }}{% endif %}</small>{% endif %}
+            {% if row.participation_label %}<small>{{ row.participation_label }}</small>{% endif %}
+            {% if not row.band and not row.scope_label and not row.scope_detail and not row.participation_label %}<span class="student-muted">Not recorded</span>{% endif %}
+          </td>
+          {% if show_score %}<td headers="student-col-score" role="cell" class="student-score" data-label="Score">{% if row.score != None %}{{ row.score|floatformat:'2' }}{% else %}<span aria-label="Score not recorded">—</span>{% endif %}</td>{% endif %}
+          <td headers="student-col-evidence" role="cell" data-label="Claim evidence">
+            {% for claim in row.claims %}<span class="student-evidence student-evidence-{{ claim.status }}">{{ claim.kind|capfirst }}: {{ claim.status_label }}</span>{% if claim.kind == 'ranking' %}<small>{{ claim.label }}</small>{% endif %}{% empty %}<span class="student-evidence student-evidence-{{ row.evidence_status }}">{{ row.evidence_label }}</span>{% endfor %}
+            {% if row.classification_stale %}<small>Classification needs review</small>{% endif %}
+          </td>
         </tr>
+        <tr class="student-detail-row"><td colspan="{% if show_score %}5{% else %}4{% endif %}"><details class="student-record" id="student-record-{{ row.id }}"><summary>Evidence &amp; context<span class="visually-hidden">: {{ row.title }}</span></summary>{% include 'pages/rankings/student-result-details.html' %}</details></td></tr>
       {% endfor %}
       </tbody>
       {% endfor %}
     </table>
   </div>
-  {% elif filters_valid %}<p class="student-empty">{% if summary.count %}No records match these filters.{% else %}No result history recorded.{% endif %}</p>{% endif %}
-  {% include 'pages/rankings/result-pagination.html' with item_label='matching record' %}
+  {% elif filters_valid and kind != 'groups' %}<p class="student-empty">{% if summary.count %}No {{ view_label|lower }} match these filters. Other records remain available in All records.{% else %}No result history recorded.{% endif %}</p>{% endif %}
+  {% if kind != 'groups' %}{% include 'pages/rankings/result-pagination.html' with item_label='matching record' %}{% endif %}
 </div>

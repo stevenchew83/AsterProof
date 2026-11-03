@@ -47,7 +47,10 @@ def add_result(student, code, year=2026, *, title=None, assessment_date=None, **
 
 def page(student, query=""):
     student = with_school_display(Student.objects.select_related("school")).get(pk=student.pk)
-    return build_student_detail(student, QueryDict(query), reverse("rankings:student_detail", args=[student.pk]))
+    params = QueryDict(query, mutable=True)
+    if not params.get("type"):
+        params["type"] = "all"
+    return build_student_detail(student, params, reverse("rankings:student_detail", args=[student.pk]))
 
 
 @pytest.fixture
@@ -110,17 +113,15 @@ def test_alex_complete_history_and_filter_independence(alex_history):
     assert context["summary"]["sources"] == 2
     assert context["summary"]["coverage"] == "2020\u20132026"
     assert {g["year"]: g["count"] for g in context["year_groups"]} == YEAR_COUNTS
-    assert [g["open"] for g in context["year_groups"]] == [True, False, False, False, False, False]
-    assert context["timeline_count"] == 8
+    assert context["timeline_count"] == 6
     assert [b["label"] for b in context["timeline"]] == ["2024", "2025", "Feb 2026", "Mar 2026", "Aug 2026"]
-    assert [b["count"] for b in context["timeline"]] == [1, 4, 1, 1, 1]
+    assert [b["count"] for b in context["timeline"]] == [1, 2, 1, 1, 1]
     assert context["student"].school_display == ""
     assert not context["rankings"]
     filtered = page(alex_history, "q=Grade+4&type=scores")
     assert filtered["summary"] == context["summary"]
     assert filtered["timeline"] == context["timeline"]
-    assert all(g["open"] for g in filtered["year_groups"])
-    assert page(alex_history, "type=groups")["page_obj"].paginator.count == 8
+    assert page(alex_history, "type=groups")["page_obj"].paginator.count == 6
 
 
 def test_classification_dates_and_separate_records():
@@ -148,11 +149,11 @@ def test_classification_dates_and_separate_records():
     )
     StudentSelectionStatus.objects.create(student=student, season_year=2024, status="primary")
     context = page(student)
-    assert context["timeline_count"] == 6
-    assert [b["label"] for b in context["timeline"]] == ["2022", "2024", "10 Jun 2025", "Feb 2026"]
-    assert context["timeline"][1]["count"] == 3
+    assert context["timeline_count"] == 3
+    assert [b["label"] for b in context["timeline"]] == ["2024", "10 Jun 2025", "Feb 2026"]
+    assert context["timeline"][0]["count"] == 1
     assert context["timeline"][0]["precision"] == "Year only"
-    assert context["timeline"][2]["precision"] == "Verified date"
+    assert context["timeline"][1]["precision"] == "Verified date"
     assert page(student, "type=outcomes")["page_obj"].paginator.count == 1
 
 
@@ -199,7 +200,7 @@ def test_scores_aliases_qualifications_conflicts_and_safe_details(client):
     assert page(student, "type=outcomes")["page_obj"].paginator.count == 3
     assert page(student, "q=ALIAS+GD")["page_obj"].paginator.count == 1
     client.force_login(UserFactory(role=User.Role.MODERATOR))
-    response = client.get(reverse("rankings:student_detail", args=[student.pk]))
+    response = client.get(reverse("rankings:student_detail", args=[student.pk]), {"type": "all"})
     html = response.content.decode()
     assert '<script>alert("notes")</script>' not in html
     assert "&lt;script&gt;" in html
@@ -266,13 +267,12 @@ def test_pagination_literal_search_and_query_budget():
         context = page(student, "type=scores&page=2")
     assert len(large) == len(small)
     assert len(large) <= 7
-    assert len(context["page_obj"]) == 50
+    assert len(context["page_obj"]) == 116
     assert context["year_groups"][0]["count"] == 116
-    assert context["year_groups"][0]["shown"] == 50
-    assert context["year_groups"][0]["open"]
+    assert context["year_groups"][0]["shown"] == 116
     assert "type=scores" in context["pagination_query"]
     assert page(student, "page=garbage")["page_obj"].number == 1
-    assert page(student, "page=999")["page_obj"].number == 3
+    assert page(student, "page=999")["page_obj"].number == 1
     assert page(student, "q=%5BB%5D.*+c")["page_obj"].paginator.count == 1
     assert page(student, "q=A+missing")["page_obj"].paginator.count == 0
     assert page(student, "q=%EF%BC%A1")["page_obj"].paginator.count == 1
@@ -326,13 +326,13 @@ def test_access_and_read_only_requests(client, alex_history, role, expected):
     assert before == {m: list(m.objects.order_by("pk").values()) for m in models}
 
 
-def test_timeline_preview_is_latest_six_buckets_with_complete_history():
+def test_timeline_includes_every_recorded_bucket():
     student = Student.objects.create(full_name="Long Timeline")
     for year in range(2016, 2024):
-        add_result(student, f"GROUP_{year}", year, band="Primary")
+        StudentSelectionStatus.objects.create(student=student, season_year=year, status="primary")
     context = page(student)
     assert len(context["timeline"]) == 8
-    assert [b["label"] for b in context["timeline_preview"]] == [str(year) for year in range(2018, 2024)]
+    assert [b["label"] for b in context["timeline"]] == [str(year) for year in range(2016, 2024)]
     assert context["timeline_count"] == 8
 
 
