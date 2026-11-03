@@ -75,6 +75,13 @@ def recorded_achievement(medal, status):
 def _claim(claim, fingerprint):
     stale = claim.result_fingerprint != fingerprint
     status = EvidenceStatus.PENDING if stale else claim.verification_status
+    status_label = (
+        "Needs review — result changed" if stale
+        else "Family record" if status == EvidenceStatus.REPORTED and claim.source_type == EvidenceSource.FAMILY
+        else "Reported source" if status == EvidenceStatus.REPORTED else EvidenceStatus(status).label
+    )
+    if claim.source_type == EvidenceSource.FAMILY and (stale or status != EvidenceStatus.REPORTED):
+        status_label = f"Family record — {status_label}"
     return {
         "kind": claim.claim_type,
         "kind_label": claim.get_claim_type_display(),
@@ -82,11 +89,7 @@ def _claim(claim, fingerprint):
         "award_kind_label": claim.get_award_kind_display(),
         "label": claim.claim_label,
         "status": status,
-        "status_label": (
-            "Needs review — result changed" if stale
-            else "Family record" if status == EvidenceStatus.REPORTED and claim.source_type == EvidenceSource.FAMILY
-            else "Reported source" if status == EvidenceStatus.REPORTED else EvidenceStatus(status).label
-        ),
+        "status_label": status_label,
         "source_type": claim.source_type,
         "source_type_label": claim.get_source_type_display(),
         "source_label": claim.source_label,

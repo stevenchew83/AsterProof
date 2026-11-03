@@ -1,5 +1,6 @@
 from django.urls import path
 
+from inspinia.rankings.achievement_views import achievement_text_import
 from inspinia.rankings.analysis_views import ranking_analysis_export_view
 from inspinia.rankings.analysis_views import ranking_analysis_view
 from inspinia.rankings.correction_views import correction_detail
@@ -39,6 +40,7 @@ urlpatterns = [
     path("dashboard/", ranking_dashboard_view, name="dashboard"),
     path("students/", students_list_view, name="students_list"),
     path("students/<int:student_id>/", student_detail_view, name="student_detail"),
+    path("students/<int:student_id>/achievements/import/", achievement_text_import, name="achievement_text_import"),
     path("assessments/", assessments_list_view, name="assessments_list"),
     path("formulas/", formulas_list_view, name="formulas_list"),
     path("imports/", import_center_view, name="import_center"),
