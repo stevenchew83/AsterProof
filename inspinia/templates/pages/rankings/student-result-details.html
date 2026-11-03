@@ -1,0 +1,23 @@
+<div class="student-record-body">
+  <dl class="student-metadata">
+    <div><dt>Full assessment</dt><dd>{{ row.full_title }}</dd></div>
+    <div><dt>Stored code</dt><dd><code>{{ row.code }}</code></dd></div>
+    <div><dt>Season</dt><dd>{{ row.year }}</dd></div>
+    <div><dt>Recorded category</dt><dd>{{ row.original_band|default:'Not recorded' }}</dd></div>
+    <div><dt>Recorded medal</dt><dd>{{ row.original_medal|default:'Not recorded' }}</dd></div>
+    <div><dt>Recorded status</dt><dd>{{ row.original_status|default:'Not recorded' }}</dd></div>
+    {% if row.has_alias %}<div><dt>Reviewed display aliases</dt><dd>Category: {{ row.band|default:'—' }} · Medal: {{ row.medal|default:'—' }} · Status: {{ row.status|default:'—' }}</dd></div>{% endif %}
+    {% if row.verified_date %}<div><dt>Verified assessment date</dt><dd>{{ row.verified_date|date:'j M Y' }}</dd></div>{% endif %}
+    {% if row.unverified_date %}<div><dt>Stored date (unverified)</dt><dd>{{ row.unverified_date|date:'j M Y' }}</dd></div>{% endif %}
+    {% if row.source_date %}<div><dt>Legacy source date (not an event date)</dt><dd>{{ row.source_date|date:'j M Y' }}</dd></div>{% endif %}
+    <div><dt>School recorded with result</dt><dd>{{ row.school|default:'Not recorded' }}{% if row.school %}<small>{{ row.school_basis }}</small>{% endif %}{% if row.school != row.original_school %}<small>Original school label: {{ row.original_school }}</small>{% endif %}</dd></div>
+    <div><dt>Source filename</dt><dd>{{ row.source.label|default:'Not recorded' }}</dd></div>
+    {% if row.source.original != row.source.label %}<div><dt>Original source label</dt><dd>{{ row.source.original }}</dd></div>{% endif %}
+    {% if row.source.row %}<div><dt>Source row</dt><dd>{{ row.source.row }} (Sheet1)</dd></div>{% endif %}
+    {% if row.source.checksum %}<div><dt>Source SHA-256</dt><dd>{{ row.source.checksum }}</dd></div>{% endif %}
+    <div><dt>Imported</dt><dd>{{ row.imported_at|date:'j M Y, H:i T'|default:'Not recorded' }}</dd></div>
+    <div><dt>Database updated</dt><dd>{{ row.updated_at|date:'j M Y, H:i T' }}</dd></div>
+    {% if row.notes %}<div><dt>Source notes</dt><dd class="student-source-notes">{{ row.notes }}</dd></div>{% endif %}
+    {% if row.url %}<div><dt>Source link</dt><dd><a href="{{ row.url }}" target="_blank" rel="noopener noreferrer">Open source <i class="ti ti-external-link" aria-hidden="true"></i></a></dd></div>{% endif %}
+  </dl>
+</div>

@@ -9,7 +9,6 @@ from django.contrib.auth.decorators import login_required
 from django.core.exceptions import PermissionDenied
 from django.db.models import Avg
 from django.db.models import Count
-from django.db.models import Max
 from django.db.models import Prefetch
 from django.db.models import Q
 from django.http import Http404
@@ -18,6 +17,7 @@ from django.shortcuts import get_object_or_404
 from django.shortcuts import redirect
 from django.shortcuts import render
 from django.utils import timezone
+from django.views.decorators.cache import never_cache
 
 from inspinia.rankings.forms import AssessmentResultImportForm
 from inspinia.rankings.forms import LegacyWideImportForm
@@ -41,6 +41,7 @@ from inspinia.rankings.services.privacy import mask_nric
 from inspinia.rankings.services.privacy import user_can_view_full_nric
 from inspinia.rankings.services.school_display import with_school_display
 from inspinia.rankings.services.snapshot_freshness import snapshot_freshness
+from inspinia.rankings.services.student_detail import build_student_detail
 from inspinia.users.models import AuditEvent
 from inspinia.users.monitoring import record_event
 from inspinia.users.roles import user_has_moderator_or_admin_role
@@ -511,52 +512,14 @@ def students_list_view(request):
 
 
 @login_required
+@never_cache
 def student_detail_view(request, student_id: int):
     _require_rankings_access(request)
     student = get_object_or_404(
         with_school_display(Student.objects.select_related("school")),
         pk=student_id,
     )
-    results = list(
-        student.results.select_related("assessment").order_by(
-            "-assessment__season_year",
-            "-assessment__assessment_date",
-            "assessment__sort_order",
-            "assessment__id",
-        ),
-    )
-    selection_statuses = list(
-        student.selection_statuses.select_related("created_by").order_by("-season_year", "division", "status", "id"),
-    )
-    ranking_history = list(
-        student.ranking_snapshots.select_related("ranking_formula").order_by(
-            "season_year", "division", "rank_overall", "id",
-        ),
-    )
-
-    trend_points = [
-        {
-            "label": f"{snapshot.season_year} {snapshot.division or 'overall'}",
-            "score": float(snapshot.total_score),
-        }
-        for snapshot in ranking_history
-    ]
-
-    import_summary = list(
-        student.results.exclude(source_file_name="")
-        .values("source_file_name")
-        .annotate(last_imported_at=Max("imported_at"), row_count=Count("id"))
-        .order_by("-last_imported_at", "source_file_name")[:10],
-    )
-
-    context = {
-        "student": student,
-        "results": results,
-        "selection_statuses": selection_statuses,
-        "ranking_history": ranking_history,
-        "trend_points": trend_points,
-        "import_summary": import_summary,
-    }
+    context = build_student_detail(student, request.GET, request.path)
     return render(request, "pages/rankings/student-detail.html", context)
 
 

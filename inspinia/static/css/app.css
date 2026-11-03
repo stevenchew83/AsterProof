@@ -22561,6 +22561,653 @@ table.app-table-compact .contest-row-meta {
   }
 }
 
+.student-detail {
+  font-size: 0.875rem;
+}
+.student-detail [hidden] {
+  display: none !important;
+}
+.student-detail [id] {
+  scroll-margin-top: 5rem;
+}
+.student-detail :is(a, button, summary, input, select):focus-visible {
+  outline: 2px solid var(--ins-primary);
+  outline-offset: 3px;
+}
+.student-detail .student-muted {
+  color: var(--ins-body-color);
+  font-size: 0.75rem;
+}
+.student-detail .text-muted {
+  color: var(--ins-body-color) !important;
+}
+.student-detail a:not(.btn) {
+  color: var(--ins-primary-text-emphasis);
+}
+.student-detail .form-control::-webkit-input-placeholder {
+  color: var(--ins-body-color);
+  opacity: 1;
+}
+.student-detail .form-control::-moz-placeholder {
+  color: var(--ins-body-color);
+  opacity: 1;
+}
+.student-detail .form-control:-ms-input-placeholder {
+  color: var(--ins-body-color);
+  opacity: 1;
+}
+.student-detail .form-control::-ms-input-placeholder {
+  color: var(--ins-body-color);
+  opacity: 1;
+}
+.student-detail .form-control::placeholder {
+  color: var(--ins-body-color);
+  opacity: 1;
+}
+.student-detail .student-profile .badge.bg-primary-subtle {
+  color: var(--ins-primary-text-emphasis) !important;
+}
+.student-detail .student-profile .badge.bg-secondary-subtle {
+  color: var(--ins-body-color) !important;
+}
+.student-detail .student-section-title {
+  font-size: 1rem;
+  font-weight: 600;
+  margin: 0;
+}
+.student-detail small, .student-detail .small {
+  display: block;
+  color: var(--ins-body-color);
+  font-size: 0.75rem;
+  font-weight: 400;
+}
+.student-detail code {
+  overflow-wrap: anywhere;
+}
+.student-detail summary {
+  cursor: pointer;
+}
+.student-detail .student-profile {
+  padding: 1rem 0;
+}
+.student-detail .app-page-header {
+  padding: 0 0 0.5rem;
+  margin: 0;
+  border: 0;
+  background: transparent;
+}
+.student-detail .app-page-header-title {
+  font-size: 1.5rem;
+}
+.student-detail .app-page-header-icon {
+  width: 3rem;
+  height: 3rem;
+}
+.student-detail .student-profile-meta {
+  display: -webkit-box;
+  display: -ms-flexbox;
+  display: flex;
+  -webkit-box-align: center;
+      -ms-flex-align: center;
+          align-items: center;
+  -ms-flex-wrap: wrap;
+      flex-wrap: wrap;
+  gap: 0.5rem 1.25rem;
+  padding-left: 3.625rem;
+  color: var(--ins-body-color);
+  font-size: 0.8125rem;
+}
+.student-detail .student-profile-meta strong {
+  color: var(--ins-body-color);
+  font-weight: 600;
+}
+.student-detail .student-history-summary {
+  margin: 0 0 0 auto;
+  display: -webkit-box;
+  display: -ms-flexbox;
+  display: flex;
+  -ms-flex-wrap: wrap;
+      flex-wrap: wrap;
+  gap: 0.35rem;
+  -webkit-box-align: baseline;
+      -ms-flex-align: baseline;
+          align-items: baseline;
+}
+.student-detail .student-profile-details {
+  margin: 0.65rem 0 0 3.625rem;
+  font-size: 0.75rem;
+}
+.student-detail .student-profile-details > summary {
+  color: var(--ins-body-color);
+  width: -webkit-fit-content;
+  width: -moz-fit-content;
+  width: fit-content;
+}
+.student-detail .student-profile-details .student-metadata {
+  max-width: 45rem;
+  margin-top: 0.75rem;
+}
+.student-detail .student-timeline {
+  position: relative;
+  border: 1px solid var(--ins-border-color);
+  border-radius: var(--ins-border-radius);
+  background: var(--ins-secondary-bg);
+  padding: 1rem 1.25rem;
+  margin-bottom: 1.25rem;
+}
+.student-detail .student-timeline-overview {
+  display: -webkit-box;
+  display: -ms-flexbox;
+  display: flex;
+  gap: 1.5rem;
+  -webkit-box-align: center;
+      -ms-flex-align: center;
+          align-items: center;
+  padding-right: 8rem;
+}
+.student-detail .student-timeline-heading {
+  -webkit-box-flex: 0;
+      -ms-flex: 0 0 12rem;
+          flex: 0 0 12rem;
+}
+.student-detail .student-timeline-heading p {
+  margin: 0.3rem 0 0;
+}
+.student-detail .student-timeline-track {
+  -webkit-box-flex: 1;
+      -ms-flex: 1;
+          flex: 1;
+  display: -webkit-box;
+  display: -ms-flexbox;
+  display: flex;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  min-width: 0;
+}
+.student-detail .student-timeline-track li {
+  position: relative;
+  -webkit-box-flex: 1;
+      -ms-flex: 1;
+          flex: 1;
+  min-width: 0;
+  padding: 1.125rem 0.75rem 0 0;
+  overflow-wrap: anywhere;
+}
+.student-detail .student-timeline-track li::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 0.6rem;
+  height: 0.6rem;
+  border-radius: 50%;
+  background: var(--ins-primary);
+  z-index: 1;
+}
+.student-detail .student-timeline-track li:not(:last-child)::after {
+  content: "";
+  position: absolute;
+  top: 0.25rem;
+  left: 0;
+  right: 0;
+  border-top: 1px solid var(--ins-body-color);
+  opacity: 0.35;
+}
+.student-detail .student-timeline-track strong {
+  display: block;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  margin-block: 0.2rem;
+}
+.student-detail .student-timeline-date {
+  font-size: 0.75rem;
+  color: var(--ins-body-color);
+}
+.student-detail .student-full-history {
+  font-size: 0.8125rem;
+}
+.student-detail .student-full-history > summary {
+  position: absolute;
+  top: 1.75rem;
+  right: 1.25rem;
+  width: 7rem;
+  color: var(--ins-primary-text-emphasis);
+}
+.student-detail .student-full-history > summary span {
+  display: block;
+  margin-top: 0.25rem;
+}
+.student-detail .student-event-list {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  list-style: none;
+  padding: 0;
+  gap: 1rem 2rem;
+}
+.student-detail .student-event-list h3, .student-detail .student-event-list .h3 {
+  font-size: 0.875rem;
+}
+.student-detail .student-event-list ul {
+  list-style: none;
+  padding: 0;
+}
+.student-detail .student-event-list ul li {
+  border-left: 2px solid var(--ins-border-color);
+  padding: 0.25rem 0.75rem;
+  margin: 0.5rem 0;
+  overflow-wrap: anywhere;
+}
+.student-detail .student-event-list span {
+  display: block;
+}
+.student-detail .student-explorer {
+  padding: 1rem 1.25rem;
+  -webkit-box-shadow: none;
+          box-shadow: none;
+}
+.student-detail .student-results-heading {
+  display: -webkit-box;
+  display: -ms-flexbox;
+  display: flex;
+  -webkit-box-align: center;
+      -ms-flex-align: center;
+          align-items: center;
+  gap: 1.5rem;
+}
+.student-detail .student-filters {
+  margin-left: auto;
+  display: -webkit-box;
+  display: -ms-flexbox;
+  display: flex;
+  -webkit-box-align: center;
+      -ms-flex-align: center;
+          align-items: center;
+  -ms-flex-wrap: wrap;
+      flex-wrap: wrap;
+  gap: 0.5rem;
+  -webkit-box-flex: 1;
+      -ms-flex: 1;
+          flex: 1;
+  -webkit-box-pack: end;
+      -ms-flex-pack: end;
+          justify-content: flex-end;
+}
+.student-detail .student-search {
+  -webkit-box-flex: 1;
+      -ms-flex: 1 1 15rem;
+          flex: 1 1 15rem;
+  max-width: 25rem;
+}
+.student-detail .form-control, .student-detail .form-select {
+  font-size: 0.8125rem;
+  min-height: 2.5rem;
+}
+.student-detail.is-enhanced .student-filters-apply {
+  display: none;
+}
+.student-detail .student-request-state {
+  min-height: 1.5rem;
+  font-size: 0.75rem;
+  color: var(--ins-body-color);
+  padding-top: 0.25rem;
+}
+.student-detail .student-request-state.is-error {
+  color: var(--ins-danger-text-emphasis);
+}
+.student-detail .student-results-region {
+  overflow: visible;
+}
+.student-detail .student-results-table {
+  table-layout: fixed;
+  font-size: 0.875rem;
+}
+.student-detail .student-results-table th, .student-detail .student-results-table td {
+  padding: 0.65rem 0.75rem;
+  vertical-align: top;
+  overflow-wrap: anywhere;
+}
+.student-detail .student-results-table thead th {
+  font-size: 0.75rem;
+  color: var(--ins-body-color);
+  font-weight: 500;
+  background: var(--ins-tertiary-bg);
+}
+.student-detail .student-results-table thead th:first-child {
+  width: 45%;
+}
+.student-detail .student-results-table thead th:nth-child(2) {
+  width: 18%;
+}
+.student-detail .student-results-table thead th:nth-child(3) {
+  width: 12%;
+}
+.student-detail .student-score {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+.student-detail .student-year-heading th {
+  background: var(--ins-primary-bg-subtle);
+  padding: 0;
+}
+.student-detail .student-year-heading button {
+  border: 0;
+  background: transparent;
+  width: 100%;
+  padding: 0.65rem 0.75rem;
+  display: -webkit-box;
+  display: -ms-flexbox;
+  display: flex;
+  -webkit-box-align: center;
+      -ms-flex-align: center;
+          align-items: center;
+  gap: 0.5rem;
+  text-align: left;
+  color: var(--ins-body-color);
+}
+.student-detail .student-year-heading button:disabled {
+  opacity: 1;
+}
+.student-detail .student-year-heading button strong {
+  color: var(--ins-primary-text-emphasis);
+}
+.student-detail .student-year-heading button span {
+  margin-left: auto;
+  font-size: 0.75rem;
+  color: var(--ins-body-color);
+  font-weight: 400;
+}
+.student-detail .student-year-heading button[aria-expanded=false] i {
+  -webkit-transform: rotate(-90deg);
+          transform: rotate(-90deg);
+}
+.student-detail .student-record > summary {
+  display: -webkit-box;
+  display: -ms-flexbox;
+  display: flex;
+  gap: 0.5rem;
+  -webkit-box-align: baseline;
+      -ms-flex-align: baseline;
+          align-items: baseline;
+  list-style: none;
+  font-weight: 500;
+}
+.student-detail .student-record > summary::-webkit-details-marker {
+  display: none;
+}
+.student-detail .student-record > summary::before {
+  content: "›";
+  color: var(--ins-body-color);
+  font-size: 1rem;
+  line-height: 1;
+}
+.student-detail .student-record[open] > summary::before {
+  -webkit-transform: rotate(90deg);
+          transform: rotate(90deg);
+}
+.student-detail .student-record-body {
+  background: var(--ins-tertiary-bg);
+  border-radius: 0.25rem;
+  margin-top: 0.75rem;
+  padding: 0.875rem;
+}
+.student-detail .student-metadata {
+  margin: 0;
+  font-size: 0.75rem;
+}
+.student-detail .student-metadata > div {
+  margin-bottom: 0.65rem;
+}
+.student-detail .student-metadata > div:last-child {
+  margin-bottom: 0;
+}
+.student-detail .student-metadata dt {
+  color: var(--ins-body-color);
+  font-weight: 400;
+}
+.student-detail .student-metadata dd {
+  margin: 0.125rem 0 0;
+  overflow-wrap: anywhere;
+}
+.student-detail .student-source-notes {
+  white-space: pre-wrap;
+}
+.student-detail .student-outcome {
+  display: inline-block;
+  font-size: 0.75rem;
+  border-radius: 0.25rem;
+  padding: 0.125rem 0.4rem;
+  margin: 0 0.2rem 0.15rem 0;
+  background: var(--ins-secondary-bg);
+  color: var(--ins-body-color);
+}
+.student-detail .student-outcome-gold {
+  background: var(--ins-warning-bg-subtle);
+  color: var(--ins-warning-text-emphasis);
+}
+.student-detail .student-outcome-silver {
+  background: var(--ins-secondary-bg);
+  color: var(--ins-body-color);
+}
+.student-detail .student-outcome-bronze {
+  background: var(--ins-danger-bg-subtle);
+  color: var(--ins-danger-text-emphasis);
+}
+.student-detail .student-empty {
+  padding: 2rem 0;
+  text-align: center;
+  color: var(--ins-body-color);
+}
+.student-detail .student-secondary {
+  margin: 1rem 0 2rem;
+}
+.student-detail .student-secondary-disclosure {
+  border-bottom: 1px solid var(--ins-border-color);
+  padding: 0.875rem 0;
+}
+.student-detail .student-secondary-disclosure > summary {
+  font-weight: 600;
+}
+.student-detail .student-secondary-disclosure > summary span {
+  margin-left: 0.5rem;
+  font-weight: 400;
+}
+.student-detail .student-secondary td {
+  overflow-wrap: anywhere;
+  font-size: 0.75rem;
+}
+.student-detail .student-secondary th {
+  font-size: 0.75rem;
+}
+.student-detail .student-secondary td:first-child {
+  min-width: 12rem;
+}
+.student-detail .student-ranking-empty {
+  margin: 0.75rem 0 0;
+  font-size: 0.75rem;
+  color: var(--ins-body-color);
+}
+@media (max-width: 1199.98px) {
+  .student-detail .student-history-summary {
+    margin-left: 0;
+    -ms-flex-preferred-size: 100%;
+        flex-basis: 100%;
+  }
+}
+@media (max-width: 991.98px) {
+  .student-detail .student-timeline-overview {
+    -webkit-box-align: stretch;
+        -ms-flex-align: stretch;
+            align-items: stretch;
+    -webkit-box-orient: vertical;
+    -webkit-box-direction: normal;
+        -ms-flex-direction: column;
+            flex-direction: column;
+    gap: 1rem;
+    padding-right: 0;
+  }
+  .student-detail .student-timeline-heading {
+    -ms-flex-preferred-size: auto;
+        flex-basis: auto;
+  }
+  .student-detail .student-full-history {
+    margin-top: 0.75rem;
+  }
+  .student-detail .student-full-history > summary {
+    position: static;
+    width: -webkit-fit-content;
+    width: -moz-fit-content;
+    width: fit-content;
+  }
+  .student-detail .student-full-history > summary span {
+    display: inline;
+    margin: 0 0 0 0.35rem;
+  }
+  .student-detail .student-timeline-track {
+    -webkit-box-orient: vertical;
+    -webkit-box-direction: normal;
+        -ms-flex-direction: column;
+            flex-direction: column;
+  }
+  .student-detail .student-timeline-track li {
+    display: grid;
+    grid-template-columns: 4rem minmax(0, 1fr);
+    gap: 0.125rem 0.5rem;
+    padding: 0 0 1rem 1.25rem;
+  }
+  .student-detail .student-timeline-track strong {
+    margin: 0;
+  }
+  .student-detail .student-timeline-track li > .student-muted {
+    grid-column: 1/-1;
+  }
+  .student-detail .student-timeline-track li::before {
+    top: 0.3rem;
+  }
+  .student-detail .student-timeline-track li:not(:last-child)::after {
+    top: 0.3rem;
+    bottom: -0.3rem;
+    right: auto;
+    left: 0.25rem;
+    border-top: 0;
+    border-left: 1px solid var(--ins-border-color);
+  }
+  .student-detail .student-timeline-track li:last-child {
+    padding-bottom: 0;
+  }
+  .student-detail .student-results-heading {
+    -webkit-box-align: start;
+        -ms-flex-align: start;
+            align-items: flex-start;
+    -webkit-box-orient: vertical;
+    -webkit-box-direction: normal;
+        -ms-flex-direction: column;
+            flex-direction: column;
+    gap: 0.75rem;
+  }
+  .student-detail .student-filters {
+    width: 100%;
+  }
+  .student-detail .student-search {
+    max-width: none;
+  }
+}
+@media (max-width: 767.98px) {
+  .student-detail .app-page-header-title {
+    font-size: 1.25rem;
+  }
+  .student-detail .student-profile-meta {
+    padding-left: 0;
+    gap: 0.5rem 0.75rem;
+  }
+  .student-detail .student-profile-details {
+    margin-left: 0;
+  }
+  .student-detail .student-event-list {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .student-detail .student-explorer {
+    padding: 0.875rem;
+  }
+  .student-detail .student-filters {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.25fr);
+  }
+  .student-detail .student-filters > div {
+    min-width: 0;
+  }
+  .student-detail .student-search {
+    grid-column: 1/-1;
+  }
+  .student-detail .student-filters > a {
+    justify-self: start;
+  }
+  .student-detail .student-results-table, .student-detail .student-results-table tbody {
+    display: block;
+    width: 100%;
+  }
+  .student-detail .student-results-table thead {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+  }
+  .student-detail .student-results-table tr {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.5fr);
+    border-bottom: 1px solid var(--ins-border-color);
+    padding: 0.35rem 0;
+  }
+  .student-detail .student-results-table td {
+    display: block;
+    border: 0;
+    padding: 0.35rem 0.25rem;
+  }
+  .student-detail .student-results-table .student-assessment {
+    grid-column: 1/-1;
+  }
+  .student-detail .student-results-table td::before {
+    content: attr(data-label);
+    display: block;
+    font-size: 0.6875rem;
+    color: var(--ins-body-color);
+    margin-bottom: 0.125rem;
+  }
+  .student-detail .student-results-table .student-assessment::before {
+    display: none;
+  }
+  .student-detail .student-score {
+    text-align: left;
+  }
+  .student-detail .student-results-table td:last-child {
+    grid-column: 1/-1;
+  }
+  .student-detail .student-year-heading tr {
+    display: block;
+    padding: 0;
+    border: 0;
+  }
+  .student-detail .student-year-heading th {
+    display: block;
+    padding: 0;
+  }
+  .student-detail .student-year-heading button {
+    padding: 0.65rem 0.25rem;
+  }
+  .student-detail .student-year-heading button span {
+    text-align: right;
+  }
+  .student-detail .student-record-body {
+    padding: 0.75rem;
+  }
+}
+@media (pointer: coarse) {
+  .student-detail summary, .student-detail .student-year-heading button {
+    min-height: 2.75rem;
+  }
+}
+
 .statement-analytics-page {
   padding-bottom: 1.5rem;
 }

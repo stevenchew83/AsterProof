@@ -1,0 +1,20 @@
+{% url 'rankings:students_list' as students_url %}
+<header class="student-profile" data-student-header>
+  <div class="page-title-head app-page-header">
+    {% include 'partials/page-header-intro.html' with title=student.full_name back_url=students_url back_label='Students' subtitle='Student profile' page_icon='ti-user' only %}
+  </div>
+  <div class="student-profile-meta">
+    <span class="badge {% if student.active %}bg-primary-subtle text-primary{% else %}bg-secondary-subtle text-secondary{% endif %}">{{ student.active|yesno:'Active,Inactive' }}</span>
+    <span>Birth year <strong>{{ student.birth_year|default_if_none:'Not recorded' }}</strong></span>
+    <span>Current school <strong>{{ student.school_display|default:'Not recorded' }}</strong></span>
+    <p class="student-history-summary"><strong>{{ summary.count }}</strong> records <span aria-hidden="true">·</span> {{ summary.coverage }} <span aria-hidden="true">·</span> <a href="#student-sources" data-open-disclosure>{{ summary.sources }} source{{ summary.sources|pluralize }}</a></p>
+  </div>
+  <details id="student-profile-details" class="student-profile-details">
+    <summary>Profile details</summary>
+    <dl class="student-metadata">
+      <div><dt>State</dt><dd>{{ student.state|default:'Not recorded' }}</dd></div>
+      <div><dt>External code</dt><dd>{{ student.external_code|default:'Not recorded' }}</dd></div>
+      <div><dt>Profile updated</dt><dd>{{ student.updated_at|date:'j M Y, H:i T' }}</dd></div>
+    </dl>
+  </details>
+</header>

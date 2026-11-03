@@ -9,6 +9,47 @@ from inspinia.rankings.models import StudentSelectionStatus
 _EXCEL_ACCEPT = ".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
 
 
+class StudentDetailFilterForm(forms.Form):
+    q = forms.CharField(
+        required=False,
+        max_length=255,
+        label="Search results",
+        widget=forms.TextInput(
+            attrs={
+                "type": "search",
+                "class": "form-control",
+                "placeholder": "Search assessments, categories or outcomes…",
+                "id": "student-result-search",
+                "autocomplete": "off",
+            },
+        ),
+    )
+    year = forms.ChoiceField(
+        required=False,
+        label="Year",
+        widget=forms.Select(attrs={"class": "form-select", "id": "student-result-year"}),
+    )
+    type = forms.ChoiceField(
+        required=False,
+        label="Type",
+        initial="all",
+        choices=[
+            ("all", "All records"),
+            ("scores", "Scores"),
+            ("outcomes", "Awards & outcomes"),
+            ("groups", "Groups & selections"),
+        ],
+        widget=forms.Select(attrs={"class": "form-select", "id": "student-result-type"}),
+    )
+
+    def __init__(self, *args, years=(), **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["year"].choices = [("", "All years"), *[(str(year), str(year)) for year in years]]
+
+    def clean_q(self):
+        return " ".join(self.cleaned_data["q"].split())
+
+
 class OlympiadSheetImportForm(forms.Form):
     file = forms.FileField(
         required=False,
