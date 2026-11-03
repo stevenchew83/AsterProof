@@ -15,6 +15,9 @@ from inspinia.rankings.models import ImportBatch
 from inspinia.rankings.models import RankingCorrectionReceipt
 from inspinia.rankings.models import Student
 from inspinia.rankings.models import StudentResult
+from inspinia.rankings.services.achievement_import import apply_paste
+from inspinia.rankings.services.achievement_import import prepare_paste
+from inspinia.rankings.services.achievement_import import review_paste
 from inspinia.rankings.services.corrections import StaleCorrection
 from inspinia.rankings.services.corrections import apply_proposal
 from inspinia.rankings.services.corrections import create_proposal
@@ -54,6 +57,42 @@ def worker(function):
         return function()
     finally:
         connections.close_all()
+
+
+@pytest.mark.parametrize("separate_batches", [False, True])
+def test_competing_paste_applications_create_one_context_and_one_receipt(pg_data, separate_batches):
+    admin, existing = pg_data
+    original_count = StudentResult.objects.filter(student=existing.student).count()
+
+    def prepared():
+        batch = prepare_paste(
+            student=existing.student, actor=admin, source_text="2025 SASMO — Gold",
+            source_label="Synthetic concurrent paste", default_evidence="family",
+        )
+        return review_paste(
+            batch_id=batch.pk, student_id=existing.student_id, actor=admin, rows=batch.summary_json["rows"],
+        )
+
+    first = prepared()
+    second = prepared() if separate_batches else first
+
+    def applying(batch):
+        try:
+            apply_paste(
+                batch_id=batch.pk, student_id=existing.student_id, actor=admin,
+                nonce=batch.summary_json["review_nonce"],
+            )
+        except ValueError:
+            return "held"
+        return "applied"
+
+    with ThreadPoolExecutor(max_workers=2) as pool:
+        futures = [pool.submit(worker, lambda item=item: applying(item)) for item in (first, second)]
+        assert sorted(future.result(timeout=15) for future in futures) == ["applied", "held"]
+    # One new award and one context; the original remains.
+    assert StudentResult.objects.filter(student=existing.student).count() == original_count + 2
+    assert RankingCorrectionReceipt.objects.count() == 1
+    assert ImportBatch.objects.filter(status="applied").count() == 1
 
 
 def proposal(admin, result, value):

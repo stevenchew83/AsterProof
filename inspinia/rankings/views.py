@@ -23,6 +23,7 @@ from inspinia.rankings.forms import AssessmentResultImportForm
 from inspinia.rankings.forms import LegacyWideImportForm
 from inspinia.rankings.forms import RankingTableFilterForm
 from inspinia.rankings.forms import StudentMasterImportForm
+from inspinia.rankings.imports.achievement_text import KIND as ACHIEVEMENT_PASTE_KIND
 from inspinia.rankings.imports.assessment_result_import import apply_assessment_result_import
 from inspinia.rankings.imports.assessment_result_import import assessment_result_dataframe_from_source
 from inspinia.rankings.imports.assessment_result_import import preview_assessment_result_import
@@ -44,6 +45,7 @@ from inspinia.rankings.services.snapshot_freshness import snapshot_freshness
 from inspinia.rankings.services.student_detail import build_student_detail
 from inspinia.users.models import AuditEvent
 from inspinia.users.monitoring import record_event
+from inspinia.users.roles import user_has_admin_role
 from inspinia.users.roles import user_has_moderator_or_admin_role
 
 if TYPE_CHECKING:
@@ -520,6 +522,7 @@ def student_detail_view(request, student_id: int):
         pk=student_id,
     )
     context = build_student_detail(student, request.GET, request.path)
+    context["can_import_achievements"] = user_has_admin_role(request.user)
     return render(request, "pages/rankings/student-detail.html", context)
 
 
@@ -616,6 +619,7 @@ def _log_import_complete_event(*, request, batch: ImportBatch) -> None:
 def import_center_view(request):  # noqa: C901, PLR0911, PLR0912, PLR0915 - Four import workflows.
     _require_rankings_access(request)
     context = _base_import_center_context()
+    context["can_import_achievements"] = user_has_admin_role(request.user)
 
     if request.method == "GET":
         return render(request, "pages/rankings/import-center.html", context)
@@ -730,6 +734,8 @@ def import_center_view(request):  # noqa: C901, PLR0911, PLR0912, PLR0915 - Four
             pk=request.POST.get("batch_id"),
             import_type=ImportBatch.ImportType.ASSESSMENT_RESULTS,
         )
+        if batch.summary_json.get("kind") == ACHIEVEMENT_PASTE_KIND:
+            raise Http404
         assessment = get_object_or_404(Assessment, pk=request.POST.get("assessment_id"))
         mapping = {
             "student_identifier": (request.POST.get("student_identifier") or "").strip(),
