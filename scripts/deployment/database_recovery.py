@@ -100,6 +100,21 @@ PG17_CHECK_REPARSE_EQUIVALENTS[(
     "= 'concept'::text OR (kind::text = ANY (ARRAY['lecture'::character varying::text, "
     "'technique'::character varying::text, 'standalone'::character varying::text])))"
 )
+# Exact observed PG17.9 restore rewrite for ranking claim verification evidence.
+PG17_CHECK_REPARSE_EQUIVALENTS[(
+    "public", "rankings_resultclaim", "rank_claim_verified_evidence", "c",
+    (
+        "CHECK (NOT active OR NOT verification_status::text = 'verified'::text OR NOT evidence = ''::text AND"
+        " (source_type::text = ANY (ARRAY['organizer'::character varying, 'news'::character varying, "
+        "'other'::character varying]::text[])) AND (NOT source_label::text = ''::text OR NOT source_url::text"
+        " = ''::text))"
+    ),
+)] = (
+        "CHECK (NOT active OR NOT verification_status::text = 'verified'::text OR NOT evidence = ''::text AND"
+        " (source_type::text = ANY (ARRAY['organizer'::character varying::text, 'news'::character "
+        "varying::text, 'other'::character varying::text])) AND (NOT source_label::text = ''::text OR NOT "
+        "source_url::text = ''::text))"
+)
 META_SQL = """SELECT json_build_object(
  'database',current_database(),'server_version',current_setting('server_version_num')::int,
  'database_bytes',pg_database_size(current_database()),'locale',d.datcollate,
