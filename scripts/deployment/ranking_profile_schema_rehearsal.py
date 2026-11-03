@@ -1,0 +1,289 @@
+# ruff: noqa: EM101, EM102, S102, S603, SLF001, TRY003
+"""Exact ranking-profile preservation proof; production readiness requires isolated PostgreSQL 17.9."""
+
+from __future__ import annotations
+
+import argparse
+import json
+import os
+import subprocess
+import sys
+import tempfile
+from pathlib import Path
+
+from scripts.deployment import database_recovery
+from scripts.deployment import evaluation_schema as preservation
+from scripts.deployment import ranking_profile_preservation
+from scripts.deployment import ranking_profile_schema as schema
+from scripts.deployment.newsletter_schema_rehearsal import prepare_django
+from scripts.deployment.schema_fingerprint import normalize_schema_snapshot
+from scripts.deployment.schema_fingerprint import schema_state
+from scripts.deployment.schema_rehearsal import _snapshot
+
+
+def preserved_state(connection, tables):
+    if connection.vendor != "sqlite":
+        return preservation.preserved_state(connection, tables)
+    # Django 5.1's SQLite SQL parser cannot introspect some current complex
+    # CHECK clauses. PRAGMA plus exact sqlite_master SQL avoids weakening proof.
+    rows, columns, constraints = {}, {}, {}
+    with connection.cursor() as cursor:
+        for table in sorted(tables - {"django_migrations"}):
+            quoted = connection.ops.quote_name(table)
+            cursor.execute("SELECT * FROM " + quoted)  # noqa: S608
+            rows[table] = preservation.fingerprint(sorted(preservation.fingerprint(row) for row in cursor.fetchall()))
+            cursor.execute("PRAGMA table_info(" + quoted + ")")
+            columns[table] = cursor.fetchall()
+            cursor.execute("SELECT type,name,sql FROM sqlite_master WHERE tbl_name=%s ORDER BY type,name", [table])
+            constraints[table] = cursor.fetchall()
+        cursor.execute("SELECT id,app,name,applied FROM django_migrations ORDER BY id")
+        migrations = cursor.fetchall()
+        cursor.execute("SELECT name,tbl_name,sql FROM sqlite_master WHERE type='trigger' ORDER BY name")
+        triggers = cursor.fetchall()
+        cursor.execute("SELECT name,seq FROM sqlite_sequence WHERE name<>'django_migrations' ORDER BY name")
+        sequences = cursor.fetchall()
+    return {
+        "rows": rows,
+        "columns": columns,
+        "constraints": constraints,
+        "migrations": migrations,
+        "triggers": triggers,
+        "sequences": sequences,
+    }
+
+
+def verify_preservation(connection, old_tables, before):  # noqa: C901 - Explicit preservation gates.
+    if set(connection.introspection.table_names()) != old_tables | schema.TABLES:
+        raise ValueError("Ranking profile migration changed tables outside its two-table bundle")
+    after = preserved_state(connection, old_tables)
+    for key in ("rows", "columns", "constraints", "triggers"):
+        if before[key] != after[key]:
+            raise ValueError(f"Ranking profile migration changed existing {key}")
+    if connection.vendor == "postgresql":
+        new_sequences = {f"{table}_id_seq" for table in schema.TABLES if table != "rankings_rankingwritelock"}
+        old_sequences = [row for row in after["sequences"] if row[1] not in new_sequences]
+        added_sequences = [row for row in after["sequences"] if row[1] in new_sequences]
+        if (
+            old_sequences != before["sequences"]
+            or {row[1] for row in added_sequences} != new_sequences
+            or any(row[0] != "public" or row[2] is not None for row in added_sequences)
+        ):
+            raise ValueError("Ranking profile migration changed an existing sequence or used a new sequence")
+    else:
+        old_sequences = [row for row in after["sequences"] if row[0] not in schema.TABLES]
+        new_sequences = [row for row in after["sequences"] if row[0] in schema.TABLES]
+        if old_sequences != before["sequences"] or any(row[1] != 0 for row in new_sequences):
+            raise ValueError("Ranking profile migration changed existing SQLite sequence values or used new ones")
+    added = after["migrations"][len(before["migrations"]) :]
+    if (
+        after["migrations"][:-1] != before["migrations"]
+        or len(added) != 1
+        or tuple(added[0][1:3]) != ("rankings", schema.MIGRATION_NAME)
+        or added[0][0] != before["migrations"][-1][0] + 1
+    ):
+        raise ValueError("Only the frozen ranking-profile migration recorder row may be appended")
+    connection.check_constraints()
+    with connection.cursor() as cursor:
+        for table in sorted(schema.TABLES):
+            cursor.execute("SELECT count(*) FROM " + connection.ops.quote_name(table))  # noqa: S608
+            if cursor.fetchone() != (0,):
+                raise ValueError("Ranking profile tables must remain empty after migration")
+        cursor.execute("SELECT enabled,daily_budget_micros,monthly_budget_micros FROM solutions_solutionreviewpolicy")
+        if cursor.fetchall() != [(False, 0, 0)]:
+            raise ValueError("AI policy must remain disabled and unfunded")
+
+
+def _prepare_fixture(connection):
+    from django.db.migrations.executor import MigrationExecutor
+
+    if connection.introspection.table_names():
+        raise ValueError("Ranking profile rehearsal refuses a nonempty database")
+    schema.validate_candidate(Path.cwd())
+    executor = MigrationExecutor(connection)
+    targets = [node for node in executor.loader.graph.leaf_nodes() if node[0] != "rankings"] + [
+        ("rankings", "0005_ranking_analysis_review"),
+    ]
+    executor.migrate(targets)
+    preservation.seed_legacy(executor, targets, connection)
+    apps = executor.loader.project_state(targets).apps
+    school = apps.get_model("rankings", "School").objects.create(
+        name="Synthetic school", normalized_name="synthetic school",
+    )
+    event = apps.get_model("rankings", "Assessment").objects.create(
+        code="RANKING_SCHEMA_SYNTHETIC",
+        display_name="Synthetic ranking preserved",
+        season_year=2026,
+    )
+    for birth, score in ((2017, 0), (None, 10)):
+        student = apps.get_model("rankings", "Student").objects.create(
+            full_name="Synthetic Separate Student",
+            normalized_name="synthetic separate student",
+            birth_year=birth,
+            school_id=school.pk,
+        )
+        apps.get_model("rankings", "StudentResult").objects.create(
+            student_id=student.pk,
+            assessment_id=event.pk,
+            raw_score=score,
+            band="PIONEER",
+            remarks="School in source result: Synthetic original school",
+            source_url="https://example.invalid/synthetic-ranking", source_file_name="synthetic-preserved.csv",
+        )
+    actor = apps.get_model("users", "User").objects.get(email="schema-rehearsal@example.invalid")
+    correction = apps.get_model("rankings", "RankingCorrection").objects.create(
+        created_by_id=actor.pk, reason="Synthetic preserved review", evidence="Synthetic source",
+    )
+    apps.get_model("rankings", "RankingCorrectionItem").objects.create(
+        correction_id=correction.pk, kind="student", target_id=student.pk,
+        before={"exists": True}, changes={"full_name": "Synthetic Separate Student"},
+    )
+    old_tables = set(connection.introspection.table_names())
+    return old_tables, preserved_state(connection, old_tables)
+
+
+def _disable_ai(settings):
+    settings.SOLUTION_AI_REVIEW_ENABLED = False
+    settings.PROBLEM_STATEMENT_AI_REVIEW_ENABLED = False
+    settings.SYNTHETIC_REVIEW_PROTOTYPE_ENABLED = False
+    settings.SOLUTION_AI_EXECUTION_MODE = "offline"
+    settings.OPENAI_API_KEY = ""
+
+
+def privilege_snapshot(connection):
+    """Compare role, default and prior-object ACL metadata in the isolated rehearsal."""
+    result = {}
+    with connection.cursor() as cursor:
+        for name, sql in (
+            ("roles", "SELECT rolname,rolsuper,rolinherit,rolcreaterole,rolcreatedb,rolcanlogin,"
+                      "rolreplication,rolbypassrls FROM pg_roles ORDER BY rolname"),
+            ("schemas", "SELECT nspname,nspacl::text FROM pg_namespace ORDER BY nspname"),
+            ("defaults", "SELECT defaclrole,defaclnamespace,defaclobjtype,defaclacl::text "
+                         "FROM pg_default_acl ORDER BY 1,2,3"),
+        ):
+            cursor.execute(sql)
+            result[name] = cursor.fetchall()
+        cursor.execute(
+            "SELECT n.nspname,c.relname,c.relacl::text FROM pg_class c "
+            "JOIN pg_namespace n ON n.oid=c.relnamespace WHERE n.nspname='public' "
+            "AND c.relkind IN ('r','p','S','v','m','f') "
+            "AND c.relname::text <> ALL(%s) ORDER BY 1,2",
+            [list(schema.TABLES) + [f"{table}_id_seq" for table in schema.TABLES]],
+        )
+        result["relations"] = cursor.fetchall()
+    return result
+
+
+def run(args):
+    os.environ.update(
+        OPENAI_API_KEY="",
+        SOLUTION_AI_REVIEW_ENABLED="false",
+        PROBLEM_STATEMENT_AI_REVIEW_ENABLED="false",
+        SOLUTION_AI_EXECUTION_MODE="offline",
+    )
+    connection = prepare_django()
+    from django.conf import settings
+
+    _disable_ai(settings)
+    preservation.validate_connection(connection)
+    if connection.pg_version != schema.POSTGRES_VERSION:
+        raise ValueError("Authoritative ranking-profile rehearsal requires disposable PostgreSQL 17.9")
+    old_tables, before = _prepare_fixture(connection)
+    before_catalog = normalize_schema_snapshot(_snapshot(connection))
+    privileges_before = privilege_snapshot(connection)
+    record_manifest = database_recovery.capture_manifest(connection.connection)
+    exec(schema.MIGRATION_APPLY, {})
+    verify_preservation(connection, old_tables, before)
+    ranking_profile_preservation.compare_preserved(
+        record_manifest,
+        {**ranking_profile_preservation.capture_preservation(connection.connection), "ai_review_disabled": True},
+    )
+    if privilege_snapshot(connection) != privileges_before:
+        raise ValueError("Profile migration changed existing roles or object privileges")
+    after = normalize_schema_snapshot(_snapshot(connection))
+    delta = {field: [row for row in rows if row.get("table") in schema.TABLES] for field, rows in after.items()}
+    previous = {field: [row for row in rows if row.get("table") not in schema.TABLES] for field, rows in after.items()}
+    if previous != before_catalog:
+        raise ValueError("Ranking profile migration changed prior schema objects")
+    # Retain only normalized catalog metadata for review, including on a strict mismatch.
+    args.output.with_name("ranking-profile-schema-delta.json").write_text(
+        json.dumps(delta, sort_keys=True, indent=2) + "\n",
+    )
+    if schema_state(delta)["fingerprint"] != schema.DELTA_SHA256:
+        raise ValueError("Ranking profile schema differs from its exact frozen PostgreSQL delta")
+    metadata_after = preserved_state(connection, old_tables)["migrations"]
+    smoke_env = {**os.environ, "PYTHONPATH": str(args.active_source.resolve())}
+    subprocess.run([sys.executable, "-c", schema.smoke_command()], cwd=args.active_source, env=smoke_env, check=True)
+    verify_preservation(connection, old_tables, before)
+    if (
+        normalize_schema_snapshot(_snapshot(connection)) != after
+        or privilege_snapshot(connection) != privileges_before
+        or preserved_state(connection, old_tables)["migrations"] != metadata_after
+    ):
+        raise ValueError("Active application smoke changed schema or migration records")
+    args.output.write_bytes(schema.evidence_bytes(release_sha=args.release_sha, active_sha=args.active_sha))
+    connection.close()
+    return 0
+
+
+def local_sqlite(output):
+    """Own the scratch target; callers cannot redirect this command at existing data."""
+    os.environ.update(
+        DJANGO_SETTINGS_MODULE="config.settings.test",
+        DJANGO_READ_DOT_ENV_FILE="false",
+        OPENAI_API_KEY="",
+        SOLUTION_AI_REVIEW_ENABLED="false",
+        PROBLEM_STATEMENT_AI_REVIEW_ENABLED="false",
+    )
+    from django.conf import settings
+
+    with tempfile.TemporaryDirectory(prefix="asterproof-ranking-profile-schema-") as scratch:
+        settings.DATABASES = {
+            "default": {"ENGINE": "django.db.backends.sqlite3", "NAME": str(Path(scratch) / "rehearsal.sqlite3")},
+        }
+        _disable_ai(settings)
+        import django
+
+        django.setup()
+        from django.db import connection
+
+        old_tables, before = _prepare_fixture(connection)
+        exec(schema.MIGRATION_APPLY, {})
+        verify_preservation(connection, old_tables, before)
+        output.write_text(
+            json.dumps(
+                {
+                    "format_version": 1,
+                    "verification_status": "local_sqlite_smoke_passed",
+                    "authoritative_postgresql_rehearsal": False,
+                    "production_migration_authorized": False,
+                    "existing_records_schema_triggers_sequences_preserved": True,
+                    "new_tables_empty": True,
+                    "new_tables": sorted(schema.TABLES),
+                    "migration_file_sha256": schema.MIGRATION_SHA256,
+                },
+                sort_keys=True,
+                indent=2,
+            )
+            + "\n",
+        )
+        connection.close()
+    return 0
+
+
+def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--active-source", type=Path)
+    parser.add_argument("--active-sha")
+    parser.add_argument("--release-sha")
+    parser.add_argument("--output", type=Path, required=True)
+    parser.add_argument("--sqlite", action="store_true")
+    args = parser.parse_args()
+    if args.sqlite:
+        return local_sqlite(args.output)
+    if not all((args.active_source, args.active_sha, args.release_sha)):
+        parser.error("PostgreSQL release rehearsal requires active source and exact release identities")
+    return run(args)
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

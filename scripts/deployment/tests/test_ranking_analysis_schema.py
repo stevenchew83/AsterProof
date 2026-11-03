@@ -360,16 +360,23 @@ def test_ranking_review_migration_has_exact_compatible_classification_without_ac
 
 def test_local_sqlite_preservation_is_real_and_never_claims_production_readiness(tmp_path):
     import os
+    import shutil
     import subprocess
     import sys
 
     output = tmp_path / "ranking-analysis-preservation.json"
+    source = tmp_path / "historical-source"
+    for package in ("config", "inspinia", "scripts"):
+        shutil.copytree(
+            ROOT / package, source / package,
+            ignore=shutil.ignore_patterns("__pycache__", "*.pyc", "0006_student_achievement_profiles.py"),
+        )
     environment = {key: value for key, value in os.environ.items()
                    if not key.startswith(("OPENAI", "AWS_", "AZURE_", "DATABASE_URL", "DJANGO_"))}
     result = subprocess.run(
         [sys.executable, "-m", "scripts.deployment.ranking_analysis_schema_rehearsal", "--sqlite",
          "--output", str(output)],
-        cwd=ROOT, env=environment, check=True, capture_output=True, text=True, timeout=120,
+        cwd=source, env=environment, check=True, capture_output=True, text=True, timeout=120,
     )
     assert result.returncode == 0
     report = json.loads(output.read_text())

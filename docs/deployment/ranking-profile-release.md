@@ -45,17 +45,31 @@ Read-only preflight on 3 November 2026 confirmed application revision
 `22e851efcad158b04f2dbdd4e4d0ab5314ed0123`. The public health result matched the
 active release. Installed ranking schema support stops at migration 0005.
 
-Application merge is not authority installation. The exact 0006 migration needs
-a separately authorized, frozen deployment-helper allowance, PostgreSQL 17.9
-preservation/recovery evidence and a protected data-class deployment. Do not
-dispatch this release with `migration_class=none` or bypass the installed gate.
-Follow [production bootstrap](production-bootstrap.md) and
-[production release](production-release.md); preserve the current target,
-credentials, accounts, network controls and existing release protections.
+Application merge is not authority installation. The separately authorized
+helper extension admits only `ranking-profile-maintenance-v1`, the exact 0006
+migration bytes and the frozen PostgreSQL 17.9 catalog delta
+`1e39e6ff9903566f6307ed52cb45d8a2b1e464d6131bec19f441918ea29409ba`.
+It requires the fixed RPO0 encrypted backup, isolated restore verification and
+complete old-record/sequence/large-object preservation against that backup.
+No catalogue refresh or application data backfill runs. The new empty tables
+and migration recorder retain a reader floor in deploy and rollback paths.
 
-After the bounded allowance is installed and audited, resolve the exact current
-main SHA, freeze its disclosure and dispatch Production deploy once with normal
-CI enabled. Verify the attested archive, protected environment, durable operation,
-migration record, process/health/static identities, authenticated profile filters
-and immediate stabilization. A deploy request alone does not authorize unrelated
-student corrections, metadata backfill or public publication.
+The existing private PostgreSQL runtime can be rebound to the exact new authority
+revision only with the explicit `postgres_runtime rebind-identical` administrator
+command, the previous source revision and the new attested archive digest. It
+verifies the installed tree and requires identical image, file membership, bytes,
+sizes and permissions. Only its source-provenance manifest changes; runtime
+software, accounts, credentials and network controls remain unchanged. The
+ordinary installer still rejects a mismatching existing runtime.
+
+Follow [production bootstrap](production-bootstrap.md) and
+[production release](production-release.md). Review the literal helper diff from
+the installed authority, install from the exact clean merged revision, audit it,
+and retain the unchanged target contract and protected environment. Do not
+select `migration_class=none` or bypass the installed gate.
+
+Resolve the exact current main SHA, freeze its disclosure and dispatch Production
+deploy once with normal CI enabled. Verify the attested archive, protected
+environment, durable operation, migration record, process/health/static identities,
+authenticated profile filters and immediate stabilization. A deploy request does
+not authorize unrelated student corrections, metadata backfill or publication.

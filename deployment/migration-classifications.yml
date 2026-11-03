@@ -343,7 +343,7 @@
         "profile_and_claim_tables_absent",
         "existing_students_results_and_provenance_preserved",
         "new_profile_and_claim_tables_empty",
-        "exact_frozen_postgresql_delta_and_compatible_review_reader_required"
+        "exact_pg_delta_and_review_reader_required"
       ],
       "rationale": "Creates two additive result classification and per-claim evidence tables; extends correction-kind choices without rewriting existing results or backfilling verified claims. New profile/claim correction records require a reader that recognizes these kinds, so ordinary code rollback to the preceding correction reader is disabled. No permission changes, public sharing, ranking recomputation or automatic verification. Production application requires a separately prepared frozen schema allowance and preservation/compatibility evidence; this classification supplies no deployment authority."
     }

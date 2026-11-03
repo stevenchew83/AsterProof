@@ -27,6 +27,7 @@ from scripts.deployment import newsletter_automation_schema
 from scripts.deployment import newsletter_schema
 from scripts.deployment import onboarding_schema
 from scripts.deployment import ranking_analysis_schema
+from scripts.deployment import ranking_profile_schema
 from scripts.deployment import solution_analytics_schema
 from scripts.deployment import solution_collections_schema
 from scripts.deployment import solution_document_schema
@@ -49,6 +50,8 @@ from scripts.deployment.learning_compat import verified_reader_release as verifi
 from scripts.deployment.protocol import DIGEST_RE
 from scripts.deployment.protocol import NUMERIC_RE
 from scripts.deployment.protocol import SHA_RE
+from scripts.deployment.ranking_profile_compat import READER_VERSION as PROFILE_READER_VERSION
+from scripts.deployment.ranking_profile_compat import verified_reader_release as verified_profile_reader
 from scripts.deployment.release_state import TRANSITIONS
 from scripts.deployment.release_state import ReleaseStateError
 from scripts.deployment.release_state import atomic_write_json
@@ -445,6 +448,23 @@ class WorkerBackend:
         ranking_analysis_schema.validate_candidate(release)
         self._run_candidate(contract, release, ["shell", "--command", ranking_analysis_schema.PLAN_CHECK])
 
+    def check_ranking_profile_schema(self, contract: TargetContract, release: Path) -> None:
+        ranking_profile_schema.validate_candidate(release)
+        self._run_candidate(contract, release, ["shell", "--command", ranking_profile_schema.PLAN_CHECK])
+
+    def migrate_ranking_profile_schema(self, contract: TargetContract, release: Path) -> None:
+        self._run_candidate(
+            contract, release, ["shell", "--command", ranking_profile_schema.MIGRATION_APPLY], migration=True,
+        )
+
+    def verify_ranking_profile_records(self, contract: TargetContract, run_id: str, active_sha: str) -> None:
+        from scripts.deployment.ranking_profile_preservation import verify_preserved_records
+
+        try:
+            verify_preserved_records(contract, run_id, active_sha)
+        except Exception as exc:
+            raise OperationError("ranking_profile_original_records_changed") from exc
+
     def migrate_ranking_analysis_schema(self, contract: TargetContract, release: Path) -> None:
         self._run_candidate(
             contract, release, ["shell", "--command", ranking_analysis_schema.MIGRATION_APPLY], migration=True,
@@ -788,6 +808,35 @@ class WorkerBackend:
         if (required or self.learning_reader_required(contract)) and not verified_learning_reader(release):
             raise OperationError("learning_reader_required")
 
+    def ranking_profile_reader_required(self, contract: TargetContract) -> bool:
+        try:
+            result = subprocess.run(
+                [str(MIGRATION_AUDIT_HELPER), "ranking-profile-reader-floor", "--contract", str(self.contract_path)],
+                check=True,
+                capture_output=True,
+                text=True,
+                timeout=30,
+            )
+            value = json.loads(result.stdout)
+            if (
+                not isinstance(value, dict)
+                or type(value.get("format_version")) is not int
+                or value.get("format_version") != 1
+                or type(value.get("reader_required")) is not bool
+                or type(value.get("minimum_reader_version")) is not int
+                or value["minimum_reader_version"] != (PROFILE_READER_VERSION if value["reader_required"] else 0)
+            ):
+                raise ValueError
+        except (OSError, ValueError, subprocess.SubprocessError) as exc:
+            raise OperationError("ranking_profile_reader_floor_unavailable") from exc
+        return value["reader_required"]
+
+    def ensure_ranking_profile_reader(
+        self, contract: TargetContract, release: Path, *, required: bool = False,
+    ) -> None:
+        if (required or self.ranking_profile_reader_required(contract)) and not verified_profile_reader(release):
+            raise OperationError("ranking_profile_reader_required")
+
     def legacy_service_matches(self, contract: TargetContract, source_root: Path) -> bool:
         try:
             result = subprocess.run(
@@ -1047,6 +1096,10 @@ def _deploy(
                 raise OperationError("learning_bridge_invalid") from exc
         backend.ensure_document_reader(contract, release)
         backend.ensure_learning_reader(contract, release)
+        backend.ensure_ranking_profile_reader(
+            contract, release,
+            required=request.get("schema_disclosure", {}).get("kind") == ranking_profile_schema.KIND,
+        )
         backend.candidate_check(contract, release)
         transition(state_path, "prepared")
         if request["migration_class"] == "data-or-non-compatible":
@@ -1056,13 +1109,21 @@ def _deploy(
                 if disclosure["kind"] in {community_schema.KIND, community_proof_schema.KIND}
                 else backend.catalogue_audit
             )
-            if baseline_sha is None or disclosure["active_sha"] != baseline_sha or not catalogue_schema.audit_matches(
+            if disclosure["kind"] == ranking_profile_schema.KIND:
+                maintenance_audit = backend.schema_audit
+            maintenance_matches = (
+                ranking_profile_schema.audit_matches if disclosure["kind"] == ranking_profile_schema.KIND
+                else catalogue_schema.audit_matches
+            )
+            if baseline_sha is None or disclosure["active_sha"] != baseline_sha or not maintenance_matches(
                 disclosure, maintenance_audit(contract), stage="starting",
             ):
                 raise OperationError("catalogue_starting_state_mismatch")
             try:
                 maintenance_schema.validate_build_evidence(release, disclosure)
-                if disclosure["kind"] == community_schema.KIND:
+                if disclosure["kind"] == ranking_profile_schema.KIND:
+                    backend.check_ranking_profile_schema(contract, release)
+                elif disclosure["kind"] == community_schema.KIND:
                     backend.check_community_schema(contract, release)
                 elif disclosure["kind"] == community_proof_schema.KIND:
                     backend.check_community_proof_schema(contract, release)
@@ -1073,7 +1134,7 @@ def _deploy(
             except (OSError, ValueError) as exc:
                 raise OperationError("catalogue_candidate_invalid") from exc
             backend.preflight_recovery(contract)
-            if not catalogue_schema.audit_matches(disclosure, maintenance_audit(contract), stage="starting"):
+            if not maintenance_matches(disclosure, maintenance_audit(contract), stage="starting"):
                 raise OperationError("catalogue_starting_state_drift")
             transition(state_path, "draining")
             backend.drain(contract, state_path)
@@ -1091,11 +1152,13 @@ def _deploy(
                 "recovery_archive_sha256": receipt["archive_sha256"],
             })
             atomic_write_json(state_path, state)
-            if not catalogue_schema.audit_matches(disclosure, maintenance_audit(contract), stage="starting"):
+            if not maintenance_matches(disclosure, maintenance_audit(contract), stage="starting"):
                 raise OperationError("catalogue_starting_state_drift")
             backend.assert_database_drained()
             transition(state_path, "migrating")
-            if disclosure["kind"] == community_schema.KIND:
+            if disclosure["kind"] == ranking_profile_schema.KIND:
+                backend.migrate_ranking_profile_schema(contract, release)
+            elif disclosure["kind"] == community_schema.KIND:
                 backend.migrate_community_schema(contract, release)
             elif disclosure["kind"] == community_proof_schema.KIND:
                 backend.migrate_community_proof_schema(contract, release)
@@ -1103,9 +1166,11 @@ def _deploy(
                 backend.migrate_statement_authoring_schema(contract, release)
             else:
                 backend.migrate_catalogue_schema(contract, release)
-            if not catalogue_schema.audit_matches(disclosure, maintenance_audit(contract), stage="expected"):
+            if not maintenance_matches(disclosure, maintenance_audit(contract), stage="expected"):
                 raise OperationError("catalogue_ending_state_mismatch")
-            if disclosure["kind"] == community_schema.KIND:
+            if disclosure["kind"] == ranking_profile_schema.KIND:
+                backend.verify_ranking_profile_records(contract, request["run_id"], baseline_sha)
+            elif disclosure["kind"] == community_schema.KIND:
                 backend.initialize_community_index(contract, release)
             elif disclosure["kind"] == community_proof_schema.KIND:
                 backend.check_community_proof_ai_disabled(contract, release)
@@ -1113,9 +1178,9 @@ def _deploy(
                 backend.refresh_catalogue(contract, release)
             if disclosure["kind"] == community_proof_schema.KIND:
                 backend.verify_community_proof_records(contract, request["run_id"], baseline_sha)
-            else:
+            elif disclosure["kind"] != ranking_profile_schema.KIND:
                 backend.verify_catalogue_records(contract, request["run_id"], baseline_sha)
-            if not catalogue_schema.audit_matches(disclosure, maintenance_audit(contract), stage="expected"):
+            if not maintenance_matches(disclosure, maintenance_audit(contract), stage="expected"):
                 raise OperationError("catalogue_ending_behaviour_drift")
         if request["migration_class"] == "backward-compatible-schema":
             disclosure = request.get("schema_disclosure")
@@ -1274,6 +1339,7 @@ def _deploy(
         release,
         required=request.get("schema_disclosure", {}).get("migration") == learning_schema.MIGRATION,
     )
+    backend.ensure_ranking_profile_reader(contract, release)
     backend.activate(contract, request["release_sha"])
     try:
         health = backend.restart_and_verify(contract, request["release_sha"], request["artifact_digest"])
@@ -1282,7 +1348,7 @@ def _deploy(
             or backend.state_fingerprint(contract) != ending_fingerprint
         ):
             raise OperationError("activation_state_drift")
-        if request["migration_class"] == "data-or-non-compatible" and not catalogue_schema.audit_matches(
+        if request["migration_class"] == "data-or-non-compatible" and not maintenance_matches(
             request["schema_disclosure"], maintenance_audit(contract), stage="expected",
         ):
             raise OperationError("catalogue_activation_behaviour_drift")
@@ -1296,6 +1362,7 @@ def _deploy(
         # also applies to automatic recovery after activation failure.
         backend.ensure_document_reader(contract, safe_release_path(contract.releases_dir, baseline_sha))
         backend.ensure_learning_reader(contract, safe_release_path(contract.releases_dir, baseline_sha))
+        backend.ensure_ranking_profile_reader(contract, safe_release_path(contract.releases_dir, baseline_sha))
         try:
             if backend.state_fingerprint(contract) != ending_fingerprint:
                 raise OperationError("rollback_database_state_drift")
@@ -1374,6 +1441,7 @@ def _rollback(
         raise OperationError("rollback_target_not_previous")
     backend.ensure_document_reader(contract, safe_release_path(contract.releases_dir, request["release_sha"]))
     backend.ensure_learning_reader(contract, safe_release_path(contract.releases_dir, request["release_sha"]))
+    backend.ensure_ranking_profile_reader(contract, safe_release_path(contract.releases_dir, request["release_sha"]))
     before_fingerprint = backend.state_fingerprint(contract)
     if (
         current_record["state_fingerprint"] != before_fingerprint
