@@ -6,6 +6,8 @@ import uuid
 from django import forms
 from django.forms import formset_factory
 
+from .evaluation_models import EvaluationAuditEvent
+
 DOMAINS = [("ALG", "Algebra"), ("GEO", "Geometry"), ("NT", "Number theory"), ("COM", "Combinatorics")]
 ASSESSMENTS = [
     ("no_issues_found", "No issues found"),
@@ -383,10 +385,38 @@ class SnapshotForm(WorkspaceForm):
         return _object(self.cleaned_data["protocol"])
 
 
+class ProtocolForm(WorkspaceForm):
+    profile = forms.ModelChoiceField(queryset=None, label="Frozen reviewer profile")
+    spec = forms.JSONField(
+        widget=forms.Textarea(attrs={"rows": 20}),
+        help_text=(
+            "Set partition, thresholds, min_cases, max_runs, sampling_plan, analysis_plan, population, "
+            "languages, levels, custodian_ids and aggregate_recipient_ids. All thresholds must be explicit; "
+            "recipients must already hold scoped assignments. This grants no provider or activation authority."
+        ),
+    )
+
+    def __init__(self, *args, profiles, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["profile"].queryset = profiles
+        self.fields["profile"].label_from_instance = lambda obj: obj.payload.get("name", obj.digest[:16])
+
+    def clean_spec(self):
+        return _object(self.cleaned_data["spec"])
+
+
 class RunImportForm(WorkspaceForm):
     profile = forms.ModelChoiceField(queryset=None, label="Frozen reviewer profile")
+    registration = forms.ModelChoiceField(
+        queryset=EvaluationAuditEvent.objects.none(),
+        required=False,
+        label="Preregistered protocol",
+        help_text="Use its exact candidate and rules. Leave partition and diagnostic rules empty when selected.",
+    )
     partition = forms.ChoiceField(
+        required=False,
         choices=[
+            ("", "Use preregistered partition"),
             ("development", "Development"),
             ("validation", "Internal validation"),
             ("final_test", "Locked final test"),
@@ -398,20 +428,37 @@ class RunImportForm(WorkspaceForm):
         help_text="Paste the report document. Every import remains unverified model evidence.",
     )
     protocol = forms.JSONField(
+        required=False,
         widget=forms.Textarea(attrs={"rows": 6}),
-        help_text="Frozen evaluation and risk-coverage rules.",
+        label="Diagnostic rules (unregistered imports only)",
+        help_text="Unregistered imports are development diagnostics and cannot be preregistered afterward.",
     )
 
-    def __init__(self, *args, profiles, **kwargs):
+    def __init__(self, *args, profiles, registrations=None, **kwargs):
         super().__init__(*args, **kwargs)
         self.fields["profile"].queryset = profiles
         self.fields["profile"].label_from_instance = lambda obj: obj.payload.get("name", obj.digest[:16])
+        if registrations is not None:
+            self.fields["registration"].queryset = registrations
+        self.fields["registration"].label_from_instance = lambda obj: (
+            f"{obj.metadata['body']['spec']['partition']} · {obj.metadata['digest'][:16]}"
+        )
 
     def clean_reports(self):
         return _object(self.cleaned_data["reports"])
 
     def clean_protocol(self):
-        return _object(self.cleaned_data["protocol"])
+        return _object(self.cleaned_data["protocol"] or {})
+
+    def clean(self):
+        cleaned = super().clean()
+        if cleaned.get("registration"):
+            if cleaned.get("partition") or cleaned.get("protocol"):
+                message = "Preregistered imports cannot override partition or scoring rules."
+                raise forms.ValidationError(message)
+        elif not cleaned.get("partition"):
+            self.add_error("partition", "Select the diagnostic partition or a preregistered protocol.")
+        return cleaned
 
 
 class FindingReviewForm(WorkspaceForm):

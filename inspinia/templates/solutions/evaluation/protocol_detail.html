@@ -1,0 +1,18 @@
+{% extends 'solutions/evaluation/base.html' %}
+{% block workspace_actions %}
+<a class="btn btn-outline-primary btn-sm" href="{% url 'solutions:evaluation_run_import' registration.body.snapshot_id %}">Import offline reports</a>
+{% endblock workspace_actions %}
+{% block workspace_content %}
+<div class="card"><div class="card-body">
+  <div class="alert alert-info" role="status">This protocol grants no execution, spending or activation authority. Imported reports remain unverified model evidence. AI review stays disabled.</div>
+  <dl class="row">
+    <dt class="col-md-3">Partition</dt><dd class="col-md-9">{{ registration.body.spec.partition }}</dd>
+    <dt class="col-md-3">Eligible cases / families</dt><dd class="col-md-9">{{ registration.body.eligible_cases }} / {{ registration.body.independent_families }}</dd>
+    <dt class="col-md-3">Maximum imported runs</dt><dd class="col-md-9">{{ registration.body.spec.max_runs }} · Failed and ambiguous outcomes remain counted.</dd>
+    <dt class="col-md-3">Protocol digest</dt><dd class="col-md-9 text-break"><code>{{ registration.digest }}</code></dd>
+  </dl>
+  <p class="text-muted">The input, candidate, recipients and rules are immutable. Language, population and sampling claims still require human verification. This application cannot authenticate when externally supplied reports were originally generated.</p>
+  <label class="form-label" for="frozen-protocol">Complete preregistration</label>
+  <textarea class="form-control font-monospace" id="frozen-protocol" rows="24" readonly>{{ protocol_json }}</textarea>
+</div></div>
+{% endblock workspace_content %}

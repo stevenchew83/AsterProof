@@ -60,6 +60,18 @@ Frozen snapshots bind family partitions, exact inputs, labels, reviewer identiti
 provenance and approved mathematical relationships. Withdrawals, corrections, family
 leakage and exposure invalidate eligibility without quietly creating a fresh test.
 
+Offline protocol preregistrations use immutable, authenticated audit records rather
+than an additional table. They bind a snapshot partition, exact case inputs and
+family counts, reviewer profile, rubric, explicit quality/sample thresholds,
+population/language/level and analysis declarations, named recipients and repetition
+limit before any matching report import. Existing imports cannot be retroactively
+preregistered. Identical registration is idempotent; changed rules cannot reset the
+limit. Failed and ambiguous imported runs consume slots. Named recipients must also
+retain current scoped assignments; developers still receive only one aggregate.
+The application authenticates its own registration/import chronology, not the
+original generation time of an external report. All origins remain unverified for
+model readiness, financial authority remains zero and provider execution stays off.
+
 The shared `ReviewExecutionAttempt` survives deletion of a learner-facing review.
 Fixture/import receipts bind run/case/dataset/input/profile/software/output identities.
 Receipt origins are deterministic fixture, manual import or unverified external
@@ -147,7 +159,9 @@ appointed curator. No schedule is installed. Historical D decisions are rechecke
 against current eligibility in the readiness inventory.
 
 An actual deployment, production appointment, configuration change or data erasure
-requires its applicable operational authorization. No operation is dispatched here.
+requires its applicable operational authorization. The foundation's separately
+authorized deployment is recorded in the readiness evidence; it grants no further
+operation or AI activation. Protocol preparation dispatches no provider work.
 
 ## Acceptance trace and phased evidence
 
@@ -180,6 +194,12 @@ See `offline-evaluation-isolation.md` for the reproducible isolation procedure. 
 prepares dependencies before isolation, resolves an immutable local image ID, then
 requires external-network denial and non-skipped PostgreSQL race tests. The new
 migration allowance is separate from the completed document-editor deployment guard.
+
+Protocol acceptance adds immutable pre-output rules, recipient restrictions,
+repetition preservation, legacy diagnostic compatibility, fail-closed audit and
+PostgreSQL freeze/import races in `test_evaluation_protocols.py` and
+`test_evaluation_concurrency.py`. See the [benchmark intake
+runbook](ai-solution-checking-benchmark-intake.md) for the human-evidence milestones.
 
 ## Approval gates
 

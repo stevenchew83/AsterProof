@@ -13,10 +13,12 @@ from django.db import transaction
 
 from inspinia.solutions import evaluation as ev
 from inspinia.solutions import evaluation_execution as execution
+from inspinia.solutions import evaluation_protocols as protocols
 from inspinia.solutions.evaluation_models import CoachJudgment
 from inspinia.solutions.evaluation_models import EvaluationAssignment
 from inspinia.solutions.evaluation_models import EvaluationAuditEvent
 from inspinia.solutions.evaluation_models import EvaluationDatasetSnapshot
+from inspinia.solutions.evaluation_models import EvaluationRun
 from inspinia.solutions.evaluation_models import HintRevealEvent
 from inspinia.solutions.test_evaluation_contract import case_setup as case_setup_fixture
 from inspinia.solutions.test_evaluation_contract import judgment
@@ -24,6 +26,7 @@ from inspinia.solutions.test_evaluation_execution import completed_review
 from inspinia.solutions.test_evaluation_governance import _developer
 from inspinia.solutions.test_evaluation_governance import _judged_run
 from inspinia.solutions.test_evaluation_governance import frozen as frozen_fixture
+from inspinia.solutions.test_evaluation_protocols import protocol_spec
 from inspinia.solutions.test_reviews import coach as coach_fixture
 
 pytestmark = pytest.mark.django_db(transaction=True)
@@ -56,6 +59,35 @@ def database_thread(callback):
         return callback()
     finally:
         close_old_connections()
+
+
+def test_postgres_protocol_freeze_and_import_limits_are_atomic(frozen):
+    barrier = Barrier(2)
+
+    def freeze():
+        barrier.wait(timeout=5)
+        return protocols.freeze_protocol(
+            frozen.curator, frozen.snapshot, frozen.profile, protocol_spec(frozen),
+        ).pk
+
+    with ThreadPoolExecutor(max_workers=2) as executor:
+        identifiers = [executor.submit(database_thread, freeze) for _ in range(2)]
+        assert len({future.result(timeout=10) for future in identifiers}) == 1
+    assert protocols.registrations(frozen.snapshot).count() == 1
+    event = protocols.registrations(frozen.snapshot).get()
+
+    def import_reports():
+        barrier.wait(timeout=5)
+        try:
+            ev.import_run(frozen.curator, frozen.snapshot, frozen.profile, frozen.reports, {}, registration=event)
+        except ev.EvaluationError as error:
+            return error.status
+        return 201
+
+    with ThreadPoolExecutor(max_workers=2) as executor:
+        attempts = [executor.submit(database_thread, import_reports) for _ in range(2)]
+        assert sorted(future.result(timeout=10) for future in attempts) == [201, 409]
+    assert EvaluationRun.objects.count() == 1
 
 
 def test_postgres_duplicate_hint_reveal_records_one_event(coach):
