@@ -1,15 +1,22 @@
 {% extends 'layouts/vertical.html' %}
 
-{% load static solution_list_reviews %}
+{% load l10n static solution_list_reviews %}
 
 {% block title %}My solutions{% endblock title %}
+{% block extra_css %}<link rel="stylesheet" href="{% static 'css/my-solutions.css' %}">{% endblock extra_css %}
 
 {% block page_content %}
-<div class="container-fluid app-table-page">
+<div class="container-fluid app-table-page my-solutions" data-my-solutions>
+  <header class="page-title-head app-page-header">
+    {% include 'partials/page-header-intro.html' with title='My solutions' subtitle='Personal' page_icon='ti-notebook' only %}
+    {% if my_solution_rows or not solution_guide.visible %}
+    <div class="app-page-header-actions">
+      <a id="create-solution-cta" href="{% url 'solutions:problem_solution_create' %}" class="btn btn-primary btn-sm"><i class="ti ti-plus me-1" aria-hidden="true"></i>New solution</a>
+    </div>
+    {% endif %}
+  </header>
 
-  {% include 'partials/page-title.html' with title='My solutions' subtitle='Personal' page_icon='ti-notebook' %}
   {% if writer_draft %}<div class="alert alert-info mt-3" role="status">Your Solution Writer draft is waiting. <a class="alert-link" href="{{ writer_handoff_url }}">Choose a problem and continue</a>.</div>{% endif %}
-
   {% if messages %}
   <div class="mt-3">
     {% for message in messages %}
@@ -21,167 +28,169 @@
   </div>
   {% endif %}
 
-  {% include 'solutions/partials/solution-guide.html' %}
-
-  {% if solution_collections %}
-  <section class="card mt-3"><div class="card-body">
-    <h2 class="h5">Your collections</h2>
-    <ul class="list-group list-group-flush">{% for collection in solution_collections %}<li class="list-group-item d-flex align-items-center justify-content-between gap-3 px-0"><div><a class="fw-semibold" href="{% url 'solutions:collection_edit' collection.pk %}">{{ collection.title }}</a><span class="text-muted fs-xs d-block">{{ collection.entry_count }} selected solution{{ collection.entry_count|pluralize }} · {% if collection.is_active %}Public link active{% else %}Sharing stopped{% endif %}</span></div><a href="{% url 'solutions:collection_edit' collection.pk %}" class="btn btn-outline-secondary btn-sm">Manage collection</a></li>{% endfor %}</ul>
-  </div></section>
-  {% endif %}
-
-  {% if my_solution_stats.total %}
-  <div class="row g-3 mt-0">
-    <div class="col-sm-6 col-xl-3">
-      <div class="card m-0">
-        <div class="card-body">
-          <div class="d-flex align-items-center">
-            <div class="flex-shrink-0">
-              <span class="avatar-title bg-primary-subtle text-primary rounded">
-                <i class="ti ti-stack-2 fs-24"></i>
-              </span>
+  {% if my_solution_rows %}
+    <div class="row g-2 g-lg-3 mb-2">
+      <section class="col-lg-6" aria-labelledby="my-solutions-status-heading">
+        <div class="card h-100 mb-0">
+          <div class="card-body my-solutions-chart">
+            <div class="my-solutions-chart-heading">
+              <h2 class="header-title mb-0" id="my-solutions-status-heading">Solution status</h2>
+              <span class="text-muted fs-xs">All time</span>
             </div>
-            <div class="flex-grow-1 ms-2">
-              <p class="text-muted mb-0 fs-xs text-uppercase fw-semibold">All solutions</p>
-              <h3 class="mb-0">{{ my_solution_stats.total }}</h3>
+            <p class="my-solutions-total mb-2"><strong>{{ my_solution_stats.total }}</strong> saved solution{{ my_solution_stats.total|pluralize }}</p>
+            <div class="my-solutions-status-bar" aria-hidden="true">
+              {% for status in my_solution_statuses %}
+              <span class="my-solutions-status-{{ status.key }}" style="--solution-count: {{ status.count|unlocalize }}"></span>
+              {% endfor %}
+            </div>
+            <div class="my-solutions-status-legend" role="group" aria-label="Filter by solution status">
+              {% for status in my_solution_statuses %}
+              <button type="button" class="btn btn-sm my-solutions-status-{{ status.key }}" data-solutions-status="{{ status.key }}" aria-controls="my-solutions-results" aria-pressed="false" disabled>
+                <span class="my-solutions-status-dot" aria-hidden="true"></span><strong>{{ status.count }}</strong> <span>{{ status.label }}</span>
+              </button>
+              {% endfor %}
             </div>
           </div>
         </div>
-      </div>
-    </div>
-    <div class="col-sm-6 col-xl-3">
-      <div class="card m-0">
-        <div class="card-body">
-          <div class="d-flex align-items-center">
-            <div class="flex-shrink-0">
-              <span class="avatar-title bg-warning-subtle text-warning rounded">
-                <i class="ti ti-pencil fs-24"></i>
-              </span>
+      </section>
+      <section class="col-lg-6" aria-labelledby="my-solutions-activity-heading">
+        <div class="card h-100 mb-0">
+          <div class="card-body my-solutions-chart">
+            <div class="my-solutions-chart-heading">
+              <h2 class="header-title mb-0" id="my-solutions-activity-heading">Writing activity</h2>
+              <span class="text-muted fs-xs">Last 8 weeks</span>
             </div>
-            <div class="flex-grow-1 ms-2">
-              <p class="text-muted mb-0 fs-xs text-uppercase fw-semibold">Drafts</p>
-              <h3 class="mb-0">{{ my_solution_stats.draft_total }}</h3>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-    <div class="col-sm-6 col-xl-3">
-      <div class="card m-0">
-        <div class="card-body">
-          <div class="d-flex align-items-center">
-            <div class="flex-shrink-0">
-              <span class="avatar-title bg-success-subtle text-success rounded">
-                <i class="ti ti-world-check fs-24"></i>
-              </span>
-            </div>
-            <div class="flex-grow-1 ms-2">
-              <p class="text-muted mb-0 fs-xs text-uppercase fw-semibold">Published</p>
-              <h3 class="mb-0">{{ my_solution_stats.published_total }}</h3>
+            <p class="text-muted fs-xs mb-1">New solutions per week</p>
+            <div class="my-solutions-weeks" role="group" aria-label="Filter by week created">
+              {% for week in my_solution_activity %}
+              {% widthratio week.count my_solution_activity_peak 100 as bar_height %}
+              <button type="button" class="btn my-solutions-week" data-solutions-week="{{ week.key }}" data-week-label="{{ week.start|date:'M j, Y' }}" aria-label="Week of {{ week.start|date:'M j, Y' }}, {{ week.count }} new solution{{ week.count|pluralize }}" aria-controls="my-solutions-results" aria-pressed="false" disabled>
+                <span class="my-solutions-week-plot" aria-hidden="true">
+                  <strong>{{ week.count }}</strong>
+                  <span class="my-solutions-week-bar" style="--week-height: {{ bar_height }}%"></span>
+                </span>
+                <time datetime="{{ week.start|date:'Y-m-d' }}"><span>{{ week.start|date:'M' }}</span> <span>{{ week.start|date:'j' }}</span></time>
+              </button>
+              {% endfor %}
             </div>
           </div>
         </div>
-      </div>
+      </section>
     </div>
-    <div class="col-sm-6 col-xl-3">
-      <div class="card m-0">
-        <div class="card-body">
-          <div class="d-flex align-items-center">
-            <div class="flex-shrink-0">
-              <span class="avatar-title bg-info-subtle text-info rounded">
-                <i class="ti ti-send fs-24"></i>
-              </span>
-            </div>
-            <div class="flex-grow-1 ms-2">
-              <p class="text-muted mb-0 fs-xs text-uppercase fw-semibold">Submitted</p>
-              <h3 class="mb-0">{{ my_solution_stats.submitted_total }}</h3>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
+  {% else %}
+    {% include 'solutions/partials/solution-guide.html' %}
   {% endif %}
 
   {% if my_solution_rows or not solution_guide.visible %}
-  <div class="card mt-3">
-    <div class="card-header border-bottom">
-      <div class="d-flex flex-wrap align-items-center justify-content-between gap-2">
-        <h4 class="header-title mb-0">Your solution workspace</h4>
-        <a
-          id="create-solution-cta"
-          href="{% url 'solutions:problem_solution_create' %}"
-          class="btn btn-primary btn-sm"
-        >
-          <i class="ti ti-plus me-1"></i>Create new solution
-        </a>
-      </div>
+  <section class="card mt-2" aria-labelledby="my-solutions-list-heading">
+    <div class="card-header border-bottom d-flex flex-wrap gap-2 align-items-center justify-content-between">
+      <h2 class="header-title mb-0" id="my-solutions-list-heading">Saved solutions</h2>
+      {% if my_solution_rows %}<span class="text-muted fs-xs" role="status" data-solutions-count>{{ my_solution_stats.total }} solution{{ my_solution_stats.total|pluralize }}</span>{% endif %}
     </div>
-    <div class="card-body">
-      {% if my_solution_rows %}
-      {% with_author_review_status request.user my_solution_rows as solution_rows_with_reviews %}
-      <form method="get" action="{% url 'solutions:collection_create' %}" data-collection-selection>
-      <div class="d-flex align-items-center flex-wrap gap-2 mb-3">
-        <label class="visually-hidden" for="collection-solution-search">Filter your solutions</label>
-        <input type="search" class="form-control form-control-sm w-auto" id="collection-solution-search" placeholder="Filter your solutions" data-collection-filter />
-        <button class="btn btn-outline-primary btn-sm" data-collection-submit>Share selected solutions</button>
-        <span class="text-muted fs-xs" role="status" aria-live="polite" data-selection-count>Select solutions in reading order.</span>
+    {% if my_solution_rows %}
+    {% with_author_review_status request.user my_solution_rows as solution_rows_with_reviews %}
+    <form method="get" action="{% url 'solutions:collection_create' %}" data-collection-selection>
+      <div class="my-solutions-toolbar px-3 py-2" data-solutions-controls hidden>
+        <div class="input-group input-group-sm my-solutions-search">
+          <label for="collection-solution-search" class="input-group-text"><i class="ti ti-search" aria-hidden="true"></i><span class="visually-hidden">Search solutions</span></label>
+          <input type="search" class="form-control" id="collection-solution-search" placeholder="Search problem or title" data-solutions-search>
+        </div>
+        <label class="visually-hidden" for="my-solutions-status">Solution status</label>
+        <select class="form-select form-select-sm" id="my-solutions-status" data-solutions-status-select>
+          <option value="">All statuses</option>
+          {% for status in my_solution_statuses %}<option value="{{ status.key }}">{{ status.label }}</option>{% endfor %}
+        </select>
+        <label class="visually-hidden" for="my-solutions-review">AI review status</label>
+        <select class="form-select form-select-sm" id="my-solutions-review" data-solutions-review-select>
+          <option value="">Any AI review</option>
+        </select>
+        <button type="button" class="btn btn-link btn-sm px-1" data-solutions-clear hidden>Clear filters</button>
+        <span class="text-muted fs-xs" data-solutions-week-label hidden></span>
       </div>
-      <div class="mb-3" data-selection-tray hidden><h3 class="h6">Selected reading order</h3><ol class="list-group list-group-numbered" data-collection-order></ol></div>
-      <div class="app-table-region table-responsive" tabindex="0" role="region" aria-label="Scrollable results">
-        <table class="app-table-compact table align-middle mb-0">
-          <thead>
-            <tr class="text-muted fs-xs text-uppercase">
-              <th><span class="visually-hidden">Select for collection</span></th>
-              <th>Problem</th>
-              <th>Status</th>
-              <th>AI review</th>
-              <th>Updated</th>
-              <th class="text-end">Actions</th>
+      <div class="my-solutions-results" id="my-solutions-results">
+        <table class="my-solutions-table table align-middle mb-0" role="table" aria-label="Saved solutions">
+          <thead role="rowgroup">
+            <tr role="row">
+              <th scope="col"><span class="visually-hidden">Select for collection</span></th>
+              <th scope="col">Solution</th>
+              <th scope="col">Status</th>
+              <th scope="col">AI review</th>
+              <th scope="col">Updated</th>
+              <th scope="col" class="text-end">Actions</th>
             </tr>
           </thead>
-          <tbody>
+          <tbody role="rowgroup">
             {% for row in solution_rows_with_reviews %}
-            <tr data-solution-row>
-              <td><input type="checkbox" name="solution" value="{{ row.id }}" class="form-check-input" data-solution-choice data-solution-label="{{ row.title }} · {{ row.problem_label }}" aria-label="Select {{ row.problem_label }} for collection" /><span class="badge bg-primary-subtle text-primary ms-1" data-selection-number hidden></span></td>
-              <td>
-                <span class="fw-semibold">{{ row.problem_label }}</span>
-                <span class="text-muted fs-12 app-table-meta">{{ row.title }}</span>
+            <tr role="row" data-solution-row data-solution-status="{{ row.status }}" data-solution-week="{{ row.activity_week }}" data-solution-review="{{ row.ai_review.label|default:'Not reviewed' }}">
+              <td role="cell" class="my-solutions-select"><div class="d-inline-flex align-items-center gap-1"><input type="checkbox" name="solution" value="{{ row.id }}" class="form-check-input m-0" data-solution-choice data-solution-label="{{ row.title }} · {{ row.problem_label }}" aria-label="Select {{ row.problem_label }} for collection"><span class="badge bg-primary-subtle text-primary" data-selection-number hidden></span></div></td>
+              <td role="cell" class="my-solutions-name">
+                <span class="fw-semibold text-body d-block">{{ row.title }}</span>
+                <span class="text-muted fs-xs">{{ row.problem_label }}</span>
               </td>
-              <td><span class="badge {{ row.status_badge_class }}">{{ row.status_label }}</span>{% if row.has_public_link %}<span class="badge bg-info-subtle text-info">Public link active</span>{% endif %}</td>
-              <td class="text-nowrap">
+              <td role="cell" class="my-solutions-state">
+                <span class="my-solutions-status-label my-solutions-status-{{ row.status }}"><span class="my-solutions-status-dot" aria-hidden="true"></span>{{ row.status_label }}</span>
+                {% if row.has_public_link %}<span class="text-muted fs-xs d-block"><i class="ti ti-link" aria-hidden="true"></i> Public link active</span>{% endif %}
+              </td>
+              <td role="cell" class="my-solutions-review">
+                <span class="my-solutions-mobile-label text-muted">AI review</span>
                 {% if row.ai_review %}
-                <a href="{{ row.view_url }}#ai-review" class="text-decoration-none">{% if row.ai_review.score != None %}<span class="fw-semibold">{{ row.ai_review.score }}/7</span> · {% endif %}{{ row.ai_review.label }}</a>
+                  <a href="{{ row.view_url }}#ai-review" class="text-decoration-none">{% if row.ai_review.score != None %}<span class="fw-semibold">{{ row.ai_review.score }}/7</span> · {% endif %}{{ row.ai_review.label }}</a>
                 {% else %}
-                <span class="text-muted">Not reviewed</span>
+                  <span class="text-muted">Not reviewed</span>
                 {% endif %}
               </td>
-              <td class="text-muted">{{ row.updated_at_label }}</td>
-              <td class="text-end">
-                <div class="app-table-actions d-inline-flex justify-content-end gap-2">
+              <td role="cell" class="text-muted my-solutions-updated"><span class="my-solutions-mobile-label">Updated</span>{{ row.updated_at_label }}</td>
+              <td role="cell" class="text-end my-solutions-actions">
+                <div class="d-inline-flex gap-1">
                   <a href="{{ row.view_url }}" class="btn btn-outline-primary btn-sm">View solution</a>
-                  <a href="{{ row.problem_url }}" class="btn btn-outline-secondary btn-sm">Problem page</a>
-                  <a href="{{ row.edit_url }}" class="btn btn-primary btn-sm">Edit draft</a>
-                  {% if row.has_public_link %}<a href="{{ row.share_manage_url }}" class="btn btn-outline-secondary btn-sm">Manage link</a>{% endif %}
+                  <div class="dropdown">
+                    <button type="button" class="btn btn-sm my-solutions-menu" data-bs-toggle="dropdown" aria-expanded="false" aria-label="More actions for {{ row.problem_label }}"><i class="ti ti-dots" aria-hidden="true"></i></button>
+                    <ul class="dropdown-menu dropdown-menu-end">
+                      <li><a class="dropdown-item" href="{{ row.edit_url }}">Edit solution</a></li>
+                      <li><a class="dropdown-item" href="{{ row.problem_url }}">Problem page</a></li>
+                      {% if row.has_public_link %}<li><a class="dropdown-item" href="{{ row.share_manage_url }}">Manage link</a></li>{% endif %}
+                    </ul>
+                  </div>
                 </div>
               </td>
             </tr>
             {% endfor %}
           </tbody>
         </table>
+        <p class="text-muted px-3 py-3 mb-0" data-solutions-empty hidden>No solutions match these filters.</p>
       </div>
-      </form>
-      {% else %}
-      <div class="alert alert-info mb-0" role="alert">
-        You have not started any solutions yet. Pick a statement-backed problem and create your first draft.
+      <div class="px-3 py-2 d-flex flex-wrap align-items-center gap-2">
+        <button class="btn btn-outline-secondary btn-sm" data-collection-submit>Share selected solutions</button>
+        <span class="text-muted fs-xs" role="status" data-selection-count>Select solutions in reading order.</span>
       </div>
-      <div class="mt-3">
-        <a href="{% url 'solutions:problem_solution_create' %}" class="btn btn-primary btn-sm">Create new solution</a>
-      </div>
-      {% endif %}
-    </div>
-  </div>
+      <div class="px-3 pb-3" data-selection-tray hidden><h3 class="h6">Selected reading order</h3><ol class="list-group list-group-numbered mb-0" data-collection-order></ol></div>
+    </form>
+    {% else %}
+    <p class="card-body text-muted mb-0">You have not started any solutions yet. Pick a statement-backed problem and create your first draft.</p>
+    {% endif %}
+  </section>
   {% endif %}
+
+  {% if solution_collections %}
+  <details class="card mt-3">
+    <summary class="card-header"><i class="ti ti-folders me-1" aria-hidden="true"></i> Your collections <span class="text-muted fs-xs ms-1">{{ solution_collections|length }}</span></summary>
+    <ul class="list-group list-group-flush">
+      {% for collection in solution_collections %}
+        <li class="list-group-item d-flex flex-wrap align-items-center justify-content-between gap-2">
+          <div>
+            <a class="fw-semibold" href="{% url 'solutions:collection_edit' collection.pk %}">{{ collection.title }}</a>
+            <span class="text-muted fs-xs d-block">{{ collection.entry_count }} selected solution{{ collection.entry_count|pluralize }} · {% if collection.is_active %}Public link active{% else %}Sharing stopped{% endif %}</span>
+          </div>
+          <a href="{% url 'solutions:collection_edit' collection.pk %}" class="btn btn-outline-secondary btn-sm">Manage collection</a>
+        </li>
+      {% endfor %}
+    </ul>
+  </details>
+  {% endif %}
+  {% if my_solution_rows %}{% include 'solutions/partials/solution-guide.html' %}{% endif %}
 </div>
 {% endblock page_content %}
-{% block extra_javascript %}<script src="{% static 'js/solution-collections.js' %}" defer></script>{% endblock extra_javascript %}
+{% block extra_javascript %}
+<script src="{% static 'js/solution-collections.js' %}" defer></script>
+<script src="{% static 'js/my-solutions.js' %}" defer></script>
+{% endblock extra_javascript %}

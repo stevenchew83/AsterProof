@@ -70,7 +70,7 @@ def test_my_solutions_links_to_the_saved_entry_and_keeps_admin_drafts_private(cl
     exact_url = reverse("solutions:solution_detail", args=[solution.pk])
 
     html = _inventory(client, solution)
-    assert "<th>AI review</th>" in html
+    assert '<th scope="col">AI review</th>' in html
     assert f'href="{exact_url}"' in html
     assert "View solution</a>" in html
     assert reverse("solutions:solution_detail", args=[other.pk]) not in html
