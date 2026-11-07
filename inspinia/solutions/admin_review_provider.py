@@ -1,13 +1,24 @@
 """Fixed OpenAI endpoint and a strict seven-point response contract."""
 
+import base64
 import json
 from http import HTTPStatus
+from io import BytesIO
 from time import monotonic
 
 from django.views.decorators.debug import sensitive_variables
+from PIL import Image
+from PIL import ImageOps
 
+from .admin_reviews import IMAGE_INPUT_ERROR
+from .admin_reviews import IMAGE_REVIEW_RULES
 from .admin_reviews import SCORE_MAX
 from .admin_reviews import provider_input
+from .image_access import image_paths
+from .models import SolutionBodyImage
+from .reviews import MAX_IMAGES
+from .reviews import ReviewError
+from .reviews import _read_image
 
 FORMAT = {
     "type": "json_schema",
@@ -26,6 +37,7 @@ FORMAT = {
 MAX_FEEDBACK_CHARS = 24_000
 MAX_RESPONSE_CHARS = MAX_FEEDBACK_CHARS * 8
 PREVIEW_PARSE_INTERVAL = 1
+MAX_IMAGE_EDGE = 1536
 
 
 class ReviewProviderError(Exception):
@@ -34,11 +46,53 @@ class ReviewProviderError(Exception):
         super().__init__(message)
 
 
-@sensitive_variables("key", "client")
+def _image_part(image):
+    try:
+        data, _manifest = _read_image(image)
+        with Image.open(BytesIO(data)) as picture:
+            ImageOps.exif_transpose(picture, in_place=True)
+            picture.thumbnail((MAX_IMAGE_EDGE, MAX_IMAGE_EDGE))
+            rgba = picture.convert("RGBA")
+            background = Image.new("RGB", rgba.size, "white")
+            background.paste(rgba, mask=rgba.getchannel("A"))
+            output = BytesIO()
+            background.save(output, format="PNG")
+    except (ReviewError, OSError, SyntaxError, ValueError) as error:
+        raise ReviewProviderError(IMAGE_INPUT_ERROR) from error
+    return {
+        "type": "input_image",
+        "image_url": "data:image/png;base64," + base64.b64encode(output.getvalue()).decode("ascii"),
+        "detail": "auto",
+    }
+
+
+def _user_content(review):
+    payload = provider_input(review.target.snapshot, review.problem_label)
+    # Only jobs queued with the image disclosure carry this fixed rubric prefix.
+    if not review.instructions.startswith(f"{IMAGE_REVIEW_RULES}\n\n"):
+        return json.dumps(payload, ensure_ascii=False)
+    paths = image_paths(payload["problem_solution"])
+    if len(paths) > MAX_IMAGES:
+        raise ReviewProviderError(IMAGE_INPUT_ERROR)
+    images = {
+        image.file.name: image for image in SolutionBodyImage.objects.filter(
+            solution_id=review.target.solution_id, file__in=paths,
+        )
+    }
+    if any(path not in images for path in paths):
+        raise ReviewProviderError(IMAGE_INPUT_ERROR)
+    payload["solution_image_paths"] = paths
+    return [
+        {"type": "input_text", "text": json.dumps(payload, ensure_ascii=False)},
+        *(_image_part(images[path]) for path in paths),
+    ]
+
+
+@sensitive_variables("key", "client", "content")
 def request_review(review, key, *, on_preview):
     import openai
 
-    payload = provider_input(review.target.snapshot, review.problem_label)
+    content = _user_content(review)
     try:
         with openai.OpenAI(
             api_key=key, base_url="https://api.openai.com/v1", timeout=240, max_retries=0,
@@ -53,7 +107,7 @@ def request_review(review, key, *, on_preview):
                 max_output_tokens=review.output_limit,
                 input=[
                     {"role": "system", "content": review.instructions},
-                    {"role": "user", "content": json.dumps(payload, ensure_ascii=False)},
+                    {"role": "user", "content": content},
                 ],
                 text={"format": FORMAT},
             )
