@@ -1,4 +1,5 @@
 import json
+import uuid
 from datetime import timedelta
 from html import unescape
 from http import HTTPStatus
@@ -20,6 +21,10 @@ from inspinia.pages.models import UserProblemCompletion
 from inspinia.pages.shared_progress_views import shared_progress_comparison_view
 from inspinia.pages.shared_progress_views import shared_progress_view
 from inspinia.pages.technique_progress_catalog import sync_technique_progress_facts_for_statement
+from inspinia.solutions import forum
+from inspinia.solutions.admin_review_models import AdminSolutionReview
+from inspinia.solutions.admin_reviews import problem_label
+from inspinia.solutions.models import ProblemSolution
 from inspinia.training.models import Material
 from inspinia.training.models import MaterialCompletion
 from inspinia.training.models import Problem
@@ -90,6 +95,77 @@ def test_shared_completions_use_subject_and_ignore_user_parameters(client, learn
     assert 'id="completion-progress-user"' not in html
     assert 'data-can-edit-difficulty="false"' in html
     assert progress_url(viewer) in html
+
+
+@pytest.fixture
+def alex_solution(learners, completions):
+    statement = completions["alex"].statement
+    problem = ProblemSolveRecord.objects.create(contest="IMO", year=2026, problem="P1")
+    statement.linked_problem = problem
+    statement.save(update_fields=["linked_problem"])
+    solution = ProblemSolution.objects.create(
+        problem=problem, author=learners["alex"], status=ProblemSolution.Status.PUBLISHED,
+    )
+    solution.blocks.create(position=1, body_source="A square is nonnegative.")
+    return solution
+
+
+def _solution_review(solution, *, score, published):
+    target = forum._target(solution, {"target_key": forum.current_target_data(solution)["key"]})  # noqa: SLF001
+    return AdminSolutionReview.objects.create(
+        target=target, solver=solution.author, problem_label=problem_label(solution),
+        batch_id=uuid.uuid4(), key_version=uuid.uuid4(), model="gpt-6.1-sol", output_limit=1000,
+        status=AdminSolutionReview.Status.COMPLETED, score=score, feedback="Private AI feedback",
+        published_at=timezone.now() if published else None,
+    )
+
+
+@pytest.mark.parametrize("viewer", ["alex", "ben", "admin"])
+def test_shared_history_links_to_the_learners_published_proof_and_limits_score_visibility(
+    client, learners, alex_solution, viewer,
+):
+    other_solution = ProblemSolution.objects.create(
+        problem=alex_solution.problem, author=learners["ben"], status=ProblemSolution.Status.PUBLISHED,
+    )
+    _solution_review(alex_solution, score=0, published=True)
+    _solution_review(alex_solution, score=7, published=False)
+    client.force_login(UserFactory(role=User.Role.ADMIN) if viewer == "admin" else learners[viewer])
+
+    response = client.get(reverse("pages:shared_progress", kwargs={"learner": "alex"}))
+    assert response.status_code == HTTPStatus.OK
+    assert "no-store" in response["Cache-Control"]
+    [row] = response.context["completion_progress_table_rows"]
+    url = reverse("solutions:solution_detail", args=[alex_solution.pk])
+    assert row["solution_url"] == url
+    assert row["ai_review_score"] == (None if viewer == "ben" else 0)
+    html = response.content.decode()
+    assert f'href="{url}" aria-label="View solution for ' in html
+    assert "View solution</a>" in html
+    assert ("AI score: 0/7</div>" in html) == (viewer != "ben")
+    assert "AI score: 7/7</div>" not in html
+    assert "Private AI feedback" not in html
+    assert reverse("solutions:solution_detail", args=[other_solution.pk]) not in html
+    assert client.get(url).context["solution"] == alex_solution
+
+
+def test_shared_history_omits_stale_scores_and_unpublished_solution_links(client, learners, alex_solution):
+    _solution_review(alex_solution, score=6, published=True)
+    alex_solution.blocks.update(body_source="An updated proof.")
+    client.force_login(learners["alex"])
+    url = reverse("solutions:solution_detail", args=[alex_solution.pk])
+
+    response = client.get(progress_url("alex"))
+    [row] = response.context["completion_progress_table_rows"]
+    assert row["solution_url"] == url
+    assert row["ai_review_score"] is None
+
+    alex_solution.status = ProblemSolution.Status.DRAFT
+    alex_solution.save(update_fields=["status", "updated_at"])
+    response = client.get(progress_url("alex"))
+    [row] = response.context["completion_progress_table_rows"]
+    assert row["solution_status_label"] == "Draft"
+    assert not row.get("solution_url")
+    assert f'href="{url}"' not in response.content.decode()
 
 
 def test_shared_completion_export_is_scoped_to_subject(client, learners, completions):
