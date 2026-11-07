@@ -97,9 +97,6 @@ class ReviewSettingsForm(forms.Form):
     output_limit = forms.TypedChoiceField(
         label="Output token limit", choices=LIMITS, coerce=int, widget=forms.Select(attrs=SELECT),
     )
-    daily_limit = forms.IntegerField(
-        label="24-hour request limit", min_value=1, max_value=50, widget=forms.NumberInput(attrs=INPUT),
-    )
     feedback_style = forms.ChoiceField(
         label="Feedback style", required=False,
         choices=[("", "Use the review prompt")] + [(key, style[0]) for key, style in FEEDBACK_STYLES.items()],
@@ -134,7 +131,7 @@ def _save_settings(form):
             admin_reviews.credential_cipher().encrypt(data["api_key"].encode("ascii")) if data["api_key"] else b""
         )
         config.key_version = uuid.uuid4()
-    for name in ("models_enabled", "effort", "output_limit", "daily_limit"):
+    for name in ("models_enabled", "effort", "output_limit"):
         setattr(config, name, data[name])
     config.prompt = _feedback_style_prefix(data["feedback_style"]) + data["prompt"]
     config.version = uuid.uuid4()
@@ -164,7 +161,7 @@ def settings_view(request):
         initial={
             "version": saved.version if saved else None,
             "models_enabled": config.models_enabled, "effort": config.effort, "output_limit": config.output_limit,
-            "daily_limit": config.daily_limit, "feedback_style": feedback_style, "prompt": prompt,
+            "feedback_style": feedback_style, "prompt": prompt,
         },
     )
     if form.is_bound and form.is_valid() and _save_settings(form):
