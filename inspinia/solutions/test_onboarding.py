@@ -157,7 +157,8 @@ def test_first_proof_must_be_saved_privately_and_can_resume_on_another_session(c
     assert "Publish solution" not in html
     assert 'id="solution-share-trigger"' not in html
     if editor_route == "problem_solution_edit":
-        assert 'aria-labelledby="solution-problem-heading" open' in html
+        assert 'id="solution-first-draft-message"' in html
+        assert "Start with an idea." in html
 
     data = solution_payload(client, url, source="My first idea.", action="publish")
     refused = client.post(url, data, HTTP_X_REQUESTED_WITH="XMLHttpRequest")
