@@ -346,7 +346,9 @@ def test_launch_flag_roles_csrf_and_admin_drafts(client, settings, learner, poli
     client.force_login(learner)
     settings.STUDY_HELP_ENABLED = False
     route = reverse("pages:problem_statement_detail", args=[archive.statement_uuid])
-    assert b"data-study-help" not in client.get(route).content
+    disabled_page = client.get(route).content
+    assert b'id="study-help-title"' not in disabled_page
+    assert b"study-help.js" not in disabled_page
     assert submit(client, archive, spec(archive)).status_code == 404
     assert client.get(reverse("pages:study_help_admin")).status_code == 403
 
