@@ -78,7 +78,6 @@ from inspinia.solutions.models import SolutionCollection
 from inspinia.solutions.models import SolutionPublicShare
 from inspinia.solutions.models import SolutionReview
 from inspinia.solutions.models import SolutionSourceArtifact
-from inspinia.solutions.onboarding import needs_private_first_save
 from inspinia.solutions.onboarding import solution_guide_context
 from inspinia.solutions.pdf_latex import SolutionPdfCompileError
 from inspinia.solutions.pdf_latex import SolutionPdfCompileParams
@@ -599,7 +598,6 @@ def _problem_solution_list_inline_form_context(
         "inline_draft_block_form": None,
         "inline_draft_form": form,
         "inline_draft_formset": formset,
-        "first_private_save": needs_private_first_save(request.user, solution, form.initial["body_source"]),
         **_review_context(request, problem, solution),
         "plain_block_type_id": str(plain_block_type.pk) if plain_block_type else "",
         "solution_body_image_upload_url": reverse(
@@ -1076,7 +1074,6 @@ def problem_solution_edit_view(request, problem_uuid):
         solution = ProblemSolution(problem=problem, author=request.user, status=ProblemSolution.Status.DRAFT)
 
     form, formset = _solution_form_context(solution, request.POST or None)
-    saved_source = form.initial["body_source"]
     if writer_import and request.method == "GET":
         initial, _blocks = writer_editor_initial(writer_import)
         form = ProblemSolutionForm(instance=solution, prefix="solution", initial=initial)
@@ -1112,8 +1109,9 @@ def problem_solution_edit_view(request, problem_uuid):
         "form": form,
         "formset": formset,
         "show_solution_guide": show_solution_guide,
-        "guide_has_saved_content": bool(show_solution_guide and saved_source.strip()),
-        "first_private_save": needs_private_first_save(request.user, solution, saved_source),
+        "guide_has_saved_content": bool(
+            show_solution_guide and solution.pk and solution_source(solution).strip(),
+        ),
         "public_share": (
             SolutionPublicShare.objects.filter(solution=solution, is_active=True).first() if solution.pk else None
         ),

@@ -29,8 +29,6 @@
       <strong>Your public link is ready.</strong> Open Share to copy it. Saving edits here keeps the public copy unchanged until you update it.
       {% elif guide_has_saved_content %}
       <strong>Your solution is saved.</strong> When you are ready, open Share to review your work and create a public link. Sharing is optional.
-      {% elif first_private_save %}
-      <strong>Start with an idea.</strong> Try a small case or write a few lines of reasoning. Save a private draft to pick up where you left off.
       {% else %}
       <strong>Next: save your solution.</strong> Write or paste your proof, check Preview, then select Save changes. Saving does not create a public link.
       {% endif %}
@@ -40,7 +38,7 @@
   {% endif %}
 
   <div class="solution-context-grid">
-    <details class="solution-reference solution-context-disclosure" id="solution-problem-reference" aria-labelledby="solution-problem-heading"{% if first_private_save and problem_data.statement_entry %} open{% endif %}>
+    <details class="solution-reference solution-context-disclosure" id="solution-problem-reference" aria-labelledby="solution-problem-heading">
       <summary class="solution-context-heading">
         <h2 id="solution-problem-heading"><i class="ti ti-book-2" aria-hidden="true"></i>Problem statement
           {% if problem_data.statement_entry %}<span class="text-muted fs-xs fw-normal ms-auto">{{ problem_data.statement_entry.problem_code }}{% if problem_data.statement_entry.day_label %} · {{ problem_data.statement_entry.day_label }}{% endif %}</span>{% endif %}

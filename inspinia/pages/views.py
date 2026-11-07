@@ -6567,6 +6567,7 @@ def _render_completion_progress_analytics(  # noqa: PLR0913
                 filtered_rows=filtered_rows,
                 comparison_rows=comparison_scoped_rows,
                 today=today,
+                viewer=request.user,
             ),
         )
         return render(request, "pages/shared-completion-progress.html", context)

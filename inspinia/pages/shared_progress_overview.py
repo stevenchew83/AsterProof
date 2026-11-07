@@ -4,15 +4,45 @@ from collections import Counter
 from collections import defaultdict
 from statistics import median
 
+from django.urls import reverse
+
 from inspinia.pages.completion_progress import completion_progress_charts_payload
 from inspinia.pages.completion_progress import completion_progress_stats
 from inspinia.pages.completion_progress import completion_progress_topic_mohs_matrix_payload
 from inspinia.pages.completion_progress import dedupe_completion_progress_rows
 from inspinia.pages.completion_record_areas import completion_record_area_metadata
 from inspinia.pages.shared_progress_comparison import comparison_query_string
+from inspinia.solutions.forum_access import visible_solutions
+from inspinia.solutions.models import ProblemSolution
+from inspinia.solutions.my_solution_reviews import author_review_summaries
+from inspinia.users.roles import user_has_admin_role
 
 
-def shared_completion_overview_context(*, context, completions, filtered_rows, comparison_rows, today):
+def _solution_cells(viewer, learner, rows):
+    problem_ids = {row.problem_id for row in rows if row.solution_status == ProblemSolution.Status.PUBLISHED}
+    if not problem_ids:
+        return {}
+    solution_ids = dict(visible_solutions(viewer).filter(
+        author=learner, problem_id__in=problem_ids, status=ProblemSolution.Status.PUBLISHED,
+    ).values_list("problem_id", "pk"))
+    # A member-published proof does not make its solver's AI review public.
+    reviews = (
+        author_review_summaries(learner, solution_ids.values())
+        if viewer.pk == learner.pk or user_has_admin_role(viewer)
+        else {}
+    )
+    return {
+        problem_id: {
+            "solution_url": reverse("solutions:solution_detail", args=[solution_id]),
+            "ai_review_score": reviews.get(solution_id, {}).get("score"),
+        }
+        for problem_id, solution_id in solution_ids.items()
+    }
+
+
+def shared_completion_overview_context(  # noqa: PLR0913
+    *, context, completions, filtered_rows, comparison_rows, today, viewer,
+):
     """Keep dated performance separate from undated history and raw record counts."""
     dated_rows = dedupe_completion_progress_rows(row for row in filtered_rows if row.completion_date is not None)
     stats = completion_progress_stats(dated_rows, today=today)
@@ -22,6 +52,7 @@ def shared_completion_overview_context(*, context, completions, filtered_rows, c
     visible_completions = [completion for completion in completions if completion.pk in visible_ids]
     metadata = completion_record_area_metadata(visible_completions) if visible_completions else {}
     completions_by_id = {completion.pk: completion for completion in visible_completions}
+    solution_cells = _solution_cells(viewer, context["shared_progress_subject"], filtered_rows)
     table_rows = []
     for row, table_row in zip(filtered_rows, context["completion_progress_table_rows"], strict=True):
         areas = metadata[row.completion_id]
@@ -33,6 +64,7 @@ def shared_completion_overview_context(*, context, completions, filtered_rows, c
                 "concepts": "; ".join(areas["concepts"]),
                 "record_status": completions_by_id[row.completion_id].get_status_display(),
                 "problem_url": table_row["problem_url"] or areas["statement_url"],
+                **solution_cells.get(row.problem_id, {}),
             },
         )
     topic_counts = Counter(row.topic or "Unlinked" for row in dated_rows)
