@@ -77,11 +77,12 @@ def starting_audit():
 
 def copy_candidate(destination):
     for source in (ROOT / "inspinia").rglob("*"):
-        # The exact Learning allowance predates this separately reviewed successor.
+        # The exact Learning allowance predates these separately reviewed successors.
         if (
             source.parent.name == "migrations" and source.suffix in {".py", ".json"}
             and source not in {
                 ROOT / "inspinia/solutions/migrations/0013_solution_forum.py",
+                ROOT / "inspinia/solutions/migrations/0014_admin_solution_review.py",
                 ROOT / "inspinia/rankings/migrations/0005_ranking_analysis_review.py",
                 ROOT / "inspinia/rankings/migrations/0006_student_achievement_profiles.py",
             }
@@ -115,9 +116,10 @@ def test_actual_learning_migration_bundle_and_entire_history_are_hash_bound(tmp_
         schema.validate_candidate(tmp_path)
 
 
-def test_forum_successor_is_not_part_of_the_historical_learning_allowance(tmp_path):
+@pytest.mark.parametrize("migration", ["0013_solution_forum", "0014_admin_solution_review"])
+def test_solution_successors_are_not_part_of_the_historical_learning_allowance(tmp_path, migration):
     copy_candidate(tmp_path)
-    relative = "inspinia/solutions/migrations/0013_solution_forum.py"
+    relative = f"inspinia/solutions/migrations/{migration}.py"
     (tmp_path / relative).write_bytes((ROOT / relative).read_bytes())
     with pytest.raises(schema.LearningSchemaError, match="Historical migration sources"):
         schema.validate_candidate(tmp_path)
@@ -390,7 +392,7 @@ def test_sqlite_upgrade_preserves_sources_progress_solutions_and_subscribers(tmp
             ROOT / package, source / package,
             ignore=shutil.ignore_patterns(
                 "__pycache__", "static", "0013_solution_forum.py", "0005_ranking_analysis_review.py",
-                "0006_student_achievement_profiles.py",
+                "0006_student_achievement_profiles.py", "0014_admin_solution_review.py",
             ),
         )
     result = subprocess.run(
