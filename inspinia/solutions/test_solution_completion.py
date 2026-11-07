@@ -105,11 +105,17 @@ def test_save_and_solve_saves_proof_and_own_progress_without_publishing(workspac
 def test_normal_solution_actions_do_not_record_a_solve(workspace, action):
     client, user, problem, url = workspace
     statement_for(problem)
+    if action == "publish":
+        saved = client.post(url, proof_data(client, url, action="save_draft"))
+        assert saved.status_code == HTTPStatus.FOUND
+        assert not UserProblemCompletion.objects.exists()
 
     response = client.post(url, proof_data(client, url, action=action))
 
     assert response.status_code == HTTPStatus.FOUND
-    assert ProblemSolution.objects.filter(author=user, problem=problem).exists()
+    solution = ProblemSolution.objects.get(author=user, problem=problem)
+    expected_status = ProblemSolution.Status.PUBLISHED if action == "publish" else ProblemSolution.Status.DRAFT
+    assert solution.status == expected_status
     assert not UserProblemCompletion.objects.exists()
 
 
