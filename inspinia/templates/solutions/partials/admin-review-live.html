@@ -1,6 +1,7 @@
 <script>
   (() => {
     const panel = document.querySelector("[data-ai-review-progress]");
+    const batchStatus = panel.querySelector("[data-ai-review-batch-status]");
     const poll = async () => {
       if (document.hidden) {
         window.setTimeout(poll, 2500);
@@ -15,7 +16,14 @@
         if (response.redirected || response.status === 403) return;
         if (!response.ok) throw new Error("Review status unavailable");
         const {reviews} = await response.json();
-        const active = new Map(reviews.filter(row => row.active).map(row => [`ai-review-${row.id}`, row]));
+        const working = reviews.filter(row => row.active);
+        if (!working.length) {
+          window.location.reload();
+          return;
+        }
+        const label = (working.find(row => row.status === "Reviewing") || working[0]).status;
+        if (batchStatus.textContent !== label) batchStatus.textContent = label;
+        const active = new Map(working.map(row => [`ai-review-${row.id}`, row]));
         for (const card of panel.querySelectorAll("[data-ai-review-live]")) {
           const row = active.get(card.id);
           if (!row) {
@@ -30,6 +38,7 @@
         }
         window.setTimeout(poll, 2500);
       } catch {
+        if (batchStatus.textContent !== "Reconnecting…") batchStatus.textContent = "Reconnecting…";
         window.setTimeout(poll, 10000);
       }
     };

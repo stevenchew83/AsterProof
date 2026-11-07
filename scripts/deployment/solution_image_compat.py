@@ -101,12 +101,18 @@ ADMIN_REVIEW_READER_SOURCES = {
     "inspinia/solutions/models.py": "16e6518fce2b7049ab1fc3338302924ec83ca0dfcfb1fdb516fcf105647285b5",
 }
 
+# Author review adds the usage model registration to the same reader.
+SELF_REVIEW_READER_SOURCES = {
+    **ADMIN_REVIEW_READER_SOURCES,
+    "inspinia/solutions/models.py": "a4ca325e835059f92f7686cf16fb31300696be24e6f64c85580e10b805ceb3b0",
+}
+
 
 def reader_sources_match(files):
     entries = {item["path"]: item["sha256"] for item in files}
     return any(
         sources and all(entries.get(path) == digest for path, digest in sources.items())
-        for sources in (READER_SOURCES, COMPATIBILITY_SOURCES, ADMIN_REVIEW_READER_SOURCES)
+        for sources in (READER_SOURCES, COMPATIBILITY_SOURCES, ADMIN_REVIEW_READER_SOURCES, SELF_REVIEW_READER_SOURCES)
     )
 
 
@@ -156,7 +162,9 @@ def verified_reader_release(release: Path) -> bool:
         sources = next(
             (
                 sources
-                for sources in (READER_SOURCES, COMPATIBILITY_SOURCES, ADMIN_REVIEW_READER_SOURCES)
+                for sources in (
+                    READER_SOURCES, COMPATIBILITY_SOURCES, ADMIN_REVIEW_READER_SOURCES, SELF_REVIEW_READER_SOURCES,
+                )
                 if sources and all(entries.get(path) == digest for path, digest in sources.items())
             ),
             None,

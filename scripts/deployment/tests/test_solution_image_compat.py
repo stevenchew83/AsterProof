@@ -143,5 +143,6 @@ def test_capability_type_and_version_are_strict(tmp_path, monkeypatch, value):
 
 def test_frozen_image_sources_match_the_reviewed_implementation():
     assert compat.ADMIN_REVIEW_READER_SOURCES.keys() == compat.READER_SOURCES.keys()
-    for relative, expected in compat.ADMIN_REVIEW_READER_SOURCES.items():
+    assert compat.SELF_REVIEW_READER_SOURCES.keys() == compat.ADMIN_REVIEW_READER_SOURCES.keys()
+    for relative, expected in compat.SELF_REVIEW_READER_SOURCES.items():
         assert hashlib.sha256((ROOT / relative).read_bytes()).hexdigest() == expected

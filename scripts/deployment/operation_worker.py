@@ -29,6 +29,7 @@ from scripts.deployment import newsletter_schema
 from scripts.deployment import onboarding_schema
 from scripts.deployment import ranking_analysis_schema
 from scripts.deployment import ranking_profile_schema
+from scripts.deployment import self_solution_review_schema
 from scripts.deployment import solution_analytics_schema
 from scripts.deployment import solution_collections_schema
 from scripts.deployment import solution_document_schema
@@ -439,6 +440,15 @@ class WorkerBackend:
     def migrate_study_help_schema(self, contract: TargetContract, release: Path) -> None:
         self._run_candidate(
             contract, release, ["shell", "--command", study_help_schema.MIGRATION_APPLY], migration=True,
+        )
+
+    def check_self_solution_review_schema(self, contract: TargetContract, release: Path) -> None:
+        self_solution_review_schema.validate_candidate(release)
+        self._run_candidate(contract, release, ["shell", "--command", self_solution_review_schema.PLAN_CHECK])
+
+    def migrate_self_solution_review_schema(self, contract: TargetContract, release: Path) -> None:
+        self._run_candidate(
+            contract, release, ["shell", "--command", self_solution_review_schema.MIGRATION_APPLY], migration=True,
         )
 
     def check_solution_forum_schema(self, contract: TargetContract, release: Path) -> None:
@@ -1228,6 +1238,9 @@ def _deploy(
                 elif disclosure["migration"] == study_help_schema.MIGRATION:
                     study_help_schema.validate_build_evidence(release, disclosure)
                     backend.check_study_help_schema(contract, release)
+                elif disclosure["migration"] == self_solution_review_schema.MIGRATION:
+                    self_solution_review_schema.validate_build_evidence(release, disclosure)
+                    backend.check_self_solution_review_schema(contract, release)
                 elif disclosure["migration"] == solution_forum_schema.MIGRATION:
                     solution_forum_schema.validate_build_evidence(release, disclosure)
                     backend.check_solution_forum_schema(contract, release)
@@ -1305,6 +1318,8 @@ def _deploy(
                 backend.migrate_admin_solution_review_schema(contract, release)
             elif disclosure["migration"] == study_help_schema.MIGRATION:
                 backend.migrate_study_help_schema(contract, release)
+            elif disclosure["migration"] == self_solution_review_schema.MIGRATION:
+                backend.migrate_self_solution_review_schema(contract, release)
             elif disclosure["migration"] == solution_forum_schema.MIGRATION:
                 backend.migrate_solution_forum_schema(contract, release)
             elif disclosure["migration"] == assessment_prototype_schema.MIGRATION:

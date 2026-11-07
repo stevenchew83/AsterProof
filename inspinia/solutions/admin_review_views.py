@@ -6,6 +6,7 @@ from django import forms
 from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
+from django.core.exceptions import PermissionDenied
 from django.db import transaction
 from django.db.models import F
 from django.db.models import Q
@@ -190,7 +191,7 @@ def generate_view(request, solution_pk):
         messages.error(request, str(error))
     else:
         if created:
-            messages.success(request, "AI reviews queued. Refresh this page to check for drafts.")
+            messages.success(request, "AI review queued. Follow its progress below.")
     return _detail_redirect(solution_pk)
 
 
@@ -212,31 +213,30 @@ def publish_view(request, solution_pk, review_id):
 @never_cache
 @require_GET
 def progress_view(request, solution_pk, batch_id):
-    admin_reviews.require_admin(request.user)
+    if not admin_reviews.approved_user(request.user):
+        raise PermissionDenied
     reviews = AdminSolutionReview.objects.filter(
         target__solution_id=solution_pk, solver_id=F("target__solution__author_id"), batch_id=batch_id,
-    ).only("status", "feedback").order_by("pk")
+    ).order_by("pk")
+    admin = user_has_admin_role(request.user)
+    if admin:
+        reviews = list(reviews.only("status", "feedback"))
+    else:
+        reviews = list(reviews.filter(solver=request.user, self_request__user=request.user).only("status"))
+        if not reviews:
+            raise PermissionDenied
     return JsonResponse({"reviews": [
         {
             "id": str(row.pk),
             "status": row.get_status_display(),
             "active": row.is_live,
-            "feedback": row.feedback if row.status == AdminSolutionReview.Status.RUNNING else "",
+            "feedback": row.feedback if admin and row.status == AdminSolutionReview.Status.RUNNING else "",
         }
         for row in reviews
     ]})
 
 
-def review_context(request, solution, target):
-    admin = user_has_admin_role(request.user)
-    if not admin and solution.author_id != request.user.pk:
-        return None
-    label = admin_reviews.problem_label(solution)
-    key = target["key"]
-    reviews = AdminSolutionReview.objects.filter(target__solution=solution, solver_id=solution.author_id)
-    current = Q(target__key=key, problem_label=label)
-    if not admin:
-        reviews = reviews.filter(published_at__isnull=False)
+def _review_history(request, reviews, current):
     # Include the email's linked review even if it is outside the recent history.
     try:
         linked_review = uuid.UUID(request.GET.get("ai_review", ""))
@@ -247,39 +247,78 @@ def review_context(request, solution, target):
         linked = reviews.exclude(current).filter(pk=linked_review).select_related("target").first()
         if linked:
             history.insert(0, linked)
-    recent = list(reviews.filter(current).order_by(
-        "-published_at" if not admin else "-created_at", "-pk",
-    )[:20])
+    return history
+
+
+def _owner_context(user, solution, payload, reviews, current):
+    owner_request = reviews.filter(
+        current, self_request__user=user, published_at__isnull=True,
+    ).only("batch_id", "status").first()
+    reviews = reviews.filter(published_at__isnull=False)
+    context = {"owner_request": owner_request, "can_generate": settings.SELF_SOLUTION_REVIEW_ENABLED}
+    restricted = (
+        (context["can_generate"] or reviews.filter(self_request__isnull=False).exists())
+        and admin_reviews.self_review_restricted(user, solution.problem.problem_uuid, payload["statement"]["id"])
+    )
+    if restricted:
+        reviews = reviews.filter(self_request__isnull=True)
+    if context["can_generate"]:
+        context.update(_review_controls(solution, payload, admin=False))
+        allowance = admin_reviews.self_review_allowance(user, solution.problem.problem_uuid)
+        context["allowance"] = allowance
+        if restricted:
+            context["blocker"] = "AI review is restricted for this problem."
+        elif not context["blocker"]:
+            context["blocker"] = admin_reviews.self_review_limit_blocker(allowance)
+    return reviews, context
+
+
+def review_context(request, solution, target):
+    admin = user_has_admin_role(request.user)
+    if not admin and (solution.author_id != request.user.pk or not admin_reviews.approved_user(request.user)):
+        return None
+    label = admin_reviews.problem_label(solution)
+    reviews = AdminSolutionReview.objects.filter(target__solution=solution, solver_id=solution.author_id)
+    current = Q(target__key=target["key"], problem_label=label)
+    if admin:
+        context = {"can_generate": True, **_review_controls(solution, target["payload"], admin=True)}
+    else:
+        reviews, context = _owner_context(request.user, solution, target["payload"], reviews, current)
+    owner_request = context.get("owner_request")
+    history = _review_history(request, reviews, current)
+    recent = list(reviews.filter(current).order_by("-created_at" if admin else "-published_at", "-pk")[:20])
     published = reviews.filter(current, published_at__isnull=False).first()
     if published and all(review.pk != published.pk for review in recent):
         recent.insert(0, published)
-    if not (admin or recent or history):
+    if not (recent or history or context["can_generate"] or owner_request):
         return None
     active = next((row for row in recent if row.is_live), None)
-    context = {
+    if owner_request and owner_request.is_live:
+        active = owner_request
+    context.update({
         "admin": admin, "label": label, "recent": recent, "history": history,
-        "active": active,
-        "published": bool(published),
-    }
-    if admin:
-        context.update(_admin_controls(solution, target["payload"]))
-        if active:
-            context["progress_url"] = reverse(
-                "solutions:admin_ai_review_progress", args=[solution.pk, active.batch_id],
-            )
+        "active": active, "published": bool(published),
+    })
+    if active:
+        context["progress_url"] = reverse(
+            "solutions:admin_ai_review_progress", args=[solution.pk, active.batch_id],
+        )
     return context
 
 
-def _admin_controls(solution, payload):
+def _review_controls(solution, payload, *, admin):
     config = admin_reviews.review_settings()
     blocker = admin_reviews.input_blocker(solution, payload)
     if not blocker:
         if not settings.ADMIN_SOLUTION_REVIEW_ENABLED:
             blocker = "AI review generation is currently disabled."
         elif not admin_reviews.read_credential(config):
-            blocker = "Add an OpenAI API key in settings to generate reviews."
+            blocker = (
+                "Add an OpenAI API key in settings to generate reviews."
+                if admin else "AI review is temporarily unavailable."
+            )
         elif not config.models_enabled:
-            blocker = "Choose at least one model in AI review settings."
+            blocker = "Choose at least one model in AI review settings." if admin else "No review model is available."
     return {
         "blocker": blocker,
         "batch_id": uuid.uuid4(),

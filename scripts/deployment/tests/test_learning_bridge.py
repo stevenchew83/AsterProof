@@ -37,6 +37,7 @@ def write_bridge(release):
             and source not in {
                 ROOT / "inspinia/solutions/migrations/0013_solution_forum.py",
                 ROOT / "inspinia/solutions/migrations/0014_admin_solution_review.py",
+                ROOT / "inspinia/solutions/migrations/0015_self_solution_review_usage.py",
                 ROOT / "inspinia/pages/migrations/0047_study_help.py",
                 ROOT / "inspinia/rankings/migrations/0005_ranking_analysis_review.py",
                 ROOT / "inspinia/rankings/migrations/0006_student_achievement_profiles.py",

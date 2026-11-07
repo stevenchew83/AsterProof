@@ -320,6 +320,18 @@
       ],
       "rationale": "Creates only four isolated immutable reference-package, human-decision, synthetic-report and hint-reveal tables across two frozen migrations. No backfill, account permission grants, publication, policy funding or provider activation. Existing evaluation workspace models and migration 0010 remain unchanged. Requires the exact PostgreSQL 17.9 preservation proof and a separately installed trusted allowance; this classification grants no production authority."
     },
+    "solutions.0015_self_solution_review_usage": {
+      "classification": "backward-compatible-schema",
+      "recovery_required": false,
+      "code_rollback_permitted": true,
+      "data_preconditions": [
+        "self_review_usage_table_absent",
+        "admin_review_schema_applied",
+        "existing_records_schema_triggers_sequences_preserved",
+        "self_review_generation_disabled"
+      ],
+      "rationale": "Creates one empty usage table for author-requested reviews. No backfill or provider activation. Protected deployment requires a separately reviewed migration allowance and PostgreSQL preservation proof."
+    },
     "solutions.0014_admin_solution_review": {
       "classification": "backward-compatible-schema",
       "recovery_required": false,

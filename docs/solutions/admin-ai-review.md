@@ -23,6 +23,29 @@ signed-in entry. Publishing does not change trainer assessments, verification,
 or completion records. If a proof or statement changes, regenerate before
 publishing. Already-published feedback remains marked as an earlier version.
 
+When `SELF_SOLUTION_REVIEW_ENABLED=True`, approved accounts can also request a
+review of their own submitted or member-published proof. Authors choose one
+configured model per request and can have one active request across their account.
+Each account can generate two successful reviews per problem across revisions
+and 50 successful reviews overall. Failed attempts leave those allowances
+available. All requests share the existing rolling 24-hour site cap.
+The author can see the request status while it runs and receives the score and
+feedback once an administrator publishes the draft.
+
+The author request flow requires `solutions.0015_self_solution_review_usage`.
+It adds one usage table and retains the account and site quotas when a solution
+is deleted. Apply the migration through the protected release procedure before
+turning on author requests. The author switch defaults to off and requires the
+existing `ADMIN_SOLUTION_REVIEW_ENABLED` setting and worker.
+
+The frozen allowance checks the quota migration file, the prior migration tree,
+and the PostgreSQL 17.9 catalog delta. The rehearsal proves that the existing
+app can still read its reviews and settings and that the new table starts
+empty. Install the reviewed allowance through the separately authorized
+[bootstrap procedure](../deployment/production-bootstrap.md). The protected
+release applies the migration with author requests disabled. Verify the live
+schema and worker before enabling author requests.
+
 ## Runtime setup
 
 1. Apply migration `solutions.0014_admin_solution_review` through the environment's
