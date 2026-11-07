@@ -9,10 +9,18 @@ Replacing or removing the key invalidates queued work for that key.
 
 On a submitted or member-published solution, use **AI review** to choose models
 and generate drafts. Every request includes the problem label, active linked
-statement and complete saved proof text. All three are required. Uploaded images
-are not sent. Each selected model uses one paid request. The rolling 24-hour
-request limit counts queued attempts, including failures, and the token cap
-covers reasoning and output. Use a dedicated OpenAI project to track spend.
+statement and complete saved proof text. All three are required. Both author
+and admin requests also send images uploaded to that solution and referenced in
+the saved proof. Each review supports up to four static PNG, JPEG, GIF, or WebP
+images, each at most 3 MiB and 16 megapixels. The worker sends PNGs scaled to
+fit within 1536 by 1536 pixels. A missing or invalid embedded image stops the
+review before it reaches OpenAI. External image references and diagram code
+remain part of the text. Requests queued before the image disclosure remain
+text-only.
+
+Each selected model uses one paid request. The rolling 24-hour request limit
+counts queued attempts, including failures, and the token cap covers reasoning
+and output. Use a dedicated OpenAI project to track spend.
 **Administration → AI review queue** shows waiting and running model requests.
 On the solution page, a spinner indicates a request is waiting for the worker.
 
