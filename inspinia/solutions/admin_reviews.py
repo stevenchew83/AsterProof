@@ -189,7 +189,9 @@ def _batch_config(data, *, self_requested):
     return config, selected, batch_id
 
 
-def _reserve_capacity(config, selected):
+def _reserve_capacity(config, selected, *, self_requested):
+    if not self_requested:
+        return
     since = timezone.now() - timedelta(days=1)
     # Self-requested attempts keep counting even if their draft or solution was removed.
     admin_requests = AdminSolutionReview.objects.filter(created_at__gte=since, self_request__isnull=True).count()
@@ -255,7 +257,7 @@ def enqueue(user, solution_pk, data):
     instructions = _review_instructions(
         config.prompt, current["payload"]["image_paths"], data.get("include_solution_images") == "1",
     )
-    _reserve_capacity(config, selected)
+    _reserve_capacity(config, selected, self_requested=self_requested)
     reviews = AdminSolutionReview.objects.bulk_create([
         AdminSolutionReview(
             target=target, requested_by=user, solver_id=solution.author_id, batch_id=batch_id,

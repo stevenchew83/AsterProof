@@ -384,6 +384,31 @@ def self_review_enabled(settings):
 
 
 @pytest.mark.usefixtures("self_review_enabled")
+def test_only_members_are_blocked_by_the_site_wide_review_limit(client, proof, config, second_solution):
+    config.daily_limit = 1
+    config.save(update_fields=["daily_limit"])
+    assert queue(client, proof, config, models=MODELS[:1]).status_code == HTTPStatus.FOUND
+    assert AdminSolutionReview.objects.count() == 1
+
+    second_url = reverse("solutions:admin_ai_review_generate", args=[second_solution.pk])
+    data = {
+        "settings_version": config.version, "target_key": forum.current_target_data(second_solution)["key"],
+        "problem_label": admin_reviews.problem_label(second_solution), "batch_id": uuid.uuid4(),
+    }
+    client.force_login(proof.author)
+    page = client.post(second_url, {**data, "models": MODELS[:1]}, follow=True)
+    assert b"site-wide AI review limit" in page.content
+    assert not SelfSolutionReviewUsage.objects.exists()
+
+    client.force_login(proof.admin)
+    assert client.post(second_url, {**data, "models": MODELS}).status_code == HTTPStatus.FOUND
+    queued_models = AdminSolutionReview.objects.filter(
+        target__solution=second_solution, requested_by=proof.admin,
+    ).values_list("model", flat=True)
+    assert sorted(queued_models) == sorted(MODELS)
+
+
+@pytest.mark.usefixtures("self_review_enabled")
 def test_self_review_limits_count_successes_and_survive_proof_deletion(
     client, proof, config, second_solution, monkeypatch,
 ):
