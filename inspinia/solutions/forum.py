@@ -51,18 +51,16 @@ class ForumError(ValueError):
         super().__init__(message)
 
 
-def active_statement_queryset(problem_id):
-    return ContestProblemStatement.objects.filter(linked_problem_id=problem_id, is_active=True).order_by(
-        "-updated_at", "-pk",
-    )
-
-
 def current_target_data(solution):
-    statement = active_statement_queryset(solution.problem_id).first()
-    return saved_target_data(solution, statement, solution_source(solution))
-
-
-def saved_target_data(solution, statement, source):
+    statement = (
+        ContestProblemStatement.objects.filter(linked_problem=solution.problem, is_active=True)
+        .order_by(
+            "-updated_at",
+            "-pk",
+        )
+        .first()
+    )
+    source = solution_source(solution)
     paths = image_paths(source)
     statement_text = statement.statement_latex if statement else ""
     payload = {
@@ -137,7 +135,12 @@ def summary(solution):
 def queue_solutions(state="requested", *, admin=False):
     """Filter current saved targets in SQL before pagination, never over all proof bodies."""
     # The statement subqueries below are correlated with ProblemSolution.problem_id.
-    statements = active_statement_queryset(OuterRef("problem_id"))
+    statements = ContestProblemStatement.objects.filter(
+        linked_problem_id=OuterRef("problem_id"), is_active=True,
+    ).order_by(
+        "-updated_at",
+        "-pk",
+    )
     current = SolutionForumTarget.objects.annotate(
         statement_marker=Coalesce("statement_id_value", Value(0), output_field=BigIntegerField()),
     ).filter(

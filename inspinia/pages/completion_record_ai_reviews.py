@@ -7,26 +7,31 @@ from itertools import batched
 from django.db.models import Exists
 from django.db.models import F
 from django.db.models import OuterRef
-from django.db.models import Prefetch
-from django.db.models import Subquery
-from django.db.models import prefetch_related_objects
 
-from inspinia.pages.models import ContestProblemStatement
 from inspinia.solutions.admin_review_models import AdminSolutionReview
 from inspinia.solutions.admin_reviews import problem_label
-from inspinia.solutions.document_source import legacy_source
-from inspinia.solutions.document_source import solution_source
-from inspinia.solutions.forum import active_statement_queryset
-from inspinia.solutions.forum import saved_target_data
+from inspinia.solutions.forum import current_target_data
 from inspinia.solutions.models import ProblemSolution
-from inspinia.solutions.models import ProblemSolutionBlock
 
 DRAFT_READY = "draft_ready"
 Status = AdminSolutionReview.Status
 
 
-def _review_summary(reviews, key, label):
-    current = [row for row in reviews if row["target__key"] == key and row["problem_label"] == label]
+def _current_reviews(solution, reviews):
+    label = problem_label(solution)
+    candidates = [
+        row for row in reviews
+        if row["problem_label"] == label
+        and row["target__solution_version"] == solution.edit_version
+        and row["target__solution_updated_at"] == solution.updated_at
+    ]
+    if not candidates:
+        return []
+    key = current_target_data(solution)["key"]
+    return [row for row in candidates if row["target__key"] == key]
+
+
+def _review_summary(current):
     if not current:
         return {"label": "Earlier version"}
     published = next((row for row in current if row["published_at"] is not None), None)
@@ -47,30 +52,6 @@ def _review_summary(reviews, key, label):
     return {"label": "Failed" if status == Status.FAILED else status.label}
 
 
-def _current_review_targets(solution_ids):
-    active_statement = active_statement_queryset(OuterRef("problem_id"))
-    solutions = list(
-        ProblemSolution.objects.filter(pk__in=solution_ids)
-        .select_related("problem", "current_revision")
-        .annotate(review_statement_id=Subquery(active_statement.values("pk")[:1])),
-    )
-    statements = ContestProblemStatement.objects.only("statement_latex").in_bulk(
-        {solution.review_statement_id for solution in solutions if solution.review_statement_id is not None},
-    )
-    prefetch_related_objects(
-        [solution for solution in solutions if not solution.current_revision_id],
-        Prefetch(
-            "blocks",
-            queryset=ProblemSolutionBlock.objects.select_related("block_type").order_by("position", "id"),
-            to_attr="review_blocks",
-        ),
-    )
-    for solution in solutions:
-        source = solution_source(solution) if solution.current_revision_id else legacy_source(solution.review_blocks)
-        target = saved_target_data(solution, statements.get(solution.review_statement_id), source)
-        yield solution, target["key"]
-
-
 def completion_review_summaries(completions):
     completion_ids = defaultdict(list)
     for completion in completions:
@@ -87,6 +68,8 @@ def completion_review_summaries(completions):
         "solver_id",
         "target__solution__problem_id",
         "target__solution_id",
+        "target__solution_version",
+        "target__solution_updated_at",
         "target__key",
         "problem_label",
         "status",
@@ -99,8 +82,9 @@ def completion_review_summaries(completions):
             by_solution[review["target__solution_id"]].append(review)
 
     summaries = {}
-    for solution, target_key in _current_review_targets(by_solution):
-        summary = _review_summary(by_solution[solution.pk], target_key, problem_label(solution))
+    solutions = ProblemSolution.objects.filter(pk__in=by_solution).select_related("problem", "current_revision")
+    for solution in solutions:
+        summary = _review_summary(_current_reviews(solution, by_solution[solution.pk]))
         for completion_id in completion_ids[solution.author_id, solution.problem_id]:
             summaries[completion_id] = summary
     return summaries
