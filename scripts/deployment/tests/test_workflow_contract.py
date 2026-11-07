@@ -385,9 +385,28 @@ def test_deploy_workflow_revalidates_main_before_any_ssh_secret_reference() -> N
     revalidation = text.index("- name: Revalidate current main after approval")
     first_secret = text.index("${{ secrets.")
     assert revalidation < first_secret
-    assert "actions/attest-build-provenance@96278af6caaf10aea03fd8d33a09a777ca52d62f" in text
     assert "gh attestation verify" in text
     assert "migration-disclosure" in text
+
+
+def test_release_is_verified_and_registered_before_artifact_upload() -> None:
+    text = WORKFLOWS[0].read_text()
+    signing = text.split("      - name: Generate build provenance predicate\n", 1)[1].split(
+        "      - name: Upload immutable release archive\n", 1,
+    )[0]
+    assert "actions/attest-build-provenance/predicate@864457a58d4733d7f1574bd8821fa24e02cf7538" in signing
+    assert signing.index("sha256sum --check") < signing.index('chmod 0755 "$RUNNER_TEMP/cosign"')
+    assert "--with-default-rekor-v2" in signing
+    assert "--oidc-provider github-actions" in signing
+    assert "--type slsaprovenance1" in signing
+    assert ".inclusionProof != null" in signing
+    assert '--signer-digest "$RELEASE_SHA" --source-ref refs/heads/main --source-digest "$RELEASE_SHA"' in signing
+    assert "--deny-self-hosted-runners" in signing
+    local_verification = signing.index('verify --bundle "$RUNNER_TEMP/release-bundle.json"')
+    register = signing.index('gh api --method POST "repos/$GITHUB_REPOSITORY/attestations"')
+    assert local_verification < register
+    assert signing.strip().endswith("verify")
+    assert "continue-on-error" not in signing
 
 
 def test_ci_skip_defaults_off_and_only_skips_automated_quality_checks() -> None:
@@ -406,7 +425,9 @@ def test_ci_skip_defaults_off_and_only_skips_automated_quality_checks() -> None:
         "Build production static files",
         "Verify static manifest and representative assets",
         "Build immutable release",
+        "Generate build provenance predicate",
         "Attest immutable release archive",
+        "Verify and register build attestation",
         "Verify digest and attestation policy",
         "Preflight, receive, and submit durable deployment",
     ):
