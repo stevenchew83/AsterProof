@@ -300,10 +300,52 @@ jobs:
               output.write(f"archive_size={envelope['archive_size']}\n")
           PY
 
+      - name: Generate build provenance predicate
+        id: provenance
+        uses: actions/attest-build-provenance/predicate@864457a58d4733d7f1574bd8821fa24e02cf7538
+
       - name: Attest immutable release archive
-        uses: actions/attest-build-provenance@96278af6caaf10aea03fd8d33a09a777ca52d62f # v3.2.0
-        with:
-          subject-path: ${{ runner.temp }}/asterproof-release.tar
+        env:
+          PREDICATE: ${{ steps.provenance.outputs.predicate }}
+          PREDICATE_TYPE: ${{ steps.provenance.outputs.predicate-type }}
+        run: |
+          set -euo pipefail
+          test "$PREDICATE_TYPE" = https://slsa.dev/provenance/v1
+          printf '%s\n' "$PREDICATE" > "$RUNNER_TEMP/release-predicate.json"
+
+          # This Cosign binary is pinned to the reviewed Sigstore release digest.
+          curl --fail --silent --show-error --location --max-time 90 --proto '=https' --tlsv1.2 \
+            https://github.com/sigstore/cosign/releases/download/v3.1.4/cosign-linux-amd64 \
+            --output "$RUNNER_TEMP/cosign"
+          printf '%s  %s\n' 424e2c97d0b45fd7a6b608a87f090f35633f4c23ece5f092d48bba11aaf4bbfa "$RUNNER_TEMP/cosign" \
+            | sha256sum --check
+          chmod 0755 "$RUNNER_TEMP/cosign"
+
+          "$RUNNER_TEMP/cosign" signing-config create --with-default-rekor-v2 --out "$RUNNER_TEMP/signing-config.json"
+          jq -e 'any(.rekorTlogUrls[]; .majorApiVersion == 2)' "$RUNNER_TEMP/signing-config.json" >/dev/null
+          "$RUNNER_TEMP/cosign" attest-blob --yes --oidc-provider github-actions \
+            --type slsaprovenance1 --predicate "$RUNNER_TEMP/release-predicate.json" \
+            --signing-config "$RUNNER_TEMP/signing-config.json" --bundle "$RUNNER_TEMP/release-bundle.json" \
+            "$RUNNER_TEMP/asterproof-release.tar"
+          jq -e 'any(.verificationMaterial.tlogEntries[]; .kindVersion.kind == "hashedrekord" and .inclusionProof != null)' \
+            "$RUNNER_TEMP/release-bundle.json" >/dev/null
+
+      - name: Verify and register build attestation
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_SHA: ${{ inputs.release_sha }}
+        run: |
+          set -euo pipefail
+          verify() {
+            gh attestation verify "$RUNNER_TEMP/asterproof-release.tar" \
+              --repo "$GITHUB_REPOSITORY" --signer-workflow "$GITHUB_REPOSITORY/.github/workflows/production-deploy.yml" \
+              --signer-digest "$RELEASE_SHA" --source-ref refs/heads/main --source-digest "$RELEASE_SHA" \
+              --deny-self-hosted-runners "$@"
+          }
+          verify --bundle "$RUNNER_TEMP/release-bundle.json"
+          jq -c '{bundle: .}' "$RUNNER_TEMP/release-bundle.json" \
+            | gh api --method POST "repos/$GITHUB_REPOSITORY/attestations" --input - --jq .id
+          verify
 
       - name: Upload immutable release archive
         id: upload

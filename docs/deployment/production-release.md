@@ -134,6 +134,12 @@ The manually dispatched **Production deploy** workflow still runs the complete
 test suite against the exact release SHA, validates the production lock, builds
 the offline runtime and static files, and attests one immutable release archive.
 Subsequent disclosure and deployment stages consume that same verified artifact.
+
+The build uses a checksum-pinned Cosign release and Sigstore's published
+Rekor v2 signing configuration. GitHub Actions supplies the build identity
+and SLSA predicate. The build verifies the signature, source SHA, and workflow
+before registering the bundle with GitHub. It verifies the registered
+attestation again before uploading the archive.
 All existing tests remain available; no production packaging runs for ordinary
 PRs. Shared changes may also require the complete suite during PR verification.
 Deploy and rollback remain manual and retain their production environment gate.
