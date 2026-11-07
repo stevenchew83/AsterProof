@@ -31,12 +31,13 @@ BRIDGE_PRODUCTION = Path(__file__).parent / "fixtures/learning-bridge-production
 def write_bridge(release):
     write_real_reader_fixture(release)
     for source in (ROOT / "inspinia").glob("**/migrations/*"):
-        # This fixture predates the later forum and ranking schemas.
+        # This fixture predates the later forum, ranking, and Study Help schemas.
         if (
             source.is_file() and source.suffix in {".py", ".json"}
             and source not in {
                 ROOT / "inspinia/solutions/migrations/0013_solution_forum.py",
                 ROOT / "inspinia/solutions/migrations/0014_admin_solution_review.py",
+                ROOT / "inspinia/pages/migrations/0047_study_help.py",
                 ROOT / "inspinia/rankings/migrations/0005_ranking_analysis_review.py",
                 ROOT / "inspinia/rankings/migrations/0006_student_achievement_profiles.py",
             }

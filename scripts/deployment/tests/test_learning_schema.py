@@ -83,6 +83,7 @@ def copy_candidate(destination):
             and source not in {
                 ROOT / "inspinia/solutions/migrations/0013_solution_forum.py",
                 ROOT / "inspinia/solutions/migrations/0014_admin_solution_review.py",
+                ROOT / "inspinia/pages/migrations/0047_study_help.py",
                 ROOT / "inspinia/rankings/migrations/0005_ranking_analysis_review.py",
                 ROOT / "inspinia/rankings/migrations/0006_student_achievement_profiles.py",
             }
@@ -116,10 +117,14 @@ def test_actual_learning_migration_bundle_and_entire_history_are_hash_bound(tmp_
         schema.validate_candidate(tmp_path)
 
 
-@pytest.mark.parametrize("migration", ["0013_solution_forum", "0014_admin_solution_review"])
-def test_solution_successors_are_not_part_of_the_historical_learning_allowance(tmp_path, migration):
+@pytest.mark.parametrize(("app", "migration"), [
+    ("solutions", "0013_solution_forum"),
+    ("solutions", "0014_admin_solution_review"),
+    ("pages", "0047_study_help"),
+])
+def test_successors_are_not_part_of_the_historical_learning_allowance(tmp_path, app, migration):
     copy_candidate(tmp_path)
-    relative = f"inspinia/solutions/migrations/{migration}.py"
+    relative = f"inspinia/{app}/migrations/{migration}.py"
     (tmp_path / relative).write_bytes((ROOT / relative).read_bytes())
     with pytest.raises(schema.LearningSchemaError, match="Historical migration sources"):
         schema.validate_candidate(tmp_path)
@@ -385,14 +390,14 @@ def test_classification_explicitly_limits_recovery_to_verified_learning_readers(
 def test_sqlite_upgrade_preserves_sources_progress_solutions_and_subscribers(tmp_path):
     database, report = tmp_path / "learning.sqlite3", tmp_path / "report.json"
     # Exercise the current rehearsal against its historical source boundary.
-    # Keep the trusted validator exact; later forum/ranking migrations are out of scope.
+    # Keep the trusted validator exact; later migrations are out of scope.
     source = tmp_path / "historical-source"
     for package in ("config", "inspinia", "scripts"):
         shutil.copytree(
             ROOT / package, source / package,
             ignore=shutil.ignore_patterns(
                 "__pycache__", "static", "0013_solution_forum.py", "0005_ranking_analysis_review.py",
-                "0006_student_achievement_profiles.py", "0014_admin_solution_review.py",
+                "0006_student_achievement_profiles.py", "0014_admin_solution_review.py", "0047_study_help.py",
             ),
         )
     result = subprocess.run(
