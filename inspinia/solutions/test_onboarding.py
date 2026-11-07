@@ -75,8 +75,8 @@ def test_new_account_starts_with_optional_guide_and_no_fabricated_work(client, l
     assert "0 of 2 complete" in html
     assert "Skip for now" in html
     assert "Share a public link" not in html
-    assert "Create new solution" not in html
-    assert "All solutions</p>" not in html
+    assert 'id="create-solution-cta"' not in html
+    assert 'id="my-solutions-list-heading"' not in html
 
     starter.is_active = False
     starter.save(update_fields=["is_active"])
