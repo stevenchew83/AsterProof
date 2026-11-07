@@ -254,6 +254,41 @@ def test_my_solution_list_counts_blocks_without_reading_proof_bodies(client):
     assert "A large canonical proof." not in response.content.decode()
 
 
+def test_my_solution_charts_count_the_authors_solutions_in_local_creation_weeks(client, monkeypatch):
+    monkeypatch.setattr(timezone, "now", lambda: datetime.fromisoformat("2026-11-08T17:00:00+00:00"))
+    user = UserFactory()
+    client.force_login(user)
+    entries = [
+        ("2026-11-08T16:00:00+00:00", ProblemSolution.Status.PUBLISHED, user),
+        ("2026-11-08T15:59:00+00:00", ProblemSolution.Status.DRAFT, user),
+        ("2026-09-20T16:00:00+00:00", ProblemSolution.Status.ARCHIVED, user),
+        ("2026-09-20T15:59:00+00:00", ProblemSolution.Status.DRAFT, user),
+        ("2026-11-08T16:30:00+00:00", ProblemSolution.Status.SUBMITTED, UserFactory()),
+    ]
+    solution_ids = []
+    for index, (created, status, author) in enumerate(entries):
+        solution = _solution_with_blocks(problem=_problem(year=2026 - index), author=author, status=status)
+        ProblemSolution.objects.filter(pk=solution.pk).update(created_at=datetime.fromisoformat(created))
+        solution_ids.append(solution.pk)
+
+    with timezone.override("Asia/Kuala_Lumpur"):
+        response = client.get(reverse("solutions:my_solution_list"))
+
+    assert response.status_code == HTTPStatus.OK
+    weeks = response.context["my_solution_activity"]
+    assert [week["count"] for week in weeks] == [1, 0, 0, 0, 0, 0, 1, 1]
+    assert weeks[0]["start"] == date(2026, 9, 21)
+    assert weeks[-1]["start"] == date(2026, 11, 9)
+    assert {row["id"]: row.get("activity_week") for row in response.context["my_solution_rows"]} == dict(
+        zip(solution_ids[:4], (7, 6, 0, None), strict=True),
+    )
+    assert {status["key"]: status["count"] for status in response.context["my_solution_statuses"]} == {
+        "archived": 1,
+        "draft": 2,
+        "published": 1,
+    }
+
+
 def test_problem_solution_create_view_lists_the_shared_library(client):
     user = UserFactory()
     other_user = UserFactory()
