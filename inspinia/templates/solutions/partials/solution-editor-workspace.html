@@ -1,4 +1,4 @@
-  <form method="post" novalidate id="solution-editor-form" data-solution-document-editor data-owner="{{ request.user.pk }}" data-problem="{{ problem_data.problem.problem_uuid }}" data-pdf-document data-pdf-author="{{ pdf_author_name }}" data-pdf-date="{{ pdf_date_label }}" data-bound="{{ form.is_bound|yesno:'true,false' }}" data-saved="{{ form.instance.pk|yesno:'true,false' }}">
+  <form method="post" novalidate id="solution-editor-form" data-solution-document-editor data-owner="{{ request.user.pk }}" data-problem="{{ problem_data.problem.problem_uuid }}" data-pdf-document data-pdf-author="{{ pdf_author_name }}" data-pdf-date="{{ pdf_date_label }}" data-bound="{{ form.is_bound|yesno:'true,false' }}" data-saved="{% if form.instance.pk and not first_private_save %}true{% else %}false{% endif %}">
     {% csrf_token %}
     {{ form.base_version }}{{ form.editor_context }}
     <div id="solution-upload-feedback" class="alert alert-danger" role="alert" data-upload-feedback hidden></div>
@@ -49,7 +49,7 @@
           </div>
         </div>
       </section>
-      {% if solution_review_config.visible %}<section class="solution-feedback-pane" data-solution-feedback aria-label="Solution feedback">{% include 'solutions/partials/solution-ai-review.html' %}</section>{% endif %}
+      {% if solution_review_config.visible and not first_private_save %}<section class="solution-feedback-pane" data-solution-feedback aria-label="Solution feedback">{% include 'solutions/partials/solution-ai-review.html' %}</section>{% endif %}
     </div>
     <noscript><p class="alert alert-info mt-3">You can write and save this form without JavaScript. Enable JavaScript for autocomplete and live preview.</p></noscript>
   </form>
