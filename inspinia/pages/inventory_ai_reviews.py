@@ -1,4 +1,4 @@
-"""Read-only AI review summaries for the admin completion inventory."""
+"""Read-only AI review summaries for admin inventories."""
 
 from collections import defaultdict
 from contextlib import closing
@@ -7,6 +7,8 @@ from itertools import batched
 from django.db.models import Exists
 from django.db.models import F
 from django.db.models import OuterRef
+from django.db.models import prefetch_related_objects
+from django.urls import reverse
 
 from inspinia.solutions.admin_review_models import AdminSolutionReview
 from inspinia.solutions.admin_reviews import problem_label
@@ -15,6 +17,10 @@ from inspinia.solutions.models import ProblemSolution
 
 DRAFT_READY = "draft_ready"
 Status = AdminSolutionReview.Status
+REVIEW_SUMMARY_FIELDS = (
+    "target__solution_id", "target__solution_version", "target__solution_updated_at", "target__key",
+    "problem_label", "status", "score", "published_at",
+)
 
 
 def _current_reviews(solution, reviews):
@@ -52,6 +58,40 @@ def _review_summary(current):
     return {"label": "Failed" if status == Status.FAILED else status.label}
 
 
+def latest_solution_review_summaries(solutions):
+    """Show the newest attempt for the exact proof and statement on each loaded row."""
+    if not solutions:
+        return {}
+
+    reviews = AdminSolutionReview.objects.filter(
+        target__solution_id__in=[solution.pk for solution in solutions],
+        solver_id=F("target__solution__author_id"),
+    ).order_by("-created_at", "-pk").values(*REVIEW_SUMMARY_FIELDS)
+    by_solution = defaultdict(list)
+    for review in reviews:
+        by_solution[review["target__solution_id"]].append(review)
+
+    reviewed = [solution for solution in solutions if solution.pk in by_solution]
+    prefetch_related_objects(reviewed, "current_revision")
+    summaries = {}
+    for solution in reviewed:
+        current = _current_reviews(solution, by_solution[solution.pk])
+        label, score = "Earlier version", None
+        if current:
+            latest = current[0]
+            status = Status(latest["status"])
+            label = "Failed" if status == Status.FAILED else status.label
+            if latest["published_at"] is not None:
+                label = "Published"
+            score = latest["score"]
+        summaries[solution.pk] = {
+            "label": label,
+            "score": score,
+            "url": reverse("solutions:solution_detail", args=[solution.pk]) + "#ai-review",
+        }
+    return summaries
+
+
 def completion_review_summaries(completions):
     completion_ids = defaultdict(list)
     for completion in completions:
@@ -67,14 +107,7 @@ def completion_review_summaries(completions):
     ).values(
         "solver_id",
         "target__solution__problem_id",
-        "target__solution_id",
-        "target__solution_version",
-        "target__solution_updated_at",
-        "target__key",
-        "problem_label",
-        "status",
-        "score",
-        "published_at",
+        *REVIEW_SUMMARY_FIELDS,
     )
     by_solution = defaultdict(list)
     for review in reviews:

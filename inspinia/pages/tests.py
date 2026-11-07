@@ -9850,7 +9850,7 @@ def test_user_solution_record_list_renders_admin_inventory(client):
     assert "1 problem in loaded results" in response_html
     assert "Latest update" in response_html
     assert 'class="app-table-compact table table-sm table-hover align-middle w-100 mb-0"' in response_html
-    for column in ("Solution / problem", "Author", "Status", "Updated", "Actions"):
+    for column in ("Solution / problem", "Author", "Status", "AI review", "Updated", "Actions"):
         assert f'title: "{column}"' in response_html
     assert 'title: "Content"' not in response_html
     assert 'title: "Dates"' not in response_html
