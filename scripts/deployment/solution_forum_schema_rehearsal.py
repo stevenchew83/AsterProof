@@ -193,9 +193,19 @@ def local_sqlite(output):
 
         django.setup()
         from django.db import connection
+        from django.db.migrations.executor import MigrationExecutor
 
         old_tables, before = _prepare_fixture(connection)
-        exec(schema.MIGRATION_APPLY, {})
+        # This historical local smoke deliberately stops at the original forum
+        # release. The production PLAN_CHECK still rejects any additional leaf.
+        executor = MigrationExecutor(connection)
+        target = [("solutions", schema.MIGRATION_NAME)]
+        plan = executor.migration_plan(target)
+        if [(migration.app_label, migration.name, backwards) for migration, backwards in plan] != [
+            ("solutions", schema.MIGRATION_NAME, False),
+        ]:
+            raise ValueError("Local forum preservation smoke has an unexpected migration plan")
+        executor.migrate(target, plan=plan)
         verify_preservation(connection, old_tables, before)
         output.write_text(
             json.dumps(

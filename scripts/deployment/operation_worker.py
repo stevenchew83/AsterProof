@@ -14,6 +14,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
+from scripts.deployment import admin_solution_review_schema
 from scripts.deployment import assessment_prototype_schema
 from scripts.deployment import catalogue_schema
 from scripts.deployment import community_proof_schema
@@ -419,6 +420,16 @@ class WorkerBackend:
     def migrate_assessment_prototype_schema(self, contract: TargetContract, release: Path) -> None:
         self._run_candidate(
             contract, release, ["shell", "--command", assessment_prototype_schema.MIGRATION_APPLY], migration=True,
+        )
+
+    def check_admin_solution_review_schema(self, contract: TargetContract, release: Path) -> None:
+        self.ensure_image_reader(contract, release)
+        admin_solution_review_schema.validate_candidate(release)
+        self._run_candidate(contract, release, ["shell", "--command", admin_solution_review_schema.PLAN_CHECK])
+
+    def migrate_admin_solution_review_schema(self, contract: TargetContract, release: Path) -> None:
+        self._run_candidate(
+            contract, release, ["shell", "--command", admin_solution_review_schema.MIGRATION_APPLY], migration=True,
         )
 
     def check_study_help_schema(self, contract: TargetContract, release: Path) -> None:
@@ -1211,6 +1222,9 @@ def _deploy(
                 if disclosure["migration"] == ranking_analysis_schema.MIGRATION:
                     ranking_analysis_schema.validate_build_evidence(release, disclosure)
                     backend.check_ranking_analysis_schema(contract, release)
+                elif disclosure["migration"] == admin_solution_review_schema.MIGRATION:
+                    admin_solution_review_schema.validate_build_evidence(release, disclosure)
+                    backend.check_admin_solution_review_schema(contract, release)
                 elif disclosure["migration"] == study_help_schema.MIGRATION:
                     study_help_schema.validate_build_evidence(release, disclosure)
                     backend.check_study_help_schema(contract, release)
@@ -1287,6 +1301,8 @@ def _deploy(
             transition(state_path, "migrating")
             if disclosure["migration"] == ranking_analysis_schema.MIGRATION:
                 backend.migrate_ranking_analysis_schema(contract, release)
+            elif disclosure["migration"] == admin_solution_review_schema.MIGRATION:
+                backend.migrate_admin_solution_review_schema(contract, release)
             elif disclosure["migration"] == study_help_schema.MIGRATION:
                 backend.migrate_study_help_schema(contract, release)
             elif disclosure["migration"] == solution_forum_schema.MIGRATION:

@@ -25,7 +25,7 @@ MIGRATION = "pages." + MIGRATION_NAME
 MIGRATION_PATH = Path("inspinia/pages/migrations") / (MIGRATION_NAME + ".py")
 EVIDENCE_PATH = "deployment-schema-evidence.json"
 MIGRATION_SHA256 = "83b777e62719d28c44021b49169ba60a205a4862711745bd2651a68324f4b5ca"
-PRIOR_MIGRATION_TREE_SHA256 = "5937f1f4fffadac44c60151d080f69aad39ca7238e088fb21daeec78e09d33e7"
+PRIOR_MIGRATION_TREE_SHA256 = "015da4a77a152d5abf9f1b2d5c6a3d5ef163a128f6fa284a7fd4454886af2274"
 DELTA_SHA256 = "4a5541a4702c907733a151067bad3008914b954e79c1edf5f3bb61222501e227"
 OPERATIONS = [
     ("CreateModel", "StudyHelpEnrollment", None),
@@ -200,7 +200,7 @@ def expected_catalog_audit(start, rehearsal):
     rows = start["migration_rows"]
     if (
         ["pages", "0046_prerequisitegraphstate_catalogueprerequisite"] not in rows
-        or ["solutions", "0013_solution_forum"] not in rows
+        or ["solutions", "0014_admin_solution_review"] not in rows
         or ["pages", MIGRATION_NAME] in rows
         or schema_state(before) != start["state"]["schema"]
         or migration_state(rows) != start["state"]["migration"]

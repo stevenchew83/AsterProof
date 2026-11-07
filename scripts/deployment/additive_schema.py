@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from scripts.deployment import admin_solution_review_schema
 from scripts.deployment import assessment_prototype_schema
 from scripts.deployment import concept_schema
 from scripts.deployment import curated_collections_schema
@@ -24,6 +25,8 @@ from scripts.deployment import website_schema
 
 
 def schema_for_disclosure(value):  # noqa: C901, PLR0911, PLR0912 - Keep each frozen allowance explicit.
+    if isinstance(value, dict) and value.get("migration") == admin_solution_review_schema.MIGRATION:
+        return admin_solution_review_schema
     if isinstance(value, dict) and value.get("migration") == study_help_schema.MIGRATION:
         return study_help_schema
     if isinstance(value, dict) and value.get("migration") == ranking_analysis_schema.MIGRATION:
