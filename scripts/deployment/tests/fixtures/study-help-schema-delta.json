@@ -1335,7 +1335,7 @@
       "table": "pages_studyhelprequest"
     },
     {
-      "definition": "CREATE UNIQUE INDEX study_help_one_inflight_per_owner ON public.pages_studyhelprequest USING btree (owner_id) WHERE ((state)::text = ANY ((ARRAY['queued'::character varying, 'running'::character varying])::text[]))",
+      "definition": "CREATE UNIQUE INDEX study_help_one_inflight_per_owner ON public.pages_studyhelprequest USING btree (owner_id) WHERE (((state)::text = 'queued'::text) OR ((state)::text = 'running'::text))",
       "name": "study_help_one_inflight_per_owner",
       "schema": "public",
       "table": "pages_studyhelprequest"
@@ -1359,13 +1359,13 @@
       "table": "pages_studyhelprestriction"
     },
     {
-      "definition": "CREATE UNIQUE INDEX study_help_unique_hint_slot ON public.pages_studyhelprequest USING btree (owner_id, statement_uuid, revision, slot) WHERE (((action)::text = ANY ((ARRAY['hint'::character varying, 'stronger_hint'::character varying])::text[])) AND ((state)::text = ANY ((ARRAY['queued'::character varying, 'running'::character varying, 'ready'::character varying])::text[])))",
+      "definition": "CREATE UNIQUE INDEX study_help_unique_hint_slot ON public.pages_studyhelprequest USING btree (owner_id, statement_uuid, revision, slot) WHERE ((((action)::text = 'hint'::text) OR ((action)::text = 'stronger_hint'::text)) AND (((state)::text = 'queued'::text) OR ((state)::text = 'running'::text) OR ((state)::text = 'ready'::text)))",
       "name": "study_help_unique_hint_slot",
       "schema": "public",
       "table": "pages_studyhelprequest"
     },
     {
-      "definition": "CREATE UNIQUE INDEX study_help_unique_solution_slot ON public.pages_studyhelprequest USING btree (owner_id, statement_uuid, slot) WHERE (((action)::text = ANY ((ARRAY['solution'::character varying, 'alternative'::character varying])::text[])) AND ((state)::text = ANY ((ARRAY['queued'::character varying, 'running'::character varying, 'ready'::character varying])::text[])))",
+      "definition": "CREATE UNIQUE INDEX study_help_unique_solution_slot ON public.pages_studyhelprequest USING btree (owner_id, statement_uuid, slot) WHERE ((((action)::text = 'solution'::text) OR ((action)::text = 'alternative'::text)) AND (((state)::text = 'queued'::text) OR ((state)::text = 'running'::text) OR ((state)::text = 'ready'::text)))",
       "name": "study_help_unique_solution_slot",
       "schema": "public",
       "table": "pages_studyhelprequest"

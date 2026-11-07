@@ -488,7 +488,7 @@ class Migration(migrations.Migration):
         migrations.AddConstraint(
             model_name="studyhelprequest",
             constraint=models.UniqueConstraint(
-                condition=models.Q(("state__in", ["queued", "running"])),
+                condition=models.Q(("state", "queued"), ("state", "running"), _connector="OR"),
                 fields=("owner",),
                 name="study_help_one_inflight_per_owner",
             ),
@@ -497,8 +497,8 @@ class Migration(migrations.Migration):
             model_name="studyhelprequest",
             constraint=models.UniqueConstraint(
                 condition=models.Q(
-                    ("action__in", ("solution", "alternative")),
-                    ("state__in", ["queued", "running", "ready"]),
+                    models.Q(("action", "solution"), ("action", "alternative"), _connector="OR"),
+                    models.Q(("state", "queued"), ("state", "running"), ("state", "ready"), _connector="OR"),
                 ),
                 fields=("owner", "statement_uuid", "slot"),
                 name="study_help_unique_solution_slot",
@@ -508,8 +508,8 @@ class Migration(migrations.Migration):
             model_name="studyhelprequest",
             constraint=models.UniqueConstraint(
                 condition=models.Q(
-                    ("action__in", ("hint", "stronger_hint")),
-                    ("state__in", ["queued", "running", "ready"]),
+                    models.Q(("action", "hint"), ("action", "stronger_hint"), _connector="OR"),
+                    models.Q(("state", "queued"), ("state", "running"), ("state", "ready"), _connector="OR"),
                 ),
                 fields=("owner", "statement_uuid", "revision", "slot"),
                 name="study_help_unique_hint_slot",

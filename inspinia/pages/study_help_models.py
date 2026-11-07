@@ -19,6 +19,10 @@ class StudyHelpAction(models.TextChoices):
 HINT_ACTIONS = (StudyHelpAction.HINT, StudyHelpAction.STRONGER_HINT)
 SOLUTION_ACTIONS = (StudyHelpAction.SOLUTION, StudyHelpAction.ALTERNATIVE)
 
+# Direct equality predicates deparse identically before and after PostgreSQL dump/restore.
+INFLIGHT_PREDICATE = Q(state="queued") | Q(state="running")
+HELD_PREDICATE = INFLIGHT_PREDICATE | Q(state="ready")
+
 
 class StudyHelpPrompt(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
@@ -153,17 +157,17 @@ class StudyHelpRequest(models.Model):
             models.UniqueConstraint(fields=["owner", "interaction_key"], name="study_help_interaction_unique"),
             models.UniqueConstraint(
                 fields=["owner"],
-                condition=Q(state__in=["queued", "running"]),
+                condition=INFLIGHT_PREDICATE,
                 name="study_help_one_inflight_per_owner",
             ),
             models.UniqueConstraint(
                 fields=["owner", "statement_uuid", "slot"],
-                condition=Q(action__in=SOLUTION_ACTIONS, state__in=["queued", "running", "ready"]),
+                condition=(Q(action="solution") | Q(action="alternative")) & HELD_PREDICATE,
                 name="study_help_unique_solution_slot",
             ),
             models.UniqueConstraint(
                 fields=["owner", "statement_uuid", "revision", "slot"],
-                condition=Q(action__in=HINT_ACTIONS, state__in=["queued", "running", "ready"]),
+                condition=(Q(action="hint") | Q(action="stronger_hint")) & HELD_PREDICATE,
                 name="study_help_unique_hint_slot",
             ),
         ]
