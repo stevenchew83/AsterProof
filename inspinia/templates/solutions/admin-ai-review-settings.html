@@ -7,6 +7,7 @@
       {% url 'solutions:forum_admin_queue' as verification_url %}
       {% include 'partials/page-header-intro.html' with title='AI review settings' page_icon='ti-sparkles' back_url=verification_url back_label='Solution verification' only %}
       <div class="app-page-header-actions">
+        <a class="btn btn-outline-secondary btn-sm" href="{% url 'solutions:admin_ai_review_queue' %}">AI review queue</a>
         {% if generation_enabled and key_ready %}
           <span class="badge bg-success-subtle text-success"><i class="ti ti-circle-check me-1" aria-hidden="true"></i>Ready to queue</span>
         {% else %}

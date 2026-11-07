@@ -48,6 +48,7 @@ FEEDBACK = "Check the equality case. <script>never_execute()</script>"
 PROMPT = "Focus on the equality cases."
 MODELS = ["gpt-6.1-sol", "gpt-6-astra"]
 SETTINGS_URL = "solutions:admin_ai_review_settings"
+QUEUE_URL = "solutions:admin_ai_review_queue"
 
 
 @pytest.fixture
@@ -238,6 +239,40 @@ def test_admin_can_compare_drafts_then_publish_once_to_solver(client, proof, con
         assert queue(client, proof, config).status_code == HTTPStatus.FORBIDDEN
 
 
+@pytest.mark.usefixtures("self_review_enabled")
+def test_admin_queue_lists_active_model_requests_and_refreshes_privately(client, proof, config, second_solution):
+    queue(client, proof, config)
+    waiting = list(AdminSolutionReview.objects.order_by("created_at", "pk"))
+    client.force_login(proof.author)
+    client.post(reverse("solutions:admin_ai_review_generate", args=[second_solution.pk]), {
+        "target_key": forum.current_target_data(second_solution)["key"],
+        "problem_label": admin_reviews.problem_label(second_solution),
+        "settings_version": config.version, "models": MODELS[:1], "batch_id": uuid.uuid4(),
+    })
+    url = reverse(QUEUE_URL)
+    assert client.get(url).status_code == HTTPStatus.FORBIDDEN
+    assert client.get(url, {"fragment": "1"}).status_code == HTTPStatus.FORBIDDEN
+    running = SelfSolutionReviewUsage.objects.get().review
+    AdminSolutionReview.objects.filter(pk=running.pk).update(status="running", feedback=FEEDBACK)
+
+    client.force_login(proof.admin)
+    page = client.get(url)
+    assert page.status_code == HTTPStatus.OK
+    assert list(page.context["queue_page"]) == [running, *waiting]
+    assert b"2 waiting" in page.content
+    assert b"1 reviewing" in page.content
+    assert b">Solver</td>" in page.content
+    assert b">Admin</td>" in page.content
+    assert f'{reverse("solutions:solution_detail", args=[second_solution.pk])}#ai-review'.encode() in page.content
+    assert b"Check the equality case." not in page.content
+
+    AdminSolutionReview.objects.filter(pk=running.pk).update(status="failed")
+    fragment = client.get(url, {"fragment": "1"})
+    assert "no-store" in fragment["Cache-Control"]
+    assert list(fragment.context["queue_page"]) == waiting
+    assert b"0 reviewing" in fragment.content
+
+
 def test_missing_solution_and_statement_block_generation(client, proof, config):
     body = proof.block.body_source
     proof.block.body_source = "  % only a comment"
@@ -258,8 +293,8 @@ def test_missing_solution_and_statement_block_generation(client, proof, config):
     assert not AdminSolutionReview.objects.exists()
 
 
-def test_solver_can_request_and_follow_progress_until_admin_publishes(client, proof, config, settings, monkeypatch):
-    settings.SELF_SOLUTION_REVIEW_ENABLED = True
+@pytest.mark.usefixtures("self_review_enabled")
+def test_solver_sees_streamed_feedback_and_receives_completed_review_automatically(client, proof, config, monkeypatch):
     client.force_login(proof.author)
     page = client.get(proof.url)
     assert b"Generate AI review" in page.content
@@ -273,7 +308,7 @@ def test_solver_can_request_and_follow_progress_until_admin_publishes(client, pr
     review = AdminSolutionReview.objects.get()
     progress_url = reverse("solutions:admin_ai_review_progress", args=[proof.solution.pk, batch])
     queued_page = client.get(proof.url)
-    assert b'role="progressbar"' in queued_page.content
+    assert b"Waiting in queue" in queued_page.content
     assert client.get(progress_url).json()["reviews"][0]["status"] == "Queued"
 
     client.force_login(proof.member)
@@ -287,29 +322,59 @@ def test_solver_can_request_and_follow_progress_until_admin_publishes(client, pr
         on_preview(FEEDBACK)
         progress = client.get(progress_url)
         assert progress.json()["reviews"] == [{
-            "id": str(review.pk), "status": "Reviewing", "active": True, "feedback": "",
+            "id": str(review.pk), "status": "Reviewing", "active": True, "feedback": FEEDBACK,
         }]
         assert "no-store" in progress["Cache-Control"]
-        assert FEEDBACK.encode() not in client.get(proof.url).content
+        live_page = client.get(proof.url).content
+        assert b"data-ai-review-live" in live_page
+        assert b"Check the equality case. &lt;script&gt;" in live_page
+        assert b"6 / 7" not in live_page
+        client.force_login(proof.member)
+        assert client.get(progress_url).status_code == HTTPStatus.FORBIDDEN
+        assert b"Check the equality case." not in client.get(proof.url).content
+        client.force_login(proof.author)
         return response()
 
     monkeypatch.setattr(worker, "request_review", provider)
     assert worker.process_next()["status"] == "completed"
     assert SelfSolutionReviewUsage.objects.get().succeeded
+    review.refresh_from_db()
+    assert review.published_at is not None
+    assert review.published_by is None
+    assert review.notification == AdminSolutionReview.Notification.PENDING
+    assert not client.get(progress_url).json()["reviews"][0]["active"]
     page = client.get(proof.url)
-    assert b"Awaiting publication" in page.content
     assert b"49</span> left on your account" in page.content
-    assert b"Check the equality case." not in page.content
-    assert b"6 / 7" not in page.content
-    assert not getattr(mail, "outbox", [])
-
-    client.force_login(proof.admin)
-    assert client.post(publisher(proof, review)).status_code == HTTPStatus.FOUND
-    assert worker.process_next()["notification"] == "sent"
-    client.force_login(proof.author)
-    page = client.get(proof.url)
     assert b"6 / 7" in page.content
     assert b"Check the equality case." in page.content
+    assert not getattr(mail, "outbox", [])
+
+    assert worker.process_next()["notification"] == "sent"
+    assert worker.process_next()["status"] == "idle"
+    assert [notice.to for notice in mail.outbox] == [[proof.author.email]]
+
+
+@pytest.mark.usefixtures("self_review_enabled")
+def test_autoshare_does_not_replace_an_admin_review_published_during_generation(client, proof, config, monkeypatch):
+    queue(client, proof, config, models=MODELS[:1])
+    monkeypatch.setattr(worker, "request_review", Mock(return_value=response(7, "Admin selected feedback.")))
+    assert worker.process_next()["status"] == "completed"
+    admin_review = AdminSolutionReview.objects.get()
+
+    client.force_login(proof.author)
+    queue(client, proof, config, models=MODELS[:1])
+
+    def provider(*args, **kwargs):
+        assert admin_reviews.publish(proof.admin, proof.solution.pk, admin_review.pk)
+        return response()
+
+    monkeypatch.setattr(worker, "request_review", provider)
+    assert worker.process_next()["status"] == "completed"
+    page = client.get(proof.url).content
+    assert b"Admin selected feedback." in page
+    assert b"Check the equality case." not in page
+    assert worker.process_next()["notification"] == "sent"
+    assert worker.process_next()["status"] == "idle"
     assert len(mail.outbox) == 1
 
 
@@ -329,6 +394,7 @@ def test_self_review_limits_count_successes_and_survive_proof_deletion(
     assert not SelfSolutionReviewUsage.objects.get().succeeded
     assert queue(client, proof, config, models=MODELS[:1]).status_code == HTTPStatus.FOUND
     assert worker.process_next()["status"] == "completed"
+    assert worker.process_next()["notification"] == "sent"
     proof.block.body_source += " The equality case follows directly."
     proof.block.save()
     assert queue(client, proof, config, models=MODELS[:1]).status_code == HTTPStatus.FOUND
@@ -389,17 +455,23 @@ def test_worker_rechecks_restrictions_before_sending_owner_proof(client, proof, 
 def test_changed_proof_during_generation_does_not_use_the_owners_allowance(client, proof, config, monkeypatch):
     client.force_login(proof.author)
     queue(client, proof, config, models=MODELS[:1])
+    review = AdminSolutionReview.objects.get()
+    progress_url = reverse("solutions:admin_ai_review_progress", args=[proof.solution.pk, review.batch_id])
 
-    def provider(*args, **kwargs):
+    def provider(_review, _key, *, on_preview):
+        on_preview(FEEDBACK)
         proof.block.body_source += " A revised step."
         proof.block.save()
+        assert client.get(progress_url).status_code == HTTPStatus.FORBIDDEN
+        assert b"Check the equality case." not in client.get(proof.url).content
         return response()
 
     monkeypatch.setattr(worker, "request_review", provider)
     assert worker.process_next()["status"] == "failed"
-    review = AdminSolutionReview.objects.get()
+    review.refresh_from_db()
     assert review.score is None
     assert not review.feedback
+    assert review.published_at is None
     assert not SelfSolutionReviewUsage.objects.get().succeeded
 
 
@@ -523,10 +595,11 @@ def test_provider_uses_actual_sdk_with_a_mock_transport(client, proof, config, m
             owner_progress = client.get(progress)
             if provider_job.author_request:
                 assert owner_progress.status_code == HTTPStatus.OK
-                assert b"First draft" not in owner_progress.content
+                assert owner_progress.json()["reviews"][0]["feedback"] == "First draft"
+                assert b"First draft" in client.get(proof.url).content
             else:
                 assert owner_progress.status_code == HTTPStatus.FORBIDDEN
-            assert b"First draft" not in client.get(proof.url).content
+                assert b"First draft" not in client.get(proof.url).content
             client.force_login(proof.admin)
             complete = {
                 "type": "response.completed", "sequence_number": 2,
@@ -552,6 +625,8 @@ def test_provider_uses_actual_sdk_with_a_mock_transport(client, proof, config, m
     monkeypatch.setenv("OPENAI_CUSTOM_HEADERS", "Authorization: Bearer ignore-me")
     monkeypatch.setattr(openai, "OpenAI", mock_client)
     assert worker.process_next()["status"] == "completed"
+    review.refresh_from_db()
+    assert bool(review.published_at) == provider_job.author_request
     request, = seen
     assert str(request.url) == "https://api.openai.com/v1/responses"
     assert request.headers["authorization"] == f"Bearer {KEY}"

@@ -21,11 +21,14 @@ text-only.
 Each selected model uses one paid request. The rolling 24-hour request limit
 counts queued attempts, including failures, and the token cap covers reasoning
 and output. Use a dedicated OpenAI project to track spend.
+**Administration → AI review queue** shows waiting and running model requests.
+On the solution page, a spinner indicates a request is waiting for the worker.
 
 The fixed rubric requires an integer score from 0 to 7 and feedback supporting
-that score. Admins see feedback stream into the review panel as OpenAI writes it. Partial
-feedback is private to admins and cannot be published. Admins can compare
-completed drafts and publish one for each saved version.
+that score. The worker reads OpenAI's stream and the review panel polls for
+status and partial feedback. Admin-generated drafts are private to admins until
+they choose a completed draft to publish. Only one review can be published per
+saved version, and partial feedback is never published as the result.
 Only the solver and admins can read a published review; an email links to the
 signed-in entry. Publishing does not change trainer assessments, verification,
 or completion records. If a proof or statement changes, regenerate before
@@ -37,8 +40,9 @@ configured model per request and can have one active request across their accoun
 Each account can generate two successful reviews per problem across revisions
 and 50 successful reviews overall. Failed attempts leave those allowances
 available. All requests share the existing rolling 24-hour site cap.
-The author can see the request status while it runs and receives the score and
-feedback once an administrator publishes the draft.
+The author can see partial feedback while their request runs. Once the worker
+validates the final score and feedback, it shares the review privately and queues
+the same email link automatically. Earlier completed drafts are not republished.
 
 The author request flow requires `solutions.0015_self_solution_review_usage`.
 It adds one usage table and retains the account and site quotas when a solution

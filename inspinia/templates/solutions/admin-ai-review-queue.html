@@ -1,0 +1,58 @@
+{% extends 'layouts/vertical.html' %}
+
+{% block title %}AI review queue{% endblock title %}
+
+{% block page_content %}
+  <div class="container-fluid app-table-page">
+    <header class="page-title-head app-page-header">
+      {% include 'partials/page-header-intro.html' with title='AI review queue' subtitle='Administration' page_icon='ti-list-details' only %}
+      <div class="app-page-header-actions">
+        <a class="btn btn-outline-secondary btn-sm" href="{% url 'solutions:admin_ai_review_settings' %}">Review settings</a>
+        <a class="btn btn-outline-primary btn-sm" href="?page={{ queue_page.number }}"><i class="ti ti-refresh me-1" aria-hidden="true"></i>Refresh</a>
+      </div>
+    </header>
+    <p class="text-muted fs-sm mb-2" data-ai-queue-refresh-status role="status">Updates every 10 seconds while this tab is visible.</p>
+    <div data-ai-review-queue>
+      {% include 'solutions/partials/admin-review-queue-table.html' %}
+    </div>
+  </div>
+{% endblock page_content %}
+
+{% block extra_javascript %}
+  <script>
+    (() => {
+      const queue = document.querySelector("[data-ai-review-queue]");
+      const refreshStatus = document.querySelector("[data-ai-queue-refresh-status]");
+      const url = new URL(window.location.href);
+      url.searchParams.set("fragment", "1");
+      const liveMessage = refreshStatus.textContent;
+      let previous = "";
+
+      const refresh = async () => {
+        if (!document.hidden && !queue.contains(document.activeElement)) {
+          try {
+            const response = await fetch(url, {cache: "no-store", signal: AbortSignal.timeout(8000)});
+            if (response.redirected || response.status === 403) {
+              queue.replaceChildren();
+              refreshStatus.textContent = "Sign in as an administrator to view the queue.";
+              return;
+            }
+            if (!response.ok) throw new Error("Queue unavailable");
+            const html = await response.text();
+            if (html !== previous && !queue.contains(document.activeElement)) {
+              const scrollLeft = queue.querySelector(".app-table-region").scrollLeft;
+              queue.innerHTML = html;
+              queue.querySelector(".app-table-region").scrollLeft = scrollLeft;
+              previous = html;
+            }
+            if (refreshStatus.textContent !== liveMessage) refreshStatus.textContent = liveMessage;
+          } catch {
+            refreshStatus.textContent = "Couldn’t refresh the queue. Retrying…";
+          }
+        }
+        window.setTimeout(refresh, 10000);
+      };
+      window.setTimeout(refresh, 10000);
+    })();
+  </script>
+{% endblock extra_javascript %}

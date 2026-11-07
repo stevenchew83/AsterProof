@@ -1,0 +1,40 @@
+<section class="card" aria-labelledby="ai-queue-heading">
+  <div class="card-header d-flex align-items-start justify-content-between flex-wrap gap-2">
+    <div>
+      <h2 id="ai-queue-heading" class="header-title fs-lg mb-1">Active requests</h2>
+      <p class="text-muted fs-sm mb-0">Each row is one model request. Waiting requests are listed oldest first.</p>
+    </div>
+    <div class="d-flex flex-wrap gap-2">
+      <span class="badge fs-xs bg-warning-subtle text-warning-emphasis">{{ counts.waiting }} waiting</span>
+      <span class="badge fs-xs bg-primary-subtle text-primary-emphasis">{{ counts.reviewing }} reviewing</span>
+      {% if not generation_enabled %}<span class="badge bg-secondary-subtle text-secondary">Generation paused</span>{% endif %}
+    </div>
+  </div>
+  <div class="app-table-region table-responsive" tabindex="0" role="region" aria-label="Active AI review requests">
+    <table class="table table-striped app-table-compact align-middle mb-0">
+      <thead>
+        <tr><th scope="col">Solution</th><th scope="col">Status</th><th scope="col">Model</th><th scope="col">Requested by</th><th scope="col">Queued at</th></tr>
+      </thead>
+      <tbody>
+        {% for review in queue_page %}
+          <tr>
+            <td><a class="app-table-text fw-semibold" href="{% url 'solutions:solution_detail' review.target.solution_id %}#ai-review">{{ review.problem_label }} <span class="text-muted fw-normal">#{{ review.target.solution_id }}</span></a></td>
+            <td>
+              {% if review.status == 'running' %}
+                <span class="badge d-inline-flex align-items-center gap-1 fs-xs bg-primary-subtle text-primary-emphasis"><span class="spinner-border spinner-border-sm" aria-hidden="true"></span>Reviewing</span>
+              {% else %}
+                <span class="badge d-inline-flex align-items-center gap-1 fs-xs bg-warning-subtle text-warning-emphasis"><i class="ti ti-clock" aria-hidden="true"></i>Waiting</span>
+              {% endif %}
+            </td>
+            <td>{{ review.get_model_display }}</td>
+            <td>{% if review.requested_by_solver %}Solver{% else %}Admin{% endif %}</td>
+            <td><time datetime="{{ review.created_at|date:'c' }}">{{ review.created_at|date:'j M Y, H:i' }}</time></td>
+          </tr>
+        {% empty %}
+          <tr><td colspan="5" class="py-4 text-muted">No AI reviews are waiting or running.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% include 'solutions/forum-pagination.html' with page=queue_page only %}
+</section>
