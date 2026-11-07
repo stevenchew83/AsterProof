@@ -10,6 +10,8 @@ from types import SimpleNamespace
 
 import pytest
 
+from scripts.deployment.newsletter_schedule import REVIEW_SERVICE
+from scripts.deployment.newsletter_schedule import REVIEW_TIMER
 from scripts.deployment.newsletter_schedule import SERVICE
 from scripts.deployment.newsletter_schedule import TIMER
 from scripts.deployment.newsletter_schedule import render_units
@@ -20,26 +22,30 @@ pytestmark = pytest.mark.skipif(
 )
 
 
-def test_newsletter_worker_cannot_start_drained_app_and_stops_with_app(tmp_path):
+@pytest.mark.parametrize(("kind", "service_name", "timer_name"), [
+    ("newsletter", SERVICE, TIMER),
+    ("admin-reviews", REVIEW_SERVICE, REVIEW_TIMER),
+])
+def test_worker_cannot_start_drained_app_and_stops_with_app(tmp_path, kind, service_name, timer_name):
     run_id = os.environ["GITHUB_RUN_ID"]
     assert re.fullmatch(r"[1-9][0-9]{0,19}", run_id)
     app_user = os.environ["SUDO_USER"]
     assert app_user != "root"
     assert re.fullmatch(r"[a-z_][a-z0-9_-]*", app_user)
-    prefix = "asterproof-ci-newsletter-" + run_id
+    prefix = f"asterproof-ci-{kind}-{run_id}"
     app, job, timer = (prefix + suffix for suffix in ("-app.service", ".service", ".timer"))
     units = render_units(SimpleNamespace(
         service=app, app_user=app_user,
         release_root=Path("/srv/asterproof-ci"), environment_file=Path("/dev/null"),
-    ))
+    ), admin_reviews=kind == "admin-reviews")
     # Keep the real dependency/sandbox/resource settings; substitute only the
     # synthetic executable/path. No application environment or data is used.
-    service = re.sub(r"^ExecStart=.*$", "ExecStart=/bin/sleep 600", units[SERVICE], flags=re.MULTILINE)
+    service = re.sub(r"^ExecStart=.*$", "ExecStart=/bin/sleep 600", units[service_name], flags=re.MULTILINE)
     service = re.sub(r"^WorkingDirectory=.*$", "WorkingDirectory=/", service, flags=re.MULTILINE)
     definitions = {
         app: f"[Service]\nType=simple\nUser={app_user}\nExecStart=/bin/sleep 600\nTimeoutStopSec=10s\n",
         job: service,
-        timer: units[TIMER].replace(SERVICE, job),
+        timer: units[timer_name].replace(service_name, job),
     }
     created = []
 
@@ -67,14 +73,14 @@ def test_newsletter_worker_cannot_start_drained_app_and_stops_with_app(tmp_path)
                 break
             time.sleep(0.1)
         else:
-            pytest.fail("Synthetic newsletter job did not start")
+            pytest.fail("Synthetic worker did not start")
         systemctl("stop", app)
         assert pid(app) == "0"
         assert pid(job) == "0"
         systemctl("start", app)
         assert pid(job) == "0", "Starting the app must not launch heavy maintenance"
         systemctl("restart", app)
-        assert pid(job) == "0", "Restarting the app must not launch an inactive newsletter job"
+        assert pid(job) == "0", "Restarting the app must not launch an inactive worker"
     finally:
         if created:
             systemctl("stop", *(p.name for p in created), check=False)
