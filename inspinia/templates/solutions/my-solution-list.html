@@ -1,6 +1,6 @@
 {% extends 'layouts/vertical.html' %}
 
-{% load static %}
+{% load static solution_list_reviews %}
 
 {% block title %}My solutions{% endblock title %}
 
@@ -119,6 +119,7 @@
     </div>
     <div class="card-body">
       {% if my_solution_rows %}
+      {% with_author_review_status request.user my_solution_rows as solution_rows_with_reviews %}
       <form method="get" action="{% url 'solutions:collection_create' %}" data-collection-selection>
       <div class="d-flex align-items-center flex-wrap gap-2 mb-3">
         <label class="visually-hidden" for="collection-solution-search">Filter your solutions</label>
@@ -134,12 +135,13 @@
               <th><span class="visually-hidden">Select for collection</span></th>
               <th>Problem</th>
               <th>Status</th>
+              <th>AI review</th>
               <th>Updated</th>
               <th class="text-end">Actions</th>
             </tr>
           </thead>
           <tbody>
-            {% for row in my_solution_rows %}
+            {% for row in solution_rows_with_reviews %}
             <tr data-solution-row>
               <td><input type="checkbox" name="solution" value="{{ row.id }}" class="form-check-input" data-solution-choice data-solution-label="{{ row.title }} · {{ row.problem_label }}" aria-label="Select {{ row.problem_label }} for collection" /><span class="badge bg-primary-subtle text-primary ms-1" data-selection-number hidden></span></td>
               <td>
@@ -147,9 +149,17 @@
                 <span class="text-muted fs-12 app-table-meta">{{ row.title }}</span>
               </td>
               <td><span class="badge {{ row.status_badge_class }}">{{ row.status_label }}</span>{% if row.has_public_link %}<span class="badge bg-info-subtle text-info">Public link active</span>{% endif %}</td>
+              <td class="text-nowrap">
+                {% if row.ai_review %}
+                <a href="{{ row.view_url }}#ai-review" class="text-decoration-none">{% if row.ai_review.score != None %}<span class="fw-semibold">{{ row.ai_review.score }}/7</span> · {% endif %}{{ row.ai_review.label }}</a>
+                {% else %}
+                <span class="text-muted">Not reviewed</span>
+                {% endif %}
+              </td>
               <td class="text-muted">{{ row.updated_at_label }}</td>
               <td class="text-end">
                 <div class="app-table-actions d-inline-flex justify-content-end gap-2">
+                  <a href="{{ row.view_url }}" class="btn btn-outline-primary btn-sm">View solution</a>
                   <a href="{{ row.problem_url }}" class="btn btn-outline-secondary btn-sm">Problem page</a>
                   <a href="{{ row.edit_url }}" class="btn btn-primary btn-sm">Edit draft</a>
                   {% if row.has_public_link %}<a href="{{ row.share_manage_url }}" class="btn btn-outline-secondary btn-sm">Manage link</a>{% endif %}
