@@ -6496,7 +6496,7 @@ def _render_completion_progress_analytics(  # noqa: PLR0913
     if request.GET.get("export") == "csv":
         return _completion_progress_csv_response(filtered_rows, selected_user)
 
-    table_rows = completion_progress_table_rows(filtered_rows)
+    table_rows = completion_progress_table_rows(filtered_rows, viewer=request.user, learner=selected_user)
     table_rows = _completion_progress_apply_difficulty_payloads(table_rows, user=selected_user)
     can_edit_difficulty = selected_user == request.user
     show_difficulty = can_edit_difficulty or _completion_progress_has_user_difficulty(table_rows)
@@ -6567,7 +6567,6 @@ def _render_completion_progress_analytics(  # noqa: PLR0913
                 filtered_rows=filtered_rows,
                 comparison_rows=comparison_scoped_rows,
                 today=today,
-                viewer=request.user,
             ),
         )
         return render(request, "pages/shared-completion-progress.html", context)
@@ -6575,6 +6574,7 @@ def _render_completion_progress_analytics(  # noqa: PLR0913
 
 
 @login_required
+@never_cache
 def completion_progress_analytics_view(request):
     """Admin progress analytics for one selected user's completion history."""
     _require_admin_tools_access(request)
@@ -6589,6 +6589,7 @@ def completion_progress_analytics_view(request):
 
 
 @login_required
+@never_cache
 def my_completion_progress_analytics_view(request):
     """Personal progress analytics scoped to the signed-in user's completion history."""
     return _render_completion_progress_analytics(

@@ -17,8 +17,11 @@ from inspinia.pages.statement_analytics import effective_mohs
 from inspinia.pages.statement_analytics import effective_topic
 from inspinia.pages.statement_duplicates import normalize_exact_statement_text
 from inspinia.pages.topic_labels import display_topic_label
+from inspinia.solutions.forum_access import visible_solutions
 from inspinia.solutions.models import ProblemSolution
+from inspinia.solutions.my_solution_reviews import author_review_summaries
 from inspinia.users.models import User
+from inspinia.users.roles import user_has_admin_role
 
 if TYPE_CHECKING:
     from collections.abc import Iterable
@@ -800,7 +803,39 @@ def _completion_progress_contest_heatmap_cell_state(
     return "partial"
 
 
-def completion_progress_table_rows(rows: Iterable[CompletionProgressRow]) -> list[dict[str, object]]:
+def _solution_cells(
+    rows: list[CompletionProgressRow], viewer: User, learner: User | None,
+) -> dict[tuple[int, int | None], dict[str, object]]:
+    if learner is None:
+        return {}
+    problem_ids = {
+        row.problem_id for row in rows
+        if row.user_id == learner.pk and row.solution_status == ProblemSolution.Status.PUBLISHED
+    }
+    if not problem_ids:
+        return {}
+    solution_ids = dict(visible_solutions(viewer).filter(
+        author=learner, problem_id__in=problem_ids, status=ProblemSolution.Status.PUBLISHED,
+    ).values_list("problem_id", "pk"))
+    # A member-published proof does not make its solver's AI review public.
+    reviews = (
+        author_review_summaries(learner, solution_ids.values())
+        if viewer.pk == learner.pk or user_has_admin_role(viewer)
+        else {}
+    )
+    return {
+        (learner.pk, problem_id): {
+            "solution_url": reverse("solutions:solution_detail", args=[solution_id]),
+            "ai_review_score": reviews.get(solution_id, {}).get("score"),
+        }
+        for problem_id, solution_id in solution_ids.items()
+    }
+
+
+def completion_progress_table_rows(
+    rows: list[CompletionProgressRow], *, viewer: User, learner: User | None,
+) -> list[dict[str, object]]:
+    solution_cells = _solution_cells(rows, viewer, learner)
     return [
         {
             "completion_date": row.completion_date.isoformat() if row.completion_date is not None else "Unknown",
@@ -823,6 +858,7 @@ def completion_progress_table_rows(rows: Iterable[CompletionProgressRow]) -> lis
             "user_email": row.user_email,
             "user_label": row.user_label,
             "year": row.year,
+            **solution_cells.get((row.user_id, row.problem_id), {}),
         }
         for row in rows
     ]

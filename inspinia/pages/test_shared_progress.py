@@ -168,6 +168,37 @@ def test_shared_history_omits_stale_scores_and_unpublished_solution_links(client
     assert f'href="{url}"' not in response.content.decode()
 
 
+@pytest.mark.parametrize("view", ["personal", "admin", "debug"])
+def test_completion_progress_solution_and_score_outside_shared_dashboards(
+    client, settings, learners, alex_solution, view,
+):
+    settings.SHARED_PROGRESS_LEARNERS = {}
+    _solution_review(alex_solution, score=0, published=True)
+    _solution_review(alex_solution, score=7, published=False)
+    other_solution = ProblemSolution.objects.create(
+        problem=alex_solution.problem, author=learners["other"], status=ProblemSolution.Status.PUBLISHED,
+    )
+
+    if view == "personal":
+        client.force_login(alex_solution.author)
+        response = client.get(reverse("pages:my_completion_progress_analytics"), {"user": other_solution.author_id})
+    else:
+        settings.DEBUG = view == "debug"
+        client.force_login(UserFactory(role=User.Role.ADMIN) if view == "admin" else learners["other"])
+        response = client.get(reverse("pages:completion_progress_analytics"), {"user": alex_solution.author_id})
+
+    assert response.status_code == HTTPStatus.OK
+    assert "no-store" in response["Cache-Control"]
+    [row] = response.context["completion_progress_table_rows"]
+    assert row["solution_url"] == reverse("solutions:solution_detail", args=[alex_solution.pk])
+    assert row["ai_review_score"] == (None if view == "debug" else 0)
+    html = response.content.decode()
+    table_data = html.split('<script id="completion-progress-table-data" type="application/json">', 1)[1]
+    assert json.loads(table_data.split("</script>", 1)[0]) == [row]
+    assert "Private AI feedback" not in html
+    assert reverse("solutions:solution_detail", args=[other_solution.pk]) not in html
+
+
 def test_shared_completion_export_is_scoped_to_subject(client, learners, completions):
     client.force_login(learners["alex"])
     response = client.get(progress_url("ben"), {"range": "all", "export": "csv", "user": learners["other"].pk})
