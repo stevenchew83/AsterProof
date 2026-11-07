@@ -1,0 +1,11 @@
+# Study Help schema release
+
+Release Study Help with DJANGO_STUDY_HELP_ENABLED and DJANGO_STUDY_HELP_EVALUATION_ENABLED both false. Keep the Study Help timer, policy, and live provider inactive during this release. Coach qualification and any subsequent activation use the separate [Study Help operations guide](../study-help.md).
+
+Migration pages.0047_study_help creates nine empty tables with their constraints, indexes, and five unused identity sequences. The trusted plan admits exactly this forward migration via MigrationExecutor with no data operations. It freezes the migration, all prior project migration sources, and the catalog delta in the Study Help schema module and fixture.
+
+Before requesting installation of the trusted authority, retain the successful pinned PostgreSQL 17.9 rehearsal for the exact merged release and live active SHA. The rehearsal compares the prior catalog, synthetic application rows, trigger definitions, sequence values, and recorder. It runs the previous app against the migrated database and repeats the checks. Both flags are checked by the migration guard as well as disabled for the rehearsal.
+
+Follow the [production bootstrap procedure](production-bootstrap.md) for the separately authorized installation of the exact merged authority. Review the literal old and new trusted files and verify preserved target, identities, service, key, registry, and active schema. The application workflow cannot install that authority itself.
+
+Use the installed catalog-snapshot read-only command to obtain the exact starting catalog and server version. Confirm the starting fingerprint against live health and derive the expected ending fingerprint with study_help_schema.expected_catalog_audit and the frozen delta. Dispatch the protected Production deploy workflow with backward-compatible-schema and the exact disclosure. The build repeats the pinned rehearsal and the trusted worker validates its packaged proof, applies only the frozen migration, and compares the ending state before activation. Verify the live process SHA, artifact and schema fingerprints, health, and disabled Study Help flags during immediate postflight. Compatible code recovery retains the additive schema.

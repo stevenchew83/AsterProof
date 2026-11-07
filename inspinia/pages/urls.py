@@ -19,6 +19,11 @@ from inspinia.pages.shared_progress_views import shared_progress_view
 from inspinia.pages.statement_reports import statement_report_create
 from inspinia.pages.statement_reports import statement_report_list
 from inspinia.pages.statement_reports import statement_report_update
+from inspinia.pages.study_help_views import study_help_admin
+from inspinia.pages.study_help_views import study_help_click
+from inspinia.pages.study_help_views import study_help_request
+from inspinia.pages.study_help_views import study_help_reveal
+from inspinia.pages.study_help_views import study_help_status
 from inspinia.pages.views import archive_hub_view
 from inspinia.pages.views import completion_board_bulk_view
 from inspinia.pages.views import completion_board_toggle_view
@@ -85,6 +90,7 @@ urlpatterns = [
     path("statement-reports/<uuid:statement_uuid>/", statement_report_create, name="statement_report_create"),
     path("tools/statement-reports/", statement_report_list, name="statement_report_list"),
     path("tools/statement-reports/<int:report_id>/", statement_report_update, name="statement_report_update"),
+    path("tools/study-help/", study_help_admin, name="study_help_admin"),
     path("tools/concept-assignment-sources/", assignment_source_export, name="concept_assignment_source_export"),
     path("tools/concept-assignments/", concept_assignment_review_list, name="concept_assignment_review"),
     path("tools/concept-assignments/snapshot/", concept_review_snapshot_export, name="concept_review_snapshot_export"),
@@ -209,6 +215,22 @@ urlpatterns = [
         "dashboard/problem-statements/<uuid:statement_uuid>/",
         problem_statement_detail_view,
         name="problem_statement_detail",
+    ),
+    path(
+        "dashboard/problem-statements/<uuid:statement_uuid>/study-help/",
+        study_help_status, name="study_help_status",
+    ),
+    path(
+        "dashboard/problem-statements/<uuid:statement_uuid>/study-help/request/",
+        study_help_request, name="study_help_request",
+    ),
+    path(
+        "dashboard/problem-statements/<uuid:statement_uuid>/study-help/reveal/",
+        study_help_reveal, name="study_help_reveal",
+    ),
+    path(
+        "dashboard/problem-statements/<uuid:statement_uuid>/study-help/click/",
+        study_help_click, name="study_help_click",
     ),
     path(
         "dashboard/problem-statements/rating/",

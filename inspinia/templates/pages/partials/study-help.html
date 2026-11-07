@@ -1,0 +1,39 @@
+<section class="card mt-3 mb-0" data-study-help aria-labelledby="study-help-title"
+         data-status-url="{% url 'pages:study_help_status' problem_statement.statement_uuid %}"
+         data-request-url="{% url 'pages:study_help_request' problem_statement.statement_uuid %}"
+         data-reveal-url="{% url 'pages:study_help_reveal' problem_statement.statement_uuid %}"
+         data-click-url="{% url 'pages:study_help_click' problem_statement.statement_uuid %}"
+         hidden>
+  <div class="card-body">
+    {% csrf_token %}
+    <div class="d-flex flex-wrap justify-content-between align-items-start gap-2">
+      <h2 class="header-title fs-5 d-flex align-items-center gap-2 mb-0" id="study-help-title">
+        <i class="ti ti-bulb text-primary fs-5" aria-hidden="true"></i>AI study help
+      </h2>
+      <p class="text-body-secondary mb-0" data-quota></p>
+    </div>
+    <div class="d-flex flex-wrap gap-2 mt-2" data-actions></div>
+    <p class="small text-body-secondary mb-0" data-feedback tabindex="-1" role="status" aria-live="polite"></p>
+    <div class="border rounded bg-body-tertiary p-3 mt-3" data-confirmation hidden>
+      <p class="mb-2" data-confirm-label>Reveal a complete proof for 1 credit?</p>
+      <div class="d-flex flex-wrap gap-2">
+        <button type="button" class="btn btn-primary bg-primary-subtle text-body-emphasis btn-sm" data-confirm>Generate for 1 credit</button>
+        <button type="button" class="btn btn-light border text-body-emphasis btn-sm" data-cancel>Cancel</button>
+      </div>
+    </div>
+    <div class="border rounded p-3 mt-3" data-answer hidden>
+      <div class="d-flex align-items-start justify-content-between gap-2 mb-2">
+        <div>
+          <h3 class="fs-6 mb-1" data-answer-title tabindex="-1"></h3>
+          <div class="small text-body-secondary">AI generated. Check the reasoning.</div>
+        </div>
+        <button type="button" class="btn btn-light border text-body-emphasis btn-sm" data-close>Close</button>
+      </div>
+      <div class="lh-lg overflow-auto" data-answer-body style="white-space: pre-wrap; overflow-wrap: anywhere;"></div>
+    </div>
+    <details class="mt-3" data-history hidden>
+      <summary class="small fw-semibold" data-history-label>My saved responses</summary>
+      <ul class="list-unstyled mb-0 mt-2" data-history-list></ul>
+    </details>
+  </div>
+</section>

@@ -1,0 +1,111 @@
+{% extends 'layouts/vertical.html' %}
+
+{% block title %}AI study help{% endblock title %}
+
+{% block page_content %}
+  <div class="container-fluid">
+    <header class="page-title-head app-page-header">
+      {% include 'partials/page-header-intro.html' with title='AI study help' subtitle='Manage prompts and see how students use archive assistance.' page_icon='ti-bulb' only %}
+    </header>
+    {% for message in messages %}
+      <p class="alert {% if message.level_tag == 'error' %}alert-danger{% else %}alert-success{% endif %}" role="status">{{ message }}</p>
+    {% endfor %}
+    <div class="row g-3 mt-1">
+      <div class="col-xl-8">
+        <section class="card h-100" aria-labelledby="prompt-heading">
+          <div class="card-body">
+            <h2 class="header-title" id="prompt-heading">Prompt workspace</h2>
+            <p class="small text-body-secondary">Saving changes creates a draft version. Only qualified versions can be published.</p>
+            <form method="post">
+              {% csrf_token %}
+              <input type="hidden" name="operation" value="draft">
+              <label for="study-help-hint-prompt" class="form-label">Hints</label>
+              <textarea id="study-help-hint-prompt" name="hint" class="form-control mb-3" rows="4" maxlength="{{ max_prompt_chars }}" required>{{ hint_prompt }}</textarea>
+              <label for="study-help-proof-prompt" class="form-label">Full solutions</label>
+              <textarea id="study-help-proof-prompt" name="solution" class="form-control mb-3" rows="4" maxlength="{{ max_prompt_chars }}" required>{{ solution_prompt }}</textarea>
+              <button class="btn btn-primary btn-sm" type="submit">Save draft</button>
+            </form>
+            {% if preview %}
+              <details class="mt-3">
+                <summary class="fw-semibold">Fixture preview</summary>
+                <p class="small text-body-secondary mt-2">This preview assembles the instructions with a fixed example. It makes no provider request.</p>
+                <p>{{ preview_statement }}</p>
+                {% for prompt in preview %}
+                  <pre class="small bg-body-tertiary rounded p-2" style="white-space: pre-wrap; overflow-wrap: anywhere;">{{ prompt }}</pre>
+                {% endfor %}
+              </details>
+            {% endif %}
+          </div>
+        </section>
+      </div>
+      <div class="col-xl-4">
+        <section class="card h-100" aria-labelledby="versions-heading">
+          <div class="card-body">
+            <h2 class="header-title" id="versions-heading">Prompt versions</h2>
+            <p class="small text-body-secondary">
+              {% if policy.model %}{{ policy.model }} · {% endif %}
+              {% if policy.generation_enabled %}Generation enabled in policy{% else %}Generation paused{% endif %}
+            </p>
+            <ul class="list-group list-group-flush mb-2">
+              {% for version in versions %}
+                <li class="list-group-item px-0 d-flex justify-content-between gap-2">
+                  <a href="?prompt={{ version.pk }}"{% if selected.pk == version.pk %} aria-current="true"{% endif %}>{{ version.created_at|date:"d M Y, H:i:s" }}</a>
+                  {% if policy.active_prompt_id == version.pk %}<span class="badge bg-success-subtle text-success">Published</span>{% endif %}
+                </li>
+              {% empty %}
+                <li class="list-group-item px-0 text-body-secondary">No versions yet.</li>
+              {% endfor %}
+            </ul>
+            {% if versions.has_previous or versions.has_next %}
+              <nav class="d-flex gap-3 small mb-3" aria-label="Prompt version pages">
+                {% if versions.has_previous %}<a href="?page={{ versions.previous_page_number }}">Newer versions</a>{% endif %}
+                {% if versions.has_next %}<a href="?page={{ versions.next_page_number }}">Older versions</a>{% endif %}
+              </nav>
+            {% endif %}
+            {% if selected %}
+              <p class="small text-body-secondary">Selected version · {{ selected.pk }}</p>
+              {% if qualified %}
+                {% if selected.pk != policy.active_prompt_id %}
+                  <form method="post">
+                    {% csrf_token %}
+                    <input type="hidden" name="operation" value="publish">
+                    <input type="hidden" name="prompt" value="{{ selected.pk }}">
+                    <button class="btn btn-outline-primary btn-sm" type="submit">Publish this version</button>
+                  </form>
+                {% endif %}
+              {% else %}
+                <p class="small text-body-secondary mb-0">Qualification required for publication.</p>
+              {% endif %}
+            {% endif %}
+          </div>
+        </section>
+      </div>
+    </div>
+    <section class="card mt-3" aria-labelledby="study-help-analytics">
+      <div class="card-body">
+        <div class="d-flex flex-wrap justify-content-between gap-3 align-items-end mb-3">
+          <div>
+            <h2 class="header-title" id="study-help-analytics">Student usage</h2>
+            <p class="small text-body-secondary mb-0">Counts by event date in Kuala Lumpur. Browser clicks may be undercounted.</p>
+          </div>
+          <form class="d-flex flex-wrap align-items-end gap-2" method="get">
+            {% if selected %}<input type="hidden" name="prompt" value="{{ selected.pk }}">{% endif %}
+            <div><label class="form-label small mb-1" for="study-help-start">Start date</label><input id="study-help-start" class="form-control form-control-sm" type="date" name="start" value="{{ start|date:'Y-m-d' }}"></div>
+            <div><label class="form-label small mb-1" for="study-help-end">End date</label><input id="study-help-end" class="form-control form-control-sm" type="date" name="end" value="{{ end|date:'Y-m-d' }}"></div>
+            <button class="btn btn-outline-secondary btn-sm" type="submit">Apply dates</button>
+          </form>
+        </div>
+        <div class="table-responsive">
+          <table class="table table-sm align-middle mb-0">
+            <thead><tr><th scope="col">Action</th>{% for label in event_kinds %}<th scope="col" class="text-end">{{ label }}</th>{% endfor %}</tr></thead>
+            <tbody>
+              {% for action, counts in analytics %}
+                <tr><th scope="row">{{ action }}</th>{% for count in counts %}<td class="text-end">{{ count }}</td>{% endfor %}</tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+  </div>
+{% endblock page_content %}
