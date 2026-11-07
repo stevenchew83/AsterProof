@@ -60,7 +60,7 @@
           </section>
           <section class="card mb-0" aria-labelledby="review-models-heading">
             <div class="card-header border-0 pb-0">
-              <h2 class="header-title fs-lg mb-0" id="review-models-heading"><i class="ti ti-adjustments me-2 text-primary" aria-hidden="true"></i>Model and limits</h2>
+              <h2 class="header-title fs-lg mb-0" id="review-models-heading"><i class="ti ti-adjustments me-2 text-primary" aria-hidden="true"></i>Model settings</h2>
             </div>
             <div class="card-body pt-3">
               <fieldset class="mb-3">
@@ -79,8 +79,8 @@
               </fieldset>
               <div class="row g-2">
                 {% for field in form.visible_fields %}
-                  {% if field.name == 'effort' or field.name == 'output_limit' or field.name == 'daily_limit' %}
-                    <div class="col-sm-4">
+                  {% if field.name == 'effort' or field.name == 'output_limit' %}
+                    <div class="col-sm-6">
                       <label class="form-label" for="{{ field.id_for_label }}">{{ field.label }}</label>
                       {{ field }}
                       {% include 'solutions/partials/admin-review-field-errors.html' with field=field only %}

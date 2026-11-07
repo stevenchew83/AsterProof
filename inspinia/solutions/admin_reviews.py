@@ -4,7 +4,6 @@
 import json
 import re
 import uuid
-from datetime import timedelta
 
 from cryptography.fernet import Fernet
 from cryptography.fernet import InvalidToken
@@ -189,15 +188,6 @@ def _batch_config(data, *, self_requested):
     return config, selected, batch_id
 
 
-def _reserve_capacity(config, selected):
-    since = timezone.now() - timedelta(days=1)
-    # Self-requested attempts keep counting even if their draft or solution was removed.
-    admin_requests = AdminSolutionReview.objects.filter(created_at__gte=since, self_request__isnull=True).count()
-    member_requests = SelfSolutionReviewUsage.objects.filter(created_at__gte=since).count()
-    if admin_requests + member_requests + len(selected) > config.daily_limit:
-        raise forum.ForumError("This request exceeds the site-wide AI review limit for the last 24 hours.")
-
-
 def _validate_self_request(user, solution, target):
     if self_review_restricted(user, solution.problem.problem_uuid, target.statement_id_value):
         raise forum.ForumError("AI review is restricted for this problem.")
@@ -255,7 +245,6 @@ def enqueue(user, solution_pk, data):
     instructions = _review_instructions(
         config.prompt, current["payload"]["image_paths"], data.get("include_solution_images") == "1",
     )
-    _reserve_capacity(config, selected)
     reviews = AdminSolutionReview.objects.bulk_create([
         AdminSolutionReview(
             target=target, requested_by=user, solver_id=solution.author_id, batch_id=batch_id,

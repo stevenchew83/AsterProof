@@ -28,6 +28,7 @@ class AdminSolutionReviewSettings(models.Model):
     models_enabled = models.JSONField(default=list)
     effort = models.CharField(max_length=10, choices=EFFORT_CHOICES, default="medium")
     output_limit = models.PositiveIntegerField(default=25_000)
+    # Legacy setting retained for schema and rollback compatibility.
     daily_limit = models.PositiveSmallIntegerField(default=10)
     prompt = models.TextField(default=DEFAULT_PROMPT)
     updated_at = models.DateTimeField(auto_now=True)
