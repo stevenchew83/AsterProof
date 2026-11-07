@@ -97,6 +97,21 @@
               <span class="badge bg-primary-subtle text-primary">7-point rubric</span>
             </div>
             <div class="card-body pt-3">
+              <div class="mb-3">
+                <label class="form-label" for="{{ form.feedback_style.id_for_label }}">{{ form.feedback_style.label }}</label>
+                {{ form.feedback_style }}
+                {% include 'solutions/partials/admin-review-field-errors.html' with field=form.feedback_style only %}
+                <div class="form-text" id="review-feedback-style-hint">Sets how new drafts explain the score. Your review prompt still applies.</div>
+                <details class="mt-2">
+                  <summary class="text-primary fw-medium">Compare feedback styles</summary>
+                  <dl class="small border-start ps-3 mt-2 mb-0">
+                    {% for label, description in feedback_styles %}
+                      <dt>{{ label }}</dt>
+                      <dd class="text-muted mb-1">{{ description }}</dd>
+                    {% endfor %}
+                  </dl>
+                </details>
+              </div>
               <label class="form-label" for="{{ form.prompt.id_for_label }}">{{ form.prompt.label }}</label>
               {{ form.prompt }}
               {% include 'solutions/partials/admin-review-field-errors.html' with field=form.prompt only %}
