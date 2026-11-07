@@ -27,6 +27,7 @@ from .admin_reviews import problem_label
 from .admin_reviews import read_credential
 from .admin_reviews import review_settings
 from .admin_reviews import self_review_restricted
+from .models import ProblemSolution
 
 logger = logging.getLogger(__name__)
 Status = AdminSolutionReview.Status
@@ -56,12 +57,18 @@ def _claim(query, field, states, time_field, now):
 def _finish(review, status, **values):
     completed_self_request = status == Status.COMPLETED and getattr(review, "self_request", None)
     if completed_self_request:
+        # Use the same lock order as manual publication and author requests.
         lock_study_help()
+        ProblemSolution.objects.select_for_update().filter(pk=review.target.solution_id).exists()
         current = _review_jobs().filter(pk=review.pk, status=Status.RUNNING).first()
         if current is None or not _eligible(current, review_settings()):
             status = Status.FAILED
             values.pop("score")
-            values["error"] = "The proof or review eligibility changed before the draft was saved."
+            values["error"] = "The proof or review eligibility changed before the review was saved."
+        elif not current.target.ai_reviews.filter(
+            problem_label=current.problem_label, published_at__isnull=False,
+        ).exists():
+            values.update(published_at=timezone.now(), notification=Notice.PENDING)
     if status != Status.COMPLETED:
         values["feedback"] = ""
     updated = AdminSolutionReview.objects.filter(pk=review.pk, status=Status.RUNNING).update(status=status, **values)
@@ -137,7 +144,12 @@ def _generate(review):
 
 def _notify(review):
     author = review.solver
-    if not author.is_active or not author.email or author.pk != review.target.solution.author_id:
+    solution = review.target.solution
+    restricted = getattr(review, "self_request", None) and (
+        not approved_user(author)
+        or self_review_restricted(author, solution.problem.problem_uuid, review.target.statement_id_value)
+    )
+    if not author.is_active or not author.email or author.pk != solution.author_id or restricted:
         state = Notice.FAILED
     else:
         url = (
