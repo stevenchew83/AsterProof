@@ -84,6 +84,9 @@
                       <label class="form-label" for="{{ field.id_for_label }}">{{ field.label }}</label>
                       {{ field }}
                       {% include 'solutions/partials/admin-review-field-errors.html' with field=field only %}
+                      {% if field.name == 'daily_limit' %}
+                        <div class="form-text">All requests count toward this limit. Admins can still request reviews after it is reached.</div>
+                      {% endif %}
                     </div>
                   {% endif %}
                 {% endfor %}
