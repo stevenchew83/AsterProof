@@ -4,7 +4,7 @@
     <header class="card-header forum-section-heading">
       <div>
         <h2 id="ai-review-title">AI solution review</h2>
-        <p>{% if ai_reviews.admin %}Generate a scored draft, then choose what the solver receives.{% elif ai_reviews.can_generate %}Request feedback on your saved proof. An admin reviews the draft before sharing it with you.{% else %}AI feedback published by an AsterProof administrator.{% endif %}</p>
+        <p>{% if ai_reviews.admin %}Generate a scored draft, then choose what the solver receives.{% elif ai_reviews.can_generate %}Follow the feedback as it comes in. When your review is ready, you’ll find your score here and receive an email link.{% else %}AI feedback for your saved proofs.{% endif %}</p>
       </div>
       <i class="ti ti-sparkles" aria-hidden="true"></i>
     </header>
@@ -19,12 +19,14 @@
       {% if ai_reviews.active %}
         <div class="border rounded bg-body-tertiary p-2 mb-2">
           <p class="d-flex align-items-center gap-2 fs-sm fw-semibold mb-2" role="status">
-            <i class="ti ti-clock" aria-hidden="true"></i><span data-ai-review-batch-status>{{ ai_reviews.active.get_status_display }}</span>
+            <span class="spinner-border spinner-border-sm text-primary" data-ai-review-queue-spinner aria-hidden="true" {% if ai_reviews.active.status != 'queued' %}hidden{% endif %}></span>
+            <span data-ai-review-batch-status>{% if ai_reviews.active.status == 'queued' %}Waiting in queue{% else %}{{ ai_reviews.active.get_status_display }}{% endif %}</span>
           </p>
-          <div class="progress progress-sm" role="progressbar" aria-label="AI review progress">
+          <div class="progress progress-sm" data-ai-review-running-bar role="progressbar" aria-label="AI review progress" {% if ai_reviews.active.status != 'running' %}hidden{% endif %}>
             <div class="progress-bar progress-bar-striped progress-bar-animated w-100"></div>
           </div>
-          <p class="form-text mb-0">{% if ai_reviews.admin %}Draft feedback appears as it arrives.{% else %}You can leave this page while your request runs.{% endif %}</p>
+          <p class="form-text mb-0" data-ai-review-queue-hint {% if ai_reviews.active.status != 'queued' %}hidden{% endif %}>Your review starts automatically. You can return later.</p>
+          <p class="form-text mb-0" data-ai-review-running-hint {% if ai_reviews.active.status != 'running' %}hidden{% endif %}>Feedback appears as it arrives. You can return later.</p>
         </div>
       {% elif ai_reviews.published %}
         {% if ai_reviews.admin %}<p class="mb-2 text-muted">A review has been published for this version.</p>{% endif %}
@@ -66,9 +68,15 @@
       {% endif %}
       {% if ai_reviews.admin or ai_reviews.active %}
         <div class="d-flex flex-wrap gap-3 mt-2">
-          {% if ai_reviews.admin %}<a class="fs-sm" href="{% url 'solutions:admin_ai_review_settings' %}"><i class="ti ti-settings me-1" aria-hidden="true"></i>Review settings</a>{% endif %}
+          {% if ai_reviews.admin %}
+            <a class="fs-sm" href="{% url 'solutions:admin_ai_review_queue' %}"><i class="ti ti-list-details me-1" aria-hidden="true"></i>Review queue</a>
+            <a class="fs-sm" href="{% url 'solutions:admin_ai_review_settings' %}"><i class="ti ti-settings me-1" aria-hidden="true"></i>Review settings</a>
+          {% endif %}
           {% if ai_reviews.active %}<a class="fs-sm" href="{% url 'solutions:solution_detail' solution.pk %}#ai-review">Refresh status</a>{% endif %}
         </div>
+      {% endif %}
+      {% if ai_reviews.active and not ai_reviews.admin %}
+        {% include 'solutions/partials/admin-review-result.html' with review=ai_reviews.active previous=False %}
       {% endif %}
       {% for review in ai_reviews.recent %}
         {% include 'solutions/partials/admin-review-result.html' with previous=False %}
