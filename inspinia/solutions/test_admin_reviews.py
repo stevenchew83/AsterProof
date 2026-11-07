@@ -111,6 +111,43 @@ def test_admin_key_is_write_only_and_rotation_invalidates_queued_work(client, pr
     assert not config.encrypted_key
 
 
+def test_feedback_style_round_trips_and_is_snapshotted_for_new_reviews(client, proof, config):
+    url = reverse(SETTINGS_URL)
+    page = client.get(url)
+    assert page.context["form"]["feedback_style"].value() == ""
+    assert page.context["form"]["prompt"].value() == PROMPT
+    assert b"Step-by-step proof audit" in page.content
+
+    assert settings_post(
+        client, version=config.version, api_key="", feedback_style="proof-audit",
+    ).status_code == HTTPStatus.FOUND
+    config.refresh_from_db()
+    page = client.get(url)
+    assert page.context["form"]["feedback_style"].value() == "proof-audit"
+    assert page.context["form"]["prompt"].value() == PROMPT
+
+    assert queue(client, proof, config, models=[MODELS[0]]).status_code == HTTPStatus.FOUND
+    assert settings_post(
+        client, version=config.version, api_key="", feedback_style="socratic-hints",
+    ).status_code == HTTPStatus.FOUND
+    config.refresh_from_db()
+    assert "ask targeted questions" in config.prompt
+    assert "Walk through the key steps" not in config.prompt
+    assert config.prompt.endswith(PROMPT)
+
+    review = AdminSolutionReview.objects.get()
+    assert "out of a total of 7" in review.instructions
+    assert "Walk through the key steps" in review.instructions
+    assert "ask targeted questions" not in review.instructions
+    assert PROMPT in review.instructions
+
+    assert settings_post(
+        client, version=config.version, api_key="", feedback_style="",
+    ).status_code == HTTPStatus.FOUND
+    config.refresh_from_db()
+    assert config.prompt == PROMPT
+
+
 def test_admin_can_compare_drafts_then_publish_once_to_solver(client, proof, config, monkeypatch):
     client.force_login(proof.admin)
     assert b"Generate AI review" in client.get(proof.url).content

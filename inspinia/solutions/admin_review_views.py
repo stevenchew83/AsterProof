@@ -32,6 +32,40 @@ from .admin_review_models import AdminSolutionReviewSettings
 INPUT = {"class": "form-control"}
 SELECT = {"class": "form-select"}
 LIMITS = [(4000, "4,000"), (8000, "8,000"), (16000, "16,000"), (25000, "25,000"), (32000, "32,000")]
+FEEDBACK_STYLES = {
+    "brief-coaching": (
+        "Brief coaching", "What earned credit, the main gap, and one next step.",
+        "In a short paragraph, identify what earns credit and the most important gap, if any. "
+        "Give one concrete next step.",
+    ),
+    "detailed-grading": (
+        "Detailed grading", "A fuller explanation of the score and any deductions.",
+        "Explain the score in detail using specific steps in the proof. Identify justified progress and explain each "
+        "material deduction under the fixed rubric.",
+    ),
+    "proof-audit": (
+        "Step-by-step proof audit", "A walkthrough that follows the order of the proof.",
+        "Walk through the key steps in proof order. Distinguish valid deductions, missing justification, and false "
+        "claims. Identify any relevant assumption, boundary case, or equality case the proof leaves unresolved.",
+    ),
+    "socratic-hints": (
+        "Socratic hints", "Targeted questions that help the solver find the next step.",
+        "Briefly explain the score. If there is a substantive gap, ask targeted questions that guide the solver "
+        "toward repairing the first one. Leave the missing argument for the solver to discover.",
+    ),
+    "revision-checklist": (
+        "Revision checklist", "A prioritized list of specific edits and checks.",
+        "After a short score explanation, list actionable revisions in priority order. Name the step to revise "
+        "and what the solver needs to establish. For a complete proof, offer an optional refinement only if useful.",
+    ),
+}
+
+
+def _feedback_style_prefix(style):
+    if not style:
+        return ""
+    guidance = FEEDBACK_STYLES[style][2]
+    return f"Feedback presentation (use this style if the guidance below differs):\n{guidance}\n\n"
 
 
 class ReviewSettingsForm(forms.Form):
@@ -60,6 +94,11 @@ class ReviewSettingsForm(forms.Form):
     )
     daily_limit = forms.IntegerField(
         label="24-hour request limit", min_value=1, max_value=50, widget=forms.NumberInput(attrs=INPUT),
+    )
+    feedback_style = forms.ChoiceField(
+        label="Feedback style", required=False,
+        choices=[("", "Use the review prompt")] + [(key, style[0]) for key, style in FEEDBACK_STYLES.items()],
+        widget=forms.Select(attrs={**SELECT, "aria-describedby": "review-feedback-style-hint"}),
     )
     prompt = forms.CharField(
         label="Review prompt", max_length=12_000,
@@ -90,8 +129,9 @@ def _save_settings(form):
             admin_reviews.credential_cipher().encrypt(data["api_key"].encode("ascii")) if data["api_key"] else b""
         )
         config.key_version = uuid.uuid4()
-    for name in ("models_enabled", "effort", "output_limit", "daily_limit", "prompt"):
+    for name in ("models_enabled", "effort", "output_limit", "daily_limit"):
         setattr(config, name, data[name])
+    config.prompt = _feedback_style_prefix(data["feedback_style"]) + data["prompt"]
     config.version = uuid.uuid4()
     config.save()
     return True
@@ -105,12 +145,21 @@ def settings_view(request):
     admin_reviews.require_admin(request.user)
     saved = admin_reviews.review_settings()
     config = saved or AdminSolutionReviewSettings(models_enabled=["gpt-6.1-sol"])
+    # The worker reads the assembled prompt. Only separate a recognized preset from the editable text.
+    prompt = config.prompt
+    feedback_style = ""
+    for style in FEEDBACK_STYLES:
+        prefix = _feedback_style_prefix(style)
+        if prompt.startswith(prefix):
+            feedback_style = style
+            prompt = prompt.removeprefix(prefix)
+            break
     form = ReviewSettingsForm(
         request.POST if request.method == "POST" else None,
         initial={
             "version": saved.version if saved else None,
             "models_enabled": config.models_enabled, "effort": config.effort, "output_limit": config.output_limit,
-            "daily_limit": config.daily_limit, "prompt": config.prompt,
+            "daily_limit": config.daily_limit, "feedback_style": feedback_style, "prompt": prompt,
         },
     )
     if form.is_bound and form.is_valid() and _save_settings(form):
@@ -123,6 +172,7 @@ def settings_view(request):
         "encryption_ready": bool(admin_reviews.credential_cipher()),
         "generation_enabled": settings.ADMIN_SOLUTION_REVIEW_ENABLED,
         "review_rules": admin_reviews.REVIEW_RULES,
+        "feedback_styles": [(label, description) for label, description, _ in FEEDBACK_STYLES.values()],
     }, status=400 if form.is_bound else 200)
 
 
