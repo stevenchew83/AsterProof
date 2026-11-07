@@ -7,13 +7,21 @@ from pathlib import Path
 import pytest
 
 from scripts.deployment import additive_schema
+from scripts.deployment import self_solution_review_schema
 from scripts.deployment import study_help_schema as schema
 from scripts.deployment.concept_schema import ConceptSchemaError
 from scripts.deployment.schema_fingerprint import schema_state
 
 
-def test_study_help_schema_bytes_and_frozen_delta_agree():
-    schema.validate_candidate(Path.cwd())
+def test_study_help_schema_bytes_and_frozen_delta_agree(tmp_path):
+    root = Path.cwd()
+    for migration in root.glob("inspinia/*/migrations/*"):
+        relative = migration.relative_to(root)
+        if migration.suffix in {".py", ".json"} and relative != self_solution_review_schema.MIGRATION_PATH:
+            staged = tmp_path / relative
+            staged.parent.mkdir(parents=True, exist_ok=True)
+            staged.write_bytes(migration.read_bytes())
+    schema.validate_candidate(tmp_path)
     fixture = Path(__file__).parent / "fixtures/study-help-schema-delta.json"
     delta = json.loads(fixture.read_text())
     assert {table["table"] for table in delta["tables"]} == schema.TABLES

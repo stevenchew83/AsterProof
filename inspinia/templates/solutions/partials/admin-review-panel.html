@@ -4,26 +4,46 @@
     <header class="card-header forum-section-heading">
       <div>
         <h2 id="ai-review-title">AI solution review</h2>
-        <p>{% if ai_reviews.admin %}Generate a scored draft, then choose what the solver receives.{% else %}AI feedback published by an AsterProof administrator.{% endif %}</p>
+        <p>{% if ai_reviews.admin %}Generate a scored draft, then choose what the solver receives.{% elif ai_reviews.can_generate %}Request feedback on your saved proof. An admin reviews the draft before sharing it with you.{% else %}AI feedback published by an AsterProof administrator.{% endif %}</p>
       </div>
       <i class="ti ti-sparkles" aria-hidden="true"></i>
     </header>
     <div class="card-body">
-      {% if ai_reviews.admin %}
+      {% if ai_reviews.allowance %}
+        <p class="fs-sm text-muted mb-2">
+          <span class="fw-semibold text-body">{{ ai_reviews.allowance.problem_remaining }}</span> left for this problem
+          <span aria-hidden="true">·</span>
+          <span class="fw-semibold text-body">{{ ai_reviews.allowance.account_remaining }}</span> left on your account
+        </p>
+      {% endif %}
+      {% if ai_reviews.active %}
+        <div class="border rounded bg-body-tertiary p-2 mb-2">
+          <p class="d-flex align-items-center gap-2 fs-sm fw-semibold mb-2" role="status">
+            <i class="ti ti-clock" aria-hidden="true"></i><span data-ai-review-batch-status>{{ ai_reviews.active.get_status_display }}</span>
+          </p>
+          <div class="progress progress-sm" role="progressbar" aria-label="AI review progress">
+            <div class="progress-bar progress-bar-striped progress-bar-animated w-100"></div>
+          </div>
+          <p class="form-text mb-0">{% if ai_reviews.admin %}Draft feedback appears as it arrives.{% else %}You can leave this page while your request runs.{% endif %}</p>
+        </div>
+      {% elif ai_reviews.published %}
+        {% if ai_reviews.admin %}<p class="mb-2 text-muted">A review has been published for this version.</p>{% endif %}
+      {% elif ai_reviews.owner_request.status == 'completed' %}
+        <p class="mb-2" role="status"><i class="ti ti-circle-check me-1" aria-hidden="true"></i>Awaiting publication. We’ll email you when an admin shares your review.</p>
+      {% else %}
+        {% if ai_reviews.owner_request %}
+          <p class="mb-2 text-muted" role="status">{% if ai_reviews.owner_request.status == 'unknown' %}We couldn’t confirm the outcome of your last request.{% else %}Your last request couldn’t generate a review.{% endif %}</p>
+        {% endif %}
         {% if ai_reviews.blocker %}
           <p class="mb-2 text-muted"><i class="ti ti-info-circle me-1" aria-hidden="true"></i>{{ ai_reviews.blocker }}</p>
-        {% elif ai_reviews.active %}
-          <p class="mb-2 text-muted" role="status"><i class="ti ti-clock me-1" aria-hidden="true"></i>Review in progress. Feedback will appear here as it arrives.</p>
-        {% elif ai_reviews.published %}
-          <p class="mb-2 text-muted">A review has been published for this version.</p>
-        {% else %}
+        {% elif ai_reviews.can_generate %}
           <form method="post" action="{% url 'solutions:admin_ai_review_generate' solution.pk %}">
             {% csrf_token %}
             <input type="hidden" name="settings_version" value="{{ ai_reviews.settings_version }}">
             <input type="hidden" name="target_key" value="{{ current_target.key }}">
             <input type="hidden" name="problem_label" value="{{ ai_reviews.label }}">
             <input type="hidden" name="batch_id" value="{{ ai_reviews.batch_id }}">
-            <fieldset class="mb-2">
+            {% if ai_reviews.admin %}<fieldset class="mb-2">
               <legend class="form-label fs-sm fw-semibold mb-1">Models <span class="text-muted fw-normal">· {{ ai_reviews.effort }} thinking</span></legend>
               <div class="d-flex flex-wrap gap-2">
                 {% for value, label in ai_reviews.choices %}
@@ -33,13 +53,20 @@
                   </label>
                 {% endfor %}
               </div>
-            </fieldset>
-            <p class="text-muted fs-sm mb-2">Sends the problem label, statement, and saved proof text to OpenAI. Each selected model makes one paid request.</p>
+            </fieldset>{% else %}
+              <label class="form-label fs-sm fw-semibold mb-1" for="solution-review-model">Model</label>
+              <select class="form-select form-select-sm w-auto mb-2" name="models" id="solution-review-model">
+                {% for value, label in ai_reviews.choices %}<option value="{{ value }}">{{ label }}</option>{% endfor %}
+              </select>
+            {% endif %}
+            <p class="text-muted fs-sm mb-2">Sends the problem label, statement, and saved proof text to OpenAI.{% if ai_reviews.admin %} Each selected model makes one paid request.{% endif %}</p>
             <button type="submit" class="btn btn-primary btn-sm"><i class="ti ti-sparkles me-1" aria-hidden="true"></i>Generate AI review</button>
           </form>
         {% endif %}
+      {% endif %}
+      {% if ai_reviews.admin or ai_reviews.active %}
         <div class="d-flex flex-wrap gap-3 mt-2">
-          <a class="fs-sm" href="{% url 'solutions:admin_ai_review_settings' %}"><i class="ti ti-settings me-1" aria-hidden="true"></i>Review settings</a>
+          {% if ai_reviews.admin %}<a class="fs-sm" href="{% url 'solutions:admin_ai_review_settings' %}"><i class="ti ti-settings me-1" aria-hidden="true"></i>Review settings</a>{% endif %}
           {% if ai_reviews.active %}<a class="fs-sm" href="{% url 'solutions:solution_detail' solution.pk %}#ai-review">Refresh status</a>{% endif %}
         </div>
       {% endif %}

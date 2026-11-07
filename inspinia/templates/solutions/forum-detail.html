@@ -35,8 +35,10 @@
         {% elif can_assess %}
           <a href="#assessment-composer" class="btn btn-primary btn-sm"><i class="ti ti-pencil-check me-1" aria-hidden="true"></i>Add assessment</a>
         {% endif %}
-        {% if is_forum_admin %}
+        {% if ai_reviews %}
           <a href="#ai-review" class="btn btn-outline-primary btn-sm"><i class="ti ti-sparkles me-1" aria-hidden="true"></i>AI review</a>
+        {% endif %}
+        {% if is_forum_admin %}
           <a href="{% url 'solutions:forum_history' solution.pk %}"
              class="btn btn-outline-secondary btn-sm"><i class="ti ti-history me-1" aria-hidden="true"></i>History</a>
         {% endif %}

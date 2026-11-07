@@ -9,18 +9,26 @@ from datetime import timedelta
 from cryptography.fernet import Fernet
 from cryptography.fernet import InvalidToken
 from django.conf import settings
+from django.contrib.auth import get_user_model
 from django.core.exceptions import PermissionDenied
 from django.db import transaction
+from django.db.models import Count
+from django.db.models import Q
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from django.views.decorators.debug import sensitive_variables
 
+from inspinia.pages.models import ContestProblemStatement
+from inspinia.pages.study_help_access import assistance_restricted
+from inspinia.pages.study_help_access import lock_study_help
+from inspinia.users.roles import user_can_access_app_features
 from inspinia.users.roles import user_has_admin_role
 
 from . import forum
 from .admin_review_models import MODEL_CHOICES
 from .admin_review_models import AdminSolutionReview
 from .admin_review_models import AdminSolutionReviewSettings
+from .admin_review_models import SelfSolutionReviewUsage
 from .models import ProblemSolution
 from .reviews import _without_comments
 
@@ -36,11 +44,49 @@ REVIEW_RULES = (
     "diagram details; state any limitation. Return only the required score and feedback."
 )
 MODEL_LABELS = dict(MODEL_CHOICES)
+STATUS = AdminSolutionReview.Status
+LIVE_STATES = (STATUS.QUEUED, STATUS.RUNNING)
+ACCOUNT_REVIEW_LIMIT = 50
+PROBLEM_REVIEW_LIMIT = 2
 
 
 def require_admin(user):
     if not user.is_active or not user_has_admin_role(user):
         raise PermissionDenied
+
+
+def approved_user(user):
+    return bool(user and user.is_active and user_can_access_app_features(user))
+
+
+def self_review_restricted(user, problem_uuid, statement_id):
+    statement_uuid = (
+        ContestProblemStatement.objects.filter(pk=statement_id).values_list("statement_uuid", flat=True).first()
+    )
+    return assistance_restricted(user, (problem_uuid,), statement_uuid=statement_uuid)
+
+
+def self_review_allowance(user, problem_uuid):
+    usage = SelfSolutionReviewUsage.objects.filter(user=user).aggregate(
+        active=Count("pk", filter=Q(review__status__in=LIVE_STATES)),
+        completed=Count("pk", filter=Q(succeeded=True)),
+        completed_here=Count("pk", filter=Q(succeeded=True, problem_uuid=problem_uuid)),
+    )
+    return {
+        "active": bool(usage["active"]),
+        "account_remaining": max(0, ACCOUNT_REVIEW_LIMIT - usage["completed"]),
+        "problem_remaining": max(0, PROBLEM_REVIEW_LIMIT - usage["completed_here"]),
+    }
+
+
+def self_review_limit_blocker(allowance):
+    if allowance["active"]:
+        return "You already have an AI review in progress."
+    if not allowance["account_remaining"]:
+        return "You have used all 50 AI reviews for your account."
+    if not allowance["problem_remaining"]:
+        return "You have used both AI reviews for this problem."
+    return ""
 
 
 def credential_cipher():
@@ -103,14 +149,14 @@ def input_blocker(solution, payload):
     return ""
 
 
-def _locked_solution(pk):
-    return get_object_or_404(
-        ProblemSolution.objects.select_for_update(of=("self",)).select_related("current_revision", "problem"),
-        pk=pk,
-    )
+def _locked_solution(pk, *, owner=None):
+    solutions = ProblemSolution.objects.select_for_update(of=("self",)).select_related("current_revision", "problem")
+    if owner is not None:
+        solutions = solutions.filter(author=owner)
+    return get_object_or_404(solutions, pk=pk)
 
 
-def _batch_config(data):
+def _batch_config(data, *, self_requested):
     if not settings.ADMIN_SOLUTION_REVIEW_ENABLED:
         raise forum.ForumError("AI review generation is disabled.")
     config = AdminSolutionReviewSettings.objects.select_for_update().filter(pk=1).first()
@@ -119,6 +165,8 @@ def _batch_config(data):
     if str(config.version) != data.get("settings_version"):
         raise forum.ForumError("Review settings changed. Reload this page before generating.")
     selected = data.getlist("models")
+    if self_requested and len(selected) != 1:
+        raise forum.ForumError("Choose one model for your AI review.")
     if not selected or len(selected) != len(set(selected)) or any(
         model not in MODEL_LABELS or model not in config.models_enabled for model in selected
     ):
@@ -131,11 +179,43 @@ def _batch_config(data):
     return config, selected, batch_id
 
 
+def _reserve_capacity(config, selected):
+    since = timezone.now() - timedelta(days=1)
+    # Self-requested attempts keep counting even if their draft or solution was removed.
+    admin_requests = AdminSolutionReview.objects.filter(created_at__gte=since, self_request__isnull=True).count()
+    member_requests = SelfSolutionReviewUsage.objects.filter(created_at__gte=since).count()
+    if admin_requests + member_requests + len(selected) > config.daily_limit:
+        raise forum.ForumError("This request exceeds the site-wide AI review limit for the last 24 hours.")
+
+
+def _validate_self_request(user, solution, target):
+    if self_review_restricted(user, solution.problem.problem_uuid, target.statement_id_value):
+        raise forum.ForumError("AI review is restricted for this problem.")
+    if target.ai_reviews.filter(self_request__user=user, status=STATUS.COMPLETED).exists():
+        raise forum.ForumError("Your review for this version is awaiting publication.")
+    if blocker := self_review_limit_blocker(self_review_allowance(user, solution.problem.problem_uuid)):
+        raise forum.ForumError(blocker)
+
+
+def _lock_self_requester(user):
+    if not settings.SELF_SOLUTION_REVIEW_ENABLED or not approved_user(user):
+        raise PermissionDenied
+    lock_study_help()
+    user = get_user_model().objects.select_for_update().filter(pk=user.pk).first()
+    if not approved_user(user):
+        raise PermissionDenied
+    return user
+
+
 @transaction.atomic
 def enqueue(user, solution_pk, data):
-    require_admin(user)
-    config, selected, batch_id = _batch_config(data)
-    solution = _locked_solution(solution_pk)
+    self_requested = not user_has_admin_role(user)
+    if self_requested:
+        user = _lock_self_requester(user)
+    else:
+        require_admin(user)
+    solution = _locked_solution(solution_pk, owner=user if self_requested else None)
+    config, selected, batch_id = _batch_config(data, self_requested=self_requested)
     current = forum.current_target_data(solution)
     blocker = input_blocker(solution, current["payload"])
     if blocker:
@@ -145,15 +225,16 @@ def enqueue(user, solution_pk, data):
     target = forum._target(solution, data)  # noqa: SLF001 - reuse the forum's version binding
     if target.ai_reviews.filter(batch_id=batch_id).exists():
         return False
+    if self_requested and SelfSolutionReviewUsage.objects.filter(user=user, batch_id=batch_id).exists():
+        return False
     if target.ai_reviews.filter(problem_label=problem_label(solution), published_at__isnull=False).exists():
         raise forum.ForumError("A review has already been published for this version.")
-    active = [AdminSolutionReview.Status.QUEUED, AdminSolutionReview.Status.RUNNING]
-    if target.ai_reviews.filter(status__in=active).exists():
+    if target.ai_reviews.filter(status__in=LIVE_STATES).exists():
         raise forum.ForumError("This version already has a review in progress.")
-    reserved = AdminSolutionReview.objects.filter(created_at__gte=timezone.now() - timedelta(days=1)).count()
-    if reserved + len(selected) > config.daily_limit:
-        raise forum.ForumError("This batch exceeds the review request limit for the last 24 hours.")
-    AdminSolutionReview.objects.bulk_create([
+    if self_requested:
+        _validate_self_request(user, solution, target)
+    _reserve_capacity(config, selected)
+    reviews = AdminSolutionReview.objects.bulk_create([
         AdminSolutionReview(
             target=target, requested_by=user, solver_id=solution.author_id, batch_id=batch_id,
             key_version=config.key_version,
@@ -162,12 +243,17 @@ def enqueue(user, solution_pk, data):
         )
         for model in selected
     ])
+    if self_requested:
+        SelfSolutionReviewUsage.objects.create(
+            user=user, review=reviews[0], problem_uuid=solution.problem.problem_uuid, batch_id=batch_id,
+        )
     return True
 
 
 @transaction.atomic
 def publish(user, solution_pk, review_id):
     require_admin(user)
+    lock_study_help()
     solution = _locked_solution(solution_pk)
     review = get_object_or_404(
         AdminSolutionReview.objects.select_for_update(of=("self",)).select_related("target"),
@@ -183,6 +269,11 @@ def publish(user, solution_pk, review_id):
         raise forum.ForumError("This proof changed. Generate a review for the current version before publishing.")
     if review.status != AdminSolutionReview.Status.COMPLETED:
         raise forum.ForumError("Only a completed review draft can be published.")
+    if SelfSolutionReviewUsage.objects.filter(review=review).exists() and (
+        not approved_user(review.solver)
+        or self_review_restricted(review.solver, solution.problem.problem_uuid, review.target.statement_id_value)
+    ):
+        raise forum.ForumError("The solver can no longer receive this review.")
     if review.target.ai_reviews.filter(problem_label=review.problem_label, published_at__isnull=False).exists():
         raise forum.ForumError("A review has already been published for this version.")
     review.published_by = user

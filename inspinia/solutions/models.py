@@ -376,6 +376,7 @@ class SolutionBodyImage(models.Model):
 
 from inspinia.solutions.admin_review_models import AdminSolutionReview  # noqa: E402, F401
 from inspinia.solutions.admin_review_models import AdminSolutionReviewSettings  # noqa: E402, F401
+from inspinia.solutions.admin_review_models import SelfSolutionReviewUsage  # noqa: E402, F401
 from inspinia.solutions.evaluation_models import ActivationAuthorization  # noqa: E402, F401
 from inspinia.solutions.evaluation_models import AssistancePolicy  # noqa: E402, F401
 from inspinia.solutions.evaluation_models import CoachJudgment  # noqa: E402, F401

@@ -2,7 +2,10 @@
 
 import json
 import uuid
+from concurrent.futures import ThreadPoolExecutor
+from datetime import timedelta
 from http import HTTPStatus
+from threading import Barrier
 from types import SimpleNamespace
 from unittest.mock import Mock
 
@@ -10,17 +13,25 @@ import pytest
 from cryptography.fernet import Fernet
 from django.core import mail
 from django.db import IntegrityError
+from django.db import close_old_connections
+from django.db import connection
+from django.db import connections
 from django.db import transaction
+from django.http import QueryDict
 from django.test import Client
 from django.urls import reverse
+from django.utils import timezone
 
 from inspinia.pages.models import ContestProblemStatement
 from inspinia.pages.models import ProblemSolveRecord
 from inspinia.solutions import admin_review_worker as worker
+from inspinia.solutions import admin_reviews
 from inspinia.solutions import forum
 from inspinia.solutions.admin_review_models import AdminSolutionReview
 from inspinia.solutions.admin_review_models import AdminSolutionReviewSettings
+from inspinia.solutions.admin_review_models import SelfSolutionReviewUsage
 from inspinia.solutions.admin_reviews import read_credential
+from inspinia.solutions.evaluation_models import AssistancePolicy
 from inspinia.solutions.models import ProblemSolution
 from inspinia.users.tests.factories import UserFactory
 
@@ -54,6 +65,22 @@ def proof(settings):
         url=reverse("solutions:solution_detail", args=[solution.pk]),
         queue_url=reverse("solutions:admin_ai_review_generate", args=[solution.pk]),
     )
+
+
+@pytest.fixture
+def second_solution(proof):
+    problem = ProblemSolveRecord.objects.create(
+        contest="REVIEW", year=2026, problem="P4", topic="ALG", contest_year_problem="REVIEW 2026 P4",
+    )
+    ContestProblemStatement.objects.create(
+        linked_problem=problem, contest_name="REVIEW", contest_year=2026, problem_code="P4",
+        problem_number=4, statement_latex="Prove the second inequality.",
+    )
+    solution = ProblemSolution.objects.create(
+        problem=problem, author=proof.author, status=ProblemSolution.Status.SUBMITTED,
+    )
+    solution.blocks.create(position=1, body_source="The difference is a square.")
+    return solution
 
 
 def settings_post(client, **values):
@@ -222,6 +249,181 @@ def test_missing_solution_and_statement_block_generation(client, proof, config):
     assert b"Link an active problem statement" in page.content
     assert queue(client, proof, config).status_code == HTTPStatus.FOUND
     assert not AdminSolutionReview.objects.exists()
+
+
+def test_solver_can_request_and_follow_progress_until_admin_publishes(client, proof, config, settings, monkeypatch):
+    settings.SELF_SOLUTION_REVIEW_ENABLED = True
+    client.force_login(proof.author)
+    page = client.get(proof.url)
+    assert b"Generate AI review" in page.content
+    assert b"50</span> left on your account" in page.content
+    assert queue(client, proof, config).status_code == HTTPStatus.FOUND
+    assert not AdminSolutionReview.objects.exists()  # One model per author request.
+
+    batch = uuid.uuid4()
+    assert queue(client, proof, config, batch_id=batch, models=MODELS[:1]).status_code == HTTPStatus.FOUND
+    assert queue(client, proof, config, batch_id=batch, models=MODELS[:1]).status_code == HTTPStatus.FOUND
+    review = AdminSolutionReview.objects.get()
+    progress_url = reverse("solutions:admin_ai_review_progress", args=[proof.solution.pk, batch])
+    queued_page = client.get(proof.url)
+    assert b'role="progressbar"' in queued_page.content
+    assert client.get(progress_url).json()["reviews"][0]["status"] == "Queued"
+
+    client.force_login(proof.member)
+    assert b"Generate AI review" not in client.get(proof.url).content
+    assert client.get(progress_url).status_code == HTTPStatus.FORBIDDEN
+    assert queue(client, proof, config, models=MODELS[:1]).status_code == HTTPStatus.NOT_FOUND
+    client.force_login(proof.author)
+    assert client.post(publisher(proof, review)).status_code == HTTPStatus.FORBIDDEN
+
+    def provider(review, key, *, on_preview):
+        on_preview(FEEDBACK)
+        progress = client.get(progress_url)
+        assert progress.json()["reviews"] == [{
+            "id": str(review.pk), "status": "Reviewing", "active": True, "feedback": "",
+        }]
+        assert "no-store" in progress["Cache-Control"]
+        assert FEEDBACK.encode() not in client.get(proof.url).content
+        return response()
+
+    monkeypatch.setattr(worker, "request_review", provider)
+    assert worker.process_next()["status"] == "completed"
+    assert SelfSolutionReviewUsage.objects.get().succeeded
+    page = client.get(proof.url)
+    assert b"Awaiting publication" in page.content
+    assert b"49</span> left on your account" in page.content
+    assert b"Check the equality case." not in page.content
+    assert b"6 / 7" not in page.content
+    assert not getattr(mail, "outbox", [])
+
+    client.force_login(proof.admin)
+    assert client.post(publisher(proof, review)).status_code == HTTPStatus.FOUND
+    assert worker.process_next()["notification"] == "sent"
+    client.force_login(proof.author)
+    page = client.get(proof.url)
+    assert b"6 / 7" in page.content
+    assert b"Check the equality case." in page.content
+    assert len(mail.outbox) == 1
+
+
+@pytest.fixture
+def self_review_enabled(settings):
+    settings.SELF_SOLUTION_REVIEW_ENABLED = True
+
+
+@pytest.mark.usefixtures("self_review_enabled")
+def test_self_review_limits_count_successes_and_survive_proof_deletion(
+    client, proof, config, second_solution, monkeypatch,
+):
+    client.force_login(proof.author)
+    monkeypatch.setattr(worker, "request_review", Mock(side_effect=[response(8), response(), response()]))
+    assert queue(client, proof, config, models=MODELS[:1]).status_code == HTTPStatus.FOUND
+    assert worker.process_next()["status"] == "failed"
+    assert not SelfSolutionReviewUsage.objects.get().succeeded
+    assert queue(client, proof, config, models=MODELS[:1]).status_code == HTTPStatus.FOUND
+    assert worker.process_next()["status"] == "completed"
+    proof.block.body_source += " The equality case follows directly."
+    proof.block.save()
+    assert queue(client, proof, config, models=MODELS[:1]).status_code == HTTPStatus.FOUND
+    assert worker.process_next()["status"] == "completed"
+    proof.block.body_source += " Equality forces the variables to coincide."
+    proof.block.save()
+    rejection = queue(client, proof, config, models=MODELS[:1])
+    assert rejection.status_code == HTTPStatus.FOUND
+    assert b"used both AI reviews for this problem" in client.get(rejection.url).content
+    proof.solution.delete()
+    assert admin_reviews.self_review_allowance(proof.author, proof.problem.problem_uuid) == {
+        "active": False, "account_remaining": 48, "problem_remaining": 0,
+    }
+
+    # Deleted drafts still count toward the shared 24-hour request cap.
+    config.daily_limit = 3
+    config.save(update_fields=["daily_limit"])
+    data = {
+        "settings_version": config.version, "target_key": forum.current_target_data(second_solution)["key"],
+        "problem_label": admin_reviews.problem_label(second_solution), "batch_id": uuid.uuid4(), "models": MODELS[:1],
+    }
+    second_url = reverse("solutions:admin_ai_review_generate", args=[second_solution.pk])
+    page = client.post(second_url, data, follow=True)
+    assert b"site-wide AI review limit" in page.content
+    assert not AdminSolutionReview.objects.exists()
+
+    old_usage = SelfSolutionReviewUsage.objects.bulk_create([
+        SelfSolutionReviewUsage(user=proof.author, problem_uuid=uuid.uuid4(), batch_id=uuid.uuid4(), succeeded=True)
+        for _ in range(48)
+    ])
+    SelfSolutionReviewUsage.objects.filter(pk__in=[row.pk for row in old_usage]).update(
+        created_at=timezone.now() - timedelta(days=2),
+    )
+    page = client.post(second_url, data, follow=True)
+    assert b"used all 50 AI reviews" in page.content
+    assert not AdminSolutionReview.objects.exists()
+
+
+def test_worker_rechecks_restrictions_before_sending_owner_proof(client, proof, config, settings, monkeypatch):
+    settings.SELF_SOLUTION_REVIEW_ENABLED = True
+    client.force_login(proof.author)
+    queue(client, proof, config, models=MODELS[:1])
+    now = timezone.now()
+    AssistancePolicy.objects.create(
+        actor_id_scope=proof.author.pk, problem_uuid=proof.problem.problem_uuid, mode="restricted_assessment",
+        starts_at=now - timedelta(minutes=1), ends_at=now + timedelta(minutes=10), appointed_by=proof.admin,
+    )
+    provider = Mock()
+    monkeypatch.setattr(worker, "request_review", provider)
+    assert worker.process_next()["status"] == "failed"
+    provider.assert_not_called()
+    assert b"AI review is restricted for this problem." in client.get(proof.url).content
+    queue(client, proof, config, models=MODELS[:1])
+    assert AdminSolutionReview.objects.count() == 1
+
+
+@pytest.mark.usefixtures("self_review_enabled")
+def test_changed_proof_during_generation_does_not_use_the_owners_allowance(client, proof, config, monkeypatch):
+    client.force_login(proof.author)
+    queue(client, proof, config, models=MODELS[:1])
+
+    def provider(*args, **kwargs):
+        proof.block.body_source += " A revised step."
+        proof.block.save()
+        return response()
+
+    monkeypatch.setattr(worker, "request_review", provider)
+    assert worker.process_next()["status"] == "failed"
+    review = AdminSolutionReview.objects.get()
+    assert review.score is None
+    assert not review.feedback
+    assert not SelfSolutionReviewUsage.objects.get().succeeded
+
+
+@pytest.mark.django_db(transaction=True)
+def test_two_concurrent_self_requests_reserve_only_one_account_slot(proof, config, second_solution, settings):
+    if connection.vendor != "postgresql":
+        pytest.skip("Requires PostgreSQL row locks.")
+    settings.SELF_SOLUTION_REVIEW_ENABLED = True
+    ready = Barrier(2, timeout=10)
+
+    def request_review(solution):
+        close_old_connections()
+        try:
+            data = QueryDict(mutable=True)
+            data.update({
+                "settings_version": str(config.version), "target_key": forum.current_target_data(solution)["key"],
+                "problem_label": admin_reviews.problem_label(solution), "batch_id": str(uuid.uuid4()),
+            })
+            data.setlist("models", MODELS[:1])
+            ready.wait()
+            return admin_reviews.enqueue(proof.author, solution.pk, data)
+        except forum.ForumError as error:
+            return str(error)
+        finally:
+            connections.close_all()
+
+    with ThreadPoolExecutor(max_workers=2) as executor:
+        results = list(executor.map(request_review, (proof.solution, second_solution)))
+    assert results.count(True) == 1
+    assert "You already have an AI review in progress." in results
+    assert SelfSolutionReviewUsage.objects.count() == 1
 
 
 def test_changed_statement_cancels_queued_work_and_prevents_publication(client, proof, config, monkeypatch):

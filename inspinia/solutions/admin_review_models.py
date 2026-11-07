@@ -111,3 +111,22 @@ class AdminSolutionReview(models.Model):
 
     def __str__(self):
         return f"Admin AI review {self.pk}"
+
+
+class SelfSolutionReviewUsage(models.Model):
+    """Keep quota and request accounting when a solution or account is removed."""
+
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True)
+    review = models.OneToOneField(
+        AdminSolutionReview, on_delete=models.SET_NULL, null=True, related_name="self_request",
+    )
+    problem_uuid = models.UUIDField()
+    batch_id = models.UUIDField()
+    succeeded = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True, db_index=True)
+
+    class Meta:
+        constraints = [models.UniqueConstraint(fields=("user", "batch_id"), name="solutions_self_review_user_batch")]
+
+    def __str__(self):
+        return f"Self-requested review usage {self.pk}"
