@@ -1,4 +1,4 @@
-"""Admin settings, explicit generation and publication, and private solver feedback."""
+"""Admin settings, review requests, and private solver feedback."""
 
 import uuid
 
@@ -7,9 +7,13 @@ from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import PermissionDenied
+from django.core.paginator import Paginator
 from django.db import transaction
+from django.db.models import Case
+from django.db.models import Count
 from django.db.models import F
 from django.db.models import Q
+from django.db.models import When
 from django.http import JsonResponse
 from django.shortcuts import redirect
 from django.shortcuts import render
@@ -177,6 +181,32 @@ def settings_view(request):
     }, status=400 if form.is_bound else 200)
 
 
+@login_required
+@never_cache
+@require_GET
+def queue_view(request):
+    admin_reviews.require_admin(request.user)
+    status = AdminSolutionReview.Status
+    active = AdminSolutionReview.objects.filter(status__in=admin_reviews.LIVE_STATES)
+    counts = active.aggregate(
+        waiting=Count("pk", filter=Q(status=status.QUEUED)),
+        reviewing=Count("pk", filter=Q(status=status.RUNNING)),
+    )
+    rows = active.select_related("target").only(
+        "problem_label", "model", "status", "created_at", "target__solution_id",
+    ).annotate(
+        requested_by_solver=Q(self_request__isnull=False),
+    ).order_by(Case(When(status=status.RUNNING, then=0), default=1), "created_at", "pk")
+    page = Paginator(rows, 50).get_page(request.GET.get("page"))
+    template = (
+        "solutions/partials/admin-review-queue-table.html"
+        if request.GET.get("fragment") == "1" else "solutions/admin-ai-review-queue.html"
+    )
+    return render(request, template, {
+        "queue_page": page, "counts": counts, "generation_enabled": settings.ADMIN_SOLUTION_REVIEW_ENABLED,
+    })
+
+
 def _detail_redirect(solution_pk):
     return redirect(reverse("solutions:solution_detail", args=[solution_pk]) + "#ai-review")
 
@@ -218,19 +248,33 @@ def progress_view(request, solution_pk, batch_id):
     reviews = AdminSolutionReview.objects.filter(
         target__solution_id=solution_pk, solver_id=F("target__solution__author_id"), batch_id=batch_id,
     ).order_by("pk")
-    admin = user_has_admin_role(request.user)
-    if admin:
+    if user_has_admin_role(request.user):
         reviews = list(reviews.only("status", "feedback"))
     else:
-        reviews = list(reviews.filter(solver=request.user, self_request__user=request.user).only("status"))
-        if not reviews:
+        row = reviews.filter(solver=request.user, self_request__user=request.user).select_related(
+            "target__solution__problem", "target__solution__current_revision",
+        ).defer("response_text", "instructions", "target__snapshot").first()
+        if row is None:
             raise PermissionDenied
+        if row.is_live:
+            solution = row.target.solution
+            if (
+                not settings.SELF_SOLUTION_REVIEW_ENABLED
+                or solution.status not in admin_reviews.REVIEWABLE_STATES
+                or row.problem_label != admin_reviews.problem_label(solution)
+                or row.target.key != forum.current_target_data(solution)["key"]
+                or admin_reviews.self_review_restricted(
+                    request.user, solution.problem.problem_uuid, row.target.statement_id_value,
+                )
+            ):
+                raise PermissionDenied
+        reviews = [row]
     return JsonResponse({"reviews": [
         {
             "id": str(row.pk),
             "status": row.get_status_display(),
             "active": row.is_live,
-            "feedback": row.feedback if admin and row.status == AdminSolutionReview.Status.RUNNING else "",
+            "feedback": row.feedback if row.status == AdminSolutionReview.Status.RUNNING else "",
         }
         for row in reviews
     ]})
@@ -253,13 +297,18 @@ def _review_history(request, reviews, current):
 def _owner_context(user, solution, payload, reviews, current):
     owner_request = reviews.filter(
         current, self_request__user=user, published_at__isnull=True,
-    ).only("batch_id", "status").first()
+    ).only("batch_id", "status", "problem_label", "feedback", "published_at", "score").first()
     reviews = reviews.filter(published_at__isnull=False)
-    context = {"owner_request": owner_request, "can_generate": settings.SELF_SOLUTION_REVIEW_ENABLED}
+    can_generate = settings.SELF_SOLUTION_REVIEW_ENABLED
     restricted = (
-        (context["can_generate"] or reviews.filter(self_request__isnull=False).exists())
+        (can_generate or reviews.filter(self_request__isnull=False).exists())
         and admin_reviews.self_review_restricted(user, solution.problem.problem_uuid, payload["statement"]["id"])
     )
+    if owner_request and owner_request.is_live and (
+        not can_generate or restricted or solution.status not in admin_reviews.REVIEWABLE_STATES
+    ):
+        owner_request = None
+    context = {"owner_request": owner_request, "can_generate": can_generate}
     if restricted:
         reviews = reviews.filter(self_request__isnull=True)
     if context["can_generate"]:
@@ -292,7 +341,9 @@ def review_context(request, solution, target):
         recent.insert(0, published)
     if not (recent or history or context["can_generate"] or owner_request):
         return None
-    active = next((row for row in recent if row.is_live), None)
+    live = [row for row in recent if row.is_live]
+    active = next((row for row in live if row.status == AdminSolutionReview.Status.RUNNING), None)
+    active = active or (live[0] if live else None)
     if owner_request and owner_request.is_live:
         active = owner_request
     context.update({
