@@ -22,6 +22,7 @@ from inspinia.users.roles import user_can_access_app_features
 from inspinia.users.roles import user_has_admin_role
 from inspinia.users.roles import user_has_trainer_or_admin_role
 
+from . import admin_review_views
 from . import forum
 from .forum_access import visible_solutions
 from .forum_forms import AssessmentForm
@@ -131,6 +132,7 @@ def _detail_context(request, solution, *, posted_action="", posted_data=None, er
         "solution_row": _solution_card_rows([solution])[0],
         "problem_data": _problem_context(solution.problem),
         "forum_summary": state,
+        "ai_reviews": admin_review_views.review_context(request, solution, target),
         "current_target": target,
         "is_author": author,
         "is_forum_admin": admin,

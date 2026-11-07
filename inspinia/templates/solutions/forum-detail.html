@@ -36,6 +36,7 @@
           <a href="#assessment-composer" class="btn btn-primary btn-sm"><i class="ti ti-pencil-check me-1" aria-hidden="true"></i>Add assessment</a>
         {% endif %}
         {% if is_forum_admin %}
+          <a href="#ai-review" class="btn btn-outline-primary btn-sm"><i class="ti ti-sparkles me-1" aria-hidden="true"></i>AI review</a>
           <a href="{% url 'solutions:forum_history' solution.pk %}"
              class="btn btn-outline-secondary btn-sm"><i class="ti ti-history me-1" aria-hidden="true"></i>History</a>
         {% endif %}
@@ -167,6 +168,7 @@
             {% include 'solutions/forum-proof-content.html' with row=solution_row %}
           </article>
         </section>
+        {% include 'solutions/partials/admin-review-panel.html' %}
         <section class="card forum-discourse"
                  aria-labelledby="forum-trainer-title"
                  id="trainer-assessments">
@@ -392,4 +394,5 @@
 {% endblock page_content %}
 {% block extra_javascript %}
   {% include 'solutions/forum-math.html' %}
+  {% if ai_reviews.progress_url %}{% include 'solutions/partials/admin-review-live.html' %}{% endif %}
 {% endblock extra_javascript %}

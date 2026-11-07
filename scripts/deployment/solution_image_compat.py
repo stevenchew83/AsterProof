@@ -95,11 +95,18 @@ COMPATIBILITY_SOURCES = {
 }
 
 
+# Admin review adds only model registrations to the existing forum image reader.
+ADMIN_REVIEW_READER_SOURCES = {
+    **READER_SOURCES,
+    "inspinia/solutions/models.py": "16e6518fce2b7049ab1fc3338302924ec83ca0dfcfb1fdb516fcf105647285b5",
+}
+
+
 def reader_sources_match(files):
     entries = {item["path"]: item["sha256"] for item in files}
     return any(
         sources and all(entries.get(path) == digest for path, digest in sources.items())
-        for sources in (READER_SOURCES, COMPATIBILITY_SOURCES)
+        for sources in (READER_SOURCES, COMPATIBILITY_SOURCES, ADMIN_REVIEW_READER_SOURCES)
     )
 
 
@@ -149,7 +156,7 @@ def verified_reader_release(release: Path) -> bool:
         sources = next(
             (
                 sources
-                for sources in (READER_SOURCES, COMPATIBILITY_SOURCES)
+                for sources in (READER_SOURCES, COMPATIBILITY_SOURCES, ADMIN_REVIEW_READER_SOURCES)
                 if sources and all(entries.get(path) == digest for path, digest in sources.items())
             ),
             None,
