@@ -1,4 +1,5 @@
 {% extends 'layouts/vertical.html' %}
+{% load static %}
 
 {% block title %}
   {{ problem_statement_context.label }}
@@ -90,6 +91,14 @@
       }
     }
 
+    {% if show_study_help %}
+    @media (pointer: coarse) {
+      [data-study-help] .btn {
+        min-height: 2.5rem;
+      }
+    }
+    {% endif %}
+
     @media (prefers-reduced-motion: reduce) {
 
       .problem-statement-detail .statement-reading-card,
@@ -138,7 +147,7 @@
     </header>
     <div class="row g-3 mt-1">
       <div class="col-xl-8">
-        <article class="card h-100 statement-reading-card">
+        <article class="card {% if not show_study_help %}h-100{% endif %} statement-reading-card">
           <div class="card-header border-0 pb-0">
             <div class="d-flex flex-wrap align-items-start justify-content-between gap-2">
               <div>
@@ -157,6 +166,9 @@
             {% include 'partials/statement-render-content.html' with segments=problem_statement_context.statement_render_segments render_style='classic' %}
           </div>
         </article>
+        {% if show_study_help %}
+          {% include 'pages/partials/study-help.html' %}
+        {% endif %}
       </div>
       <div class="col-xl-4">
         <aside class="card h-100 statement-context-rail">
@@ -210,11 +222,12 @@
   <script>
     window.MathJax = {
       loader: {
-        load: ["[tex]/textmacros"]
+        load: ["[tex]/textmacros"{% if show_study_help %}, "ui/safe"{% endif %}]
       },
       tex: {
         packages: {
-          "[+]": ["textmacros"]
+          "[+]": ["textmacros"]{% if show_study_help %},
+          "[-]": ["require", "autoload", "html"]{% endif %}
         },
         macros: {
           tiny: "",
@@ -242,7 +255,10 @@
         ]
       },
       options: {
-        skipHtmlTags: ["script", "noscript", "style", "textarea", "pre", "code"]
+        skipHtmlTags: ["script", "noscript", "style", "textarea", "pre", "code"]{% if show_study_help %},
+        safeOptions: {
+          allow: {URLs: "none", classes: "none", cssIDs: "none", styles: "none"}
+        }{% endif %}
       },
       startup: {
         ready: function() {
@@ -253,4 +269,7 @@
     };
   </script>
 <script defer src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+{% if show_study_help %}
+  <script defer src="{% static 'js/study-help.js' %}"></script>
+{% endif %}
 {% endblock extra_javascript %}

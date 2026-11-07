@@ -20,12 +20,15 @@ from scripts.deployment import solution_forum_schema
 from scripts.deployment import solution_pdf_schema
 from scripts.deployment import solution_sharing_schema
 from scripts.deployment import statement_reports_schema
+from scripts.deployment import study_help_schema
 from scripts.deployment import website_schema
 
 
 def schema_for_disclosure(value):  # noqa: C901, PLR0911, PLR0912 - Keep each frozen allowance explicit.
     if isinstance(value, dict) and value.get("migration") == admin_solution_review_schema.MIGRATION:
         return admin_solution_review_schema
+    if isinstance(value, dict) and value.get("migration") == study_help_schema.MIGRATION:
+        return study_help_schema
     if isinstance(value, dict) and value.get("migration") == ranking_analysis_schema.MIGRATION:
         return ranking_analysis_schema
     if isinstance(value, dict) and value.get("migration") == solution_forum_schema.MIGRATION:

@@ -163,6 +163,9 @@ jobs:
           if ! git diff --quiet "$BASE_SHA" HEAD -- scripts/deployment/admin_solution_review_schema.py scripts/deployment/admin_solution_review_schema_rehearsal.py scripts/deployment/tests/fixtures/admin-solution-review-schema-delta.json inspinia/solutions/migrations/0014_admin_solution_review.py; then
             rehearsal=scripts.deployment.admin_solution_review_schema_rehearsal
             active_sha="$BASE_SHA"
+          elif ! git diff --quiet "$BASE_SHA" HEAD -- scripts/deployment/study_help_schema.py scripts/deployment/study_help_schema_rehearsal.py scripts/deployment/tests/fixtures/study-help-schema-delta.json inspinia/pages/migrations/0047_study_help.py; then
+            rehearsal=scripts.deployment.study_help_schema_rehearsal
+            active_sha="$BASE_SHA"
           elif ! git diff --quiet "$BASE_SHA" HEAD -- scripts/deployment/ranking_profile_schema.py scripts/deployment/ranking_profile_schema_rehearsal.py scripts/deployment/ranking_profile_preservation.py scripts/deployment/tests/fixtures/ranking-profile-schema-delta.json inspinia/rankings/migrations/0006_student_achievement_profiles.py; then
             rehearsal=scripts.deployment.ranking_profile_schema_rehearsal
             active_sha="$BASE_SHA"
@@ -255,6 +258,16 @@ jobs:
           .ci-quality/bin/python -m "$rehearsal" \
             --active-source "$RUNNER_TEMP/website-active-source" --active-sha "$active_sha" \
             --release-sha "$GITHUB_SHA" --output "$RUNNER_TEMP/website-schema-evidence.json" "${rehearsal_args[@]}"
+          if [ "$rehearsal" = scripts.deployment.study_help_schema_rehearsal ]; then
+            .ci-quality/bin/python - <<'PYTEST'
+          from django.conf import settings
+          from scripts.deployment.schema_rehearsal import configure_rehearsal_database
+          configure_rehearsal_database(settings)
+          settings.DATABASES["default"]["TEST"] = {"NAME": "test_asterproof_study_help"}
+          import pytest
+          raise SystemExit(pytest.main(["inspinia/pages/test_study_help.py", "-q"]))
+          PYTEST
+          fi
           if [ "$rehearsal" = scripts.deployment.ranking_analysis_schema_rehearsal ] || [ "$rehearsal" = scripts.deployment.ranking_profile_schema_rehearsal ]; then
             .ci-quality/bin/python - <<'PY'
           from django.conf import settings

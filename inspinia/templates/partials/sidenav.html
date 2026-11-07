@@ -143,6 +143,9 @@
             {% include 'partials/sidenav-link.html' with route_name='pages:topic_tag_dashboard' label='Mathematics catalogue' only %}
             {% include 'partials/sidenav-link.html' with route_name='pages:problem_statement_dashboard' label='Statement analytics' only %}
             {% include 'partials/sidenav-link.html' with route_name='pages:page_view_analytics' label='View analytics' only %}
+            {% if request.user.is_superuser or request.user.role == 'admin' %}
+            {% include 'partials/sidenav-link.html' with route_name='pages:study_help_admin' label='AI study help' only %}
+            {% endif %}
             {% include 'partials/sidenav-link.html' with route_name='pages:completion_record_list' label='Completion records' only %}
             {% include 'partials/sidenav-link.html' with route_name='pages:completion_progress_analytics' label='Progress analytics' only %}
             {% include 'partials/sidenav-link.html' with route_name='pages:user_solution_record_list' label='Solution records' only %}

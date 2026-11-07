@@ -195,8 +195,10 @@ def rehearse(connection, *, root: Path = ROOT, source_sha: str = "local-worktree
     if connection.introspection.table_names():
         raise EvaluationSchemaError("Rehearsal refuses a nonempty database; it never reads existing application data.")
     executor = MigrationExecutor(connection)
-    targets = [node for node in executor.loader.graph.leaf_nodes() if node[0] != "solutions"]
-    targets.append(("solutions", BASELINE_NAME))
+    # Keep the historical pages baseline: Study Help's later pages leaf
+    # depends on a newer solutions migration and would overshoot this fixture.
+    targets = [node for node in executor.loader.graph.leaf_nodes() if node[0] not in {"pages", "solutions"}]
+    targets.extend([("pages", "0046_prerequisitegraphstate_catalogueprerequisite"), ("solutions", BASELINE_NAME)])
     executor.migrate(targets)
     seed_legacy(executor, targets, connection)
     old_tables = set(connection.introspection.table_names())

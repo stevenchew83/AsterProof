@@ -98,7 +98,9 @@ def _prepare_fixture(connection):
         raise ValueError("Forum rehearsal refuses a nonempty database")
     schema.validate_candidate(Path.cwd())
     executor = MigrationExecutor(connection)
-    targets = [node for node in executor.loader.graph.leaf_nodes() if node[0] != "solutions"] + [
+    # The later Study Help pages leaf requires the forum migration itself.
+    targets = [node for node in executor.loader.graph.leaf_nodes() if node[0] not in {"pages", "solutions"}] + [
+        ("pages", "0046_prerequisitegraphstate_catalogueprerequisite"),
         ("solutions", "0012_synthetic_review_prototype"),
     ]
     executor.migrate(targets)

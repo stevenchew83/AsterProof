@@ -17,7 +17,9 @@ django.setup()
 from django.db import connection, transaction, IntegrityError
 from django.db.migrations.executor import MigrationExecutor
 executor = MigrationExecutor(connection)
-targets = [node for node in executor.loader.graph.leaf_nodes() if node[0] != 'solutions'] + [('solutions','0007_solutioncollection_solutioncollectionentry')]
+historical = [node for node in executor.loader.graph.leaf_nodes() if node[0] not in {'pages', 'solutions'}]
+historical.append(('pages', '0046_prerequisitegraphstate_catalogueprerequisite'))
+targets = historical + [('solutions','0007_solutioncollection_solutioncollectionentry')]
 executor.migrate(targets)
 old = executor.loader.project_state(targets).apps
 User = old.get_model('users','User')
@@ -39,8 +41,11 @@ entry = Entry.objects.create(collection=collection,share=first_share,position=2,
 before = {key:value for key,value in Collection.objects.values().get(pk=collection.pk).items()}
 entry_before = Entry.objects.values().get(pk=entry.pk)
 executor = MigrationExecutor(connection)
-executor.migrate(executor.loader.graph.leaf_nodes())
-new = executor.loader.project_state().apps
+targets = historical + [('solutions', '0008_solutioncollection_kind_and_nullable_owner')]
+plan = executor.migration_plan(targets)
+assert [(migration.app_label, migration.name, backwards) for migration, backwards in plan] == [(*targets[-1], False)]
+executor.migrate(targets, plan=plan)
+new = executor.loader.project_state(targets).apps
 NewCollection = new.get_model('solutions','SolutionCollection')
 NewEntry = new.get_model('solutions','SolutionCollectionEntry')
 actual = NewCollection.objects.values().get(pk=collection.pk)

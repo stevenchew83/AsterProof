@@ -2,6 +2,17 @@
   "format_version": 1,
   "baseline_sha": null,
   "migrations": {
+    "pages.0047_study_help": {
+      "classification": "backward-compatible-schema",
+      "recovery_required": false,
+      "code_rollback_permitted": true,
+      "data_preconditions": [
+        "study_help_tables_absent",
+        "existing_records_schema_triggers_sequences_preserved",
+        "study_help_and_paid_evaluation_disabled"
+      ],
+      "rationale": "Creates only nine empty Study Help tables and their constraints and indexes. No backfill, generation, paid evaluation, worker activation or role changes. Requires the exact PostgreSQL 17.9 preservation proof and separately installed bounded authority."
+    },
     "pages.0046_prerequisitegraphstate_catalogueprerequisite": {
       "classification": "backward-compatible-schema",
       "recovery_required": false,

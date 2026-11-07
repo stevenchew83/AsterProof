@@ -223,12 +223,13 @@ def test_learning_worker_uses_real_frozen_allowance_bytes_and_evidence(tmp_path)
             write_real_reader_fixture(destination)
             for source in (root / "inspinia").glob("**/migrations/*"):
                 # This fixture represents the earlier Learning-only rollout.
-                # Its exact allowance rejects later forum and ranking migrations.
+                # Its exact allowance rejects later migrations.
                 if (
                     source.is_file() and source.suffix in {".py", ".json"}
                     and source not in {
                         root / "inspinia/solutions/migrations/0013_solution_forum.py",
                         root / "inspinia/solutions/migrations/0014_admin_solution_review.py",
+                        root / "inspinia/pages/migrations/0047_study_help.py",
                         root / "inspinia/rankings/migrations/0005_ranking_analysis_review.py",
                         root / "inspinia/rankings/migrations/0006_student_achievement_profiles.py",
                     }

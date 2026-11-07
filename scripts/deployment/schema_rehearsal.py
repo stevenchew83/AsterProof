@@ -94,6 +94,10 @@ def _approved_rehearsal(disclosed_migration):  # noqa: C901, PLR0911, PLR0912 - 
         from scripts.deployment.admin_solution_review_schema_rehearsal import run
 
         return run
+    if disclosed_migration == "pages.0047_study_help":
+        from scripts.deployment.study_help_schema_rehearsal import run
+
+        return run
     if disclosed_migration == "rankings.0005_ranking_analysis_review":
         from scripts.deployment.ranking_analysis_schema_rehearsal import run
 

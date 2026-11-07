@@ -322,6 +322,10 @@ OPENAI_API_KEY = env("OPENAI_API_KEY", default="")
 ADMIN_SOLUTION_REVIEW_ENABLED = env.bool("ADMIN_SOLUTION_REVIEW_ENABLED", default=False)
 ADMIN_SOLUTION_REVIEW_ENCRYPTION_KEY = env("ADMIN_SOLUTION_REVIEW_ENCRYPTION_KEY", default="")
 
+STUDY_HELP_ENABLED = env.bool("DJANGO_STUDY_HELP_ENABLED", default=False)
+STUDY_HELP_EVALUATION_ENABLED = env.bool("DJANGO_STUDY_HELP_EVALUATION_ENABLED", default=False)
+STUDY_HELP_OPENAI_API_KEY = env("STUDY_HELP_OPENAI_API_KEY", default="")
+
 
 # django-allauth
 # ------------------------------------------------------------------------------
