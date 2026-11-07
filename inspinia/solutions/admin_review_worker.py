@@ -1,11 +1,14 @@
-"""Process one claimed draft or notification per invocation, without automatic retries."""
+"""Claim and process AI reviews and notifications without automatic retries."""
 
 import logging
+from concurrent.futures import FIRST_COMPLETED
+from concurrent.futures import wait
 from datetime import timedelta
 from time import monotonic
 
 from allauth.account.adapter import get_adapter
 from django.conf import settings
+from django.db import connection
 from django.db import transaction
 from django.urls import reverse
 from django.utils import timezone
@@ -35,6 +38,10 @@ Notice = AdminSolutionReview.Notification
 CLAIM_AGE = timedelta(minutes=15)
 QUEUE_AGE = timedelta(days=1)
 PREVIEW_INTERVAL = 1.5
+REVIEW_SLOTS = 5
+CLAIM_LOCK = 816_357_293_022
+IDLE_POLL_SECONDS = 2
+RECONCILE_SECONDS = 60
 
 
 def _review_jobs():
@@ -49,8 +56,15 @@ def _claim(query, field, states, time_field, now):
         if AdminSolutionReview.objects.filter(pk=pk, **{field: waiting}).update(**{
             field: working, time_field: now,
         }):
-            return _review_jobs().filter(pk=pk).first()
+            return pk
     return None
+
+
+def _lock_claims():
+    # Serialize the capacity check and claim across worker invocations on PostgreSQL.
+    if connection.vendor == "postgresql":
+        with connection.cursor() as cursor:
+            cursor.execute("SELECT pg_advisory_xact_lock(%s)", [CLAIM_LOCK])
 
 
 @transaction.atomic
@@ -170,7 +184,7 @@ def _notify(review):
     return state
 
 
-def process_next():
+def expire_claims():
     now = timezone.now()
     jobs = AdminSolutionReview.objects
     jobs.filter(notification=Notice.SENDING, notification_started_at__lt=now - CLAIM_AGE).update(
@@ -182,12 +196,85 @@ def process_next():
     jobs.filter(status=Status.QUEUED, created_at__lt=now - QUEUE_AGE).update(
         status=Status.FAILED, error="This review expired before a worker picked it up.",
     )
+
+
+@transaction.atomic
+def claim_notification():
+    _lock_claims()
+    jobs = AdminSolutionReview.objects
+    if jobs.filter(notification=Notice.SENDING).exists():
+        return None
     pending = jobs.filter(notification=Notice.PENDING, published_at__isnull=False).order_by("published_at", "pk")
-    notice = _claim(pending, "notification", (Notice.PENDING, Notice.SENDING), "notification_started_at", now)
-    if notice:
-        return {"review": str(notice.pk), "notification": _notify(notice)}
+    return _claim(pending, "notification", (Notice.PENDING, Notice.SENDING), "notification_started_at", timezone.now())
+
+
+@transaction.atomic
+def claim_review():
     if not settings.ADMIN_SOLUTION_REVIEW_ENABLED:
-        return {"status": "disabled"}
+        return None
+    _lock_claims()
+    jobs = AdminSolutionReview.objects
+    if jobs.filter(status=Status.RUNNING).count() >= REVIEW_SLOTS:
+        return None
     queued = jobs.filter(status=Status.QUEUED).order_by("created_at", "pk")
-    review = _claim(queued, "status", (Status.QUEUED, Status.RUNNING), "started_at", now)
-    return {"review": str(review.pk), "status": _generate(review)} if review else {"status": "idle"}
+    return _claim(queued, "status", (Status.QUEUED, Status.RUNNING), "started_at", timezone.now())
+
+
+def process_claim(review_id, *, notification=False):
+    if notification:
+        review = _review_jobs().filter(pk=review_id, notification=Notice.SENDING).first()
+        return {"review": str(review_id), "notification": _notify(review) if review else "skipped"}
+    review = _review_jobs().filter(pk=review_id, status=Status.RUNNING).first()
+    return {"review": str(review_id), "status": _generate(review) if review else "skipped"}
+
+
+def mark_timed_out(review_id, *, notification=False):
+    jobs = AdminSolutionReview.objects.filter(pk=review_id)
+    if notification:
+        jobs.filter(notification=Notice.SENDING).update(notification=Notice.UNKNOWN)
+        return {"review": str(review_id), "notification": Notice.UNKNOWN}
+    jobs.filter(status=Status.RUNNING).update(
+        status=Status.UNKNOWN, feedback="", error="The worker timed out before confirming the provider outcome.",
+    )
+    return {"review": str(review_id), "status": Status.UNKNOWN}
+
+
+def idle_result():
+    return {"status": "idle" if settings.ADMIN_SOLUTION_REVIEW_ENABLED else "disabled"}
+
+
+def process_next():
+    """Keep the single-item command available for older timer units."""
+    expire_claims()
+    if notice := claim_notification():
+        return process_claim(notice, notification=True)
+    if review := claim_review():
+        return process_claim(review)
+    return idle_result()
+
+
+def drain_queue(executor, execute, report):
+    """Fill free review slots as work finishes, with a separate email slot."""
+    reviews = set()
+    notifications = set()
+    next_reconcile = monotonic()
+    worked = False
+    while True:
+        if monotonic() >= next_reconcile:
+            expire_claims()
+            next_reconcile = monotonic() + RECONCILE_SECONDS
+        if not notifications and (notice := claim_notification()):
+            notifications.add(executor.submit(execute, notice, notification=True))
+        while len(reviews) < REVIEW_SLOTS and (review := claim_review()):
+            reviews.add(executor.submit(execute, review))
+        pending = reviews | notifications
+        if not pending:
+            if not worked:
+                report(idle_result())
+            return
+        worked = True
+        done, _ = wait(pending, timeout=IDLE_POLL_SECONDS, return_when=FIRST_COMPLETED)
+        reviews.difference_update(done)
+        notifications.difference_update(done)
+        for job in done:
+            report(job.result())

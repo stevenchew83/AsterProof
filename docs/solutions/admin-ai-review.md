@@ -78,11 +78,15 @@ schema and worker before enabling author requests.
      --contract deployment/production-target.json
    ```
 
-   Install the units through the approved host procedure after schema activation. The timer starts the worker
-   once per minute after the previous invocation ends. Each invocation handles
-   at most one OpenAI request or one email, with a five-minute deadline.
-   Notifications get priority. An uncertain outcome is recorded and requires
-   reconciliation before another attempt.
+   Install the rendered units through the approved host procedure after the
+   matching application release is active and the previous worker is idle.
+   Check that the host has headroom for the worker's process pool and memory
+   limit. The timer checks for new work every five seconds while the worker is
+   idle. Once running, the worker refills up to five review slots in queue
+   order as each job finishes. One separate slot sends notification emails.
+   Each job has a five-minute deadline. Uncertain outcomes are recorded and
+   require reconciliation before another attempt. Author review allowances still
+   apply when requests are queued.
 4. Set `ADMIN_SOLUTION_REVIEW_ENABLED=True` to allow generation. Disabling this
    setting pauses OpenAI requests; previously published reviews and their email
    notifications still work. This setting is independent of student coaching,

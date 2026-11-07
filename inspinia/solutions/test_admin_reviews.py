@@ -7,7 +7,9 @@ from concurrent.futures import ThreadPoolExecutor
 from datetime import timedelta
 from http import HTTPStatus
 from io import BytesIO
+from queue import Queue
 from threading import Barrier
+from threading import Event
 from types import SimpleNamespace
 from unittest.mock import Mock
 
@@ -37,6 +39,7 @@ from inspinia.solutions.admin_review_models import SelfSolutionReviewUsage
 from inspinia.solutions.admin_reviews import read_credential
 from inspinia.solutions.document_source import source_digest
 from inspinia.solutions.evaluation_models import AssistancePolicy
+from inspinia.solutions.management.commands import process_admin_solution_reviews as review_command
 from inspinia.solutions.models import ProblemSolution
 from inspinia.solutions.models import SolutionBodyImage
 from inspinia.solutions.models import SolutionRevision
@@ -103,6 +106,21 @@ def config(client, proof):
     client.force_login(proof.admin)
     assert settings_post(client).status_code == HTTPStatus.FOUND
     return AdminSolutionReviewSettings.objects.get()
+
+
+@pytest.fixture
+def review_backlog(client, proof, config):
+    queue(client, proof, config, models=MODELS[:1])
+    first = AdminSolutionReview.objects.get()
+    AdminSolutionReview.objects.bulk_create([
+        AdminSolutionReview(
+            target=first.target, solver=proof.author, requested_by=proof.admin, batch_id=uuid.uuid4(),
+            key_version=config.key_version, problem_label=first.problem_label, model=first.model,
+            effort=first.effort, output_limit=first.output_limit, instructions=first.instructions,
+        )
+        for _ in range(6)
+    ])
+    return list(AdminSolutionReview.objects.order_by("created_at", "pk"))
 
 
 def queue(client, proof, config, **values):
@@ -509,6 +527,96 @@ def test_two_concurrent_self_requests_reserve_only_one_account_slot(proof, confi
     assert results.count(True) == 1
     assert "You already have an AI review in progress." in results
     assert SelfSolutionReviewUsage.objects.count() == 1
+
+
+@pytest.mark.django_db(transaction=True)
+def test_worker_refills_a_review_slot_while_other_reviews_and_email_are_running(review_backlog, monkeypatch):
+    if connection.vendor != "postgresql":
+        pytest.skip("Requires PostgreSQL worker connections.")
+
+    first = review_backlog[0]
+    notice = AdminSolutionReview.objects.create(
+        target_id=first.target_id, solver_id=first.solver_id, requested_by_id=first.requested_by_id,
+        batch_id=uuid.uuid4(), key_version=first.key_version, model=first.model, output_limit=first.output_limit,
+        problem_label=first.problem_label, status=worker.Status.COMPLETED, score=6, published_at=timezone.now(),
+        notification=worker.Notice.PENDING,
+    )
+    review_ids = [row.pk for row in review_backlog]
+    slots = 5
+    gates = {job_id: Event() for job_id in [*review_ids, notice.pk]}
+    started = Queue()
+    results = []
+    provider = Mock(return_value=response())
+    monkeypatch.setattr(worker, "request_review", provider)
+
+    def execute(job_id, *, notification=False):
+        try:
+            started.put(job_id)
+            assert gates[job_id].wait(10), "Test did not release the worker"
+            return worker.process_claim(job_id, notification=notification)
+        finally:
+            connections.close_all()
+
+    def drain(executor):
+        try:
+            worker.drain_queue(executor, execute, results.append)
+        finally:
+            connections.close_all()
+
+    with ThreadPoolExecutor(max_workers=slots + 1) as jobs, ThreadPoolExecutor(max_workers=1) as supervisor:
+        run = supervisor.submit(drain, jobs)
+        try:
+            assert {started.get(timeout=10) for _ in range(slots + 1)} == {*review_ids[:slots], notice.pk}
+            assert worker.claim_review() is None  # A second worker also sees the cap.
+            gates[review_ids[0]].set()
+            assert started.get(timeout=10) == review_ids[slots]
+            assert AdminSolutionReview.objects.filter(status=worker.Status.RUNNING).count() == slots
+        finally:
+            for gate in gates.values():
+                gate.set()
+        run.result(timeout=10)
+
+    assert provider.call_count == len(review_ids)
+    assert {result["review"] for result in results if result.get("status") == "completed"} == set(map(str, review_ids))
+    assert {result["review"] for result in results if result.get("notification") == "sent"} == {str(notice.pk)}
+
+
+@pytest.mark.django_db(transaction=True)
+def test_concurrent_claims_cannot_exceed_five_or_pick_the_same_review(review_backlog):
+    if connection.vendor != "postgresql":
+        pytest.skip("Requires PostgreSQL advisory locks.")
+    slots = 5
+    ready = Barrier(len(review_backlog), timeout=10)
+
+    def claim():
+        try:
+            ready.wait()
+            return worker.claim_review()
+        finally:
+            connections.close_all()
+
+    with ThreadPoolExecutor(max_workers=len(review_backlog)) as workers:
+        claims = [workers.submit(claim) for _ in review_backlog]
+        results = [task.result(timeout=10) for task in claims]
+
+    assert results.count(None) == len(review_backlog) - slots
+    assert set(results) - {None} == {row.pk for row in review_backlog[:slots]}
+
+
+@pytest.mark.django_db(transaction=True)
+def test_job_deadline_marks_only_the_timed_out_review_unknown(review_backlog, monkeypatch):
+    timed_out, next_review, *_ = review_backlog
+    assert worker.claim_review() == timed_out.pk
+    assert worker.claim_review() == next_review.pk
+    monkeypatch.setattr(worker, "process_claim", Mock(side_effect=review_command.WorkerDeadline))
+
+    assert review_command._process_claim(timed_out.pk)["status"] == worker.Status.UNKNOWN  # noqa: SLF001
+    timed_out.refresh_from_db()
+    next_review.refresh_from_db()
+    assert timed_out.status == worker.Status.UNKNOWN
+    assert next_review.status == worker.Status.RUNNING
+    worker.expire_claims()
+    assert worker.claim_review() == review_backlog[2].pk
 
 
 def test_changed_statement_cancels_queued_work_and_prevents_publication(client, proof, config, monkeypatch):
