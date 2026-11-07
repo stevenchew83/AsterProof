@@ -2,8 +2,8 @@
 
 Under **Administration → AI review settings**, save an OpenAI project API key,
 select the models available on solution entries, set the thinking level and
-request limits, and edit the review prompt. The key is encrypted at rest and is
-never returned to the browser. Saving settings does not contact OpenAI.
+output token limit, and edit the review prompt. The key is encrypted at rest
+and is never returned to the browser. Saving settings does not contact OpenAI.
 An empty key field keeps the current key; **Remove the saved key** removes it.
 Replacing or removing the key invalidates queued work for that key.
 
@@ -18,9 +18,8 @@ review before it reaches OpenAI. External image references and diagram code
 remain part of the text. Requests queued before the image disclosure remain
 text-only.
 
-Each selected model uses one paid request. The rolling 24-hour request limit
-counts queued attempts, including failures, and the token cap covers reasoning
-and output. Use a dedicated OpenAI project to track spend.
+Each selected model uses one paid request. The token cap covers reasoning and
+output. Use a dedicated OpenAI project to track spend.
 **Administration → AI review queue** shows waiting and running model requests.
 On the solution page, a spinner indicates a request is waiting for the worker.
 
@@ -39,16 +38,16 @@ review of their own submitted or member-published proof. Authors choose one
 configured model per request and can have one active request across their account.
 Each account can generate two successful reviews per problem across revisions
 and 50 successful reviews overall. Failed attempts leave those allowances
-available. All requests share the existing rolling 24-hour site cap.
+available.
 The author can see partial feedback while their request runs. Once the worker
 validates the final score and feedback, it shares the review privately and queues
 the same email link automatically. Earlier completed drafts are not republished.
 
 The author request flow requires `solutions.0015_self_solution_review_usage`.
-It adds one usage table and retains the account and site quotas when a solution
-is deleted. Apply the migration through the protected release procedure before
-turning on author requests. The author switch defaults to off and requires the
-existing `ADMIN_SOLUTION_REVIEW_ENABLED` setting and worker.
+It adds one usage table and retains the account and per-problem allowances when
+a solution is deleted. Apply the migration through the protected release
+procedure before turning on author requests. The author switch defaults to off
+and requires the existing `ADMIN_SOLUTION_REVIEW_ENABLED` setting and worker.
 
 The frozen allowance checks the quota migration file, the prior migration tree,
 and the PostgreSQL 17.9 catalog delta. The rehearsal proves that the existing
@@ -86,8 +85,8 @@ schema and worker before enabling author requests.
    idle. Once running, the worker refills up to five review slots in queue
    order as each job finishes. One separate slot sends notification emails.
    Each job has a five-minute deadline. Uncertain outcomes are recorded and
-   require reconciliation before another attempt. The site and author review
-   quotas still apply when requests are queued.
+   require reconciliation before another attempt. Author review allowances still
+   apply when requests are queued.
 4. Set `ADMIN_SOLUTION_REVIEW_ENABLED=True` to allow generation. Disabling this
    setting pauses OpenAI requests; previously published reviews and their email
    notifications still work. This setting is independent of student coaching,

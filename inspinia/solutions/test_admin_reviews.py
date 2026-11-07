@@ -96,7 +96,7 @@ def second_solution(proof):
 
 def settings_post(client, **values):
     return client.post(reverse(SETTINGS_URL), {
-        "models_enabled": MODELS, "effort": "high", "output_limit": 8000, "daily_limit": 8,
+        "models_enabled": MODELS, "effort": "high", "output_limit": 8000,
         "prompt": PROMPT, "api_key": KEY, **values,
     })
 
@@ -147,6 +147,7 @@ def test_admin_key_is_write_only_and_rotation_invalidates_queued_work(client, pr
     assert page.status_code == HTTPStatus.OK
     assert "no-store" in page["Cache-Control"]
     assert b"Key saved" in page.content
+    assert b'name="daily_limit"' not in page.content
     assert KEY.encode() not in page.content
     assert queue(client, proof, config).status_code == HTTPStatus.FOUND
     invalid = settings_post(client, version=config.version, clear_key="on")
@@ -402,28 +403,17 @@ def self_review_enabled(settings):
 
 
 @pytest.mark.usefixtures("self_review_enabled")
-def test_only_members_are_blocked_by_the_site_wide_review_limit(client, proof, config, second_solution):
+@pytest.mark.parametrize(("requester", "models"), [("author", MODELS[:1]), ("admin", MODELS)])
+def test_review_requests_ignore_the_legacy_site_cap(client, proof, config, requester, models):
     config.daily_limit = 1
     config.save(update_fields=["daily_limit"])
-    assert queue(client, proof, config, models=MODELS[:1]).status_code == HTTPStatus.FOUND
-    assert AdminSolutionReview.objects.count() == 1
+    SelfSolutionReviewUsage.objects.create(
+        user=proof.member, problem_uuid=proof.problem.problem_uuid, batch_id=uuid.uuid4(),
+    )
 
-    second_url = reverse("solutions:admin_ai_review_generate", args=[second_solution.pk])
-    data = {
-        "settings_version": config.version, "target_key": forum.current_target_data(second_solution)["key"],
-        "problem_label": admin_reviews.problem_label(second_solution), "batch_id": uuid.uuid4(),
-    }
-    client.force_login(proof.author)
-    page = client.post(second_url, {**data, "models": MODELS[:1]}, follow=True)
-    assert b"site-wide AI review limit" in page.content
-    assert not SelfSolutionReviewUsage.objects.exists()
-
-    client.force_login(proof.admin)
-    assert client.post(second_url, {**data, "models": MODELS}).status_code == HTTPStatus.FOUND
-    queued_models = AdminSolutionReview.objects.filter(
-        target__solution=second_solution, requested_by=proof.admin,
-    ).values_list("model", flat=True)
-    assert sorted(queued_models) == sorted(MODELS)
+    client.force_login(getattr(proof, requester))
+    assert queue(client, proof, config, models=models).status_code == HTTPStatus.FOUND
+    assert set(AdminSolutionReview.objects.values_list("model", flat=True)) == set(models)
 
 
 @pytest.mark.usefixtures("self_review_enabled")
@@ -452,25 +442,16 @@ def test_self_review_limits_count_successes_and_survive_proof_deletion(
         "active": False, "account_remaining": 48, "problem_remaining": 0,
     }
 
-    # Deleted drafts still count toward the shared 24-hour request cap.
-    config.daily_limit = 3
-    config.save(update_fields=["daily_limit"])
+    assert not AdminSolutionReview.objects.exists()
+    SelfSolutionReviewUsage.objects.bulk_create([
+        SelfSolutionReviewUsage(user=proof.author, problem_uuid=uuid.uuid4(), batch_id=uuid.uuid4(), succeeded=True)
+        for _ in range(48)
+    ])
     data = {
         "settings_version": config.version, "target_key": forum.current_target_data(second_solution)["key"],
         "problem_label": admin_reviews.problem_label(second_solution), "batch_id": uuid.uuid4(), "models": MODELS[:1],
     }
     second_url = reverse("solutions:admin_ai_review_generate", args=[second_solution.pk])
-    page = client.post(second_url, data, follow=True)
-    assert b"site-wide AI review limit" in page.content
-    assert not AdminSolutionReview.objects.exists()
-
-    old_usage = SelfSolutionReviewUsage.objects.bulk_create([
-        SelfSolutionReviewUsage(user=proof.author, problem_uuid=uuid.uuid4(), batch_id=uuid.uuid4(), succeeded=True)
-        for _ in range(48)
-    ])
-    SelfSolutionReviewUsage.objects.filter(pk__in=[row.pk for row in old_usage]).update(
-        created_at=timezone.now() - timedelta(days=2),
-    )
     page = client.post(second_url, data, follow=True)
     assert b"used all 50 AI reviews" in page.content
     assert not AdminSolutionReview.objects.exists()
