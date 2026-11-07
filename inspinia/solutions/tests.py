@@ -265,28 +265,32 @@ def test_my_solution_charts_count_the_authors_solutions_in_local_creation_weeks(
         ("2026-09-20T15:59:00+00:00", ProblemSolution.Status.DRAFT, user),
         ("2026-11-08T16:30:00+00:00", ProblemSolution.Status.SUBMITTED, UserFactory()),
     ]
-    solution_ids = []
     for index, (created, status, author) in enumerate(entries):
         solution = _solution_with_blocks(problem=_problem(year=2026 - index), author=author, status=status)
         ProblemSolution.objects.filter(pk=solution.pk).update(created_at=datetime.fromisoformat(created))
-        solution_ids.append(solution.pk)
 
     with timezone.override("Asia/Kuala_Lumpur"):
         response = client.get(reverse("solutions:my_solution_list"))
 
     assert response.status_code == HTTPStatus.OK
-    weeks = response.context["my_solution_activity"]
-    assert [week["count"] for week in weeks] == [1, 0, 0, 0, 0, 0, 1, 1]
-    assert weeks[0]["start"] == date(2026, 9, 21)
-    assert weeks[-1]["start"] == date(2026, 11, 9)
-    assert {row["id"]: row.get("activity_week") for row in response.context["my_solution_rows"]} == dict(
-        zip(solution_ids[:4], (7, 6, 0, None), strict=True),
-    )
-    assert {status["key"]: status["count"] for status in response.context["my_solution_statuses"]} == {
-        "archived": 1,
-        "draft": 2,
-        "published": 1,
-    }
+    html = response.content.decode()
+    expected_weeks = (1, 0, 0, 0, 0, 0, 1, 1)
+    expected_rows = (("published", "7"), ("draft", "6"), ("archived", "0"), ("draft", ""))
+    assert html.count("data-solutions-week=") == len(expected_weeks)
+    assert html.count("data-solution-row ") == len(expected_rows)
+    for index, count in enumerate(expected_weeks):
+        start = date(2026, 9, 21) + timedelta(weeks=index)
+        label = f"{start:%b} {start.day}, {start.year}"
+        label_count = "1 new solution" if count == 1 else "0 new solutions"
+        expected = (
+            f'data-solutions-week="{index}" data-week-label="{label}" aria-label="Week of {label}, {label_count}"'
+        )
+        assert expected in html
+    for status, week in expected_rows:
+        assert f'data-solution-status="{status}" data-solution-week="{week}"' in html
+    for status, count in (("archived", 1), ("draft", 2), ("published", 1)):
+        assert f'class="my-solutions-status-{status}" style="--solution-count: {count}"' in html
+    assert 'data-solutions-status="submitted"' not in html
 
 
 def test_problem_solution_create_view_lists_the_shared_library(client):

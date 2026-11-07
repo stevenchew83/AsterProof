@@ -29,6 +29,7 @@
   {% endif %}
 
   {% if my_solution_rows %}
+    {% my_solution_workspace request.user my_solution_rows as workspace %}
     <div class="row g-2 g-lg-3 mb-2">
       <section class="col-lg-6" aria-labelledby="my-solutions-status-heading">
         <div class="card h-100 mb-0">
@@ -39,12 +40,12 @@
             </div>
             <p class="my-solutions-total mb-2"><strong>{{ my_solution_stats.total }}</strong> saved solution{{ my_solution_stats.total|pluralize }}</p>
             <div class="my-solutions-status-bar" aria-hidden="true">
-              {% for status in my_solution_statuses %}
+              {% for status in workspace.statuses %}
               <span class="my-solutions-status-{{ status.key }}" style="--solution-count: {{ status.count|unlocalize }}"></span>
               {% endfor %}
             </div>
             <div class="my-solutions-status-legend" role="group" aria-label="Filter by solution status">
-              {% for status in my_solution_statuses %}
+              {% for status in workspace.statuses %}
               <button type="button" class="btn btn-sm my-solutions-status-{{ status.key }}" data-solutions-status="{{ status.key }}" aria-controls="my-solutions-results" aria-pressed="false" disabled>
                 <span class="my-solutions-status-dot" aria-hidden="true"></span><strong>{{ status.count }}</strong> <span>{{ status.label }}</span>
               </button>
@@ -62,8 +63,8 @@
             </div>
             <p class="text-muted fs-xs mb-1">New solutions per week</p>
             <div class="my-solutions-weeks" role="group" aria-label="Filter by week created">
-              {% for week in my_solution_activity %}
-              {% widthratio week.count my_solution_activity_peak 100 as bar_height %}
+              {% for week in workspace.activity %}
+              {% widthratio week.count workspace.activity_peak 100 as bar_height %}
               <button type="button" class="btn my-solutions-week" data-solutions-week="{{ week.key }}" data-week-label="{{ week.start|date:'M j, Y' }}" aria-label="Week of {{ week.start|date:'M j, Y' }}, {{ week.count }} new solution{{ week.count|pluralize }}" aria-controls="my-solutions-results" aria-pressed="false" disabled>
                 <span class="my-solutions-week-plot" aria-hidden="true">
                   <strong>{{ week.count }}</strong>
@@ -88,7 +89,6 @@
       {% if my_solution_rows %}<span class="text-muted fs-xs" role="status" data-solutions-count>{{ my_solution_stats.total }} solution{{ my_solution_stats.total|pluralize }}</span>{% endif %}
     </div>
     {% if my_solution_rows %}
-    {% with_author_review_status request.user my_solution_rows as solution_rows_with_reviews %}
     <form method="get" action="{% url 'solutions:collection_create' %}" data-collection-selection>
       <div class="my-solutions-toolbar px-3 py-2" data-solutions-controls hidden>
         <div class="input-group input-group-sm my-solutions-search">
@@ -98,7 +98,7 @@
         <label class="visually-hidden" for="my-solutions-status">Solution status</label>
         <select class="form-select form-select-sm" id="my-solutions-status" data-solutions-status-select>
           <option value="">All statuses</option>
-          {% for status in my_solution_statuses %}<option value="{{ status.key }}">{{ status.label }}</option>{% endfor %}
+          {% for status in workspace.statuses %}<option value="{{ status.key }}">{{ status.label }}</option>{% endfor %}
         </select>
         <label class="visually-hidden" for="my-solutions-review">AI review status</label>
         <select class="form-select form-select-sm" id="my-solutions-review" data-solutions-review-select>
@@ -120,7 +120,7 @@
             </tr>
           </thead>
           <tbody role="rowgroup">
-            {% for row in solution_rows_with_reviews %}
+            {% for row in workspace.rows %}
             <tr role="row" data-solution-row data-solution-status="{{ row.status }}" data-solution-week="{{ row.activity_week }}" data-solution-review="{{ row.ai_review.label|default:'Not reviewed' }}">
               <td role="cell" class="my-solutions-select"><div class="d-inline-flex align-items-center gap-1"><input type="checkbox" name="solution" value="{{ row.id }}" class="form-check-input m-0" data-solution-choice data-solution-label="{{ row.title }} · {{ row.problem_label }}" aria-label="Select {{ row.problem_label }} for collection"><span class="badge bg-primary-subtle text-primary" data-selection-number hidden></span></div></td>
               <td role="cell" class="my-solutions-name">

@@ -73,9 +73,6 @@ from inspinia.pages.completion_progress import default_completion_progress_user
 from inspinia.pages.completion_progress import filter_completion_progress_rows
 from inspinia.pages.completion_progress import normalize_completion_progress_rows
 from inspinia.pages.completion_progress import resolve_completion_progress_date_range
-from inspinia.pages.completion_record_ai_reviews import DRAFT_READY
-from inspinia.pages.completion_record_ai_reviews import completion_review_summaries
-from inspinia.pages.completion_record_ai_reviews import draft_ready_completions
 from inspinia.pages.completion_record_areas import completion_record_area_metadata
 from inspinia.pages.completion_record_fields import SOLVED_STATUSES
 from inspinia.pages.completion_record_fields import completion_metadata_from_post
@@ -112,6 +109,10 @@ from inspinia.pages.handle_summary_parser import HandleSummaryParseValidationErr
 from inspinia.pages.handle_summary_parser import HandleSummaryPreviewPayload
 from inspinia.pages.handle_summary_parser import build_handle_summary_preview_payload
 from inspinia.pages.handle_summary_parser import parse_handle_summary_text
+from inspinia.pages.inventory_ai_reviews import DRAFT_READY
+from inspinia.pages.inventory_ai_reviews import completion_review_summaries
+from inspinia.pages.inventory_ai_reviews import draft_ready_completions
+from inspinia.pages.inventory_ai_reviews import latest_solution_review_summaries
 from inspinia.pages.models import DIFFICULTY_RATING_MAX
 from inspinia.pages.models import DIFFICULTY_RATING_MIN
 from inspinia.pages.models import ContestMetadata
@@ -3032,6 +3033,8 @@ def _admin_completion_listing_rows(
 
 def _admin_solution_listing_rows(
     solutions: list[ProblemSolution] | None = None,
+    *,
+    show_ai_reviews: bool = False,
 ) -> tuple[list[dict], dict[str, int]]:
     if solutions is None:
         solutions = list(
@@ -3054,6 +3057,7 @@ def _admin_solution_listing_rows(
         [solution.problem.contest for solution in solutions],
     )
     status_counts = Counter(solution.status for solution in solutions)
+    ai_reviews = latest_solution_review_summaries(solutions) if show_ai_reviews else {}
     table_rows: list[dict] = []
     for solution in solutions:
         problem = solution.problem
@@ -3102,6 +3106,8 @@ def _admin_solution_listing_rows(
                 "year": problem.year,
             },
         )
+        if show_ai_reviews:
+            table_rows[-1]["ai_review"] = ai_reviews.get(solution.pk)
 
     return table_rows, {
         "author_total": len({solution.author_id for solution in solutions}),
@@ -6765,8 +6771,10 @@ def user_solution_record_list_view(request):
             solution_queryset = solution_queryset.filter(token_query)
 
     solution_filtered_total = solution_queryset.count()
+    show_ai_reviews = user_has_admin_role(request.user)
     solution_rows, _solution_stats = _admin_solution_listing_rows(
         list(solution_queryset.order_by("-updated_at", "-id")[:ADMIN_TABLE_LATEST_LIMIT]),
+        show_ai_reviews=show_ai_reviews,
     )
     solution_visible_total = len(solution_rows)
 
@@ -6813,6 +6821,7 @@ def user_solution_record_list_view(request):
         "user_solution_record_is_capped": solution_filtered_total > solution_visible_total,
         "user_solution_record_latest_updated_at": solution_rows[0]["updated_at"] if solution_rows else "—",
         "user_solution_record_rows": solution_rows,
+        "user_solution_record_show_ai_reviews": show_ai_reviews,
         "user_solution_record_stats": solution_stats,
         "user_solution_record_visible_total": solution_visible_total,
         "user_solution_record_result_limit": ADMIN_TABLE_LATEST_LIMIT,
