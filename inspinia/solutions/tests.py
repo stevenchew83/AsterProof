@@ -770,7 +770,7 @@ def test_problem_solution_list_highlights_selected_solution_from_query_string_fo
 
 
 def test_problem_solution_edit_publishes_structured_document_in_authored_order(client):
-    user = UserFactory()
+    user = UserFactory(solution_guide_status=User.SolutionGuideStatus.NOT_ENROLLED)
     client.force_login(user)
     problem = _problem()
     source = (

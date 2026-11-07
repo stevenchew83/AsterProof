@@ -14,6 +14,7 @@ from inspinia.solutions.models import ProblemSolutionBlock
 from inspinia.solutions.models import SolutionPublicShare
 from inspinia.solutions.test_public_sharing import create_share
 from inspinia.solutions.test_public_sharing import saved_editor_data
+from inspinia.solutions.test_solution_editor import solution_payload
 from inspinia.solutions.test_writer_handoff import source_data
 from inspinia.solutions.writer_drafts import WRITER_DRAFT_SESSION_KEY
 from inspinia.solutions.writer_drafts import writer_handoff_url
@@ -51,18 +52,39 @@ def guide(client):
 
 
 def test_new_account_starts_with_optional_guide_and_no_fabricated_work(client, learner):
+    starter = ProblemSolveRecord.objects.create(contest="IMO", year=1959, problem="P1", topic="NT", mohs=10)
+    ContestProblemStatement.objects.create(
+        linked_problem=starter, contest_name="IMO", contest_year=1959, problem_code="P1",
+        problem_number=1, statement_latex="Prove that the fraction is irreducible.",
+    )
+    easier = ProblemSolveRecord.objects.create(contest="GUIDE", year=2026, problem="P1", topic="ALG", mohs=5)
+    fallback = ContestProblemStatement.objects.create(
+        linked_problem=easier, contest_name="GUIDE", contest_year=2026, problem_code="P1",
+        problem_number=1, statement_latex="Prove that a square is nonnegative.",
+    )
     assert learner.get_login_redirect_url() == reverse("solutions:my_solution_list")
     progress = guide(client)
     assert progress["visible"]
     assert progress["completed_steps"] == 0
     assert progress["start_url"] == reverse("solutions:problem_solution_create")
+    assert progress["starter_url"] == reverse("solutions:problem_solution_edit", args=[starter.problem_uuid])
     html = client.get(reverse("solutions:my_solution_list")).content.decode()
-    assert "Write my first solution" in html
+    assert f'href="{progress["starter_url"]}" class="btn btn-primary">Try a starter problem' in html
+    assert "I already have a proof" in html
+    assert "See a worked example" in html
     assert "0 of 2 complete" in html
-    assert "Save your first solution" in html
     assert "Skip for now" in html
-    assert "Optional" in html
+    assert "Share a public link" not in html
+    assert "Create new solution" not in html
     assert "All solutions</p>" not in html
+
+    starter.is_active = False
+    starter.save(update_fields=["is_active"])
+    assert guide(client)["starter_url"] == reverse("solutions:problem_solution_edit", args=[easier.problem_uuid])
+    fallback.is_active = False
+    fallback.save(update_fields=["is_active"])
+    assert not guide(client)["starter_url"]
+    assert "I already have a proof" in client.get(reverse("solutions:my_solution_list")).content.decode()
     assert not ProblemSolution.objects.exists()
     assert not SolutionPublicShare.objects.exists()
     assert not UserProblemCompletion.objects.exists()
@@ -92,7 +114,7 @@ def test_empty_upload_placeholder_does_not_count_as_saved_proof(client, solution
 def test_save_completes_getting_started_and_sharing_remains_optional(client, solution):
     editor_url = reverse("solutions:problem_solution_edit", args=[solution.problem.problem_uuid])
     editor = client.get(editor_url)
-    assert "Next: save your solution." in editor.content.decode()
+    assert "Save private draft" in editor.content.decode()
     response = client.post(editor_url, {
         "action": "save", "solution-title": "My first proof", "solution-summary": "",
         "solution-base_version": editor.context["form"]["base_version"].value(),
@@ -126,13 +148,49 @@ def test_save_completes_getting_started_and_sharing_remains_optional(client, sol
     assert not progress["shared"]
 
 
-def test_saved_guide_names_the_solution_and_focuses_on_optional_sharing(client, solution):
+@pytest.mark.parametrize("editor_route", ["problem_solution_edit", "problem_solution_list"])
+def test_first_proof_must_be_saved_privately_and_can_resume_on_another_session(client, solution, editor_route):
+    url = reverse(f"solutions:{editor_route}", args=[solution.problem.problem_uuid])
+    editor = client.get(url, {"edit": "1"})
+    html = editor.content.decode()
+    assert "Save private draft" in html
+    assert "Publish solution" not in html
+    assert 'id="solution-share-trigger"' not in html
+    if editor_route == "problem_solution_edit":
+        assert 'aria-labelledby="solution-problem-heading" open' in html
+
+    data = solution_payload(client, url, source="My first idea.", action="publish")
+    refused = client.post(url, data, HTTP_X_REQUESTED_WITH="XMLHttpRequest")
+    assert refused.status_code == HTTPStatus.UNPROCESSABLE_ENTITY
+    assert "Save a private draft" in refused.json()["error"]
+    solution.refresh_from_db()
+    assert solution.current_revision_id is None
+
+    saved = client.post(url, {**data, "action": "save_draft"}, HTTP_X_REQUESTED_WITH="XMLHttpRequest")
+    assert saved.status_code == HTTPStatus.OK
+    solution.refresh_from_db()
+    assert solution.status == ProblemSolution.Status.DRAFT
+    assert solution.published_at is solution.submitted_at is None
+    assert not SolutionPublicShare.objects.exists()
+    assert not UserProblemCompletion.objects.exists()
+    detail_url = reverse("solutions:solution_detail", args=[solution.pk])
+    assert client_with_user(UserFactory()).get(detail_url).status_code == HTTPStatus.NOT_FOUND
+
+    returning = client_with_user(solution.author)
+    assert "Continue your draft" in returning.get(reverse("solutions:my_solution_list")).content.decode()
+    resumed = returning.get(guide(returning)["editor_url"]).content.decode()
+    assert "My first idea." in resumed
+    assert "Publish solution" in resumed
+    assert 'id="solution-share-trigger"' in resumed
+
+
+def test_saved_guide_names_the_solution_and_prioritizes_resuming(client, solution):
     ProblemSolutionBlock.objects.create(solution=solution, position=1, body_source="A saved proof.")
     response = client.get(reverse("solutions:my_solution_list"))
     panel = response.content.decode().split('id="solution-guide"', 1)[1].split("</section>", 1)[0]
     progress = response.context["solution_guide"]
     assert "Getting started · Complete" in panel
-    assert "Your solution is saved" in panel
+    assert "Pick up where you left off" in panel
     assert "My first proof" in panel
     assert progress["solution_title"] == solution.title
     assert progress["problem_label"] == "GUIDE 2026 P1"
@@ -140,12 +198,10 @@ def test_saved_guide_names_the_solution_and_focuses_on_optional_sharing(client, 
     assert "Solution saved" in panel
     assert "Optional" in panel
     assert "Review and share" in panel
-    assert "Continue editing" in panel
+    assert "Continue your draft" in panel
     assert f'href="{progress["share_url"]}"' in panel
     assert f'href="{progress["editor_url"]}"' in panel
-    assert "Write, preview, and save" not in panel
-    assert "of 3 complete" not in panel
-    assert "See an example" not in panel
+    assert "Save a private draft" not in panel
 
 
 def test_shared_guide_shows_link_management_without_extra_required_progress(client, solution):
@@ -201,6 +257,18 @@ def test_guide_uses_owners_saved_solution_even_with_newer_empty_draft(client, so
     progress = guide(client)
     assert progress["completed_steps"] == SAVED_STEPS
     assert progress["share_url"] == reverse("solutions:problem_solution_share", args=[solution.problem.problem_uuid])
+
+
+def test_guide_prioritizes_private_draft_over_newer_shared_work(client, solution):
+    ProblemSolutionBlock.objects.create(solution=solution, position=1, body_source="My private draft.")
+    other_problem = ProblemSolveRecord.objects.create(contest="GUIDE", year=2026, problem="P2", topic="ALG")
+    shared = ProblemSolution.objects.create(author=solution.author, problem=other_problem)
+    ProblemSolutionBlock.objects.create(solution=shared, position=1, body_source="A different proof.")
+    create_share(client, shared)
+    progress = guide(client)
+    assert progress["private_draft"]
+    assert not progress["shared"]
+    assert progress["editor_url"] == reverse("solutions:problem_solution_edit", args=[solution.problem.problem_uuid])
 
 
 def client_with_user(user):

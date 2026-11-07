@@ -103,6 +103,7 @@
   </div>
   {% endif %}
 
+  {% if my_solution_rows or not solution_guide.visible %}
   <div class="card mt-3">
     <div class="card-header border-bottom">
       <div class="d-flex flex-wrap align-items-center justify-content-between gap-2">
@@ -180,6 +181,7 @@
       {% endif %}
     </div>
   </div>
+  {% endif %}
 </div>
 {% endblock page_content %}
 {% block extra_javascript %}<script src="{% static 'js/solution-collections.js' %}" defer></script>{% endblock extra_javascript %}

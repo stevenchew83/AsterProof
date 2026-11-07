@@ -144,6 +144,8 @@ def test_json_mutations_require_csrf_and_reject_unknown_actions(client, writing)
 def test_unshareable_saved_content_still_allows_copy_and_stop_without_flashes(client, writing):
     assert post(client, writing, state(client, writing), "create").json()["ok"]
     writing.blocks.all().delete()
+    editor = reverse("solutions:problem_solution_edit", args=[writing.problem.problem_uuid])
+    assert 'id="solution-share-trigger"' in client.get(editor).content.decode()
     settings = state(client, writing)
     assert settings["is_active"]
     assert not settings["can_share"]
@@ -167,6 +169,7 @@ def test_dialog_is_outside_editor_form_and_has_native_focus_and_mobile_hooks(cli
     assert "Stop sharing" in html
     assert "Unsaved editor changes are excluded" in html
     writing.delete()
+    client.post(reverse("solutions:solution_guide_preference"), {"action": "dismiss"})
     html = client.get(editor).content.decode()
     assert 'id="solution-share-trigger"' in html
     assert "data-share-url=" not in html
