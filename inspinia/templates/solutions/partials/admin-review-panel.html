@@ -32,7 +32,7 @@
         <p class="mb-2" role="status"><i class="ti ti-circle-check me-1" aria-hidden="true"></i>Awaiting publication. We’ll email you when an admin shares your review.</p>
       {% else %}
         {% if ai_reviews.owner_request %}
-          <p class="mb-2 text-muted" role="status">{% if ai_reviews.owner_request.status == 'unknown' %}We couldn’t confirm the outcome of your last request.{% else %}Your last request couldn’t generate a review.{% endif %}</p>
+          <p class="mb-2 text-muted" role="status">{% if ai_reviews.image_error %}{{ ai_reviews.image_error }}{% elif ai_reviews.owner_request.status == 'unknown' %}We couldn’t confirm the outcome of your last request.{% else %}Your last request couldn’t generate a review.{% endif %}</p>
         {% endif %}
         {% if ai_reviews.blocker %}
           <p class="mb-2 text-muted"><i class="ti ti-info-circle me-1" aria-hidden="true"></i>{{ ai_reviews.blocker }}</p>
@@ -59,7 +59,8 @@
                 {% for value, label in ai_reviews.choices %}<option value="{{ value }}">{{ label }}</option>{% endfor %}
               </select>
             {% endif %}
-            <p class="text-muted fs-sm mb-2">Sends the problem label, statement, and saved proof text to OpenAI.{% if ai_reviews.admin %} Each selected model makes one paid request.{% endif %}</p>
+            <p class="text-muted fs-sm mb-2">Sends the problem label, statement, saved proof text, and any embedded proof images to OpenAI.{% if ai_reviews.admin %} Each selected model makes one paid request.{% endif %}</p>
+            <input type="hidden" name="include_solution_images" value="1">
             <button type="submit" class="btn btn-primary btn-sm"><i class="ti ti-sparkles me-1" aria-hidden="true"></i>Generate AI review</button>
           </form>
         {% endif %}

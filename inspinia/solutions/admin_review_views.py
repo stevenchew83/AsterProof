@@ -253,9 +253,11 @@ def _review_history(request, reviews, current):
 def _owner_context(user, solution, payload, reviews, current):
     owner_request = reviews.filter(
         current, self_request__user=user, published_at__isnull=True,
-    ).only("batch_id", "status").first()
+    ).only("batch_id", "status", "error").first()
     reviews = reviews.filter(published_at__isnull=False)
     context = {"owner_request": owner_request, "can_generate": settings.SELF_SOLUTION_REVIEW_ENABLED}
+    if owner_request and owner_request.error == admin_reviews.IMAGE_INPUT_ERROR:
+        context["image_error"] = owner_request.error
     restricted = (
         (context["can_generate"] or reviews.filter(self_request__isnull=False).exists())
         and admin_reviews.self_review_restricted(user, solution.problem.problem_uuid, payload["statement"]["id"])

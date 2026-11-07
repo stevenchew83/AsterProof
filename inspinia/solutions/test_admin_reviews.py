@@ -1,10 +1,12 @@
 """Admin review drafts are version-bound, private and safe to publish once."""
 
+import base64
 import json
 import uuid
 from concurrent.futures import ThreadPoolExecutor
 from datetime import timedelta
 from http import HTTPStatus
+from io import BytesIO
 from threading import Barrier
 from types import SimpleNamespace
 from unittest.mock import Mock
@@ -12,6 +14,7 @@ from unittest.mock import Mock
 import pytest
 from cryptography.fernet import Fernet
 from django.core import mail
+from django.core.files.base import ContentFile
 from django.db import IntegrityError
 from django.db import close_old_connections
 from django.db import connection
@@ -21,6 +24,7 @@ from django.http import QueryDict
 from django.test import Client
 from django.urls import reverse
 from django.utils import timezone
+from PIL import Image
 
 from inspinia.pages.models import ContestProblemStatement
 from inspinia.pages.models import ProblemSolveRecord
@@ -31,8 +35,11 @@ from inspinia.solutions.admin_review_models import AdminSolutionReview
 from inspinia.solutions.admin_review_models import AdminSolutionReviewSettings
 from inspinia.solutions.admin_review_models import SelfSolutionReviewUsage
 from inspinia.solutions.admin_reviews import read_credential
+from inspinia.solutions.document_source import source_digest
 from inspinia.solutions.evaluation_models import AssistancePolicy
 from inspinia.solutions.models import ProblemSolution
+from inspinia.solutions.models import SolutionBodyImage
+from inspinia.solutions.models import SolutionRevision
 from inspinia.users.tests.factories import UserFactory
 
 pytestmark = pytest.mark.django_db
@@ -441,14 +448,64 @@ def test_changed_statement_cancels_queued_work_and_prevents_publication(client, 
     assert draft.published_at is None
 
 
-def test_provider_uses_actual_sdk_with_a_mock_transport(client, proof, config, monkeypatch):
+@pytest.fixture
+def image_storage(settings, tmp_path):
+    settings.MEDIA_ROOT = tmp_path
+    return tmp_path
+
+
+@pytest.fixture(params=["text", "admin-image", "author-image", "legacy"])
+def provider_job(request, client, proof, config, image_storage):
+    request_kind = request.param
+    author_request = request_kind == "author-image"
+    source = proof.block.body_source
+    image_path = None
+    if request_kind != "text":
+        drawing = Image.new("RGBA", (20, 10))
+        drawing.putpixel((3, 4), (255, 0, 0, 255))
+        png = BytesIO()
+        drawing.save(png, "PNG")
+        image = SolutionBodyImage(solution=proof.solution, uploaded_by=proof.author)
+        image.file.save("diagram.png", ContentFile(png.getvalue()), save=True)
+        image_path = image.file.name
+        commented = "solution_body_images/" + "f" * 32 + ".png"
+        source = "\n".join((
+            source,
+            rf"\includegraphics[width=0.5\textwidth]{{{image_path}}} \includegraphics{{{image_path}}}",
+            rf"% \includegraphics{{{commented}}}",
+            r"\includegraphics{https://example.invalid/remote.png}",
+        ))
+        proof.block.body_source = source
+        proof.block.save(update_fields=["body_source"])
+    if author_request:
+        request.getfixturevalue("self_review_enabled")
+        proof.solution.current_revision = SolutionRevision.objects.create(
+            solution=proof.solution, sequence=1, body_source=source, source_digest=source_digest(source),
+        )
+        proof.solution.save(update_fields=["current_revision"])
+        client.force_login(proof.author)
+    if request_kind != "text":
+        page = client.get(proof.url)
+        assert b"embedded proof images to OpenAI" in page.content
+        assert b'name="include_solution_images" value="1"' in page.content
+        stale_form = queue(client, proof, config, models=MODELS[:1])
+        assert b"Reload the page to review what will be sent" in client.get(stale_form.url).content
+        assert not AdminSolutionReview.objects.exists()
+    queue(client, proof, config, models=MODELS[:1], include_solution_images="1")
+    review = AdminSolutionReview.objects.get()
+    if request_kind == "legacy":
+        # Simulate a request queued when the review form disclosed text only.
+        AdminSolutionReview.objects.filter(pk=review.pk).update(instructions=f"{admin_reviews.REVIEW_RULES}\n\n{PROMPT}")
+        image_path = None
+    return SimpleNamespace(review=review, source=source, image_path=image_path, author_request=author_request)
+
+
+def test_provider_uses_actual_sdk_with_a_mock_transport(client, proof, config, monkeypatch, provider_job):
     openai = pytest.importorskip("openai")
     httpx = pytest.importorskip("httpx2")
-    queue(client, proof, config, models=MODELS[:1])
     seen = []
     sdk = openai.OpenAI
-
-    review = AdminSolutionReview.objects.get()
+    review = provider_job.review
     progress = reverse("solutions:admin_ai_review_progress", args=[proof.solution.pk, review.batch_id])
 
     class Stream(httpx.SyncByteStream):
@@ -456,13 +513,19 @@ def test_provider_uses_actual_sdk_with_a_mock_transport(client, proof, config, m
             delta = {"type": "response.output_text.delta", "delta": '{"score":6,"feedback":"First draft',
                      "item_id": "msg_fixture", "output_index": 0, "content_index": 0, "sequence_number": 1}
             yield f"data: {json.dumps(delta)}\n\n".encode()
+            client.force_login(proof.admin)
             live = client.get(progress)
             assert live.json()["reviews"] == [{
                 "id": str(review.pk), "active": True, "status": "Reviewing", "feedback": "First draft",
             }]
             assert "no-store" in live["Cache-Control"]
             client.force_login(proof.author)
-            assert client.get(progress).status_code == HTTPStatus.FORBIDDEN
+            owner_progress = client.get(progress)
+            if provider_job.author_request:
+                assert owner_progress.status_code == HTTPStatus.OK
+                assert b"First draft" not in owner_progress.content
+            else:
+                assert owner_progress.status_code == HTTPStatus.FORBIDDEN
             assert b"First draft" not in client.get(proof.url).content
             client.force_login(proof.admin)
             complete = {
@@ -499,12 +562,52 @@ def test_provider_uses_actual_sdk_with_a_mock_transport(client, proof, config, m
     assert payload["max_output_tokens"] == config.output_limit
     assert "out of a total of 7" in payload["input"][0]["content"]
     assert PROMPT in payload["input"][0]["content"]
-    assert json.loads(payload["input"][1]["content"]) == {
+    expected_text = {
         "problem_label": proof.problem.contest_year_problem,
         "problem_statement": proof.statement.statement_latex,
-        "problem_solution": proof.block.body_source,
+        "problem_solution": provider_job.source,
     }
+    content = payload["input"][1]["content"]
+    if provider_job.image_path:
+        text_part, image_part = content
+        assert text_part["type"] == "input_text"
+        assert json.loads(text_part["text"]) == {**expected_text, "solution_image_paths": [provider_job.image_path]}
+        assert image_part["type"] == "input_image"
+        mime, encoded = image_part["image_url"].split(",", 1)
+        assert mime == "data:image/png;base64"
+        with Image.open(BytesIO(base64.b64decode(encoded, validate=True))) as sent:
+            assert sent.size == (20, 10)
+            assert sent.getpixel((3, 4)) == (255, 0, 0)
+            assert sent.getpixel((0, 0)) == (255, 255, 255)
+    else:
+        assert json.loads(content) == expected_text
     assert payload["text"]["format"]["schema"]["properties"]["score"]["enum"] == list(range(8))
+
+
+@pytest.fixture(params=["missing", "cross-solution"])
+def unavailable_image(request, proof, second_solution, image_storage):
+    path = "solution_body_images/" + "a" * 32 + ".png"
+    cross_solution = request.param == "cross-solution"
+    image = SolutionBodyImage.objects.create(solution=second_solution if cross_solution else proof.solution, file=path)
+    if cross_solution:
+        stored = image_storage / path
+        stored.parent.mkdir()
+        Image.new("RGB", (10, 10), "red").save(stored, "PNG")
+    proof.block.body_source += rf" \includegraphics{{{image.file.name}}}"
+    proof.block.save(update_fields=["body_source"])
+
+
+@pytest.mark.usefixtures("self_review_enabled", "unavailable_image")
+def test_unavailable_image_fails_before_openai(client, proof, config, monkeypatch):
+    openai = pytest.importorskip("openai")
+    client.force_login(proof.author)
+    queue(client, proof, config, models=MODELS[:1], include_solution_images="1")
+    api = Mock()
+    monkeypatch.setattr(openai, "OpenAI", api)
+    assert worker.process_next()["status"] == "failed"
+    api.assert_not_called()
+    assert not SelfSolutionReviewUsage.objects.get().succeeded
+    assert admin_reviews.IMAGE_INPUT_ERROR.encode() in client.get(proof.url).content
 
 
 def test_invalid_score_is_not_publishable_and_database_enforces_range(client, proof, config, monkeypatch):
