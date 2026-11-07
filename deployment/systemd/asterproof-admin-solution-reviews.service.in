@@ -5,22 +5,22 @@ After=@APP_SERVICE@
 PartOf=@APP_SERVICE@
 
 [Service]
-Type=oneshot
+Type=exec
 User=@APP_USER@
 WorkingDirectory=@CURRENT@
 EnvironmentFile=@ENVIRONMENT_FILE@
 Environment=DJANGO_SETTINGS_MODULE=config.settings.production
 Environment=DJANGO_READ_DOT_ENV_FILE=False
 Environment=PYTHONDONTWRITEBYTECODE=1
-ExecStart=@CURRENT@/.venv/bin/python -B manage.py process_admin_solution_reviews
-TimeoutStartSec=320s
+ExecStart=@CURRENT@/.venv/bin/python -B manage.py process_admin_solution_reviews --drain
+TimeoutStartSec=30s
 TimeoutStopSec=15s
 KillMode=control-group
 Nice=10
 CPUWeight=20
 IOWeight=20
-MemoryHigh=256M
-MemoryMax=384M
+MemoryHigh=768M
+MemoryMax=1G
 UMask=0077
 NoNewPrivileges=true
 PrivateTmp=true

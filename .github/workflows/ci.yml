@@ -401,6 +401,7 @@ jobs:
           import pytest
           raise SystemExit(pytest.main([
               'inspinia/solutions/test_admin_collection_concurrency.py',
+              'inspinia/solutions/test_admin_reviews.py',
               'inspinia/solutions/test_document_revisions.py',
               'inspinia/solutions/test_forum.py',
               'inspinia/solutions/test_image_access.py',

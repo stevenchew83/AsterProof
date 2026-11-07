@@ -2,9 +2,9 @@
 Description=Process AsterProof admin solution reviews and notifications
 
 [Timer]
-OnBootSec=60s
-OnUnitInactiveSec=60s
-AccuracySec=5s
+OnBootSec=10s
+OnUnitInactiveSec=5s
+AccuracySec=1s
 Unit=asterproof-admin-solution-reviews.service
 
 [Install]

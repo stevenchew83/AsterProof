@@ -22,6 +22,15 @@ pytestmark = pytest.mark.skipif(
 )
 
 
+
+def _pool_ready(unit):
+    journal = subprocess.run(
+        ["/usr/bin/journalctl", "-u", unit, "-o", "cat", "-n", "12", "--no-pager"],
+        check=True, capture_output=True, text=True, timeout=10,
+    )
+    return "review-pool-ready" in journal.stdout
+
+
 @pytest.mark.parametrize(("kind", "service_name", "timer_name"), [
     ("newsletter", SERVICE, TIMER),
     ("admin-reviews", REVIEW_SERVICE, REVIEW_TIMER),
@@ -40,7 +49,15 @@ def test_worker_cannot_start_drained_app_and_stops_with_app(tmp_path, kind, serv
     ), admin_reviews=kind == "admin-reviews")
     # Keep the real dependency/sandbox/resource settings; substitute only the
     # synthetic executable/path. No application environment or data is used.
-    service = re.sub(r"^ExecStart=.*$", "ExecStart=/bin/sleep 600", units[service_name], flags=re.MULTILINE)
+    executable = "/bin/sleep 600"
+    if kind == "admin-reviews":
+        executable = (
+            '/usr/bin/python3 -c "import os, time; from concurrent.futures import ProcessPoolExecutor; '
+            "from multiprocessing import get_context; pool = ProcessPoolExecutor(max_workers=6, "
+            "mp_context=get_context('spawn')); assert pool.submit(os.getpid).result(timeout=10) != os.getpid(); "
+            'print(\'review-pool-ready\', flush=True); time.sleep(600)"'
+        )
+    service = re.sub(r"^ExecStart=.*$", f"ExecStart={executable}", units[service_name], flags=re.MULTILINE)
     service = re.sub(r"^WorkingDirectory=.*$", "WorkingDirectory=/", service, flags=re.MULTILINE)
     definitions = {
         app: f"[Service]\nType=simple\nUser={app_user}\nExecStart=/bin/sleep 600\nTimeoutStopSec=10s\n",
@@ -68,8 +85,8 @@ def test_worker_cannot_start_drained_app_and_stops_with_app(tmp_path, kind, serv
         assert pid(job) == "0"
         systemctl("start", app)
         systemctl("start", "--no-block", job)
-        for _ in range(40):
-            if pid(job) not in {"", "0"}:
+        for _ in range(80):
+            if pid(job) not in {"", "0"} and (kind != "admin-reviews" or _pool_ready(job)):
                 break
             time.sleep(0.1)
         else:

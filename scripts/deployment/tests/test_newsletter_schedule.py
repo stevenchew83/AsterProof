@@ -43,8 +43,8 @@ def test_admin_review_worker_uses_the_same_runtime_and_bounded_non_overlapping_s
     assert "User=asterproof\n" in service
     assert "EnvironmentFile=/var/lib/asterproof/environment\n" in service
     assert "WorkingDirectory=/srv/asterproof-managed/current\n" in service
-    assert "manage.py process_admin_solution_reviews\n" in service
-    assert "TimeoutStartSec=320s\n" in service
+    assert "manage.py process_admin_solution_reviews --drain\n" in service
+    assert "Type=exec\n" in service
     assert "Unit=asterproof-admin-solution-reviews.service\n" in timer
-    assert "OnUnitInactiveSec=60s\n" in timer
+    assert "OnUnitInactiveSec=5s\n" in timer
     assert all("@" not in text for text in units.values())
