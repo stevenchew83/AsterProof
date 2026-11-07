@@ -73,6 +73,9 @@ from inspinia.pages.completion_progress import default_completion_progress_user
 from inspinia.pages.completion_progress import filter_completion_progress_rows
 from inspinia.pages.completion_progress import normalize_completion_progress_rows
 from inspinia.pages.completion_progress import resolve_completion_progress_date_range
+from inspinia.pages.completion_record_ai_reviews import DRAFT_READY
+from inspinia.pages.completion_record_ai_reviews import completion_review_summaries
+from inspinia.pages.completion_record_ai_reviews import draft_ready_completions
 from inspinia.pages.completion_record_areas import completion_record_area_metadata
 from inspinia.pages.completion_record_fields import SOLVED_STATUSES
 from inspinia.pages.completion_record_fields import completion_metadata_from_post
@@ -2885,6 +2888,8 @@ def _user_completion_table_rows(completions: list[UserProblemCompletion]) -> tup
 
 def _admin_completion_listing_rows(
     completions: list[UserProblemCompletion] | None = None,
+    *,
+    ai_reviews: dict[int, dict] | None = None,
 ) -> tuple[list[dict], dict[str, int]]:
     if completions is None:
         completions = list(
@@ -2922,9 +2927,9 @@ def _admin_completion_listing_rows(
     solution_rows = ProblemSolution.objects.filter(
         author_id__in=completion_user_ids,
         problem_id__in=completion_problem_ids,
-    ).values("author_id", "problem_id", "status")
-    solution_status_by_key = {
-        (row["author_id"], row["problem_id"]): row["status"]
+    ).values("pk", "author_id", "problem_id", "status")
+    solutions_by_key = {
+        (row["author_id"], row["problem_id"]): row
         for row in solution_rows
     }
 
@@ -2947,7 +2952,8 @@ def _admin_completion_listing_rows(
                 problem_label,
                 f"{contest_year}-{problem_code}",
             )
-        solution_status = solution_status_by_key.get((user.id, problem.id), "") if problem is not None else ""
+        solution = solutions_by_key.get((user.id, problem.id)) if problem is not None else None
+        solution_status = solution["status"] if solution is not None else ""
         if completion.completion_date is not None:
             known_date_total += 1
         if solution_status:
@@ -2998,6 +3004,13 @@ def _admin_completion_listing_rows(
                 "status_badge_class": _completion_status_badge_class(completion.status),
             },
         )
+        if ai_reviews is not None and solution is not None:
+            review = ai_reviews.get(completion.pk, {})
+            table_rows[-1]["ai_review"] = {
+                "label": review.get("label", "Not reviewed"),
+                "score": review.get("score"),
+                "url": reverse("solutions:solution_detail", args=[solution["pk"]]) + "#ai-review",
+            }
 
     table_rows = _completion_progress_apply_difficulty_payloads(table_rows, user=None)
     area_metadata = completion_record_area_metadata(completions)
@@ -3257,6 +3270,7 @@ def _completion_record_active_filters(
             lambda value: _completion_record_choice_label(UserProblemCompletion.Confidence.choices, value),
         ),
         "solution_status": ("Solution", _completion_record_solution_status_label),
+        "ai_review": ("AI review", lambda _value: "Draft ready"),
     }
     for key, value in selected_filters.items():
         if not value:
@@ -3313,7 +3327,7 @@ def _completion_record_base_queryset():
             "problem__topic",
             Value("", output_field=CharField()),
         ),
-        _effective_problem_id=Coalesce(
+        effective_problem_id=Coalesce(
             "statement__linked_problem_id",
             "problem_id",
         ),
@@ -3323,7 +3337,7 @@ def _completion_record_base_queryset():
 def _completion_record_solution_status_queryset():
     return ProblemSolution.objects.filter(
         author_id=OuterRef("user_id"),
-        problem_id=OuterRef("_effective_problem_id"),
+        problem_id=OuterRef("effective_problem_id"),
     )
 
 
@@ -6632,10 +6646,14 @@ def completion_record_user_options_view(request):
 
 
 @login_required
+@never_cache
 def completion_record_list_view(request):
     """Admin inventory of all saved user completion rows."""
     _require_admin_tools_access(request)
+    show_ai_reviews = user_has_admin_role(request.user)
     selected_filters = _completion_record_selected_filters(request)
+    if show_ai_reviews and request.GET.get("ai_review") == DRAFT_READY:
+        selected_filters["ai_review"] = DRAFT_READY
     solution_status_queryset = _completion_record_solution_status_queryset()
     base_completion_queryset = _completion_record_base_queryset()
     completion_queryset = _completion_record_apply_basic_filters(
@@ -6653,12 +6671,18 @@ def completion_record_list_view(request):
         solution_status_queryset=solution_status_queryset,
     )
 
-    latest_completions = list(
-        completion_queryset.order_by("-updated_at", "-id")[: ADMIN_TABLE_LATEST_LIMIT + 1],
-    )
+    completion_queryset = completion_queryset.order_by("-updated_at", "-id")
+    ai_reviews = None
+    if selected_filters.get("ai_review") == DRAFT_READY:
+        latest_completions, ai_reviews = draft_ready_completions(completion_queryset, ADMIN_TABLE_LATEST_LIMIT + 1)
+    else:
+        latest_completions = list(completion_queryset[: ADMIN_TABLE_LATEST_LIMIT + 1])
+        if show_ai_reviews:
+            ai_reviews = completion_review_summaries(latest_completions[:ADMIN_TABLE_LATEST_LIMIT])
     completion_is_capped = len(latest_completions) > ADMIN_TABLE_LATEST_LIMIT
     completion_rows, _completion_stats = _admin_completion_listing_rows(
         latest_completions[:ADMIN_TABLE_LATEST_LIMIT],
+        ai_reviews=ai_reviews,
     )
     completion_visible_total = len(completion_rows)
 
@@ -6685,12 +6709,14 @@ def completion_record_list_view(request):
             selected_filters["date_status"]
             or selected_filters["status"]
             or selected_filters["confidence"]
-            or selected_filters["solution_status"],
+            or selected_filters["solution_status"]
+            or selected_filters.get("ai_review"),
         ),
         "completion_record_filter_options": completion_filter_options,
         "completion_record_filters": selected_filters,
         "completion_record_has_active_filters": bool(completion_active_filters),
         "completion_record_rows": completion_rows,
+        "completion_record_show_ai_reviews": show_ai_reviews,
         "completion_record_stats": completion_stats,
         "completion_record_visible_total": completion_visible_total,
         "completion_record_result_limit": ADMIN_TABLE_LATEST_LIMIT,

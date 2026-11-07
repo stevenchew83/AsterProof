@@ -106,7 +106,7 @@
 
         <div id="completion-record-advanced-filters" class="collapse{% if completion_record_advanced_filters_open %} show{% endif %}">
           <div class="row g-2 align-items-end completion-record-advanced-fields">
-            <div class="col-6 col-md-3">
+            <div class="col-6 col-md">
               <label class="form-label text-muted fs-xs mb-1" for="completion-record-date-status">Date</label>
               <select id="completion-record-date-status" name="date_status" class="form-select form-select-sm">
                 <option value="">All dates</option>
@@ -117,7 +117,7 @@
                 {% endfor %}
               </select>
             </div>
-            <div class="col-6 col-md-3">
+            <div class="col-6 col-md">
               <label class="form-label text-muted fs-xs mb-1" for="completion-record-status">Status</label>
               <select id="completion-record-status" name="status" class="form-select form-select-sm">
                 <option value="">All statuses</option>
@@ -126,7 +126,7 @@
                 {% endfor %}
               </select>
             </div>
-            <div class="col-6 col-md-3">
+            <div class="col-6 col-md">
               <label class="form-label text-muted fs-xs mb-1" for="completion-record-confidence">Confidence</label>
               <select id="completion-record-confidence" name="confidence" class="form-select form-select-sm">
                 <option value="">All confidence</option>
@@ -135,7 +135,7 @@
                 {% endfor %}
               </select>
             </div>
-            <div class="col-6 col-md-3">
+            <div class="col-6 col-md">
               <label class="form-label text-muted fs-xs mb-1" for="completion-record-solution-status">Solution</label>
               <select id="completion-record-solution-status" name="solution_status" class="form-select form-select-sm">
                 <option value="">All solutions</option>
@@ -146,6 +146,15 @@
                 {% endfor %}
               </select>
             </div>
+            {% if completion_record_show_ai_reviews %}
+            <div class="col-6 col-md">
+              <label class="form-label text-muted fs-xs mb-1" for="completion-record-ai-review">AI review</label>
+              <select id="completion-record-ai-review" name="ai_review" class="form-select form-select-sm">
+                <option value="">Any review status</option>
+                <option value="draft_ready" {% if completion_record_filters.ai_review == "draft_ready" %}selected{% endif %}>Draft ready</option>
+              </select>
+            </div>
+            {% endif %}
           </div>
         </div>
       </form>
@@ -167,7 +176,7 @@
     <div class="card-body completion-record-results">
       {% if completion_record_rows %}
       <div class="app-table-region table-responsive" tabindex="0" role="region" aria-label="Completion records" aria-describedby="completion-record-search-scope">
-        <table data-paging-type="simple" id="completion-record-table" class="app-table-compact table table-sm table-hover align-middle w-100 mb-0"><caption class="visually-hidden">Completion records with topic, canonical areas, status and solution details</caption></table>
+        <table data-paging-type="simple" id="completion-record-table"{% if completion_record_show_ai_reviews %} data-ai-reviews{% endif %} class="app-table-compact table table-sm table-hover align-middle w-100 mb-0"><caption class="visually-hidden">Completion records with topic, canonical areas, status and solution details{% if completion_record_show_ai_reviews %}, including AI reviews{% endif %}</caption></table>
       </div>
       <p id="completion-record-search-scope" class="completion-record-scope-note mb-0">Quick find searches these {{ completion_record_visible_total }} loaded records, including all mapped areas. Use the filters above to search all records.</p>
       {% else %}
@@ -339,6 +348,7 @@
   if (!tableEl || !gridEl || typeof DataTable === "undefined") return;
 
   var rows = JSON.parse(tableEl.textContent);
+  var showAiReviews = gridEl.hasAttribute("data-ai-reviews");
 
   function escapeHtml(value) {
     return String(value)
@@ -359,6 +369,18 @@
 
   function displayOrDash(value) {
     return present(value) ? escapeHtml(value) : mutedDash();
+  }
+
+  function aiReviewText(review) {
+    if (!review) return "";
+    return (present(review.score) ? review.score + "/7 · " : "") + review.label;
+  }
+
+  function aiReviewLink(review) {
+    if (!review) return '<span class="text-muted" aria-hidden="true">—</span><span class="visually-hidden">No solution to review</span>';
+    var text = escapeHtml(aiReviewText(review));
+    return '<a class="completion-record-ellipsis fs-xs" href="' + escapeHtml(review.url) +
+      '" title="' + text + '">' + text + '</a>';
   }
 
   function ratingCountLabel(count) {
@@ -473,6 +495,7 @@
       row.average_difficulty_display,
       row.status_label,
       row.solution_status_label,
+      aiReviewText(row.ai_review),
       row.time_spent_display,
       row.first_idea_found_label,
       row.proof_completed_label,
@@ -545,6 +568,7 @@
       detailTerm("Completed", row.completion_datetime === "Unknown" ? "" : row.completion_datetime) +
       detailTerm("Last updated", row.updated_at) +
       '<div><dt>Solution</dt><dd>' + detailBadge(row.solution_status_label || "No solution", row.solution_status_badge_class) + '</dd></div>' +
+      (showAiReviews ? '<div><dt>AI review</dt><dd>' + aiReviewLink(row.ai_review) + '</dd></div>' : '') +
       '</dl></section>' +
       '<section class="completion-record-detail-section"><h4 class="completion-record-detail-section-title"><i class="ti ti-chart-bar" aria-hidden="true"></i>Problem context</h4><dl class="completion-record-detail-grid completion-record-detail-context">' +
       detailTerm("Topic", row.topic) +
@@ -685,6 +709,20 @@
       }
     },
     {
+      key: "aiReview",
+      data: null,
+      title: "AI review",
+      width: "11%",
+      className: "text-nowrap",
+      render: function (_data, type, row) {
+        if (type === "display") return aiReviewLink(row.ai_review);
+        if (type === "sort" || type === "type") {
+          return row.ai_review && present(row.ai_review.score) ? row.ai_review.score : -1;
+        }
+        return aiReviewText(row.ai_review);
+      }
+    },
+    {
       key: "updatedSort",
       data: "updated_at_sort",
       title: "Updated sort",
@@ -701,7 +739,7 @@
         return type === "filter" ? detailSearchText(row) : "";
       }
     }
-  ];
+  ].filter(function (column) { return showAiReviews || column.key !== "aiReview"; });
 
   columnDefinitions.forEach(function (column, index) {
     columnIndexByKey[column.key] = index;
@@ -738,6 +776,9 @@
 
   function setResponsiveColumns() {
     tableApi.column(columnIndexByKey.solution).visible(!(hideSolutionQuery && hideSolutionQuery.matches), false);
+    if (showAiReviews) {
+      tableApi.column(columnIndexByKey.aiReview).visible(!(hideSolutionQuery && hideSolutionQuery.matches), false);
+    }
     tableApi.column(columnIndexByKey.completed).visible(!(hideCompletedQuery && hideCompletedQuery.matches), false);
     tableApi.column(columnIndexByKey.status).visible(!(hideStatusQuery && hideStatusQuery.matches), false);
     tableApi.column(columnIndexByKey.mohs).visible(!(hideCompletedQuery && hideCompletedQuery.matches), false);
