@@ -16,19 +16,16 @@ actions use authenticated, CSRF-protected POST requests and persist across sessi
 and devices. Accounts enrolled in the guide continue landing on My solutions even
 after dismissing it. Existing users can opt in by showing the guide there.
 
-The guide offers **Try a starter problem**, **I already have a proof**, and
-**See a worked example**. The starter prefers the active, linked IMO 1959 P1
-statement and otherwise picks an active, linked statement, ranking by lowest
-available MOHS rating. If no linked statement is available, the proof picker
-and worked example remain available.
-
-Opening a problem alone does not save a draft. For learners with the guide
-active, the first proof is saved privately before it can be published. The
-editor opens the statement and offers **Save private draft** as the primary
-action. Saving non-blank writing completes the guide and makes publication and
-sharing available as separate actions. The guide prioritizes the latest private
-draft with saved writing over published and shared work. Empty upload records do
-not count as saved writing. A pending Writer handoff still takes priority.
+The checklist has two steps: selecting a problem and saving at least one block.
+Saving completes getting started. Public sharing is a separate optional action
+and does not affect the completion count. Once saved, the panel names the selected
+solution, condenses completed steps, and offers review/sharing alongside continued
+editing. Its heading and instructions reflect unfinished, saved and shared work.
+The editor rejects empty or whitespace-only proof blocks. Empty records created by image uploads do
+not count as saved proofs, and the list never loads proof bodies. The
+next action prefers an already shared solution, then the latest solution containing
+saved content, then an unfinished record. A pending Writer handoff remains the
+primary action so existing writing is preserved.
 
 The editor provides a contextual prompt before saving and after saving or sharing.
 Public links are created only through the existing sharing review, with its saved
