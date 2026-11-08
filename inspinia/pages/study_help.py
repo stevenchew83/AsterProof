@@ -21,6 +21,8 @@ from inspinia.pages.models import ContestProblemStatement
 from inspinia.pages.study_help_access import assistance_restricted
 from inspinia.pages.study_help_access import can_use_study_help
 from inspinia.pages.study_help_access import draft_pilot_statement
+from inspinia.pages.study_help_access import generation_action_allowed
+from inspinia.pages.study_help_access import hints_only_enabled
 from inspinia.pages.study_help_access import lock_study_help
 from inspinia.pages.study_help_access import source_problem
 from inspinia.pages.study_help_access import statement_revision
@@ -75,6 +77,7 @@ ERRORS = {
     "diagram_required": (422, "AI study help is currently available for text-only problems."),
     "unsupported_statement": (422, "This statement is incomplete or too large for AI study help."),
     "generation_paused": (503, "New AI responses are paused. You can still open saved responses."),
+    "action_unavailable": (403, "New proofs are unavailable in this Study Help rollout."),
     "budget_limit": (503, "AI study help has reached its current capacity. Try again later."),
     "hints_exhausted": (429, "You've used all your AI credits."),
     "hint_statement_limit": (429, "You've used both hints for this problem."),
@@ -339,7 +342,12 @@ class ProblemUsage:
                 options[StudyHelpAction.HINT] = {"slot": 1, "prior_id": None}
             elif self.hint.revealed_at and not _restricted(user, self.statement, self.hint.problem_uuid):
                 options[StudyHelpAction.STRONGER_HINT] = {"slot": 2, "prior_id": str(self.hint.pk)}
-        if not settings.STUDY_HELP_DRAFT_HINT_PILOT_ENABLED and self.solutions_left and self.solution_slot:
+        if (
+            not settings.STUDY_HELP_DRAFT_HINT_PILOT_ENABLED
+            and generation_action_allowed(StudyHelpAction.SOLUTION)
+            and self.solutions_left
+            and self.solution_slot
+        ):
             action = StudyHelpAction.ALTERNATIVE if self.proof else StudyHelpAction.SOLUTION
             options[action] = {"slot": self.solution_slot, "prior_id": str(self.proof.pk) if self.proof else None}
         if settings.STUDY_HELP_DRAFT_HINT_PILOT_ENABLED:
@@ -384,6 +392,7 @@ class ProblemUsage:
             "account_remaining": self.credits.remaining,
             "statement_hints_used": self.hints_used,
             "statement_hint_limit": self.allowance.hints_per_statement,
+            "hints_only": hints_only_enabled(),
             "solutions_left": self.solutions_left,
             "statement_solutions_used": len(self.used_slots),
             "statement_solution_limit": self.allowance.solutions_per_statement,
@@ -455,6 +464,8 @@ def enqueue(user, statement_uuid, spec):
         return _check_replay(existing, statement_uuid, spec)
     if StudyHelpRequest.objects.filter(owner=user, interaction_key=spec.interaction_key).exists():
         raise StudyHelpError("request_conflict")
+    if not generation_action_allowed(spec.action):
+        raise StudyHelpError("action_unavailable")
     usage = ProblemUsage(user, statement)
     unavailable = usage.availability(policy)
     if unavailable:

@@ -35,6 +35,7 @@ from inspinia.pages.study_help import record_event
 from inspinia.pages.study_help import reveal
 from inspinia.pages.study_help import status
 from inspinia.pages.study_help import telemetry_available
+from inspinia.pages.study_help_access import generation_action_allowed
 from inspinia.pages.study_help_access import lock_study_help
 from inspinia.pages.study_help_models import SOLUTION_ACTIONS
 from inspinia.pages.study_help_models import StudyHelpAction
@@ -109,7 +110,7 @@ def study_help_status(request, statement_uuid):
 @_json_action
 def study_help_request(request, statement_uuid):
     spec = RequestSpec.parse(_body(request))
-    if spec.action in SOLUTION_ACTIONS:
+    if spec.action in SOLUTION_ACTIONS and generation_action_allowed(spec.action):
         with transaction.atomic():
             _allowed_click(request, statement_uuid)
             check_pilot_action(spec.action)

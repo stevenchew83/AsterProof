@@ -109,7 +109,8 @@
       metric(next.account_remaining, next.account_remaining === 1 ? "AI credit left" : "AI credits left"),
       metric(next.statement_hints_used + " / " + next.statement_hint_limit, "hints used here"),
     ];
-    if (!draft) {
+    const offersProofs = !draft && !next.hints_only;
+    if (offersProofs) {
       limits.push(
         metric(next.solutions_left, next.solutions_left === 1 ? "solution credit left" : "solution credits left"),
         metric(next.statement_solutions_used + " / " + next.statement_solution_limit, "solutions used here"),
@@ -125,8 +126,8 @@
     }
     const message = next.pending_here ? "Generating your AI response…" : next.message || next.failure || (
       next.account_remaining === 0 ? "You’ve used all your AI credits." :
-      !draft && next.solutions_left === 0 ? "You’ve used all your free solution credits." :
-      !draft && next.statement_solutions_used >= next.statement_solution_limit ? "Both solution slots are used." : ""
+      offersProofs && next.solutions_left === 0 ? "You’ve used all your free solution credits." :
+      offersProofs && next.statement_solutions_used >= next.statement_solution_limit ? "Both solution slots are used." : ""
     );
     note(message, next.pending_here ? "loading" : !next.message && next.failure ? "error" : "neutral");
     const saved = next.saved.filter(item => actionOrder.includes(item.action))
