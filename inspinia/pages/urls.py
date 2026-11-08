@@ -16,6 +16,7 @@ from inspinia.pages.concept_assignment_views import concept_assignment_review_de
 from inspinia.pages.concept_assignment_views import concept_assignment_review_list
 from inspinia.pages.concept_assignment_views import concept_assignment_review_preview
 from inspinia.pages.contest_papers import contest_papers_view
+from inspinia.pages.contest_progress import contest_progress_learner_options_view
 from inspinia.pages.learning_activity import learning_activity_collect
 from inspinia.pages.shared_progress_views import shared_progress_comparison_view
 from inspinia.pages.shared_progress_views import shared_progress_view
@@ -164,6 +165,11 @@ urlpatterns = [
         "dashboard/contests/advanced/",
         contest_advanced_analytics_view,
         name="contest_advanced_dashboard",
+    ),
+    path(
+        "dashboard/contests/advanced/learners/",
+        contest_progress_learner_options_view,
+        name="contest_progress_learner_options",
     ),
     path(
         "dashboard/contests/mohs-summary/",

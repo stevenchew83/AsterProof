@@ -2,700 +2,125 @@
 
 {% load static %}
 
-{% block title %}Contest progress{% endblock title %}
+{% block title %}{% if selected_contest %}{{ selected_contest }} · {% endif %}Contest progress{% endblock title %}
 
 {% block extra_css %}
-<style>
-  .contest-progress-page {
-    --contest-completion-heatmap-solved: #2fbf71;
-    --contest-completion-heatmap-partial: #f1b44c;
-    --contest-completion-heatmap-unsolved: #e9b8be;
-    --contest-completion-heatmap-empty: #d6d9e0;
-    --contest-completion-heatmap-label: #11203b;
-    --contest-completion-heatmap-border: rgba(255, 255, 255, 0.72);
-  }
-
-  [data-bs-theme="dark"] .contest-progress-page {
-    --contest-completion-heatmap-solved: #31c48d;
-    --contest-completion-heatmap-partial: #d99b36;
-    --contest-completion-heatmap-unsolved: #704049;
-    --contest-completion-heatmap-empty: #343a46;
-    --contest-completion-heatmap-label: #f4f7fb;
-    --contest-completion-heatmap-border: rgba(255, 255, 255, 0.16);
-  }
-
-  .contest-progress-toolbar-form {
-    display: grid;
-    grid-template-columns: minmax(14rem, 1fr) auto;
-    gap: 0.75rem;
-    align-items: end;
-  }
-
-  .contest-progress-actions {
-    justify-content: flex-end;
-  }
-
-  .contest-progress-overview-grid {
-    display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-  }
-
-  .contest-progress-overview-item {
-    min-width: 0;
-    padding: 1rem;
-  }
-
-  .contest-progress-overview-item + .contest-progress-overview-item {
-    border-left: 1px solid var(--bs-border-color);
-  }
-
-  .contest-progress-overview-icon {
-    display: inline-flex;
-    flex: 0 0 2.25rem;
-    height: 2.25rem;
-    min-width: 2.25rem;
-    width: 2.25rem;
-  }
-
-  .contest-progress-mini-progress {
-    min-width: 8rem;
-  }
-
-  .contest-completion-legend {
-    gap: 0.75rem;
-  }
-
-  .contest-completion-legend-item {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.45rem;
-    color: var(--bs-secondary-color);
-    font-size: 0.78rem;
-  }
-
-  .contest-completion-legend-swatch {
-    width: 0.95rem;
-    height: 0.95rem;
-    display: inline-flex;
-    border-radius: 0.3rem;
-    border: 1px solid rgba(17, 32, 59, 0.12);
-    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.1);
-  }
-
-  .contest-completion-legend-swatch-solved {
-    background: var(--contest-completion-heatmap-solved);
-  }
-
-  .contest-completion-legend-swatch-partial {
-    background: var(--contest-completion-heatmap-partial);
-  }
-
-  .contest-completion-legend-swatch-unsolved {
-    background: var(--contest-completion-heatmap-unsolved);
-  }
-
-  .contest-completion-legend-swatch-empty {
-    background: var(--contest-completion-heatmap-empty);
-  }
-
-  .contest-completion-heatmap-scroll {
-    overflow-x: auto;
-    overflow-y: hidden;
-    padding-bottom: 0.25rem;
-  }
-
-  .contest-completion-group-strip {
-    display: grid;
-    gap: 1px;
-    margin-bottom: 0.35rem;
-  }
-
-  .contest-completion-group-label {
-    grid-column: span var(--contest-completion-group-span);
-    min-width: 0;
-    padding: 0.3rem 0.45rem;
-    text-align: center;
-    color: var(--bs-secondary-color);
-    background: var(--bs-tertiary-bg);
-    border: 1px solid var(--bs-border-color);
-    border-radius: 0.35rem;
-    font-size: 0.72rem;
-    font-weight: 700;
-    line-height: 1.1;
-    text-transform: uppercase;
-    white-space: nowrap;
-  }
-
-  #chart-contest-completion-heatmap {
-    min-height: 240px;
-  }
-
-  @media (max-width: 1199.98px) {
-    .contest-progress-overview-grid {
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-    }
-
-    .contest-progress-overview-item:nth-child(3),
-    .contest-progress-overview-item:nth-child(5) {
-      border-left: 0;
-    }
-
-    .contest-progress-overview-item:nth-child(n + 3) {
-      border-top: 1px solid var(--bs-border-color);
-    }
-  }
-
-  @media (max-width: 767.98px) {
-    .contest-progress-toolbar-form {
-      grid-template-columns: 1fr;
-    }
-
-    .contest-progress-actions {
-      justify-content: flex-start;
-    }
-
-    .contest-progress-overview-grid {
-      grid-template-columns: 1fr;
-    }
-
-    .contest-progress-overview-item + .contest-progress-overview-item {
-      border-left: 0;
-      border-top: 1px solid var(--bs-border-color);
-    }
-  }
-</style>
+{% if can_select_learner and has_contests and not learner_unavailable %}
+<link rel="stylesheet" href="{% static 'plugins/tom-select/tom-select.bootstrap5.min.css' %}">
+{% endif %}
+{% include 'pages/partials/contest-progress-styles.html' %}
 {% endblock extra_css %}
 
 {% block page_content %}
 <div class="container-fluid app-table-page contest-progress-page">
+  {% url 'pages:user_activity_dashboard' as header_home_url %}
+  <header class="page-title-head app-page-header">
+    {% include 'partials/page-header-intro.html' with title=selected_contest|default:'Contest progress' subtitle='Contest progress' page_icon='ti-chart-grid-dots' back_url=header_home_url back_label='AsterProof' only %}
+    {% if has_contests and not learner_unavailable %}
+    <div class="app-page-header-actions">
+      <a href="{{ contest_archive_url }}" class="btn btn-sm btn-outline-secondary"><i class="ti ti-books me-1" aria-hidden="true"></i>Browse contest</a>
+      {% if contest_quick_update_url and not is_other_learner %}
+      <a href="{{ contest_quick_update_url }}" class="btn btn-sm btn-outline-primary"><i class="ti ti-calendar-check me-1" aria-hidden="true"></i>Quick completions</a>
+      {% endif %}
+    </div>
+    {% endif %}
+  </header>
 
-  {% include 'partials/page-title.html' with title='Contest progress' subtitle=selected_contest|default:'Contest drill-down' page_icon='ti-chart-line' %}
-
-  {% if not has_contests %}
-  <div class="alert alert-info mt-3" role="alert">
-    <strong>No contests available yet.</strong> Import problem data first, then return here for the contest drill-down.
+  {% if learner_unavailable %}
+  <div class="alert alert-info" role="status">
+    This learner is unavailable. <a class="alert-link" href="{{ my_progress_url }}">Return to My progress</a>.
   </div>
+  {% elif not has_contests %}
+  <div class="alert alert-info" role="status">No contests are available in the archive yet.</div>
   {% else %}
+  <section class="card mb-3" aria-label="Progress overview">
+    <div class="contest-progress-toolbar">
+      <form method="get" class="app-table-filters contest-progress-filters" aria-label="Change contest progress view">
+        <div class="contest-progress-contest">
+          <label class="form-label fw-semibold fs-xs mb-1" for="contest-advanced-selector">Contest</label>
+          <input id="contest-advanced-selector" type="search" name="contest" value="{{ selected_contest }}" class="form-control form-control-sm" list="contest-advanced-options" autocomplete="off" placeholder="Search contests">
+          <datalist id="contest-advanced-options">
+            {% for row in contest_choices %}
+            <option value="{{ row.contest }}" label="{{ row.problem_count }} statements"></option>
+            {% endfor %}
+          </datalist>
+        </div>
+        {% if can_select_learner %}
+        <div class="contest-progress-learner">
+          <label class="form-label fw-semibold fs-xs mb-1" for="contest-progress-learner">Learner</label>
+          <select id="contest-progress-learner" name="learner" class="form-select form-select-sm" data-options-url="{{ learner_options_url }}">
+            <option value=""{% if not selected_learner_id %} selected{% endif %}>My progress</option>
+            {% if selected_learner_id %}
+            <option value="{{ selected_learner_id }}" selected>{{ selected_learner_label }}</option>
+            {% endif %}
+          </select>
+        </div>
+        {% endif %}
+        {% if mode == 'completion' %}<input type="hidden" name="mode" value="completion">{% endif %}
+        <button class="btn btn-sm btn-primary" type="submit">Apply</button>
+        {% if can_select_learner %}
+        <p id="contest-progress-learner-status" class="contest-progress-search-status text-muted fs-xs visually-hidden mb-0" role="status"></p>
+        {% endif %}
+      </form>
+      <p class="contest-progress-scope fs-xs mb-0">
+        {% if is_other_learner %}
+        <i class="ti ti-eye" aria-hidden="true"></i><strong>Read-only learner view</strong><span>{{ selected_learner_label }}</span>
+        {% else %}
+        <i class="ti ti-user" aria-hidden="true"></i><strong>My progress</strong>
+        {% endif %}
+      </p>
+    </div>
+    <dl class="contest-progress-metrics mb-0">
+      <div>
+        <dt>Completed</dt>
+        <dd>{{ contest_stats.solved_problem_total }} <small>/ {{ contest_stats.problem_count }}</small></dd>
+        <div class="contest-progress-metric-note">{% if contest_stats.solved_problem_total %}{{ contest_stats.solved_rate|floatformat:1 }}% of the archive{% else %}No completions yet{% endif %}</div>
+      </div>
+      <div>
+        <dt>AI reviewed</dt>
+        <dd>{{ contest_stats.ai_reviewed_total }}</dd>
+        <div class="contest-progress-metric-note">Current published scores</div>
+      </div>
+      <div>
+        <dt>Average AI score</dt>
+        <dd>{% if contest_stats.average_ai_score is not None %}{{ contest_stats.average_ai_score|floatformat:1 }} <small>/ 7</small>{% else %}&mdash;{% endif %}</dd>
+        <div class="contest-progress-metric-note">Scored problems only</div>
+      </div>
+    </dl>
+  </section>
 
-  <div class="row g-3 mt-0">
-    <div class="col-12">
-      <div class="card">
-        <div class="card-body">
-          <div class="d-flex flex-wrap align-items-end justify-content-between gap-3">
-            <div class="flex-grow-1">
-              <h4 class="header-title mb-2">Change contest</h4>
-              <form method="get" class="app-table-filters contest-progress-toolbar-form">
-                <div>
-                  <label class="form-label text-muted fs-xs text-uppercase fw-semibold mb-1" for="contest-advanced-selector">Contest</label>
-                  <div class="input-group">
-                    <span class="input-group-text">
-                      <i class="ti ti-search" aria-hidden="true"></i>
-                    </span>
-                    <input id="contest-advanced-selector" type="search" name="contest" value="{{ selected_contest }}" class="form-control" list="contest-advanced-options" autocomplete="off" placeholder="Search contest">
-                  </div>
-                  <datalist id="contest-advanced-options">
-                    {% for row in contest_choices %}
-                    <option value="{{ row.contest }}" label="{{ row.problem_count }} statements"></option>
-                    {% endfor %}
-                  </datalist>
-                </div>
-                <button type="submit" class="btn btn-primary">
-                  <i class="ti ti-refresh me-1"></i>Load
-                </button>
-              </form>
-            </div>
-            <div class="d-flex flex-wrap gap-2 contest-progress-actions">
-              {% if show_analytics_dashboard_link %}
-              <a href="{% url 'pages:contest_dashboard' %}" class="btn btn-outline-secondary btn-sm">
-                <i class="ti ti-layout-grid me-1"></i>Directory
-              </a>
-              {% endif %}
-              {% if contest_quick_update_url %}
-              <a href="{{ contest_quick_update_url }}" class="btn btn-outline-primary btn-sm">
-                <i class="ti ti-calendar-check me-1"></i>Quick completions
-              </a>
-              {% endif %}
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
+  {% include 'pages/partials/contest-progress-heatmap.html' %}
 
-  <div class="row g-3 mt-0">
-    <div class="col-12">
-      <div class="card">
-        <div class="card-header border-bottom d-flex flex-wrap align-items-center justify-content-between gap-2">
-          <div>
-            <h4 class="header-title mb-0">{{ selected_contest }} overview</h4>
-            <p class="text-muted fs-xs mb-0">{{ contest_stats.year_span_label }} &middot; {{ contest_stats.problem_count }} statements</p>
-          </div>
-          <span class="badge bg-primary-subtle text-primary">{{ contest_stats.solved_rate|floatformat:1 }}% complete</span>
-        </div>
-        <div class="contest-progress-overview-grid">
-          <div class="contest-progress-overview-item">
-            <div class="d-flex align-items-center">
-              <span class="avatar-title bg-success-subtle text-success rounded contest-progress-overview-icon">
-                <i class="ti ti-circle-check fs-22"></i>
-              </span>
-              <div class="flex-grow-1 ms-2">
-                <p class="text-muted mb-0 fs-xs text-uppercase fw-semibold">My solved</p>
-                <h3 class="mb-0">{{ contest_stats.solved_problem_total }} / {{ contest_stats.problem_count }}</h3>
-                <p class="text-muted fs-xs mb-0">{{ contest_stats.solved_rate|floatformat:1 }}% complete</p>
-              </div>
-            </div>
-          </div>
-          <div class="contest-progress-overview-item">
-            <div class="d-flex align-items-center">
-              <span class="avatar-title bg-primary-subtle text-primary rounded contest-progress-overview-icon">
-                <i class="ti ti-tags fs-22"></i>
-              </span>
-              <div class="flex-grow-1 ms-2">
-                <p class="text-muted mb-0 fs-xs text-uppercase fw-semibold">Needs classification</p>
-                <h3 class="mb-0">{{ contest_stats.needs_metadata_total }}</h3>
-                <p class="text-muted fs-xs mb-0">Missing topic or MOHS</p>
-              </div>
-            </div>
-          </div>
-          <div class="contest-progress-overview-item">
-            <div class="d-flex align-items-center">
-              <span class="avatar-title bg-info-subtle text-info rounded contest-progress-overview-icon">
-                <i class="ti ti-calendar-stats fs-22"></i>
-              </span>
-              <div class="flex-grow-1 ms-2">
-                <p class="text-muted mb-0 fs-xs text-uppercase fw-semibold">Active years</p>
-                <h3 class="mb-0">{{ contest_stats.active_years }}</h3>
-                <p class="text-muted fs-xs mb-0">{{ contest_stats.distinct_topics }} topics</p>
-              </div>
-            </div>
-          </div>
-          <div class="contest-progress-overview-item">
-            <div class="d-flex align-items-center">
-              <span class="avatar-title bg-warning-subtle text-warning rounded contest-progress-overview-icon">
-                <i class="ti ti-chart-arcs fs-22"></i>
-              </span>
-              <div class="flex-grow-1 ms-2">
-                <p class="text-muted mb-0 fs-xs text-uppercase fw-semibold">Avg MOHS</p>
-                <h3 class="mb-0">{{ contest_stats.avg_mohs|floatformat:2 }}</h3>
-                <p class="text-muted fs-xs mb-0">Max MOHS {{ contest_stats.max_mohs }}</p>
-              </div>
-            </div>
-          </div>
-          <div class="contest-progress-overview-item">
-            <div class="d-flex align-items-center">
-              <span class="avatar-title bg-secondary-subtle text-secondary rounded contest-progress-overview-icon">
-                <i class="ti ti-file-pencil fs-22"></i>
-              </span>
-              <div class="flex-grow-1 ms-2">
-                <p class="text-muted mb-0 fs-xs text-uppercase fw-semibold">Solutions</p>
-                <h3 class="mb-0">{{ contest_stats.solution_problem_total }}</h3>
-                <p class="text-muted fs-xs mb-0">{{ contest_stats.published_solution_total }} published &middot; {{ contest_stats.solution_rate|floatformat:1 }}% available</p>
-              </div>
-            </div>
-          </div>
-          <div class="contest-progress-overview-item">
-            <div class="d-flex align-items-center">
-              <span class="avatar-title bg-secondary-subtle text-secondary rounded contest-progress-overview-icon">
-                <i class="ti ti-sitemap fs-22"></i>
-              </span>
-              <div class="flex-grow-1 ms-2">
-                <p class="text-muted mb-0 fs-xs text-uppercase fw-semibold">Techniques</p>
-                <h3 class="mb-0">{{ contest_stats.technique_rows }}</h3>
-                <p class="text-muted fs-xs mb-0">{{ contest_stats.techniques_per_problem|floatformat:2 }} per statement</p>
-              </div>
-            </div>
-          </div>
-        </div>
+  <section class="mb-3" aria-labelledby="contest-progress-suggestions">
+    <h2 id="contest-progress-suggestions" class="fs-sm fw-semibold mb-2">Suggested next steps</h2>
+    <div class="row g-2">
+      <div class="col-sm-6">
+        <a href="{% if focus == 'low' %}{{ clear_focus_url }}{% else %}{{ low_focus_url }}{% endif %}#contest-progress-heatmap" class="contest-progress-suggestion{% if focus == 'low' %} is-active{% endif %}">
+          <i class="ti ti-reload" aria-hidden="true"></i>
+          <span><strong>Revisit low scores</strong><small>{{ low_score_total }} problem{{ low_score_total|pluralize }} scored 0–2</small></span>
+          <i class="ti {% if focus == 'low' %}ti-x{% else %}ti-arrow-right{% endif %} ms-auto" aria-hidden="true"></i>
+          {% if focus == 'low' %}<span class="visually-hidden">Clear this filter</span>{% endif %}
+        </a>
+      </div>
+      <div class="col-sm-6">
+        <a href="{% if focus == 'unscored' %}{{ clear_focus_url }}{% else %}{{ unscored_focus_url }}{% endif %}#contest-progress-heatmap" class="contest-progress-suggestion{% if focus == 'unscored' %} is-active{% endif %}">
+          <i class="ti ti-clipboard-check" aria-hidden="true"></i>
+          <span><strong>Find completed problems without a score</strong><small>{{ unscored_completed_total }} completed without a current score</small></span>
+          <i class="ti {% if focus == 'unscored' %}ti-x{% else %}ti-arrow-right{% endif %} ms-auto" aria-hidden="true"></i>
+          {% if focus == 'unscored' %}<span class="visually-hidden">Clear this filter</span>{% endif %}
+        </a>
       </div>
     </div>
-  </div>
+  </section>
 
-  <div class="row g-3 mt-0">
-    <div class="col-12">
-      <div class="card">
-        <div class="card-header border-bottom d-flex flex-wrap align-items-center gap-2">
-          <div class="flex-grow-1">
-            <h4 class="header-title mb-0">Completion heatmap</h4>
-            <p class="text-muted fs-xs mb-0">Your progress by year and problem. Select a cell to open the problem.</p>
-          </div>
-          <span class="badge text-bg-light">
-            {{ contest_completion_heatmap.year_total }} years &middot; {{ contest_completion_heatmap.problem_code_total }} codes
-          </span>
-        </div>
-        <div class="card-body">
-          {% if contest_completion_heatmap.problem_codes %}
-          <div class="d-flex flex-wrap align-items-center contest-completion-legend mb-3">
-            <span class="contest-completion-legend-item">
-              <span class="contest-completion-legend-swatch contest-completion-legend-swatch-solved"></span>
-              Completed
-            </span>
-            <span class="contest-completion-legend-item">
-              <span class="contest-completion-legend-swatch contest-completion-legend-swatch-unsolved"></span>
-              Unstarted
-            </span>
-            <span class="contest-completion-legend-item">
-              <span class="contest-completion-legend-swatch contest-completion-legend-swatch-partial"></span>
-              Partial
-            </span>
-            <span class="contest-completion-legend-item">
-              <span class="contest-completion-legend-swatch contest-completion-legend-swatch-empty"></span>
-              No statement
-            </span>
-          </div>
-          <div class="contest-completion-heatmap-scroll">
-            <div id="contest-completion-group-strip" class="contest-completion-group-strip" aria-hidden="true">
-              {% for group in contest_completion_heatmap.problem_code_groups %}
-              <span class="contest-completion-group-label" data-problem-code-group="{{ group.label }}" style="--contest-completion-group-span: {{ group.span }};">{{ group.label }}</span>
-              {% endfor %}
-            </div>
-            <div id="chart-contest-completion-heatmap"></div>
-          </div>
-          {% else %}
-          <div class="alert alert-info mb-0" role="alert">
-            No problem codes are available for this contest yet.
-          </div>
-          {% endif %}
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <div class="row g-3 mt-1 mb-4">
-    <div class="col-xl-7">
-      <div class="card h-100">
-        <div class="card-header border-bottom">
-          <h4 class="header-title mb-0">Years</h4>
-        </div>
-        <div class="card-body">
-          <div class="app-table-region table-responsive" tabindex="0" role="region" aria-label="Scrollable results">
-            <table class="app-table-compact table table-striped align-middle mb-0">
-              <thead>
-                <tr class="text-muted fs-xs text-uppercase">
-                  <th>Year</th>
-                  <th>Statements</th>
-                  <th>Avg MOHS</th>
-                  <th>Max MOHS</th>
-                  <th>Topics</th>
-                  <th>Needs classification</th>
-                  <th>My solved</th>
-                </tr>
-              </thead>
-              <tbody>
-                {% for row in year_rows %}
-                <tr>
-                  <td class="fw-semibold">
-                    {% if row.year_detail_url %}
-                    <a href="{{ row.year_detail_url }}">{{ row.year }}</a>
-                    {% else %}
-                    {{ row.year }}
-                    {% endif %}
-                  </td>
-                  <td>{{ row.problem_count }}</td>
-                  <td>{% if row.avg_mohs is not None %}{{ row.avg_mohs|floatformat:2 }}{% else %}<span class="text-muted">&mdash;</span>{% endif %}</td>
-                  <td>{% if row.max_mohs is not None %}{{ row.max_mohs }}{% else %}<span class="text-muted">&mdash;</span>{% endif %}</td>
-                  <td>{{ row.distinct_topics }}</td>
-                  <td>{{ row.needs_metadata_total }}</td>
-                  <td class="contest-progress-mini-progress">
-                    <div class="d-flex justify-content-between gap-2 fs-xs mb-1">
-                      <span>{{ row.solved_problem_total }} / {{ row.problem_count }}</span>
-                      <span class="text-muted">{{ row.solved_rate|floatformat:1 }}%</span>
-                    </div>
-                    <div class="progress progress-sm">
-                      <div class="progress-bar bg-success" role="progressbar" style="width: {{ row.solved_rate|floatformat:0 }}%;" aria-valuenow="{{ row.solved_rate|floatformat:0 }}" aria-valuemin="0" aria-valuemax="100"></div>
-                    </div>
-                  </td>
-                </tr>
-                {% endfor %}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      </div>
-    </div>
-    <div class="col-xl-5">
-      <div class="card h-100">
-        <div class="card-header border-bottom">
-          <h4 class="header-title mb-0">Topics</h4>
-        </div>
-        <div class="card-body">
-          <div class="app-table-region table-responsive" tabindex="0" role="region" aria-label="Scrollable results">
-            <table class="app-table-compact table table-striped align-middle mb-0">
-              <thead>
-                <tr class="text-muted fs-xs text-uppercase">
-                  <th>Topic</th>
-                  <th>Share</th>
-                  <th>Avg MOHS</th>
-                  <th>Max MOHS</th>
-                </tr>
-              </thead>
-              <tbody>
-                {% for row in topic_rows %}
-                <tr>
-                  <td class="fw-semibold">{{ row.topic }}</td>
-                  <td class="contest-progress-mini-progress">
-                    <div class="d-flex justify-content-between gap-2 fs-xs mb-1">
-                      <span>{{ row.problem_count }} statements</span>
-                      <span class="text-muted">{{ row.share_rate|floatformat:1 }}%</span>
-                    </div>
-                    <div class="progress progress-sm">
-                      <div class="progress-bar bg-info" role="progressbar" style="width: {{ row.share_rate|floatformat:0 }}%;" aria-valuenow="{{ row.share_rate|floatformat:0 }}" aria-valuemin="0" aria-valuemax="100"></div>
-                    </div>
-                  </td>
-                  <td>{% if row.avg_mohs is not None %}{{ row.avg_mohs|floatformat:2 }}{% else %}<span class="text-muted">&mdash;</span>{% endif %}</td>
-                  <td>{% if row.max_mohs is not None %}{{ row.max_mohs }}{% else %}<span class="text-muted">&mdash;</span>{% endif %}</td>
-                </tr>
-                {% empty %}
-                <tr>
-                  <td colspan="4" class="text-muted">No topic data available.</td>
-                </tr>
-                {% endfor %}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <div class="row g-3 mt-0">
-    <div class="col-xl-6">
-      <div class="card h-100">
-        <div class="card-header border-bottom">
-          <h4 class="header-title mb-0">Data quality</h4>
-        </div>
-        <div class="card-body">
-          <div class="app-table-region table-responsive" tabindex="0" role="region" aria-label="Scrollable results">
-            <table class="app-table-compact table table-striped align-middle mb-0">
-              <thead>
-                <tr class="text-muted fs-xs text-uppercase">
-                  <th>Confidence</th>
-                  <th>Statements</th>
-                </tr>
-              </thead>
-              <tbody>
-                {% for row in confidence_rows %}
-                <tr>
-                  <td class="fw-semibold">{{ row.confidence }}</td>
-                  <td>{{ row.problem_count }}</td>
-                </tr>
-                {% empty %}
-                <tr>
-                  <td colspan="2" class="text-muted">No confidence labels saved yet.</td>
-                </tr>
-                {% endfor %}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      </div>
-    </div>
-    <div class="col-xl-6">
-      <div class="card h-100">
-        <div class="card-header border-bottom">
-          <h4 class="header-title mb-0">Recent updates</h4>
-        </div>
-        <div class="card-body">
-          <div class="app-table-region table-responsive" tabindex="0" role="region" aria-label="Scrollable results">
-            <table class="app-table-compact table table-striped align-middle mb-0">
-              <thead>
-                <tr class="text-muted fs-xs text-uppercase">
-                  <th>Problem</th>
-                  <th>Topic</th>
-                  <th>Day</th>
-                  <th>Updated</th>
-                </tr>
-              </thead>
-              <tbody>
-                {% for row in recent_statement_rows %}
-                <tr>
-                  <td class="fw-semibold">{{ row.problem_code }}</td>
-                  <td>{{ row.topic }}</td>
-                  <td>{% if row.day_label %}{{ row.day_label }}{% else %}<span class="text-muted">&mdash;</span>{% endif %}</td>
-                  <td>{{ row.updated_at_label }}</td>
-                </tr>
-                {% empty %}
-                <tr>
-                  <td colspan="4" class="text-muted">No active statements for this contest yet.</td>
-                </tr>
-                {% endfor %}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-
+  {% include 'pages/partials/contest-progress-archive.html' %}
   {% endif %}
 </div>
-{% if has_contests %}
-{{ contest_completion_heatmap.chart|json_script:"contest-advanced-heatmap-data" }}
-{% endif %}
 {% endblock page_content %}
 
 {% block extra_javascript %}
-{% if has_contests and contest_completion_heatmap.problem_codes %}
-{% include 'partials/apexcharts-vendor-script.html' %}
-<script>
-(function () {
-  var dataEl = document.getElementById("contest-advanced-heatmap-data");
-  var chartEl = document.getElementById("chart-contest-completion-heatmap");
-  var groupStripEl = document.getElementById("contest-completion-group-strip");
-  if (!dataEl || !chartEl || typeof ApexCharts === "undefined") return;
-
-  var payload = JSON.parse(dataEl.textContent || "{}");
-  if (!payload.series || !payload.series.length) return;
-
-  function escapeHtml(value) {
-    return String(value)
-      .replace(/&/g, "&amp;")
-      .replace(/</g, "&lt;")
-      .replace(/>/g, "&gt;")
-      .replace(/\"/g, "&quot;")
-      .replace(/'/g, "&#039;");
-  }
-
-  function cssColor(name, fallback) {
-    var value = getComputedStyle(chartEl).getPropertyValue(name).trim();
-    return value || fallback;
-  }
-
-  var heatmapColors = {
-    empty: cssColor("--contest-completion-heatmap-empty", "#d6d9e0"),
-    unsolved: cssColor("--contest-completion-heatmap-unsolved", "#e9b8be"),
-    partial: cssColor("--contest-completion-heatmap-partial", "#f1b44c"),
-    solved: cssColor("--contest-completion-heatmap-solved", "#2fbf71"),
-    label: cssColor("--contest-completion-heatmap-label", "#11203b"),
-    border: cssColor("--contest-completion-heatmap-border", "rgba(255,255,255,0.72)")
-  };
-
-  var pointCount = payload.series[0] && payload.series[0].data ? payload.series[0].data.length : 0;
-  var minWidth = String(Math.max(480, pointCount * 48 + 96)) + "px";
-  chartEl.style.minWidth = minWidth;
-  if (groupStripEl) {
-    groupStripEl.style.minWidth = minWidth;
-    groupStripEl.style.gridTemplateColumns = "repeat(" + String(Math.max(pointCount, 1)) + ", minmax(48px, 1fr))";
-  }
-
-  function pointFromOptions(opts) {
-    if (!opts || opts.seriesIndex < 0 || opts.dataPointIndex < 0) return null;
-    var row = payload.series[opts.seriesIndex];
-    if (!row || !row.data) return null;
-    return row.data[opts.dataPointIndex] || null;
-  }
-
-  function openProblemSolution(event, opts) {
-    var point = pointFromOptions(opts);
-    if (!point || !point.solution_url) return;
-    if (event && (event.metaKey || event.ctrlKey)) {
-      window.open(point.solution_url, "_blank", "noopener");
-      return;
-    }
-    window.location.assign(point.solution_url);
-  }
-
-  function updateHeatmapCursor(event, opts) {
-    var point = pointFromOptions(opts);
-    var cursor = point && point.solution_url ? "pointer" : "";
-    chartEl.style.cursor = cursor;
-    if (event && event.target && event.target.style) {
-      event.target.style.cursor = cursor;
-    }
-  }
-
-  function clearHeatmapCursor(event) {
-    chartEl.style.cursor = "";
-    if (event && event.target && event.target.style) {
-      event.target.style.cursor = "";
-    }
-  }
-
-  var chart = new ApexCharts(chartEl, {
-    chart: {
-      type: "heatmap",
-      height: Math.max(260, payload.series.length * 30 + 72),
-      toolbar: { show: false },
-      fontFamily: "inherit",
-      events: {
-        dataPointSelection: function (event, _chartContext, opts) {
-          openProblemSolution(event, opts);
-        },
-        dataPointMouseEnter: function (event, _chartContext, opts) {
-          updateHeatmapCursor(event, opts);
-        },
-        dataPointMouseLeave: function (event) {
-          clearHeatmapCursor(event);
-        }
-      }
-    },
-    series: payload.series,
-    dataLabels: {
-      enabled: true,
-      style: {
-        fontSize: "9px",
-        fontWeight: 700,
-        colors: [heatmapColors.label]
-      },
-      formatter: function (_value, opts) {
-        var point = opts.w.config.series[opts.seriesIndex].data[opts.dataPointIndex];
-        return point.display || "";
-      }
-    },
-    stroke: {
-      width: 1,
-      colors: [heatmapColors.border]
-    },
-    plotOptions: {
-      heatmap: {
-        radius: 3,
-        enableShades: false,
-        useFillColorAsStroke: false,
-        colorScale: {
-          ranges: [
-            { from: 0, to: 0, color: heatmapColors.empty, name: "No statement" },
-            { from: 1, to: 1, color: heatmapColors.unsolved, name: "Unstarted" },
-            { from: 2, to: 2, color: heatmapColors.partial, name: "Partial" },
-            { from: 3, to: 3, color: heatmapColors.solved, name: "Completed" }
-          ]
-        }
-      }
-    },
-    legend: {
-      show: false
-    },
-    xaxis: {
-      type: "category",
-      position: "top",
-      labels: {
-        rotate: 0,
-        style: { fontSize: "10px" }
-      }
-    },
-    yaxis: {
-      labels: {
-        maxWidth: 72,
-        style: { fontSize: "10px" }
-      }
-    },
-    tooltip: {
-      custom: function (opts) {
-        var point = opts.w.config.series[opts.seriesIndex].data[opts.dataPointIndex];
-        var action = point.solution_url ? "Open problem" : "No statement";
-        return (
-          '<div class="apexcharts-theme-light p-2 fs-xs">' +
-          '<div class="fw-semibold">' + escapeHtml(point.title || "") + "</div>" +
-          '<div class="text-muted mt-1">' + escapeHtml(action) + "</div>" +
-          "</div>"
-        );
-      }
-    },
-    grid: {
-      borderColor: "rgba(108,117,125,0.15)"
-    }
-  });
-
-  chart.render();
-})();
-</script>
+{% if has_contests and not learner_unavailable %}
+{% if can_select_learner %}{% include 'partials/tom-select-vendor-script.html' %}{% endif %}
+{% include 'pages/partials/contest-progress-script.html' %}
 {% endif %}
 {% endblock extra_javascript %}
