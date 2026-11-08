@@ -27432,6 +27432,170 @@ html.solution-share-open {
     transition: none;
   }
 }
+.study-help .study-help-content {
+  display: grid;
+  gap: 0.65rem;
+  padding: 0.85rem;
+  min-width: 0;
+}
+.study-help [hidden] {
+  display: none !important;
+}
+.study-help .study-help-header,
+.study-help .study-help-answer-header {
+  display: -webkit-box;
+  display: -ms-flexbox;
+  display: flex;
+  -webkit-box-align: center;
+      -ms-flex-align: center;
+          align-items: center;
+  -webkit-box-pack: justify;
+      -ms-flex-pack: justify;
+          justify-content: space-between;
+  -ms-flex-wrap: wrap;
+      flex-wrap: wrap;
+  gap: 0.5rem;
+}
+.study-help .study-help-header .header-title {
+  font-size: 1rem;
+  color: var(--ins-body-color);
+}
+.study-help .study-help-icon {
+  display: inline-grid;
+  place-items: center;
+  inline-size: 1.85rem;
+  block-size: 1.85rem;
+  border-radius: var(--ins-border-radius-lg);
+  -webkit-box-flex: 0;
+      -ms-flex: none;
+          flex: none;
+  font-size: 1.05rem;
+}
+.study-help .study-help-quota {
+  display: -webkit-box;
+  display: -ms-flexbox;
+  display: flex;
+  -ms-flex-wrap: wrap;
+      flex-wrap: wrap;
+  gap: 0.25rem 0.4rem;
+  color: var(--ins-body-color);
+  font-size: 0.75rem;
+  font-variant-numeric: tabular-nums;
+}
+.study-help .study-help-quota li {
+  background: var(--ins-tertiary-bg);
+  border-radius: var(--ins-border-radius-pill);
+  padding: 0.2rem 0.45rem;
+}
+.study-help .study-help-feedback {
+  display: -webkit-box;
+  display: -ms-flexbox;
+  display: flex;
+  -webkit-box-align: baseline;
+      -ms-flex-align: baseline;
+          align-items: baseline;
+  gap: 0.4rem;
+  color: var(--ins-body-color);
+  line-height: 1.4;
+}
+.study-help .study-help-feedback::before {
+  content: "";
+  inline-size: 0.35rem;
+  block-size: 0.35rem;
+  border-radius: 50%;
+  background: currentColor;
+  -webkit-box-flex: 0;
+      -ms-flex: none;
+          flex: none;
+  -ms-flex-item-align: start;
+      align-self: flex-start;
+  -webkit-margin-before: 0.42em;
+          margin-block-start: 0.42em;
+}
+.study-help .study-help-feedback[data-tone=loading] {
+  color: var(--ins-primary-text-emphasis);
+}
+.study-help .study-help-feedback[data-tone=error] {
+  color: var(--ins-danger-text-emphasis);
+}
+.study-help .study-help-saved,
+.study-help .study-help-saved-list {
+  display: -webkit-box;
+  display: -ms-flexbox;
+  display: flex;
+  -webkit-box-align: center;
+      -ms-flex-align: center;
+          align-items: center;
+  -ms-flex-wrap: wrap;
+      flex-wrap: wrap;
+  gap: 0.35rem 0.5rem;
+}
+.study-help .study-help-saved-button {
+  color: var(--ins-body-color);
+  background: var(--ins-secondary-bg);
+  border-color: var(--ins-border-color);
+  text-align: start;
+}
+.study-help .study-help-saved-button:hover, .study-help .study-help-saved-button[aria-pressed=true] {
+  background: var(--ins-primary-bg-subtle);
+  border-color: var(--ins-primary-border-subtle);
+}
+.study-help .study-help-saved-button[aria-pressed=true] {
+  font-weight: 600;
+}
+.study-help .study-help-saved-button:focus-visible {
+  outline: 2px solid var(--ins-primary);
+}
+.study-help .study-help-answer {
+  min-width: 0;
+  padding: 0.65rem 0.75rem 0.7rem;
+  background: var(--ins-tertiary-bg);
+  -webkit-border-start: 2px solid var(--ins-primary);
+          border-inline-start: 2px solid var(--ins-primary);
+  border-radius: var(--ins-border-radius-lg);
+}
+.study-help .study-help-answer-header {
+  gap: 0.25rem 0.5rem;
+}
+.study-help .study-help-answer-actions {
+  display: -webkit-box;
+  display: -ms-flexbox;
+  display: flex;
+  -webkit-box-align: center;
+      -ms-flex-align: center;
+          align-items: center;
+  gap: 0.15rem;
+}
+.study-help .study-help-answer-actions .btn {
+  padding: 0.2rem 0.4rem;
+  color: var(--ins-body-color);
+  text-decoration: none;
+}
+.study-help .study-help-answer-actions .btn:hover {
+  background: var(--ins-secondary-bg);
+}
+.study-help .study-help-answer-body {
+  -webkit-margin-before: 0.4rem;
+          margin-block-start: 0.4rem;
+  overflow-x: auto;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+  line-height: 1.65;
+}
+.study-help .study-help-answer-footer {
+  -webkit-margin-before: 0.4rem;
+          margin-block-start: 0.4rem;
+  font-size: 0.72rem;
+}
+@media (pointer: coarse) {
+  .study-help .btn {
+    min-height: 2.75rem;
+  }
+  .study-help .study-help-answer-actions .btn {
+    min-width: 2.75rem;
+  }
+}
+
 .solution-forum .solution-forum-layout {
   display: grid;
   grid-template-columns: minmax(0, 1fr) 19rem;
