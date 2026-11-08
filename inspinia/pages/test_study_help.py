@@ -32,6 +32,7 @@ from inspinia.pages.study_help import enqueue
 from inspinia.pages.study_help import status
 from inspinia.pages.study_help_access import statement_revision
 from inspinia.pages.study_help_models import StudyHelpAction
+from inspinia.pages.study_help_models import StudyHelpAdminEvent
 from inspinia.pages.study_help_models import StudyHelpEnrollment
 from inspinia.pages.study_help_models import StudyHelpEvent
 from inspinia.pages.study_help_models import StudyHelpPolicy
@@ -357,7 +358,52 @@ def test_draft_pilot_uses_saved_prompt_and_shared_credits(client, archive, draft
     assert "\r\n" in prompt.hint
 
 
-@pytest.mark.parametrize("change", ["statement", "prompt", "proof"])
+def test_expired_draft_pilot_only_allows_the_enrolled_admin_to_reopen_saved_hints(client, archive, draft_pilot):
+    admin, _, draft_url = draft_pilot
+    client.force_login(admin)
+    status_url = reverse("pages:study_help_status", args=[archive.statement_uuid])
+    first = "Hint (Level 1): Look for a pattern in the first few partial sums."
+    second = "Hint (Level 1): What can you tell from the change between successive sums?"
+
+    job, _ = enqueue(admin, archive.statement_uuid, spec(archive, "hint"))
+    assert process_next(provider_for(first)) == "ready"
+    assert saved(client, archive, job).status_code == 200
+    latest, _ = enqueue(admin, archive.statement_uuid, spec(archive, "stronger_hint", 2, job.pk))
+    assert process_next(provider_for(second)) == "ready"
+    assert saved(client, archive, latest).status_code == 200
+    balance = client.get(status_url).json()["account_remaining"]
+    assert balance == 48
+
+    StudyHelpAdminEvent.objects.filter(action=PILOT_ARM).update(created_at=timezone.now() - timedelta(minutes=31))
+    assert not pilot_review_key()
+    assert b"data-study-help-draft" in client.get(draft_url).content
+    expired = client.get(status_url).json()
+    assert expired["actions"] == {}
+    assert expired["message"] == study_help.ERRORS["generation_paused"][1]
+    assert {entry["id"] for entry in expired["saved"]} == {str(job.pk), str(latest.pk)}
+    for response, body in ((job, first), (latest, second)):
+        reopened = saved(client, archive, response).json()
+        assert reopened["response"]["body"] == body
+        assert reopened["status"]["account_remaining"] == expired["account_remaining"] == balance
+    assert submit(client, archive, spec(archive, "hint")).status_code == 404
+    assert submit(client, archive, spec(archive, "solution")).status_code == 404
+    assert StudyHelpSpend.objects.count() == 2
+
+    other_admin = UserFactory(is_approved=True, role=User.Role.ADMIN)
+    StudyHelpEnrollment.objects.create(user=other_admin)
+    client.force_login(other_admin)
+    assert b"data-study-help-draft" not in client.get(draft_url).content
+    assert client.get(status_url).status_code == 404
+    assert saved(client, archive, job).status_code == 404
+
+    client.force_login(admin)
+    StudyHelpEnrollment.objects.filter(user=admin).delete()
+    assert b"data-study-help-draft" not in client.get(draft_url).content
+    assert client.get(status_url).status_code == 404
+    assert saved(client, archive, job).status_code == 404
+
+
+@pytest.mark.parametrize("change", ["statement", "prompt", "proof", "expiry"])
 def test_draft_pilot_fences_ineligible_jobs_before_dispatch(client, archive, draft_pilot, change):
     admin, prompt, draft_url = draft_pilot
     client.force_login(admin)
@@ -368,8 +414,10 @@ def test_draft_pilot_fences_ineligible_jobs_before_dispatch(client, archive, dra
         assert b"data-study-help-draft" not in client.get(draft_url).content
     elif change == "prompt":
         StudyHelpPrompt.objects.filter(pk=prompt.pk).update(hint="An unreviewed prompt.")
-    else:
+    elif change == "proof":
         StudyHelpRequest.objects.update(action=StudyHelpAction.SOLUTION)
+    else:
+        StudyHelpAdminEvent.objects.filter(action=PILOT_ARM).update(created_at=timezone.now() - timedelta(minutes=31))
     assert claim_next() is None
     job = StudyHelpRequest.objects.get()
     assert job.state == StudyHelpRequest.State.FAILED

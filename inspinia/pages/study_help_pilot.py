@@ -21,7 +21,8 @@ PILOT_REQUEST_CAP = 70_000
 PILOT_TOTAL_CAP = 2 * PILOT_REQUEST_CAP
 
 
-def pilot_lease():
+def pilot_authorization():
+    """Return the one-time pilot authorization, even after generation access expires."""
     if (
         not settings.STUDY_HELP_DRAFT_HINT_PILOT_ENABLED
         or settings.STUDY_HELP_ENABLED
@@ -32,8 +33,14 @@ def pilot_lease():
         action=PILOT_ARM,
         prompt_id=PILOT_PROMPT,
         actor__isnull=False,
-        created_at__gte=timezone.now() - timedelta(minutes=30),
     ).first()
+
+
+def pilot_lease():
+    authorization = pilot_authorization()
+    if authorization and authorization.created_at >= timezone.now() - timedelta(minutes=30):
+        return authorization
+    return None
 
 
 def pilot_review_configuration():

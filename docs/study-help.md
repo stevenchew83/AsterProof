@@ -37,7 +37,7 @@ The pilot binds the exact reviewed BMO 2023 P1 statement revision and saved prom
 
 Production makes the pilot available for authorization while the general Study Help and evaluation flags are off. It stays paused until an approved operator runs `study_help_control arm_draft_pilot` with their administrator ID and approval reference. The command binds one admin and the existing AI Review key version, enrolls the admin, and sets conservative request and total caps of US$0.07 and US$0.14. Each hint slot permits one request. The authorization expires after 30 minutes and cannot be replayed.
 
-Use `process_study_help` as a one-shot worker to refresh readiness and handle each explicit click. Verify both hints, the shared credit debits, free reopening, and the two-hint cap on the draft page. Run `study_help_control pause` when verification ends. The AI Review key is decrypted only inside the authorized app account.
+Use `process_study_help` as a one-shot worker to refresh readiness and handle each explicit click. Verify both hints, the shared credit debits, free reopening, and the two-hint cap on the draft page. Run `study_help_control pause` when verification ends. After expiry, the original enrolled administrator can reopen saved hints on the pinned draft without using credits. New generation still requires the unexpired authorization. The AI Review key is decrypted only inside the authorized app account.
 
 ## Release and operations
 
