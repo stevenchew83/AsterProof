@@ -190,6 +190,7 @@ from inspinia.pages.technique_progress_catalog import request_technique_progress
 from inspinia.pages.topic_labels import FULL_TOPIC_LABEL_MAP
 from inspinia.pages.topic_labels import display_topic_label
 from inspinia.problemsets.selectors import problem_list_add_target_rows
+from inspinia.solutions.forum_access import can_read_solution
 from inspinia.solutions.models import ProblemSolution
 from inspinia.users.models import AuditEvent
 from inspinia.users.models import User
@@ -2890,6 +2891,7 @@ def _user_completion_table_rows(completions: list[UserProblemCompletion]) -> tup
 def _admin_completion_listing_rows(
     completions: list[UserProblemCompletion] | None = None,
     *,
+    viewer: User,
     ai_reviews: dict[int, dict] | None = None,
 ) -> tuple[list[dict], dict[str, int]]:
     if completions is None:
@@ -2928,10 +2930,10 @@ def _admin_completion_listing_rows(
     solution_rows = ProblemSolution.objects.filter(
         author_id__in=completion_user_ids,
         problem_id__in=completion_problem_ids,
-    ).values("pk", "author_id", "problem_id", "status")
+    ).only("id", "author", "problem", "status")
     solutions_by_key = {
-        (row["author_id"], row["problem_id"]): row
-        for row in solution_rows
+        (solution.author_id, solution.problem_id): solution
+        for solution in solution_rows
     }
 
     table_rows: list[dict] = []
@@ -2954,7 +2956,12 @@ def _admin_completion_listing_rows(
                 f"{contest_year}-{problem_code}",
             )
         solution = solutions_by_key.get((user.id, problem.id)) if problem is not None else None
-        solution_status = solution["status"] if solution is not None else ""
+        solution_status = solution.status if solution is not None else ""
+        solution_url = (
+            reverse("solutions:solution_detail", args=[solution.pk])
+            if solution is not None and can_read_solution(viewer, solution)
+            else ""
+        )
         if completion.completion_date is not None:
             known_date_total += 1
         if solution_status:
@@ -2994,6 +3001,7 @@ def _admin_completion_listing_rows(
                 "solution_status_label": (
                     ProblemSolution.Status(solution_status).label if solution_status else "No solution"
                 ),
+                "solution_url": solution_url,
                 "topic": display_topic_label(problem.topic) if problem is not None else "Uncategorized",
                 "updated_at": timezone.localtime(completion.updated_at).strftime("%Y-%m-%d %H:%M"),
                 "updated_at_sort": completion.updated_at.isoformat(),
@@ -3005,12 +3013,12 @@ def _admin_completion_listing_rows(
                 "status_badge_class": _completion_status_badge_class(completion.status),
             },
         )
-        if ai_reviews is not None and solution is not None:
+        if ai_reviews is not None and solution_url:
             review = ai_reviews.get(completion.pk, {})
             table_rows[-1]["ai_review"] = {
                 "label": review.get("label", "Not reviewed"),
                 "score": review.get("score"),
-                "url": reverse("solutions:solution_detail", args=[solution["pk"]]) + "#ai-review",
+                "url": solution_url + "#ai-review",
             }
 
     table_rows = _completion_progress_apply_difficulty_payloads(table_rows, user=None)
@@ -3247,12 +3255,41 @@ def _completion_record_filter_options(
     }
 
 
-def _completion_record_remove_filter_url(query_params, key: str) -> str:
+def _completion_record_filter_url(query_params, **changes: str) -> str:
     params = query_params.copy()
-    params.pop(key, None)
+    for key, value in changes.items():
+        if value:
+            params[key] = value
+        else:
+            params.pop(key, None)
     query_string = params.urlencode()
     base_url = reverse("pages:completion_record_list")
     return f"{base_url}?{query_string}" if query_string else base_url
+
+
+def _completion_record_quick_filters(
+    query_params, selected_filters: dict[str, str], *, show_ai_reviews: bool,
+) -> list[dict[str, str | bool]]:
+    no_solution = selected_filters["solution_status"] == "none"
+    quick_filters: list[dict[str, str | bool]] = []
+    if show_ai_reviews:
+        draft_ready = selected_filters.get("ai_review") == DRAFT_READY
+        draft_changes = {"ai_review": "" if draft_ready else DRAFT_READY}
+        if no_solution and not draft_ready:
+            draft_changes["solution_status"] = ""
+        quick_filters.append({
+            "label": "Draft ready",
+            "active": draft_ready,
+            "url": _completion_record_filter_url(query_params, **draft_changes),
+        })
+
+    no_solution_changes = {"solution_status": ""} if no_solution else {"solution_status": "none", "ai_review": ""}
+    quick_filters.append({
+        "label": "No solution",
+        "active": no_solution,
+        "url": _completion_record_filter_url(query_params, **no_solution_changes),
+    })
+    return quick_filters
 
 
 def _completion_record_active_filters(
@@ -3286,7 +3323,7 @@ def _completion_record_active_filters(
             {
                 "key": key,
                 "label": label,
-                "remove_url": _completion_record_remove_filter_url(query_params, key),
+                "remove_url": _completion_record_filter_url(query_params, **{key: ""}),
                 "value": value_labeler(value),
             },
         )
@@ -6690,6 +6727,7 @@ def completion_record_list_view(request):
     completion_is_capped = len(latest_completions) > ADMIN_TABLE_LATEST_LIMIT
     completion_rows, _completion_stats = _admin_completion_listing_rows(
         latest_completions[:ADMIN_TABLE_LATEST_LIMIT],
+        viewer=request.user,
         ai_reviews=ai_reviews,
     )
     completion_visible_total = len(completion_rows)
@@ -6723,6 +6761,9 @@ def completion_record_list_view(request):
         "completion_record_filter_options": completion_filter_options,
         "completion_record_filters": selected_filters,
         "completion_record_has_active_filters": bool(completion_active_filters),
+        "completion_record_quick_filters": _completion_record_quick_filters(
+            request.GET, selected_filters, show_ai_reviews=show_ai_reviews,
+        ),
         "completion_record_rows": completion_rows,
         "completion_record_show_ai_reviews": show_ai_reviews,
         "completion_record_stats": completion_stats,

@@ -159,6 +159,15 @@
         </div>
       </form>
 
+      <div class="d-flex flex-wrap align-items-center gap-2 mt-3" role="group" aria-labelledby="completion-record-quick-filter-label">
+        <span id="completion-record-quick-filter-label" class="text-muted fs-xs">Quick filters</span>
+        {% for filter in completion_record_quick_filters %}
+        <a href="{{ filter.url }}" class="btn btn-sm {% if filter.active %}btn-primary{% else %}btn-outline-secondary{% endif %}"{% if filter.active %} aria-current="true" aria-label="Clear {{ filter.label }} quick filter"{% endif %}>
+          {{ filter.label }}{% if filter.active %} <i class="ti ti-x ms-1" aria-hidden="true"></i>{% endif %}
+        </a>
+        {% endfor %}
+      </div>
+
       {% if completion_record_active_filters %}
       <div class="completion-record-filter-chips">
         <div class="d-flex flex-wrap align-items-center gap-1">
@@ -178,7 +187,7 @@
       <div class="app-table-region table-responsive" tabindex="0" role="region" aria-label="Completion records" aria-describedby="completion-record-search-scope">
         <table data-paging-type="simple" id="completion-record-table"{% if completion_record_show_ai_reviews %} data-ai-reviews{% endif %} class="app-table-compact table table-sm table-hover align-middle w-100 mb-0"><caption class="visually-hidden">Completion records with topic, canonical areas, status and solution details{% if completion_record_show_ai_reviews %}, including AI reviews{% endif %}</caption></table>
       </div>
-      <p id="completion-record-search-scope" class="completion-record-scope-note mb-0">Quick find searches these {{ completion_record_visible_total }} loaded records, including all mapped areas. Use the filters above to search all records.</p>
+      <p id="completion-record-search-scope" class="completion-record-scope-note mb-0">Pages and Quick find use these {{ completion_record_visible_total }} loaded records, including all mapped areas. Use the filters above to search all records.</p>
       {% else %}
       <div class="completion-record-empty" role="status">
         <span class="completion-record-empty-icon"><i class="ti ti-checklist" aria-hidden="true"></i></span>
@@ -378,9 +387,24 @@
 
   function aiReviewLink(review) {
     if (!review) return '<span class="text-muted" aria-hidden="true">—</span><span class="visually-hidden">No solution to review</span>';
+    var score = review.score;
+    var hasScore = Number.isInteger(score) && score >= 0 && score <= 7;
+    var tone = score >= 6 ? "success" : score >= 3 ? "warning" : "danger";
+    var bar = hasScore ? '<span class="progress progress-sm mt-1' + (score === 0 ? ' bg-danger-subtle' : '') + '" aria-hidden="true">' +
+      '<span class="progress-bar bg-' + tone + '" style="width:' + (score / 7 * 100) + '%"></span></span>' : '';
     var text = escapeHtml(aiReviewText(review));
-    return '<a class="completion-record-ellipsis fs-xs" href="' + escapeHtml(review.url) +
-      '" title="' + text + '">' + text + '</a>';
+    return '<a class="d-block fs-xs text-decoration-none" href="' + escapeHtml(review.url) + '" title="' + text + '">' +
+      '<span class="completion-record-ellipsis text-decoration-underline">' + text + '</span>' + bar + '</a>';
+  }
+
+  function solutionStatus(row) {
+    var hasSolution = present(row.solution_status);
+    var className = 'completion-record-state' + (hasSolution ? '' : ' text-muted');
+    var icon = row.solution_status === "published" ? "file-check" : hasSolution ? "file-text" : "file-minus";
+    var label = '<i class="ti ti-' + icon + '" aria-hidden="true"></i>' + escapeHtml(row.solution_status_label || "No solution");
+    return row.solution_url
+      ? '<a class="' + className + ' text-decoration-underline" href="' + escapeHtml(row.solution_url) + '">' + label + '</a>'
+      : '<span class="' + className + '">' + label + '</span>';
   }
 
   function ratingCountLabel(count) {
@@ -567,7 +591,7 @@
       '<dl class="completion-record-detail-grid">' +
       detailTerm("Completed", row.completion_datetime === "Unknown" ? "" : row.completion_datetime) +
       detailTerm("Last updated", row.updated_at) +
-      '<div><dt>Solution</dt><dd>' + detailBadge(row.solution_status_label || "No solution", row.solution_status_badge_class) + '</dd></div>' +
+      '<div><dt>Solution</dt><dd>' + solutionStatus(row) + '</dd></div>' +
       (showAiReviews ? '<div><dt>AI review</dt><dd>' + aiReviewLink(row.ai_review) + '</dd></div>' : '') +
       '</dl></section>' +
       '<section class="completion-record-detail-section"><h4 class="completion-record-detail-section-title"><i class="ti ti-chart-bar" aria-hidden="true"></i>Problem context</h4><dl class="completion-record-detail-grid completion-record-detail-context">' +
@@ -699,13 +723,7 @@
       title: "Solution",
       className: "completion-record-solution-cell text-nowrap",
       render: function (data, type, row) {
-        if (type === "display") {
-          var hasSolution = present(row.solution_status);
-          return '<span class="completion-record-state' + (hasSolution ? '' : ' text-muted') + '"><i class="ti ti-' +
-            (row.solution_status === "published" ? "file-check" : hasSolution ? "file-text" : "file-minus") +
-            '" aria-hidden="true"></i>' + escapeHtml(data || "No solution") + '</span>';
-        }
-        return data;
+        return type === "display" ? solutionStatus(row) : data;
       }
     },
     {
@@ -762,11 +780,11 @@
     pageLength: 25,
     lengthMenu: [10, 25, 50, 100],
     autoWidth: false,
-    layout: { topStart: "search", topEnd: null, bottomStart: ["pageLength", "info"], bottomEnd: "paging" },
+    layout: { topStart: "search", topEnd: "paging", bottomStart: ["pageLength", "info"], bottomEnd: "paging" },
     language: {
       search: "Find in results:",
       searchPlaceholder: "Quick find…",
-      info: "Showing _START_ to _END_ of _TOTAL_ loaded results",
+      info: "Page _PAGE_ of _PAGES_ · Showing _START_ to _END_ of _TOTAL_ loaded results",
       infoEmpty: "No loaded results to show",
       infoFiltered: "(filtered from _MAX_ loaded results)",
       lengthMenu: "_MENU_ per page",

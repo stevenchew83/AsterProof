@@ -10,7 +10,7 @@ const record = {
   problem_label: 'IMO 2026 P3', problem: 'P3', contest: 'IMO', year: 2026, topic: 'Algebra',
   problem_url: '/solutions/42/', areas: ['Inequalities and optimization', 'Equations and polynomials'],
   mohs: 0, status: 'checked', status_label: 'Checked', solution_status: 'published',
-  solution_status_label: 'Published', completion_datetime: '2026-10-31 16:27',
+  solution_status_label: 'Published', solution_url: '/solutions/entries/42/', completion_datetime: '2026-10-31 16:27',
   ai_review: {label: 'Draft ready', score: 0, url: '/solutions/entries/42/#ai-review'},
   completion_date_sort: '2026-10-31T16:27:00+08:00', updated_at_sort: '2026-10-31T08:30:00Z',
   key_technique: 'Inversion', post_mortem: 'State the equality case.',
@@ -92,8 +92,35 @@ test('AI review follows Solution on desktop and appears in expanded mobile detai
 
   const mobile = table(390);
   assert.equal(mobile.visibility.get(reviewColumn), false);
-  assert.match(mobile.expandDetails(), /<dt>AI review<\/dt>.*href="\/solutions\/entries\/42\/#ai-review".*>0\/7 · Draft ready<\/a>/);
+  assert.match(mobile.expandDetails(), /<dt>AI review<\/dt>.*href="\/solutions\/entries\/42\/#ai-review".*>0\/7 · Draft ready<\/span>.*progress-bar/);
   assert.match(mobile.render('Loaded search', 'filter'), /0\/7 · Draft ready/);
+});
+
+test('AI review bars scale to seven and distinguish zero from an unscored review', () => {
+  const app = table();
+  for (const [score, tone] of [[0, 'danger'], [4, 'warning'], [6, 'success'], [7, 'success']]) {
+    const ai_review = {...record.ai_review, score};
+    const html = app.render('AI review', 'display', {ai_review});
+    const fill = html.match(/progress-bar bg-(\w+)" style="width:([\d.]+)%/);
+    assert.equal(fill[1], tone);
+    assert.ok(Math.abs(Number(fill[2]) * 7 / 100 - score) < 0.001);
+    assert.ok(html.includes(`${score}/7 · Draft ready`));
+    assert.equal(app.render('AI review', 'sort', {ai_review}), score);
+  }
+  const ai_review = {...record.ai_review, score: null, label: 'Not reviewed'};
+  const html = app.render('AI review', 'display', {ai_review});
+  assert.match(html, /Not reviewed/);
+  assert.doesNotMatch(html, /progress-bar|\/7/);
+  assert.equal(app.render('AI review', 'sort', {ai_review}), -1);
+});
+
+test('solution status links directly to the solution when a URL is available', () => {
+  const app = table();
+  assert.match(app.render('Solution', 'display'), /href="\/solutions\/entries\/42\/".*>Published<\/a>/);
+  assert.match(table(390).expandDetails(), /<dt>Solution<\/dt><dd><a .*href="\/solutions\/entries\/42\/".*>Published<\/a>/);
+  const html = app.render('Solution', 'display', {solution_url: '', solution_status: '', solution_status_label: 'No solution'});
+  assert.match(html, /No solution/);
+  assert.doesNotMatch(html, /href=/);
 });
 
 test('row identity, status and date renderers escape untrusted text and attribute values', () => {

@@ -76,6 +76,10 @@ def test_review_column_uses_own_solution_and_published_score(client, inventory, 
 
     response = client.get(inventory)
     cells = _review_cells(response)
+    rows = {row["completion_id"]: row for row in response.context["completion_record_rows"]}
+    assert rows[completion.pk]["solution_url"] == reverse("solutions:solution_detail", args=[solution.pk])
+    assert rows[no_solution.pk]["solution_url"] == ""
+    assert client.get(rows[completion.pk]["solution_url"]).status_code == HTTPStatus.OK
     assert cells[completion.pk]["label"] == "Draft ready"
     assert cells[completion.pk]["score"] == 0
     assert cells[completion.pk]["url"] == reverse("solutions:solution_detail", args=[solution.pk]) + "#ai-review"
@@ -143,6 +147,35 @@ def test_draft_filter_finds_older_match_and_excludes_changed_targets(client, inv
     assert b'<option value="draft_ready" selected>' in response.content
 
 
+def test_completion_record_quick_filters_switch_without_losing_applied_scope(client, inventory, author):
+    solution, draft_completion = _proof(author, 1)
+    _review(solution, 6)
+    other_solution, missing_completion = _proof(author, 2)
+    other_solution.delete()
+    _proof(UserFactory(), 3)
+
+    def shortcuts(response):
+        return {link["label"]: link for link in response.context["completion_record_quick_filters"]}
+
+    response = client.get(inventory, {"contest": "IMO", "user": author.email})
+    response = client.get(shortcuts(response)["No solution"]["url"])
+    assert set(_review_cells(response)) == {missing_completion.pk}
+    assert shortcuts(response)["No solution"]["active"] is True
+
+    response = client.get(shortcuts(response)["Draft ready"]["url"])
+    assert set(_review_cells(response)) == {draft_completion.pk}
+    assert shortcuts(response)["Draft ready"]["active"] is True
+    assert shortcuts(response)["No solution"]["active"] is False
+
+    no_solution_response = client.get(shortcuts(response)["No solution"]["url"])
+    assert set(_review_cells(no_solution_response)) == {missing_completion.pk}
+
+    response = client.get(shortcuts(response)["Draft ready"]["url"])
+    assert set(_review_cells(response)) == {draft_completion.pk, missing_completion.pk}
+    assert response.context["completion_record_filters"]["contest"] == "IMO"
+    assert response.context["completion_record_filters"]["user"] == author.email
+
+
 def test_review_data_and_filter_require_admin_even_in_debug(client, author, settings):
     solution, completion = _proof(author, 1)
     _review(solution, 6)
@@ -157,6 +190,8 @@ def test_review_data_and_filter_require_admin_even_in_debug(client, author, sett
     assert response.status_code == HTTPStatus.OK
     assert _review_cells(response) == {completion.pk: None}
     assert b'name="ai_review"' not in response.content
+    assert [link["label"] for link in response.context["completion_record_quick_filters"]] == ["No solution"]
+    assert response.context["completion_record_rows"][0]["solution_url"] == ""
 
     response = client.get(solution_inventory)
     assert response.status_code == HTTPStatus.OK

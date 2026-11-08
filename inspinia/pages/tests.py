@@ -4441,6 +4441,7 @@ def test_user_activity_sidebar_hides_admin_only_utilities_for_non_admin(client):
     side_nav_html = _rendered_side_nav_html(response)
     assert "LaTeX preview" not in side_nav_html
     assert "Handle parser" not in side_nav_html
+    assert reverse("pages:completion_record_list") not in side_nav_html
     assert "Rankings" not in side_nav_html
     assert "Ranking table" not in side_nav_html
     assert "Ranking dashboard" not in side_nav_html
@@ -27189,21 +27190,22 @@ def test_dashboard_sidebar_groups_training_first_and_collapses_management_for_ad
     assert response.status_code == HTTPStatus.OK
     side_nav_html = _rendered_side_nav_html(response)
     expected_order = [
-        "Home", "Training overview", "Train", "Continue training", "Roadmap", "My submissions",
+        "Home", "Training overview", "Completion records", "Train", "Continue training", "Roadmap", "My submissions",
         "Our progress", "My progress", "Areas &amp; concepts", "Contest progress", "Contest MOHS",
         "Problems &amp; resources", "Problem library", "Problem lists", "Discover lists", "Benchmark map",
         "My work", "Record completions", "My solutions", "My activity", "Tools", "LaTeX preview",
         "Handle parser", "Advanced analytics", "Problem analytics", "Contest analytics",
         "Mathematics catalogue",
-        "Statement analytics", "View analytics", "Completion records", "Progress analytics", "Solution records",
+        "Statement analytics", "View analytics", "Progress analytics", "Solution records",
         "Management", "Trainer queue", "Training content", "Rankings", "Ranking table", "Ranking dashboard",
         "Students", "Assessments", "Formulas", "Ranking imports", "Content maintenance", "Problem data",
         "Contest names", "Contest details", "Statement links", "Statement editor", "Statement metadata",
         "Statement duplicates", "Delete statement", "Benchmark import", "Contest audit", "Administration",
         "User roles", "Level settings", "Session monitor", "Event log",
     ]
-    positions = [side_nav_html.index(label) for label in expected_order]
+    positions = [side_nav_html.index(f">{label}<") for label in expected_order]
     assert positions == sorted(positions)
+    assert side_nav_html.count(reverse("pages:completion_record_list")) == 1
     assert 'class="collapse" id="tools-menu"' in side_nav_html
     assert 'class="collapse" id="management-menu"' in side_nav_html
     assert "My account" not in side_nav_html
