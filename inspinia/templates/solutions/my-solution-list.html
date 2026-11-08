@@ -3,7 +3,12 @@
 {% load l10n static solution_list_reviews %}
 
 {% block title %}My solutions{% endblock title %}
-{% block extra_css %}<link rel="stylesheet" href="{% static 'css/my-solutions.css' %}">{% endblock extra_css %}
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/my-solutions.css' %}">
+<style>
+  .my-solutions-review .progress { inline-size: 6rem; max-inline-size: 100%; }
+</style>
+{% endblock extra_css %}
 
 {% block page_content %}
 <div class="container-fluid app-table-page my-solutions" data-my-solutions>
@@ -134,7 +139,15 @@
               <td role="cell" class="my-solutions-review">
                 <span class="my-solutions-mobile-label text-muted">AI review</span>
                 {% if row.ai_review %}
-                  <a href="{{ row.view_url }}#ai-review" class="text-decoration-none">{% if row.ai_review.score != None %}<span class="fw-semibold">{{ row.ai_review.score }}/7</span> · {% endif %}{{ row.ai_review.label }}</a>
+                  {% with score=row.ai_review.score %}
+                    <a href="{{ row.view_url }}#ai-review" class="text-decoration-none d-inline-block align-top">{% if score != None %}
+                      <span class="fw-semibold">{{ score }}/7</span> · {% endif %}{{ row.ai_review.label }}{% if score != None %}
+                      <span class="progress progress-sm mt-1{% if score == 0 %} bg-danger-subtle{% endif %}" aria-hidden="true">
+                        <span class="progress-bar bg-{% if score >= 6 %}success{% elif score >= 3 %}warning{% else %}danger{% endif %}"
+                              style="width: calc({{ score|unlocalize }} * 100% / 7)"></span>
+                      </span>
+                    {% endif %}</a>
+                  {% endwith %}
                 {% else %}
                   <span class="text-muted">Not reviewed</span>
                 {% endif %}
