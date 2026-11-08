@@ -73,9 +73,10 @@ test('compact completion dates preserve full timestamps for sorting, filtering a
 
 test('hidden mobile fields and secondary mapped areas remain in quick-find search', () => {
   const app = table(390);
-  for (const title of ['MOHS', 'Status', 'Completed', 'Solution']) {
+  for (const title of ['Topic', 'Area', 'MOHS', 'Status', 'Completed', 'Solution']) {
     assert.equal(app.visibility.get(app.options.columns.indexOf(app.column(title))), false);
   }
+  assert.match(app.render('User', 'display'), /completion-record-mobile-status d-sm-none">Checked/);
   const search = app.render('Loaded search', 'filter');
   for (const value of [record.areas[1], record.user_email, record.key_technique, record.post_mortem, 'Published']) {
     assert.ok(search.includes(value), value);
