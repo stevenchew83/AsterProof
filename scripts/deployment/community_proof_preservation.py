@@ -230,7 +230,7 @@ def _private_json(path):
         _fail("metadata_invalid")
 
 
-def _command(contract, run_id, active_sha, config):
+def _command(contract, run_id, active_sha, config, *, capture_module):
     command = recovery._unit_command(contract, run_id, "verify", active_sha, config)
     module = "scripts.deployment.database_recovery"
     if command.count(module) != 1:
@@ -238,12 +238,21 @@ def _command(contract, run_id, active_sha, config):
     index = command.index(module)
     if index < 1 or command[index - 1] != "-m" or command[index + 1 : index + 2] != ["verify"]:
         _fail("command_shape_invalid")
-    command[index] = MODULE
+    command[index] = capture_module
     return command
 
 
 def verify_preserved_records(contract, run_id, active_sha):
     """Root compares the child's bounded metadata to the verified private backup."""
+    return _verify_preserved_records(
+        contract, run_id, active_sha, capture_module=MODULE, validate_baseline=_baseline_maps,
+        compare=compare_preserved,
+    )
+
+
+def _verify_preserved_records(  # noqa: PLR0913 - The caller fixes the trusted capture and comparison scope.
+    contract, run_id, active_sha, *, capture_module, validate_baseline, compare,
+):
     if os.geteuid() != 0:
         _fail("root_required")
     recovery._run_id(run_id)
@@ -254,7 +263,7 @@ def verify_preserved_records(contract, run_id, active_sha):
     if not stat.S_ISDIR(mode.st_mode) or mode.st_uid != 0 or mode.st_mode & 0o077:
         _fail("recovery_directory_unsafe")
     before = _private_json(directory / "manifest.json")
-    _baseline_maps(before)
+    validate_baseline(before)
     config = AuditConfig.load(recovery.AUDIT_CONFIG)
     receipt = _private_json(directory / "receipt.json")
     digest = recovery._sha(before)
@@ -276,7 +285,7 @@ def verify_preserved_records(contract, run_id, active_sha):
         _fail("unverified_baseline")
     try:
         result = subprocess.run(
-            _command(contract, run_id, active_sha, config),
+            _command(contract, run_id, active_sha, config, capture_module=capture_module),
             capture_output=True,
             timeout=600,
             check=False,
@@ -291,7 +300,7 @@ def verify_preserved_records(contract, run_id, active_sha):
         after = json.loads(result.stdout)
     except (ValueError, UnicodeError):
         _fail("metadata_invalid")
-    return compare_preserved(before, after)
+    return compare(before, after)
 
 
 def capture_preservation(connection):

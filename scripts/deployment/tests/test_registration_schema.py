@@ -41,8 +41,15 @@ def frozen_delta():
     return json.loads((Path(__file__).parent / "fixtures/registration-schema-delta.json").read_text())
 
 
-def test_exact_migration_tree_and_catalog_delta():
-    schema.validate_candidate(ROOT)
+def test_exact_migration_tree_and_catalog_delta(tmp_path):
+    successor = Path("inspinia/solutions/migrations/0017_multiple_problem_solutions.py")
+    for source in ROOT.glob("inspinia/**/migrations/*"):
+        relative = source.relative_to(ROOT)
+        if source.suffix in {".py", ".json"} and relative != successor:
+            staged = tmp_path / relative
+            staged.parent.mkdir(parents=True, exist_ok=True)
+            staged.write_bytes(source.read_bytes())
+    schema.validate_candidate(tmp_path)
     assert schema_state(frozen_delta())["fingerprint"] == schema.DELTA_SHA256
     registry = load_registry(ROOT / "deployment/migration-classifications.yml")
     assert registry[schema.MIGRATION]["classification"] == "backward-compatible-schema"

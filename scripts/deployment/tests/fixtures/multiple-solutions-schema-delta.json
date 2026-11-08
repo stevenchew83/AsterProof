@@ -1,0 +1,55 @@
+{
+  "add": {
+    "columns": [
+      {
+        "collation": null,
+        "column": "additional_draft_key",
+        "default": null,
+        "nullable": true,
+        "position": 16,
+        "schema": "public",
+        "table": "solutions_problemsolution",
+        "type": "uuid"
+      }
+    ],
+    "constraints": [],
+    "extensions": [],
+    "indexes": [
+      {
+        "definition": "CREATE UNIQUE INDEX solutions_unique_additional_draft ON public.solutions_problemsolution USING btree (problem_id, author_id, additional_draft_key) WHERE (additional_draft_key IS NOT NULL)",
+        "name": "solutions_unique_additional_draft",
+        "schema": "public",
+        "table": "solutions_problemsolution"
+      },
+      {
+        "definition": "CREATE UNIQUE INDEX solutions_unique_first_draft ON public.solutions_problemsolution USING btree (problem_id, author_id) WHERE (additional_draft_key IS NULL)",
+        "name": "solutions_unique_first_draft",
+        "schema": "public",
+        "table": "solutions_problemsolution"
+      }
+    ],
+    "tables": []
+  },
+  "remove": {
+    "columns": [],
+    "constraints": [
+      {
+        "definition": "UNIQUE (problem_id, author_id)",
+        "name": "solutions_problemsolution_unique_problem_author",
+        "schema": "public",
+        "table": "solutions_problemsolution",
+        "type": "u"
+      }
+    ],
+    "extensions": [],
+    "indexes": [
+      {
+        "definition": "CREATE UNIQUE INDEX solutions_problemsolution_unique_problem_author ON public.solutions_problemsolution USING btree (problem_id, author_id)",
+        "name": "solutions_problemsolution_unique_problem_author",
+        "schema": "public",
+        "table": "solutions_problemsolution"
+      }
+    ],
+    "tables": []
+  }
+}

@@ -25,6 +25,7 @@ from scripts.deployment import learning_activity_schema
 from scripts.deployment import learning_bridge
 from scripts.deployment import learning_schema
 from scripts.deployment import maintenance_schema
+from scripts.deployment import multiple_solutions_schema
 from scripts.deployment import newsletter_automation_schema
 from scripts.deployment import newsletter_schema
 from scripts.deployment import onboarding_schema
@@ -346,6 +347,17 @@ class WorkerBackend:
             contract, release, ["shell", "--command", community_schema.INDEX_CHECK], runtime_seconds=60,
         )
 
+    def check_multiple_solutions_schema(self, contract: TargetContract, release: Path) -> None:
+        multiple_solutions_schema.validate_candidate(release)
+        self._run_candidate(
+            contract, release, ["shell", "--command", multiple_solutions_schema.PLAN_CHECK], read_only=True,
+        )
+
+    def migrate_multiple_solutions_schema(self, contract: TargetContract, release: Path) -> None:
+        self._run_candidate(
+            contract, release, ["shell", "--command", multiple_solutions_schema.MIGRATION_APPLY], migration=True,
+        )
+
     def check_community_proof_schema(self, contract: TargetContract, release: Path) -> None:
         community_proof_schema.validate_candidate(release)
         self._run_candidate(contract, release, ["shell", "--command", community_proof_schema.PLAN_CHECK])
@@ -656,6 +668,15 @@ class WorkerBackend:
             verify_preserved_records(contract, run_id, active_sha)
         except Exception as exc:
             raise OperationError("catalogue_original_records_changed") from exc
+
+    def verify_multiple_solutions_records(self, contract: TargetContract, run_id: str, active_sha: str) -> None:
+        from scripts.deployment.database_recovery import RecoveryError
+        from scripts.deployment.multiple_solutions_preservation import verify_preserved_records
+
+        try:
+            verify_preserved_records(contract, run_id, active_sha)
+        except (OSError, RecoveryError, ValueError) as exc:
+            raise OperationError("multiple_solutions_original_records_changed") from exc
 
     def verify_community_proof_records(self, contract: TargetContract, run_id: str, active_sha: str) -> None:
         from scripts.deployment.community_proof_preservation import verify_preserved_records
@@ -1184,7 +1205,9 @@ def _deploy(
             disclosure = request["schema_disclosure"]
             maintenance_audit = (
                 backend.community_audit
-                if disclosure["kind"] in {community_schema.KIND, community_proof_schema.KIND}
+                if disclosure["kind"] in {
+                    community_schema.KIND, community_proof_schema.KIND, multiple_solutions_schema.KIND,
+                }
                 else backend.catalogue_audit
             )
             if disclosure["kind"] == ranking_profile_schema.KIND:
@@ -1205,6 +1228,8 @@ def _deploy(
                     backend.check_community_schema(contract, release)
                 elif disclosure["kind"] == community_proof_schema.KIND:
                     backend.check_community_proof_schema(contract, release)
+                elif disclosure["kind"] == multiple_solutions_schema.KIND:
+                    backend.check_multiple_solutions_schema(contract, release)
                 elif disclosure["kind"] == statement_authoring_schema.KIND:
                     backend.check_statement_authoring_schema(contract, release)
                 else:
@@ -1240,6 +1265,8 @@ def _deploy(
                 backend.migrate_community_schema(contract, release)
             elif disclosure["kind"] == community_proof_schema.KIND:
                 backend.migrate_community_proof_schema(contract, release)
+            elif disclosure["kind"] == multiple_solutions_schema.KIND:
+                backend.migrate_multiple_solutions_schema(contract, release)
             elif disclosure["kind"] == statement_authoring_schema.KIND:
                 backend.migrate_statement_authoring_schema(contract, release)
             else:
@@ -1252,10 +1279,12 @@ def _deploy(
                 backend.initialize_community_index(contract, release)
             elif disclosure["kind"] == community_proof_schema.KIND:
                 backend.check_community_proof_ai_disabled(contract, release)
-            else:
+            elif disclosure["kind"] != multiple_solutions_schema.KIND:
                 backend.refresh_catalogue(contract, release)
             if disclosure["kind"] == community_proof_schema.KIND:
                 backend.verify_community_proof_records(contract, request["run_id"], baseline_sha)
+            elif disclosure["kind"] == multiple_solutions_schema.KIND:
+                backend.verify_multiple_solutions_records(contract, request["run_id"], baseline_sha)
             elif disclosure["kind"] != ranking_profile_schema.KIND:
                 backend.verify_catalogue_records(contract, request["run_id"], baseline_sha)
             if not maintenance_matches(disclosure, maintenance_audit(contract), stage="expected"):

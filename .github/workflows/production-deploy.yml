@@ -211,6 +211,11 @@ jobs:
               --active-source "$RUNNER_TEMP/active-catalogue-smoke" \
               --active-sha "$active_sha" --release-sha "$RELEASE_SHA" \
               --output "$RUNNER_TEMP/schema-evidence.json"
+          elif [ "$(python -c 'import json,os; print(json.loads(os.environ["SCHEMA_DISCLOSURE"]).get("kind", ""))')" = 'multiple-solutions-maintenance-v1' ]; then
+            .release-runtime/bin/python -m scripts.deployment.multiple_solutions_schema_rehearsal \
+              --active-source "$RUNNER_TEMP/active-catalogue-smoke" \
+              --active-sha "$active_sha" --release-sha "$RELEASE_SHA" \
+              --output "$RUNNER_TEMP/schema-evidence.json"
           elif [ "$(python -c 'import json,os; print(json.loads(os.environ["SCHEMA_DISCLOSURE"]).get("kind", ""))')" = 'community-proof-library-maintenance-v1' ]; then
             .release-runtime/bin/python -m scripts.deployment.community_proof_schema_rehearsal \
               --active-source "$RUNNER_TEMP/active-catalogue-smoke" \
@@ -468,6 +473,9 @@ jobs:
                       expected = [{'migration': MIGRATION, 'classification': 'data-or-non-compatible'}]
                   elif json.loads(os_disclosure).get('kind') == 'statement-authoring-maintenance-v1':
                       from scripts.deployment.statement_authoring_schema import MIGRATION
+                      expected = [{'migration': MIGRATION, 'classification': 'data-or-non-compatible'}]
+                  elif json.loads(os_disclosure).get('kind') == 'multiple-solutions-maintenance-v1':
+                      from scripts.deployment.multiple_solutions_schema import MIGRATION
                       expected = [{'migration': MIGRATION, 'classification': 'data-or-non-compatible'}]
                   elif json.loads(os_disclosure).get('kind') == 'community-proof-library-maintenance-v1':
                       from scripts.deployment.community_proof_schema import MIGRATIONS, MIGRATION_CLASSES

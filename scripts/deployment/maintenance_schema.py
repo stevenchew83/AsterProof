@@ -3,10 +3,13 @@
 from scripts.deployment import catalogue_schema
 from scripts.deployment import community_proof_schema
 from scripts.deployment import community_schema
+from scripts.deployment import multiple_solutions_schema
 from scripts.deployment import ranking_profile_schema
 
 
 def validate_disclosure(value, *, target_sha):
+    if isinstance(value, dict) and value.get("kind") == multiple_solutions_schema.KIND:
+        return multiple_solutions_schema.validate_disclosure(value, target_sha=target_sha)
     if isinstance(value, dict) and value.get("kind") == ranking_profile_schema.KIND:
         return ranking_profile_schema.validate_disclosure(value, target_sha=target_sha)
     if isinstance(value, dict) and value.get("kind") == community_proof_schema.KIND:
@@ -17,6 +20,9 @@ def validate_disclosure(value, *, target_sha):
 
 
 def validate_build_evidence(release, disclosure):
+    if disclosure.get("kind") == multiple_solutions_schema.KIND:
+        multiple_solutions_schema.validate_build_evidence(release, disclosure)
+        return
     if disclosure.get("kind") == ranking_profile_schema.KIND:
         ranking_profile_schema.validate_build_evidence(release, disclosure)
         return
