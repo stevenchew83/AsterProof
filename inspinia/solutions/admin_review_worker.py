@@ -260,19 +260,20 @@ def process_next():
     return idle_result()
 
 
-def drain_queue(executor, execute, report):
-    """Fill free review slots as work finishes, with a separate email slot."""
+def drain_queue(executor, execute, report, *, stop_requested):
+    """Refill free slots until asked to finish the work already claimed."""
     reviews = set()
     notifications = set()
     next_reconcile = monotonic()
     worked = False
     while True:
-        if monotonic() >= next_reconcile:
+        if not stop_requested() and monotonic() >= next_reconcile:
             expire_claims()
             next_reconcile = monotonic() + RECONCILE_SECONDS
-        if not notifications and (notice := claim_notification()):
+        if not stop_requested() and not notifications and (notice := claim_notification()):
             notifications.add(executor.submit(execute, notice, notification=True))
-        while len(reviews) < REVIEW_SLOTS and (review := claim_review()):
+        while not stop_requested() and len(reviews) < REVIEW_SLOTS and (review := claim_review()):
+            # A claim already committed when SIGTERM arrives still needs to run.
             reviews.add(executor.submit(execute, review))
         pending = reviews | notifications
         if not pending:

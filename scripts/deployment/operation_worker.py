@@ -83,7 +83,8 @@ SYSTEMD_RUN = Path("/usr/bin/systemd-run")
 MAX_RETAINED_RELEASES = 5
 MIN_RETAINED_RELEASES = 2
 BRIDGE_PGOPTIONS = "-c default_transaction_read_only=on -c lock_timeout=2s -c statement_timeout=30s"
-DRAIN_TIMEOUT_SECONDS = 300
+# The ordered app stop can wait for the review worker's 330-second stop budget.
+DRAIN_TIMEOUT_SECONDS = 450
 STOP_REQUEST_TIMEOUT_SECONDS = 30
 DRAIN_POLL_SECONDS = 0.25
 

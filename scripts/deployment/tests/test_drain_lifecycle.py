@@ -48,17 +48,18 @@ def drain(tmp_path, monkeypatch):
 def test_queued_ordered_stops_wait_for_every_unit_and_only_request_once(drain, monkeypatch):
     drain.states["scheduler.service"].update(ActiveState="active", MainPID="12")
     drain.states["app.service"].update(ActiveState="deactivating", MainPID="34")
+    app_stop_completed = 345  # The app stops after the review worker's 330-second grace period.
 
     def observe(unit, names, *, timeout):
         if drain.clock.value >= 0.5:
             drain.states["scheduler.service"].update(ActiveState="inactive", MainPID="0")
-        if drain.clock.value >= 1:
+        if drain.clock.value >= app_stop_completed:
             drain.states["app.service"].update(ActiveState="inactive", MainPID="0")
         return drain.observe(unit, names, timeout=timeout)
 
     monkeypatch.setattr(drain.backend, "_unit_properties", observe)
     drain.backend.drain(drain.contract, drain.path)
-    assert drain.writers == [1.0]
+    assert drain.writers == [app_stop_completed]
     assert len(drain.commands) == 1
     assert drain.commands[0] == (
         ["/usr/bin/systemctl", "stop", "--no-block", "scheduler.timer", "scheduler.service", "app.service"],
@@ -69,11 +70,11 @@ def test_queued_ordered_stops_wait_for_every_unit_and_only_request_once(drain, m
 
 
 @pytest.mark.parametrize("active_state", ["active", "activating", "deactivating", "reloading"])
-def test_pending_unit_hits_one_frozen_five_minute_deadline(drain, active_state):
+def test_pending_unit_hits_one_bounded_stop_deadline(drain, active_state):
     drain.states["app.service"].update(ActiveState=active_state, MainPID="34")
     with pytest.raises(worker.OperationError, match="^maintenance_drain_timeout$"):
         drain.backend.drain(drain.contract, drain.path)
-    assert drain.clock.value == 300
+    assert drain.clock.value == 450
     assert len(drain.commands) == 1
     assert drain.writers == []
 
@@ -97,7 +98,7 @@ def test_persistent_job_blocks_even_inactive_unit(drain, unit):
     drain.states[unit]["Job"] = "123"
     with pytest.raises(worker.OperationError, match="^maintenance_drain_timeout$"):
         drain.backend.drain(drain.contract, drain.path)
-    assert drain.clock.value == 300
+    assert drain.clock.value == 450
     assert drain.writers == []
     assert len(drain.commands) == 1
 
@@ -109,7 +110,7 @@ def test_missing_job_observation_fails_closed(drain):
     assert drain.writers == []
 
 
-@pytest.mark.parametrize("consumed", [299, 300, 301])
+@pytest.mark.parametrize("consumed", [449, 450, 451])
 def test_slow_request_and_observations_cannot_reset_or_overrun_deadline(drain, monkeypatch, consumed):
     def request(args, **kwargs):
         drain.commands.append((args, kwargs))
@@ -122,9 +123,9 @@ def test_slow_request_and_observations_cannot_reset_or_overrun_deadline(drain, m
 
     monkeypatch.setattr(worker.subprocess, "run", request)
     monkeypatch.setattr(drain.backend, "_unit_properties", observe)
-    if consumed < 300:
+    if consumed < 450:
         drain.backend.drain(drain.contract, drain.path)
-        assert drain.writers == [299]
+        assert drain.writers == [449]
         assert [timeout for _unit, timeout, _time in drain.observations] == [15, 1, 1]
     else:
         with pytest.raises(worker.OperationError, match="^maintenance_drain_timeout$"):
@@ -187,7 +188,7 @@ def test_clock_crossing_deadline_before_sleep_normalizes_timeout(drain, monkeypa
         calls += 1
         # Initial deadline, three observations' before/after checks, final check,
         # then a scheduling delay before calculating the sleep duration.
-        return 301.0 if calls >= 9 else 0.0
+        return 451.0 if calls >= 9 else 0.0
 
     monkeypatch.setattr(worker, "time", SimpleNamespace(monotonic=monotonic, sleep=sleeps.append))
     with pytest.raises(worker.OperationError, match="^maintenance_drain_timeout$"):
