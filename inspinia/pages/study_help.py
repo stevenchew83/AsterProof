@@ -144,9 +144,9 @@ def _statement(statement_uuid, *, lock=False):
     return statement
 
 
-def policy_for(user):
+def policy_for(user, *, allow_expired_pilot=False):
     policy = StudyHelpPolicy.objects.select_related("active_prompt").filter(pk=1).first()
-    if not can_use_study_help(user, policy):
+    if not can_use_study_help(user, policy, allow_expired_pilot=allow_expired_pilot):
         raise StudyHelpError("unavailable")
     return policy
 
@@ -382,7 +382,7 @@ class ProblemUsage:
 @transaction.atomic
 def status(user, statement_uuid):
     lock_study_help()
-    policy = policy_for(user)
+    policy = policy_for(user, allow_expired_pilot=True)
     statement = _statement(statement_uuid)
     check_read(user, statement)
     return ProblemUsage(user, statement).payload(policy, user)
@@ -515,7 +515,7 @@ def reveal(user, statement_uuid, response_id, interaction, *, automatic=False):
     user = locked_account(user.pk)
     if user is None:
         raise StudyHelpError("unavailable")
-    policy_for(user)
+    policy_for(user, allow_expired_pilot=True)
     check_read(user, statement, item.problem_uuid)
     check_pilot_action(item.action)
     if (not automatic or item.action in SOLUTION_ACTIONS) and telemetry_available(user):

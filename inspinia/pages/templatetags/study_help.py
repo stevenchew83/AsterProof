@@ -15,6 +15,7 @@ def draft_study_help(context, statement):
         enabled = draft_pilot_statement(statement) and can_use_study_help(
             context["request"].user,
             StudyHelpPolicy.objects.filter(pk=1).first(),
+            allow_expired_pilot=True,
         )
     return {
         "problem_statement": statement if enabled and statement.is_active else None,

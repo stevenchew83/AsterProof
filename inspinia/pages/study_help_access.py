@@ -13,6 +13,7 @@ from inspinia.pages.study_help_models import StudyHelpPolicy
 from inspinia.pages.study_help_models import StudyHelpRestriction
 from inspinia.pages.study_help_pilot import PILOT_REVISION
 from inspinia.pages.study_help_pilot import PILOT_STATEMENT
+from inspinia.pages.study_help_pilot import pilot_authorization
 from inspinia.pages.study_help_pilot import pilot_lease
 from inspinia.solutions.evaluation_models import AssistancePolicy
 from inspinia.users.roles import user_can_access_app_features
@@ -64,16 +65,16 @@ def draft_pilot_statement(statement):
     )
 
 
-def can_use_study_help(user, policy):
+def can_use_study_help(user, policy, *, allow_expired_pilot=False):
     if not (policy and user.is_active and user_can_access_app_features(user)):
         return False
     if settings.STUDY_HELP_DRAFT_HINT_PILOT_ENABLED:
         if not user_has_admin_role(user) or policy.audience != StudyHelpPolicy.Audience.COHORT:
             return False
-        lease = pilot_lease()
+        authorization = pilot_authorization() if allow_expired_pilot else pilot_lease()
         return (
-            lease is not None
-            and lease.actor_id == user.pk
+            authorization is not None
+            and authorization.actor_id == user.pk
             and StudyHelpEnrollment.objects.filter(user=user).exists()
         )
     return settings.STUDY_HELP_ENABLED and (
