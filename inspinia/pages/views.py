@@ -8260,11 +8260,10 @@ def contest_advanced_analytics_view(request):
     completion_heatmap = contest_completion_heatmap(
         contest_statements, solved_statement_ids, reviews, selected_contest, display,
     )
-    page = completion_heatmap.pop("page")
 
-    def progress_url(*, display_mode=display.mode, highlighted=display.focus, number=1):
+    def progress_url(*, display_mode=display.mode, highlighted=display.focus):
         return contest_progress_url(
-            selected_contest, learner=learner_id, mode=display_mode, focus=highlighted, page=number,
+            selected_contest, learner=learner_id, mode=display_mode, focus=highlighted,
         )
 
     year_rows = _contest_progress_year_rows(contest_base_eff, solved_by_year, selected_contest, is_other=is_other)
@@ -8349,9 +8348,6 @@ def contest_advanced_analytics_view(request):
         "clear_focus_url": progress_url(highlighted=""),
         "low_score_total": completion_heatmap["low_score_total"],
         "unscored_completed_total": completion_heatmap["unscored_completed_total"],
-        "year_page": page.number,
-        "previous_year_page_url": progress_url(number=page.previous_page_number()) if page.has_previous() else "",
-        "next_year_page_url": progress_url(number=page.next_page_number()) if page.has_next() else "",
         "contest_stats": {
             "ai_reviewed_total": completion_heatmap["ai_reviewed_total"],
             "average_ai_score": completion_heatmap["average_ai_score"],
