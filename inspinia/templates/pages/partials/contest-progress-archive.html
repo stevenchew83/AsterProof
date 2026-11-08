@@ -1,0 +1,180 @@
+<details class="card contest-progress-archive mb-3">
+  <summary class="px-3 py-2 fw-semibold">Archive details</summary>
+  <div class="border-top px-3 pb-3">
+    {% if show_analytics_dashboard_link %}
+    <a class="btn btn-sm btn-outline-secondary mt-3" href="{% url 'pages:contest_dashboard' %}"><i class="ti ti-layout-grid me-1" aria-hidden="true"></i>Contest directory</a>
+    {% endif %}
+    <dl class="contest-progress-archive-metrics my-3">
+      <div><dt>Active years</dt><dd>{{ contest_stats.active_years }} <small>{{ contest_stats.year_span_label }}</small></dd></div>
+      <div><dt>Needs classification</dt><dd>{{ contest_stats.needs_metadata_total }} <small>Missing topic or MOHS</small></dd></div>
+      <div><dt>Difficulty</dt><dd>{{ contest_stats.avg_mohs|floatformat:2 }} <small>Avg MOHS · max {{ contest_stats.max_mohs }}</small></dd></div>
+      <div><dt>Solutions</dt><dd>{{ contest_stats.solution_problem_total }} <small>{{ contest_stats.published_solution_total }} published · {{ contest_stats.solution_rate|floatformat:1 }}% available</small></dd></div>
+      <div><dt>Techniques</dt><dd>{{ contest_stats.technique_rows }} <small>{{ contest_stats.techniques_per_problem|floatformat:2 }} per statement</small></dd></div>
+    </dl>
+    <div class="row g-3 mt-0 mb-3">
+      <div class="col-xl-7">
+        <div class="card h-100">
+          <div class="card-header border-bottom">
+            <h4 class="header-title mb-0">Years</h4>
+          </div>
+          <div class="card-body">
+            <div class="app-table-region table-responsive" tabindex="0" role="region" aria-label="Year results">
+              <table class="app-table-compact table table-striped align-middle mb-0">
+                <thead>
+                  <tr class="text-muted fs-xs text-uppercase">
+                    <th>Year</th>
+                    <th>Statements</th>
+                    <th>Avg MOHS</th>
+                    <th>Max MOHS</th>
+                    <th>Topics</th>
+                    <th>Needs classification</th>
+                    <th>Completed</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {% for row in year_rows %}
+                  <tr>
+                    <td class="fw-semibold">
+                      {% if row.year_detail_url %}
+                      <a href="{{ row.year_detail_url }}">{{ row.year }}</a>
+                      {% else %}
+                      {{ row.year }}
+                      {% endif %}
+                    </td>
+                    <td>{{ row.problem_count }}</td>
+                    <td>{% if row.avg_mohs is not None %}{{ row.avg_mohs|floatformat:2 }}{% else %}<span class="text-muted">&mdash;</span>{% endif %}</td>
+                    <td>{% if row.max_mohs is not None %}{{ row.max_mohs }}{% else %}<span class="text-muted">&mdash;</span>{% endif %}</td>
+                    <td>{{ row.distinct_topics }}</td>
+                    <td>{{ row.needs_metadata_total }}</td>
+                    <td class="contest-progress-mini-progress">
+                      <div class="d-flex justify-content-between gap-2 fs-xs mb-1">
+                        <span>{{ row.solved_problem_total }} / {{ row.problem_count }}</span>
+                        <span class="text-muted">{{ row.solved_rate|floatformat:1 }}%</span>
+                      </div>
+                      <div class="progress progress-sm">
+                        <div class="progress-bar bg-success" role="progressbar" style="width: {{ row.solved_rate|floatformat:"0u" }}%;" aria-label="{{ row.year }} completion" aria-valuenow="{{ row.solved_rate|floatformat:"0u" }}" aria-valuemin="0" aria-valuemax="100"></div>
+                      </div>
+                    </td>
+                  </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="col-xl-5">
+        <div class="card h-100">
+          <div class="card-header border-bottom">
+            <h4 class="header-title mb-0">Topics</h4>
+          </div>
+          <div class="card-body">
+            <div class="app-table-region table-responsive" tabindex="0" role="region" aria-label="Topic results">
+              <table class="app-table-compact table table-striped align-middle mb-0">
+                <thead>
+                  <tr class="text-muted fs-xs text-uppercase">
+                    <th>Topic</th>
+                    <th>Share</th>
+                    <th>Avg MOHS</th>
+                    <th>Max MOHS</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {% for row in topic_rows %}
+                  <tr>
+                    <td class="fw-semibold">{{ row.topic }}</td>
+                    <td class="contest-progress-mini-progress">
+                      <div class="d-flex justify-content-between gap-2 fs-xs mb-1">
+                        <span>{{ row.problem_count }} statements</span>
+                        <span class="text-muted">{{ row.share_rate|floatformat:1 }}%</span>
+                      </div>
+                      <div class="progress progress-sm">
+                        <div class="progress-bar bg-info" role="progressbar" style="width: {{ row.share_rate|floatformat:"0u" }}%;" aria-label="{{ row.topic }} share" aria-valuenow="{{ row.share_rate|floatformat:"0u" }}" aria-valuemin="0" aria-valuemax="100"></div>
+                      </div>
+                    </td>
+                    <td>{% if row.avg_mohs is not None %}{{ row.avg_mohs|floatformat:2 }}{% else %}<span class="text-muted">&mdash;</span>{% endif %}</td>
+                    <td>{% if row.max_mohs is not None %}{{ row.max_mohs }}{% else %}<span class="text-muted">&mdash;</span>{% endif %}</td>
+                  </tr>
+                  {% empty %}
+                  <tr>
+                    <td colspan="4" class="text-muted">No topic data available.</td>
+                  </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="row g-3 mt-0">
+      <div class="col-xl-6">
+        <div class="card h-100">
+          <div class="card-header border-bottom">
+            <h4 class="header-title mb-0">Data quality</h4>
+          </div>
+          <div class="card-body">
+            <div class="app-table-region table-responsive" tabindex="0" role="region" aria-label="Data quality results">
+              <table class="app-table-compact table table-striped align-middle mb-0">
+                <thead>
+                  <tr class="text-muted fs-xs text-uppercase">
+                    <th>Confidence</th>
+                    <th>Statements</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {% for row in confidence_rows %}
+                  <tr>
+                    <td class="fw-semibold">{{ row.confidence }}</td>
+                    <td>{{ row.problem_count }}</td>
+                  </tr>
+                  {% empty %}
+                  <tr>
+                    <td colspan="2" class="text-muted">No confidence labels saved yet.</td>
+                  </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="col-xl-6">
+        <div class="card h-100">
+          <div class="card-header border-bottom">
+            <h4 class="header-title mb-0">Recent updates</h4>
+          </div>
+          <div class="card-body">
+            <div class="app-table-region table-responsive" tabindex="0" role="region" aria-label="Recent update results">
+              <table class="app-table-compact table table-striped align-middle mb-0">
+                <thead>
+                  <tr class="text-muted fs-xs text-uppercase">
+                    <th>Problem</th>
+                    <th>Topic</th>
+                    <th>Day</th>
+                    <th>Updated</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {% for row in recent_statement_rows %}
+                  <tr>
+                    <td class="fw-semibold">{{ row.problem_code }}</td>
+                    <td>{{ row.topic }}</td>
+                    <td>{% if row.day_label %}{{ row.day_label }}{% else %}<span class="text-muted">&mdash;</span>{% endif %}</td>
+                    <td>{{ row.updated_at_label }}</td>
+                  </tr>
+                  {% empty %}
+                  <tr>
+                    <td colspan="4" class="text-muted">No active statements for this contest yet.</td>
+                  </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</details>

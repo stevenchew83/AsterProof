@@ -5499,7 +5499,8 @@ def test_contest_dashboard_empty_dataset_keeps_import_prompt_without_chart_initi
     assert "new DataTable" not in response_html
 
 
-def test_contest_advanced_analytics_view_renders_selected_contest_breakdown(client):
+@pytest.fixture
+def contest_advanced_response(client):
     admin_user = UserFactory(role=User.Role.ADMIN)
     solution_author = UserFactory()
     client.force_login(admin_user)
@@ -5566,6 +5567,11 @@ def test_contest_advanced_analytics_view_renders_selected_contest_breakdown(clie
 
     response = client.get(reverse("pages:contest_advanced_dashboard"), {"contest": "USAMO"})
 
+    return response, problem_one, standalone_statement
+
+
+def test_contest_advanced_analytics_view_renders_selected_contest_breakdown(contest_advanced_response):
+    response, _, _ = contest_advanced_response
     assert response.status_code == HTTPStatus.OK
     assert response.context["selected_contest"] == "USAMO"
     assert response.context["contest_stats"]["problem_count"] == 2
@@ -5579,79 +5585,6 @@ def test_contest_advanced_analytics_view_renders_selected_contest_breakdown(clie
     assert response.context["contest_quick_update_url"] == (
         reverse("pages:completion_quick_update") + "?contest=USAMO"
     )
-    heatmap = response.context["contest_completion_heatmap"]
-    assert heatmap["problem_codes"] == ["P1", "P2"]
-    assert heatmap["problem_code_groups"] == [{"label": "P-codes", "start_index": 0, "span": 2}]
-    heatmap_2026 = next(row for row in heatmap["rows"] if row["year"] == 2026)
-    heatmap_2025 = next(row for row in heatmap["rows"] if row["year"] == 2025)
-    heatmap_2026_p1 = next(cell for cell in heatmap_2026["cells"] if cell["problem_code"] == "P1")
-    heatmap_2026_p2 = next(cell for cell in heatmap_2026["cells"] if cell["problem_code"] == "P2")
-    heatmap_2025_p1 = next(cell for cell in heatmap_2025["cells"] if cell["problem_code"] == "P1")
-    heatmap_2025_p2 = next(cell for cell in heatmap_2025["cells"] if cell["problem_code"] == "P2")
-    assert heatmap_2026_p1["state"] == "solved"
-    assert heatmap_2026_p1["display"] == "✓"
-    assert heatmap_2026_p1["solution_url"] == reverse(
-        "solutions:problem_solution_list",
-        args=[problem_one.problem_uuid],
-    )
-    assert heatmap_2026_p2["state"] == "empty"
-    assert heatmap_2026_p2["solution_url"] == ""
-    assert heatmap_2025_p1["state"] == "empty"
-    assert heatmap_2025_p2["state"] == "unsolved"
-    assert heatmap_2025_p2["display"] == "•"
-    assert heatmap_2025_p2["solution_url"] == reverse(
-        "pages:problem_statement_detail", args=[standalone_statement.statement_uuid],
-    )
-    assert heatmap["chart"]["max_value"] == 3
-    assert heatmap["chart"]["series"] == [
-        {
-            "name": "2026",
-            "data": [
-                {
-                    "display": "✓",
-                    "solution_url": reverse(
-                        "solutions:problem_solution_list",
-                        args=[problem_one.problem_uuid],
-                    ),
-                    "state": "solved",
-                    "title": "USAMO 2026 P1: 1 of 1 statement completed by you",
-                    "x": "P1",
-                    "y": 3,
-                },
-                {
-                    "display": "",
-                    "solution_url": "",
-                    "state": "empty",
-                    "title": "USAMO 2026 P2: no statement",
-                    "x": "P2",
-                    "y": 0,
-                },
-            ],
-        },
-        {
-            "name": "2025",
-            "data": [
-                {
-                    "display": "",
-                    "solution_url": "",
-                    "state": "empty",
-                    "title": "USAMO 2025 P1: no statement",
-                    "x": "P1",
-                    "y": 0,
-                },
-                {
-                    "display": "•",
-                    "solution_url": reverse(
-                        "pages:problem_statement_detail", args=[standalone_statement.statement_uuid],
-                    ),
-                    "state": "unsolved",
-                    "title": "USAMO 2025 P2: 0 of 1 statement completed by you",
-                    "x": "P2",
-                    "y": 1,
-                },
-            ],
-        },
-    ]
     year_2026 = next(row for row in response.context["year_rows"] if row["year"] == 2026)
     year_2025 = next(row for row in response.context["year_rows"] if row["year"] == 2025)
     assert year_2026["problem_count"] == 1
@@ -5672,40 +5605,48 @@ def test_contest_advanced_analytics_view_renders_selected_contest_breakdown(clie
     )
     topic_rows = response.context["topic_rows"]
     assert [row["share_rate"] for row in topic_rows] == [50.0]
+
+
+def test_contest_advanced_analytics_renders_accessible_heatmap(contest_advanced_response):
+    response, problem_one, standalone_statement = contest_advanced_response
+    heatmap = response.context["contest_completion_heatmap"]
+    assert heatmap["problem_codes"] == ["P1", "P2"]
+    assert heatmap["problem_code_groups"] == [{"label": "P-codes", "start_index": 0, "span": 2}]
+    heatmap_2026 = next(row for row in heatmap["rows"] if row["year"] == 2026)
+    heatmap_2025 = next(row for row in heatmap["rows"] if row["year"] == 2025)
+    heatmap_2026_p1 = next(cell for cell in heatmap_2026["cells"] if cell["problem_code"] == "P1")
+    heatmap_2026_p2 = next(cell for cell in heatmap_2026["cells"] if cell["problem_code"] == "P2")
+    heatmap_2025_p1 = next(cell for cell in heatmap_2025["cells"] if cell["problem_code"] == "P1")
+    heatmap_2025_p2 = next(cell for cell in heatmap_2025["cells"] if cell["problem_code"] == "P2")
+    assert heatmap_2026_p1["state"] == "solved"
+    assert heatmap_2026_p1["display"] == "✓"
+    assert heatmap_2026_p1["entries"][0]["workspace_url"] == reverse(
+        "solutions:problem_solution_list",
+        args=[problem_one.problem_uuid],
+    )
+    assert heatmap_2026_p2["state"] == "empty"
+    assert heatmap_2025_p1["state"] == "empty"
+    assert heatmap_2025_p2["state"] == "unsolved"
+    assert heatmap_2025_p2["entries"][0]["statement_url"] == reverse(
+        "pages:problem_statement_detail", args=[standalone_statement.statement_uuid],
+    )
+    assert not heatmap_2025_p2["entries"][0]["workspace_url"]
+    assert "chart" not in heatmap
     response_html = response.content.decode("utf-8")
     assert "Contest progress" in response_html
-    assert "Contest advanced analytics" not in response_html
-    assert "Change contest" in response_html
-    assert "Contest selector" not in response_html
     assert "Completion heatmap" in response_html
-    assert "Completed" in response_html
-    assert "Unstarted" in response_html
+    assert "AI reviewed" in response_html
+    assert "Average AI score" in response_html
     assert "No statement" in response_html
-    assert "No completion from you yet" not in response_html
-    assert "statement row" not in response_html
-    assert 'id="chart-contest-completion-heatmap"' in response_html
-    assert "contest-advanced-heatmap-data" in response_html
-    assert "dataPointSelection" in response_html
-    assert "dataPointMouseEnter" in response_html
-    assert "dataPointMouseLeave" in response_html
-    assert "--contest-completion-heatmap-solved" in response_html
-    assert "point.solution_url" in response_html
-    assert "event.metaKey || event.ctrlKey" in response_html
-    assert 'window.open(point.solution_url, "_blank", "noopener")' in response_html
-    assert "contest-completion-heatmap-clickable" not in response_html
-    assert "plugins/apexcharts/apexcharts.min.js" in response_html
-    assert "contest-completion-heatmap-table" not in response_html
-    assert '<input id="contest-advanced-selector" type="search" name="contest" value="USAMO"' in response_html
+    assert 'id="contest-completion-heatmap-table"' in response_html
+    assert "contest-advanced-heatmap-data" not in response_html
+    assert "plugins/apexcharts/apexcharts.min.js" not in response_html
+    assert 'id="contest-advanced-selector"' in response_html
     assert 'list="contest-advanced-options"' in response_html
-    assert '<datalist id="contest-advanced-options">' in response_html
-    assert '<option value="USAMO" label="2 statements">' in response_html
-    assert '<select id="contest-advanced-selector"' not in response_html
-    assert "Years" in response_html
+    assert '<option value="USAMO"' in response_html
+    assert "Archive details" in response_html
     assert "Needs classification" in response_html
-    assert "My solved" in response_html
     assert reverse("pages:completion_quick_update") + "?contest=USAMO&amp;year=2026" in response_html
-    assert reverse("pages:contest_dashboard_listing") not in response_html
-    assert "Open contest listing" not in response_html
     assert "Topics" in response_html
     assert "Data quality" in response_html
     assert "Recent updates" in response_html
@@ -5742,7 +5683,7 @@ def test_contest_advanced_analytics_groups_heatmap_problem_codes(client):
     ]
     response_html = response.content.decode("utf-8")
     assert 'data-problem-code-group="Grade 9"' in response_html
-    assert 'style="--contest-completion-group-span: 2;"' in response_html
+    assert 'colspan="2"' in response_html
 
 
 def test_contest_advanced_analytics_requires_login(client):
@@ -5951,7 +5892,9 @@ def test_contest_advanced_analytics_normal_user_sees_own_completions_only(client
     row_2026 = next(row for row in heatmap["rows"] if row["year"] == 2026)
     cell_p1 = next(cell for cell in row_2026["cells"] if cell["problem_code"] == "P1")
     assert cell_p1["state"] == "unsolved"
-    assert cell_p1["solution_url"] == reverse("solutions:problem_solution_list", args=[problem.problem_uuid])
+    assert cell_p1["entries"][0]["workspace_url"] == reverse(
+        "solutions:problem_solution_list", args=[problem.problem_uuid],
+    )
 
     UserProblemCompletion.objects.create(
         user=viewer,

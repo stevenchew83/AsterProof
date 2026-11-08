@@ -1,0 +1,163 @@
+<script>
+(function () {
+  const select = document.getElementById("contest-progress-learner");
+  const status = document.getElementById("contest-progress-learner-status");
+  if (!select?.dataset.optionsUrl || !status || typeof TomSelect === "undefined") return;
+
+  let pending = null;
+
+  function showStatus(message, visible = false, error = false) {
+    status.textContent = message;
+    status.classList.toggle("visually-hidden", !visible);
+    status.classList.toggle("text-danger", error);
+    status.classList.toggle("text-muted", !error);
+  }
+
+  function cancelPending() {
+    if (!pending) return;
+    const previous = pending;
+    pending = null;
+    window.clearTimeout(previous.timer);
+    previous.controller.abort();
+    previous.callback();
+  }
+
+  async function search(control, query, request) {
+    const url = new URL(select.dataset.optionsUrl, window.location.origin);
+    url.searchParams.set("q", query);
+    try {
+      const response = await fetch(url, {
+        credentials: "same-origin",
+        headers: { Accept: "application/json" },
+        signal: request.controller.signal
+      });
+      if (!response.ok) throw new Error("Learner lookup failed");
+      const payload = await response.json();
+      if (pending !== request) return;
+      const results = payload.results.map(({ id, label }) => ({ value: String(id), text: label }));
+      pending = null;
+      if (control.inputValue().trim() !== query) {
+        request.callback();
+        return;
+      }
+      if (payload.has_more) {
+        showStatus("Showing the first 20 learners. Type more to narrow your search.", true);
+      } else if (results.length) {
+        showStatus(results.length === 1 ? "1 learner found." : results.length + " learners found.");
+      } else {
+        showStatus("No matching learners.", true);
+      }
+      request.callback(results);
+    } catch (error) {
+      if (pending !== request) return;
+      pending = null;
+      if (error.name !== "AbortError") showStatus("Could not load learners. Try searching again.", true, true);
+      request.callback();
+    }
+  }
+
+  new TomSelect(select, {
+    allowEmptyOption: true,
+    closeAfterSelect: true,
+    create: false,
+    maxItems: 1,
+    maxOptions: 21,
+    searchField: [],
+    loadThrottle: null,
+    refreshThrottle: 0,
+    placeholder: "Search by name or email",
+    onInitialize() {
+      this.control_input.setAttribute("aria-describedby", status.id);
+      select.setAttribute("aria-hidden", "true");
+    },
+    shouldLoad(value) {
+      return value.trim().length >= 2;
+    },
+    onType(value) {
+      if (value.trim().length >= 2) return;
+      cancelPending();
+      this.clearOptions((option, value) => value === "" || this.items.includes(value));
+      this.refreshOptions();
+      showStatus("Type at least two characters to search.");
+    },
+    load(value, callback) {
+      cancelPending();
+      this.clearOptions((option, value) => value === "" || this.items.includes(value));
+      showStatus("Searching learners…", true);
+      const request = { controller: new AbortController(), callback };
+      pending = request;
+      request.timer = window.setTimeout(() => search(this, value.trim(), request), 250);
+    }
+  });
+})();
+
+(function () {
+  const table = document.querySelector(".contest-progress-table");
+  const dialog = document.getElementById("contest-progress-detail-dialog");
+  if (!table) return;
+
+  const cells = table.querySelectorAll("[data-progress-cell]");
+  if (!cells.length) return;
+  let focusStop = cells[0];
+  for (const cell of cells) cell.tabIndex = cell === focusStop ? 0 : -1;
+  table.closest(".contest-progress-scroll").tabIndex = -1;
+
+  function selectCell(cell) {
+    focusStop.tabIndex = -1;
+    cell.tabIndex = 0;
+    focusStop = cell;
+  }
+
+  table.addEventListener("focusin", (event) => {
+    const cell = event.target.closest("[data-progress-cell]");
+    if (cell) selectCell(cell);
+  });
+
+  const moves = { ArrowLeft: [0, -1], ArrowRight: [0, 1], ArrowUp: [-1, 0], ArrowDown: [1, 0] };
+  table.addEventListener("keydown", (event) => {
+    const cell = event.target.closest("[data-progress-cell]");
+    const move = moves[event.key];
+    if (!cell || !move || event.altKey || event.ctrlKey || event.metaKey || event.shiftKey) return;
+    event.preventDefault();
+    const [rowStep, columnStep] = move;
+    const row = cell.closest("tr");
+    const rows = row.parentElement.rows;
+    let rowIndex = row.sectionRowIndex + rowStep;
+    let columnIndex = cell.closest("td").cellIndex + columnStep;
+    while (rowIndex >= 0 && rowIndex < rows.length && columnIndex > 0 && columnIndex < row.cells.length) {
+      const next = rows[rowIndex].cells[columnIndex].querySelector("[data-progress-cell]");
+      if (next) {
+        next.focus();
+        return;
+      }
+      rowIndex += rowStep;
+      columnIndex += columnStep;
+    }
+  });
+
+  if (!dialog || typeof dialog.showModal !== "function") return;
+  for (const cell of cells) cell.setAttribute("aria-haspopup", "dialog");
+  const dialogTitle = document.getElementById("contest-progress-detail-title");
+  const dialogContent = dialog.querySelector("[data-progress-dialog-content]");
+  let opener = null;
+
+  table.addEventListener("click", (event) => {
+    const cell = event.target.closest("[data-progress-cell]");
+    if (!cell || event.button !== 0 || event.ctrlKey || event.metaKey || event.shiftKey || event.altKey) return;
+    const details = document.getElementById(cell.hash.slice(1));
+    if (!details) return;
+
+    event.preventDefault();
+    selectCell(cell);
+    opener = cell;
+    dialogTitle.textContent = details.querySelector("[data-progress-detail-title]").textContent;
+    dialogContent.replaceChildren(details.querySelector("[data-progress-detail-entries]").cloneNode(true));
+    dialog.showModal();
+  });
+
+  dialog.addEventListener("close", () => {
+    if (opener) opener.focus();
+    opener = null;
+  });
+})();
+</script>
