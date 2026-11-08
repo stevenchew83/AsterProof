@@ -1,8 +1,10 @@
 from django.conf import settings
+from django.utils.functional import SimpleLazyObject
 
 from inspinia.pages.models import StatementIssueReport
 from inspinia.pages.shared_progress import LEARNER_LABELS
 from inspinia.pages.shared_progress import shared_progress_learners
+from inspinia.users.models import UserAccessSettings
 from inspinia.users.roles import user_can_access_app_features
 from inspinia.users.roles import user_can_curate_training
 from inspinia.users.roles import user_has_admin_role
@@ -11,9 +13,9 @@ from inspinia.users.roles import user_has_trainer_or_admin_role
 
 
 def allauth_settings(request):
-    """Expose some settings from django-allauth in templates."""
+    """Expose the effective signup policy in templates."""
     return {
-        "ACCOUNT_ALLOW_REGISTRATION": settings.ACCOUNT_ALLOW_REGISTRATION,
+        "ACCOUNT_ALLOW_REGISTRATION": SimpleLazyObject(UserAccessSettings.public_registration_is_open),
     }
 
 

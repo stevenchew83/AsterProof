@@ -30,6 +30,8 @@ from scripts.deployment import newsletter_schema
 from scripts.deployment import onboarding_schema
 from scripts.deployment import ranking_analysis_schema
 from scripts.deployment import ranking_profile_schema
+from scripts.deployment import registration_compat
+from scripts.deployment import registration_schema
 from scripts.deployment import self_solution_review_schema
 from scripts.deployment import solution_analytics_schema
 from scripts.deployment import solution_collections_schema
@@ -365,6 +367,15 @@ class WorkerBackend:
     def migrate_statement_authoring_schema(self, contract: TargetContract, release: Path) -> None:
         self._run_candidate(
             contract, release, ["shell", "--command", statement_authoring_schema.MIGRATION_APPLY], migration=True,
+        )
+
+    def check_registration_schema(self, contract: TargetContract, release: Path) -> None:
+        registration_schema.validate_candidate(release)
+        self._run_candidate(contract, release, ["shell", "--command", registration_schema.PLAN_CHECK])
+
+    def migrate_registration_schema(self, contract: TargetContract, release: Path) -> None:
+        self._run_candidate(
+            contract, release, ["shell", "--command", registration_schema.MIGRATION_APPLY], migration=True,
         )
 
     def check_onboarding_schema(self, contract: TargetContract, release: Path) -> None:
@@ -879,6 +890,28 @@ class WorkerBackend:
         if (required or self.ranking_profile_reader_required(contract)) and not verified_profile_reader(release):
             raise OperationError("ranking_profile_reader_required")
 
+    def registration_reader_required(self) -> bool:
+        try:
+            result = subprocess.run(
+                [str(MIGRATION_AUDIT_HELPER), "registration-reader-floor", "--contract", str(self.contract_path)],
+                check=True, capture_output=True, text=True, timeout=30,
+            )
+            value = json.loads(result.stdout)
+            if (
+                not isinstance(value, dict) or type(value.get("format_version")) is not int
+                or value["format_version"] != 1 or type(value.get("reader_required")) is not bool
+            ):
+                raise ValueError
+        except (OSError, ValueError, subprocess.SubprocessError) as exc:
+            raise OperationError("registration_reader_floor_unavailable") from exc
+        return value["reader_required"]
+
+    def ensure_registration_reader(self, release: Path, *, required: bool = False) -> None:
+        if (required or self.registration_reader_required()) and not registration_compat.verified_reader_release(
+            release,
+        ):
+            raise OperationError("registration_reader_required")
+
     def legacy_service_matches(self, contract: TargetContract, source_root: Path) -> bool:
         try:
             result = subprocess.run(
@@ -1142,6 +1175,9 @@ def _deploy(
             contract, release,
             required=request.get("schema_disclosure", {}).get("kind") == ranking_profile_schema.KIND,
         )
+        backend.ensure_registration_reader(
+            release, required=request.get("schema_disclosure", {}).get("migration") == registration_schema.MIGRATION,
+        )
         backend.candidate_check(contract, release)
         transition(state_path, "prepared")
         if request["migration_class"] == "data-or-non-compatible":
@@ -1306,6 +1342,9 @@ def _deploy(
                 elif disclosure["migration"] == solution_sharing_schema.MIGRATION:
                     solution_sharing_schema.validate_build_evidence(release, disclosure)
                     backend.check_solution_sharing_schema(contract, release)
+                elif disclosure["migration"] == registration_schema.MIGRATION:
+                    registration_schema.validate_build_evidence(release, disclosure)
+                    backend.check_registration_schema(contract, release)
                 elif disclosure["migration"] == onboarding_schema.MIGRATION:
                     onboarding_schema.validate_build_evidence(release, disclosure)
                     backend.check_onboarding_schema(contract, release)
@@ -1360,6 +1399,8 @@ def _deploy(
                 backend.migrate_solution_collections_schema(contract, release)
             elif disclosure["migration"] == solution_sharing_schema.MIGRATION:
                 backend.migrate_solution_sharing_schema(contract, release)
+            elif disclosure["migration"] == registration_schema.MIGRATION:
+                backend.migrate_registration_schema(contract, release)
             elif disclosure["migration"] == onboarding_schema.MIGRATION:
                 backend.migrate_onboarding_schema(contract, release)
             elif disclosure["migration"] == solution_pdf_schema.MIGRATION:
@@ -1402,6 +1443,7 @@ def _deploy(
         required=request.get("schema_disclosure", {}).get("migration") == learning_schema.MIGRATION,
     )
     backend.ensure_ranking_profile_reader(contract, release)
+    backend.ensure_registration_reader(release)
     backend.activate(contract, request["release_sha"])
     try:
         health = backend.restart_and_verify(contract, request["release_sha"], request["artifact_digest"])
@@ -1425,6 +1467,7 @@ def _deploy(
         backend.ensure_document_reader(contract, safe_release_path(contract.releases_dir, baseline_sha))
         backend.ensure_learning_reader(contract, safe_release_path(contract.releases_dir, baseline_sha))
         backend.ensure_ranking_profile_reader(contract, safe_release_path(contract.releases_dir, baseline_sha))
+        backend.ensure_registration_reader(safe_release_path(contract.releases_dir, baseline_sha))
         try:
             if backend.state_fingerprint(contract) != ending_fingerprint:
                 raise OperationError("rollback_database_state_drift")
@@ -1504,6 +1547,7 @@ def _rollback(
     backend.ensure_document_reader(contract, safe_release_path(contract.releases_dir, request["release_sha"]))
     backend.ensure_learning_reader(contract, safe_release_path(contract.releases_dir, request["release_sha"]))
     backend.ensure_ranking_profile_reader(contract, safe_release_path(contract.releases_dir, request["release_sha"]))
+    backend.ensure_registration_reader(safe_release_path(contract.releases_dir, request["release_sha"]))
     before_fingerprint = backend.state_fingerprint(contract)
     if (
         current_record["state_fingerprint"] != before_fingerprint

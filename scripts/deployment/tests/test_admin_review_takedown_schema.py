@@ -17,8 +17,16 @@ from scripts.deployment.solution_forum_schema import FINGERPRINT_FIELDS
 FIXTURES = Path(__file__).parent / "fixtures"
 
 
-def test_frozen_candidate_and_rehearsal_delta():
-    schema.validate_candidate(Path.cwd())
+def test_frozen_candidate_and_rehearsal_delta(tmp_path):
+    root = Path.cwd()
+    successor = Path("inspinia/users/migrations/0010_public_registration.py")
+    for migration in root.glob("inspinia/**/migrations/*"):
+        relative = migration.relative_to(root)
+        if migration.suffix in {".py", ".json"} and relative != successor:
+            staged = tmp_path / relative
+            staged.parent.mkdir(parents=True, exist_ok=True)
+            staged.write_bytes(migration.read_bytes())
+    schema.validate_candidate(tmp_path)
     delta = json.loads((FIXTURES / "admin-review-takedown-schema-delta.json").read_bytes())
     assert schema_state(delta)["fingerprint"] == schema.DELTA_SHA256
     assert {row["column"] for row in delta["columns"]} == schema.COLUMNS

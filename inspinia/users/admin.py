@@ -85,11 +85,20 @@ class UserSessionAdmin(admin.ModelAdmin):
 
 @admin.register(UserAccessSettings)
 class UserAccessSettingsAdmin(admin.ModelAdmin):
-    list_display = ("auto_approve_new_users", "updated_at")
-    readonly_fields = ("created_at", "updated_at")
+    list_display = ("allow_public_registration", "auto_approve_new_users", "updated_at")
+    readonly_fields = ("allow_public_registration", "created_at", "updated_at")
 
     def has_add_permission(self, request):
         return not UserAccessSettings.objects.exists()
+
+    def has_delete_permission(self, request, obj=None):
+        return False
+
+    def save_model(self, request, obj, form, change):
+        # Registration changes go through User roles so they are audited.
+        if not change:
+            obj.pk = UserAccessSettings.get_solo().pk
+        obj.save(update_fields=["auto_approve_new_users", "updated_at"])
 
 
 @admin.register(AuditEvent)

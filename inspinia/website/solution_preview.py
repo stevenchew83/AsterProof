@@ -36,6 +36,7 @@ from inspinia.solutions.writer_drafts import get_writer_draft
 from inspinia.solutions.writer_drafts import stage_writer_draft
 from inspinia.solutions.writer_drafts import writer_document_source
 from inspinia.solutions.writer_drafts import writer_handoff_url
+from inspinia.users.models import UserAccessSettings
 
 from .solution_preview_latex import PUBLIC_PDF_CHARACTER_LIMIT
 from .solution_preview_latex import PUBLIC_PDF_TIMEOUT
@@ -148,7 +149,9 @@ def _continue_in_workspace(request, context):
     destination = writer_handoff_url()
     if request.user.is_authenticated:
         return redirect(destination)
-    account_view = "account_signup" if request.POST.get("action") == "continue_signup" else "account_login"
+    account_view = "account_login"
+    if request.POST.get("action") == "continue_signup" and UserAccessSettings.public_registration_is_open():
+        account_view = "account_signup"
     return redirect(reverse(account_view) + "?" + urlencode({"next": destination}))
 
 

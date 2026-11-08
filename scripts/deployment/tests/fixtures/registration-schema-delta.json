@@ -1,0 +1,18 @@
+{
+  "columns": [
+    {
+      "collation": null,
+      "column": "allow_public_registration",
+      "default": "true",
+      "nullable": false,
+      "position": 5,
+      "schema": "public",
+      "table": "users_useraccesssettings",
+      "type": "boolean"
+    }
+  ],
+  "constraints": [],
+  "extensions": [],
+  "indexes": [],
+  "tables": []
+}

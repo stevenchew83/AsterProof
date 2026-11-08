@@ -323,28 +323,41 @@ def collect_ranking_profile_reader_floor(config: AuditConfig, *, runner: Any = s
     }
 
 
+def collect_registration_reader_floor(config: AuditConfig, *, runner: Any = subprocess.run) -> dict[str, Any]:
+    from scripts.deployment.registration_compat import FLOOR_SQL
+
+    identity = collect_identity(config, runner=runner)
+    if identity["database_identity_hash"] != config.expected_database_identity_hash:
+        raise MigrationAuditError("registration compatibility audit database identity mismatch")
+    rows = _parse_csv(_run_query(config, FLOOR_SQL, runner=runner), 1)
+    if len(rows) != 1 or rows[0][0] not in {"t", "f"}:
+        raise MigrationAuditError("registration compatibility audit returned an invalid schema flag")
+    return {"format_version": 1, **identity, "reader_required": rows[0][0] == "t"}
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("command", choices=(
         "fingerprint", "identity", "catalog-snapshot", "catalogue-behaviour",
         "community-behaviour", "document-reader-floor", "learning-reader-floor", "ranking-profile-reader-floor",
+        "registration-reader-floor",
     ))
     parser.add_argument("--config", type=Path, default=DEFAULT_CONFIG)
     parser.add_argument("--contract", type=Path)
     args = parser.parse_args()
     del args.contract
     config = AuditConfig.load(args.config)
-    if args.command == "ranking-profile-reader-floor":
-        print(json.dumps(collect_ranking_profile_reader_floor(config), sort_keys=True, separators=(",", ":")))
-        return 0
-    if args.command == "learning-reader-floor":
-        print(json.dumps(collect_learning_reader_floor(config), sort_keys=True, separators=(",", ":")))
+    floor_checks = {
+        "registration-reader-floor": collect_registration_reader_floor,
+        "ranking-profile-reader-floor": collect_ranking_profile_reader_floor,
+        "learning-reader-floor": collect_learning_reader_floor,
+        "document-reader-floor": collect_document_reader_floor,
+    }
+    if args.command in floor_checks:
+        print(json.dumps(floor_checks[args.command](config), sort_keys=True, separators=(",", ":")))
         return 0
     if args.command == "community-behaviour":
         print(json.dumps(collect_community_behaviour(config), sort_keys=True, separators=(",", ":")))
-        return 0
-    if args.command == "document-reader-floor":
-        print(json.dumps(collect_document_reader_floor(config), sort_keys=True, separators=(",", ":")))
         return 0
     if args.command == "catalogue-behaviour":
         print(json.dumps(collect_catalogue_behaviour(config), sort_keys=True, separators=(",", ":")))
