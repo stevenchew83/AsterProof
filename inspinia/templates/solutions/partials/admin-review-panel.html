@@ -11,9 +11,9 @@
     <div class="card-body">
       {% if ai_reviews.allowance %}
         <p class="fs-sm text-muted mb-2">
-          <span class="fw-semibold text-body">{{ ai_reviews.allowance.problem_remaining }}</span> left for this problem
+          <span class="fw-semibold text-body">{{ ai_reviews.allowance.problem_remaining }}</span> reviews left for this problem
           <span aria-hidden="true">·</span>
-          <span class="fw-semibold text-body">{{ ai_reviews.allowance.account_remaining }}</span> left on your account
+          <span class="fw-semibold text-body">{{ ai_reviews.allowance.account_remaining }}</span> AI credits left
         </p>
       {% endif %}
       {% if ai_reviews.active %}

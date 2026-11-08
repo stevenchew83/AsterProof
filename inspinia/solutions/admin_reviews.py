@@ -11,12 +11,12 @@ from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.core.exceptions import PermissionDenied
 from django.db import transaction
-from django.db.models import Count
-from django.db.models import Q
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from django.views.decorators.debug import sensitive_variables
 
+from inspinia.pages.ai_credits import ACCOUNT_CREDIT_LIMIT
+from inspinia.pages.ai_credits import account_credits
 from inspinia.pages.models import ContestProblemStatement
 from inspinia.pages.study_help_access import assistance_restricted
 from inspinia.pages.study_help_access import lock_study_help
@@ -53,7 +53,6 @@ IMAGE_INPUT_ERROR = "An embedded proof image is missing or invalid. Re-upload it
 MODEL_LABELS = dict(MODEL_CHOICES)
 STATUS = AdminSolutionReview.Status
 LIVE_STATES = (STATUS.QUEUED, STATUS.RUNNING)
-ACCOUNT_REVIEW_LIMIT = 50
 PROBLEM_REVIEW_LIMIT = 2
 
 
@@ -74,23 +73,19 @@ def self_review_restricted(user, problem_uuid, statement_id):
 
 
 def self_review_allowance(user, problem_uuid):
-    usage = SelfSolutionReviewUsage.objects.filter(user=user).aggregate(
-        active=Count("pk", filter=Q(review__status__in=LIVE_STATES)),
-        completed=Count("pk", filter=Q(succeeded=True)),
-        completed_here=Count("pk", filter=Q(succeeded=True, problem_uuid=problem_uuid)),
-    )
+    usage = account_credits(user, problem_uuid)
     return {
-        "active": bool(usage["active"]),
-        "account_remaining": max(0, ACCOUNT_REVIEW_LIMIT - usage["completed"]),
-        "problem_remaining": max(0, PROBLEM_REVIEW_LIMIT - usage["completed_here"]),
+        "active": usage.hint_pending or usage.review_pending,
+        "account_remaining": usage.remaining,
+        "problem_remaining": max(0, PROBLEM_REVIEW_LIMIT - usage.reviews_here),
     }
 
 
 def self_review_limit_blocker(allowance):
     if allowance["active"]:
-        return "You already have an AI review in progress."
+        return "You already have an AI request in progress."
     if not allowance["account_remaining"]:
-        return "You have used all 50 AI reviews for your account."
+        return f"You have used all {ACCOUNT_CREDIT_LIMIT} AI credits for your account."
     if not allowance["problem_remaining"]:
         return "You have used both AI reviews for this problem."
     return ""
