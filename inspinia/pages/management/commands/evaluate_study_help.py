@@ -56,6 +56,7 @@ def _claim(prompt, fixture, action, prior, manifest):
         or not actor.is_active
         or not user_has_admin_role(actor)
         or policy.generation_enabled
+        or (manifest.get("mode") == "hint_pair" and settings.STUDY_HELP_ENABLED)
         or profile_digest(prompt, policy.model) != manifest["profile_digest"]
         or now >= manifest["expires"]
         or statement is None
@@ -96,7 +97,7 @@ def _claim(prompt, fixture, action, prior, manifest):
 
 
 class Command(BaseCommand):
-    help = "Run a reviewed archive-only sample. Redirect output to an approved private evidence file."
+    help = "Run a reviewed archive sample or single hint pair. Save output to approved private evidence storage."
 
     def add_arguments(self, parser):
         parser.add_argument("--manifest", required=True, type=Path)
@@ -120,6 +121,11 @@ class Command(BaseCommand):
             raise CommandError("The manifest does not match the approved digest.")
         try:
             manifest = json.loads(raw)
+            if not isinstance(manifest, dict):
+                raise TypeError
+            mode = manifest.get("mode", "sample")
+            if mode not in {"sample", "hint_pair"}:
+                raise ValueError
             expires = parse_datetime(manifest["expires"])
             if (
                 expires is None
@@ -129,19 +135,26 @@ class Command(BaseCommand):
                 or not 0 < manifest["budget_micros"] <= 1_000_000_000_000
             ):
                 raise ValueError
-            manifest.update(expires=expires, actor=actor, digest=digest, batch=sha256(approval.encode()).hexdigest())
+            manifest.update(
+                mode=mode, expires=expires, actor=actor, digest=digest, batch=sha256(approval.encode()).hexdigest(),
+            )
             prompt = StudyHelpPrompt.objects.get(pk=UUID(manifest["prompt"]))
-            fixtures = load_fixtures(manifest["fixtures"])
+            fixtures = load_fixtures(manifest["fixtures"], hint_pair=mode == "hint_pair")
         except (ValidationError, ValueError, TypeError, KeyError, StudyHelpPrompt.DoesNotExist) as error:
             raise CommandError("Invalid or expired approved sample manifest.") from error
 
         for statement, row in fixtures:
-            hint = self._attempt(prompt, statement, StudyHelpAction.HINT, None, manifest)
-            if hint:
-                self._attempt(prompt, statement, StudyHelpAction.STRONGER_HINT, hint, manifest)
-            proof = self._attempt(prompt, statement, StudyHelpAction.SOLUTION, None, manifest)
-            if proof and row["alternative"]:
-                self._attempt(prompt, statement, StudyHelpAction.ALTERNATIVE, proof, manifest)
+            self._evaluate_fixture(prompt, statement, row, manifest)
+
+    def _evaluate_fixture(self, prompt, statement, row, manifest):
+        hint = self._attempt(prompt, statement, StudyHelpAction.HINT, None, manifest)
+        if hint:
+            self._attempt(prompt, statement, StudyHelpAction.STRONGER_HINT, hint, manifest)
+        if manifest["mode"] == "hint_pair":
+            return
+        proof = self._attempt(prompt, statement, StudyHelpAction.SOLUTION, None, manifest)
+        if proof and row["alternative"]:
+            self._attempt(prompt, statement, StudyHelpAction.ALTERNATIVE, proof, manifest)
 
     def _attempt(self, prompt, statement, action, prior, manifest):
         receipt, model, payload = _claim(prompt, statement, action, prior, manifest)

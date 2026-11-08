@@ -17,9 +17,12 @@ PRIMARY = (StudyHelpAction.HINT, StudyHelpAction.STRONGER_HINT, StudyHelpAction.
 OUTCOMES = {"usable", "unusable", "abstained", "spoiler", "material_error"}
 
 
-def load_fixtures(rows):
-    if not isinstance(rows, list) or len(rows) != 24:
-        raise ValidationError("Provide exactly 24 archive fixtures.")
+def load_fixtures(rows, *, hint_pair=False):
+    expected = 1 if hint_pair else 24
+    if not isinstance(rows, list) or len(rows) != expected:
+        noun = "fixture" if hint_pair else "fixtures"
+        message = f"Provide exactly {expected} archive {noun}."
+        raise ValidationError(message)
     keys = set()
     fixtures = []
     for row in rows:
@@ -37,6 +40,10 @@ def load_fixtures(rows):
             raise ValidationError("Fixtures must be distinct, current, active text-only archive statements.")
         keys.add(key)
         fixtures.append((statement, row))
+    if hint_pair:
+        if rows[0]["alternative"]:
+            raise ValidationError("A hint pair cannot include an alternative proof.")
+        return fixtures
     counts = Counter(row["domain"] for _, row in fixtures)
     if any(counts[domain] != 6 for domain in DOMAINS) or sum(row["alternative"] for _, row in fixtures) != 8:
         raise ValidationError("Provide six fixtures per domain and eight marked for alternatives.")
