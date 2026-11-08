@@ -16,6 +16,7 @@ from django.utils import timezone
 from inspinia.pages.models import ContestProblemStatement
 from inspinia.pages.study_help import ProblemUsage
 from inspinia.pages.study_help import generation_prompt
+from inspinia.pages.study_help import generation_prompt_payload
 from inspinia.pages.study_help import generation_ready
 from inspinia.pages.study_help import pricing_ready
 from inspinia.pages.study_help import prompt_qualified
@@ -23,19 +24,26 @@ from inspinia.pages.study_help_access import assistance_restricted
 from inspinia.pages.study_help_access import draft_pilot_statement
 from inspinia.pages.study_help_access import lock_study_help
 from inspinia.pages.study_help_access import source_problem
+from inspinia.pages.study_help_access import statement_revision
+from inspinia.pages.study_help_models import HINT_ACTIONS
 from inspinia.pages.study_help_models import StudyHelpAdminEvent
 from inspinia.pages.study_help_models import StudyHelpEnrollment
 from inspinia.pages.study_help_models import StudyHelpPolicy
 from inspinia.pages.study_help_models import StudyHelpPrompt
 from inspinia.pages.study_help_models import StudyHelpQualification
+from inspinia.pages.study_help_models import StudyHelpRequest
 from inspinia.pages.study_help_models import StudyHelpSpend
+from inspinia.pages.study_help_pilot import LEARNER_ARM
 from inspinia.pages.study_help_pilot import PILOT_ARM
+from inspinia.pages.study_help_pilot import PILOT_FUNDING
 from inspinia.pages.study_help_pilot import PILOT_INPUT_PRICE
 from inspinia.pages.study_help_pilot import PILOT_MODEL
 from inspinia.pages.study_help_pilot import PILOT_OUTPUT_PRICE
 from inspinia.pages.study_help_pilot import PILOT_REQUEST_CAP
 from inspinia.pages.study_help_pilot import PILOT_STATEMENT
 from inspinia.pages.study_help_pilot import PILOT_TOTAL_CAP
+from inspinia.pages.study_help_pilot import pilot_authorization
+from inspinia.pages.study_help_pilot import pilot_lease
 from inspinia.pages.study_help_pilot import pilot_review_configuration
 from inspinia.pages.study_help_provider import profile_digest
 from inspinia.pages.study_help_qualification import load_fixtures
@@ -59,7 +67,10 @@ class Command(BaseCommand):
         readiness.add_argument("--prompt")
         receipt = subcommands.add_parser("receipt")
         receipt.add_argument("--receipt", required=True)
-        for operation in ("configure", "qualify", "enroll", "revoke", "enable", "pause", "reconcile", PILOT_ARM):
+        operations = (
+            "configure", "qualify", "enroll", "revoke", "enable", "pause", "reconcile", PILOT_ARM, LEARNER_ARM,
+        )
+        for operation in operations:
             sub = subcommands.add_parser(operation)
             sub.add_argument("--operator-id", type=int, required=True)
             sub.add_argument("--approval-ref", required=True)
@@ -74,6 +85,8 @@ class Command(BaseCommand):
                 sub.add_argument("--user-id", required=True, type=int)
             if operation == "enable":
                 sub.add_argument("--audience", choices=StudyHelpPolicy.Audience.values, required=True)
+            if operation == LEARNER_ARM:
+                sub.add_argument("--budget-micros", required=True, type=int)
             if operation == "reconcile":
                 sub.add_argument("--receipt", required=True)
                 sub.add_argument("--actual-micros", type=int, required=True)
@@ -96,6 +109,8 @@ class Command(BaseCommand):
                 policy, _ = StudyHelpPolicy.objects.get_or_create(pk=1)
                 if operation == PILOT_ARM:
                     self._arm_draft_pilot(policy, actor, reference)
+                elif operation == LEARNER_ARM:
+                    self._arm_bmo_learner_hints(policy, actor, reference, options["budget_micros"])
                 else:
                     prompt = getattr(self, "_" + operation)(policy, actor, reference, options)
                     StudyHelpAdminEvent.objects.create(
@@ -254,6 +269,59 @@ class Command(BaseCommand):
         StudyHelpAdminEvent.objects.create(
             actor=actor, action=PILOT_ARM, reference=f"{reference}|{config.key_version}", prompt=prompt,
         )
+
+    def _arm_bmo_learner_hints(self, policy, actor, reference, budget_micros):
+        pilot = pilot_authorization()
+        if (
+            pilot is None
+            or pilot_lease() is not None
+            or policy.generation_enabled
+            or StudyHelpAdminEvent.objects.filter(action=LEARNER_ARM).exists()
+        ):
+            raise CommandError("Learner access requires the original BMO pilot to have ended with generation paused.")
+        if not PILOT_TOTAL_CAP <= budget_micros <= MAX_MICROS or "|" in reference or len(reference) > 100:
+            raise CommandError("Use an approved total budget of at least US$0.14 and a bounded approval reference.")
+        prompt = generation_prompt(policy)
+        statement = ContestProblemStatement.objects.filter(statement_uuid=PILOT_STATEMENT).first()
+        if (
+            not prompt_qualified(prompt, policy.model)
+            or statement is None
+            or not draft_pilot_statement(statement)
+            or source_problem(statement)
+        ):
+            raise CommandError("The reviewed BMO statement and Level 1 prompt must be available.")
+        saved_actions = StudyHelpRequest.objects.filter(
+            owner_id=pilot.actor_id,
+            statement_uuid=PILOT_STATEMENT,
+            revision=statement_revision(statement),
+            funding_source=PILOT_FUNDING,
+            prompt=prompt,
+            model=PILOT_MODEL,
+            profile_digest=profile_digest(generation_prompt_payload(prompt), PILOT_MODEL),
+            state=StudyHelpRequest.State.READY,
+            revealed_at__isnull=False,
+            body__startswith="Hint (Level 1): ",
+        ).values_list("action", flat=True)
+        unresolved_spend = StudyHelpSpend.objects.exclude(state=StudyHelpSpend.State.SETTLED).exists()
+        if set(saved_actions) != set(HINT_ACTIONS) or unresolved_spend:
+            raise CommandError("Learner access requires both reviewed pilot hints and no pending or uncertain spend.")
+
+        config = pilot_review_configuration().first()
+        if not config or not read_credential(config):
+            raise CommandError("The configured AI Review model and saved key are required.")
+        StudyHelpAdminEvent.objects.create(
+            actor=actor,
+            action=LEARNER_ARM,
+            reference=f"{reference}|{config.key_version}|{budget_micros}",
+            prompt=prompt,
+        )
+        policy.audience = StudyHelpPolicy.Audience.ALL
+        policy.request_cap = PILOT_REQUEST_CAP
+        policy.day_cap = policy.month_cap = budget_micros
+        policy.generation_enabled = True
+        if not generation_ready(policy):
+            raise CommandError("The reviewed prices and a recent Study Help worker heartbeat are required.")
+        policy.save(update_fields=["audience", "request_cap", "day_cap", "month_cap", "generation_enabled"])
 
     def _pause(self, policy, _actor, _reference, _options):
         policy.generation_enabled = False

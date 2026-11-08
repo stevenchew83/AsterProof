@@ -13,6 +13,7 @@ from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.db import transaction
 from django.db.models import Sum
+from django.db.models.functions import Coalesce
 from django.utils import timezone
 
 from inspinia.pages.ai_credits import account_credits
@@ -40,7 +41,10 @@ from inspinia.pages.study_help_pilot import PILOT_OUTPUT_PRICE
 from inspinia.pages.study_help_pilot import PILOT_PROMPT
 from inspinia.pages.study_help_pilot import PILOT_REQUEST_CAP
 from inspinia.pages.study_help_pilot import PILOT_TOTAL_CAP
+from inspinia.pages.study_help_pilot import draft_learner_audience
+from inspinia.pages.study_help_pilot import learner_grant
 from inspinia.pages.study_help_pilot import pilot_lease
+from inspinia.pages.study_help_pilot import study_help_funding
 from inspinia.pages.study_help_provider import cost_micros
 from inspinia.pages.study_help_provider import input_messages
 from inspinia.pages.study_help_provider import maximum_tokens
@@ -208,14 +212,22 @@ def prompt_qualified(prompt, model):
 
 def generation_ready(policy):
     if settings.STUDY_HELP_DRAFT_HINT_PILOT_ENABLED:
+        if policy is None:
+            return False
+        if draft_learner_audience(policy):
+            grant = learner_grant()
+            authorized = grant is not None and policy.month_cap <= grant.budget_micros
+        else:
+            authorized = (
+                policy.audience == StudyHelpPolicy.Audience.COHORT
+                and policy.month_cap <= PILOT_TOTAL_CAP
+                and pilot_lease() is not None
+            )
         enabled = (
-            policy
-            and policy.audience == StudyHelpPolicy.Audience.COHORT
+            authorized
             and policy.input_price == PILOT_INPUT_PRICE
             and policy.output_price == PILOT_OUTPUT_PRICE
             and policy.request_cap <= PILOT_REQUEST_CAP
-            and policy.month_cap <= PILOT_TOTAL_CAP
-            and pilot_lease() is not None
         )
     else:
         enabled = settings.STUDY_HELP_ENABLED and settings.STUDY_HELP_OPENAI_API_KEY
@@ -235,6 +247,15 @@ def check_pilot_action(action):
 
 
 def budget_available(policy, additional=0):
+    if draft_learner_audience(policy):
+        grant = learner_grant()
+        if grant is None:
+            return False
+        # Receipts survive account deletion. Include all settled usage and outstanding reservations.
+        used = StudyHelpSpend.objects.filter(created_at__gte=grant.created_at).aggregate(
+            total=Sum(Coalesce("actual_micros", "reserved_micros")),
+        )["total"] or 0
+        return used + additional <= min(grant.budget_micros, policy.day_cap, policy.month_cap)
     now = timezone.now().astimezone(ZoneInfo("UTC"))
     day = now.replace(hour=0, minute=0, second=0, microsecond=0)
     month = day.replace(day=1)
@@ -463,7 +484,7 @@ def enqueue(user, statement_uuid, spec):
         model=policy.model,
         profile_digest=profile_digest(payload, policy.model),
         statement_text=statement.statement_latex,
-        funding_source=PILOT_FUNDING if settings.STUDY_HELP_DRAFT_HINT_PILOT_ENABLED else "asterproof",
+        funding_source=study_help_funding(policy),
         spend=StudyHelpSpend.objects.create(reserved_micros=reserve, **pricing),
     )
     StudyHelpEvent.objects.filter(

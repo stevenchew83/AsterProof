@@ -40,6 +40,8 @@ from inspinia.pages.study_help_models import StudyHelpPrompt
 from inspinia.pages.study_help_models import StudyHelpQualification
 from inspinia.pages.study_help_models import StudyHelpRequest
 from inspinia.pages.study_help_models import StudyHelpSpend
+from inspinia.pages.study_help_pilot import LEARNER_ARM
+from inspinia.pages.study_help_pilot import LEARNER_FUNDING
 from inspinia.pages.study_help_pilot import PILOT_ARM
 from inspinia.pages.study_help_pilot import PILOT_MODEL
 from inspinia.pages.study_help_pilot import PILOT_PROMPT
@@ -401,6 +403,114 @@ def test_expired_draft_pilot_only_allows_the_enrolled_admin_to_reopen_saved_hint
     assert b"data-study-help-draft" not in client.get(draft_url).content
     assert client.get(status_url).status_code == 404
     assert saved(client, archive, job).status_code == 404
+
+
+@pytest.fixture
+def finished_bmo_pilot(client, archive, draft_pilot):
+    admin, _, draft_url = draft_pilot
+    client.force_login(admin)
+    first, _ = enqueue(admin, archive.statement_uuid, spec(archive, "hint"))
+    assert process_next(provider_for("Hint (Level 1): Look for a pattern in the partial sums.")) == "ready"
+    assert saved(client, archive, first).status_code == 200
+    second, _ = enqueue(admin, archive.statement_uuid, spec(archive, "stronger_hint", 2, first.pk))
+    assert process_next(provider_for("Hint (Level 1): Compare two successive sums.")) == "ready"
+    assert saved(client, archive, second).status_code == 200
+    call_command("study_help_control", "pause", operator_id=admin.pk, approval_ref="fixture", stdout=StringIO())
+    StudyHelpAdminEvent.objects.filter(action=PILOT_ARM).update(created_at=timezone.now() - timedelta(minutes=31))
+    assert claim_next() is None
+    return admin, draft_url
+
+
+def authorize_bmo_learners(admin, budget=1_000_000):
+    call_command(
+        "study_help_control", LEARNER_ARM, operator_id=admin.pk, approval_ref="learner fixture",
+        budget_micros=budget, stdout=StringIO(),
+    )
+
+
+def test_bmo_learner_hints_use_shared_credits_and_stay_on_the_pinned_draft(
+    client, archive, learner, finished_bmo_pilot,
+):
+    admin, draft_url = finished_bmo_pilot
+    status_url = reverse("pages:study_help_status", args=[archive.statement_uuid])
+    client.force_login(learner)
+    assert client.get(status_url).status_code == 404
+    assert b"data-study-help-draft" not in client.get(draft_url).content
+    authorize_bmo_learners(admin)
+    assert pilot_review_key() == "review-key-fixture"
+    assert b"data-study-help-draft" in client.get(draft_url).content
+    assert submit(client, archive_statement(2), spec(archive, "hint")).status_code == 404
+    assert submit(client, archive, spec(archive, "solution")).status_code == 404
+    assert submit(client, archive, spec(archive, "alternative", 2)).status_code == 404
+    SelfSolutionReviewUsage.objects.create(
+        user=learner, problem_uuid=archive.problem_uuid, batch_id=uuid4(), succeeded=True,
+    )
+    assert client.get(status_url).json()["account_remaining"] == 49
+
+    first_body = "Hint (Level 1): What pattern do the partial sums suggest?"
+    first_request = submit(client, archive, spec(archive, "hint"))
+    assert first_request.status_code == 202
+    first = StudyHelpRequest.objects.get(pk=first_request.json()["id"])
+    assert first.funding_source == LEARNER_FUNDING
+    assert process_next(provider_for(first_body)) == "ready"
+    assert saved(client, archive, first).json()["status"]["account_remaining"] == 48
+
+    def second_provider(model, action, messages):
+        assert model == PILOT_MODEL
+        assert action == StudyHelpAction.STRONGER_HINT
+        assert "substantively different" in messages[0]["content"]
+        assert json.loads(messages[1]["content"])["prior_body"] == first_body
+        return result("Hint (Level 1): Compare successive sums.")
+
+    second_request = submit(client, archive, spec(archive, "stronger_hint", 2, first.pk))
+    assert second_request.status_code == 202
+    assert process_next(second_provider) == "ready"
+    assert self_review_allowance(learner, archive.problem_uuid)["account_remaining"] == 47
+    second = StudyHelpRequest.objects.get(pk=second_request.json()["id"])
+    assert saved(client, archive, second).json()["response"]["body"] == "Hint (Level 1): Compare successive sums."
+    assert submit(client, archive, spec(archive, "hint")).json()["code"] == "hint_statement_limit"
+    assert client.get(status_url).json()["actions"] == {}
+
+    call_command("study_help_control", "pause", operator_id=admin.pk, approval_ref="fixture", stdout=StringIO())
+    assert not pilot_review_key()
+    assert saved(client, archive, first).json()["status"]["account_remaining"] == 47
+    assert submit(client, archive, spec(archive, "hint")).json()["code"] == "generation_paused"
+    client.force_login(UserFactory(is_approved=False))
+    assert b"data-study-help-draft" not in client.get(draft_url).content
+    denied = client.get(status_url)
+    assert denied.status_code == 302
+    assert denied.url == reverse("users:approval_pending")
+
+
+def test_bmo_learner_cap_counts_receipts_from_earlier_days_without_an_account(
+    client, archive, learner, finished_bmo_pilot,
+):
+    admin, _ = finished_bmo_pilot
+    with pytest.raises(CommandError, match="approved total budget"):
+        authorize_bmo_learners(admin, 100)
+    StudyHelpPolicy.objects.update(worker_checked_at=None)
+    with pytest.raises(CommandError, match="recent Study Help worker heartbeat"):
+        authorize_bmo_learners(admin)
+    assert not StudyHelpAdminEvent.objects.filter(action=LEARNER_ARM).exists()
+    assert not StudyHelpPolicy.objects.get().generation_enabled
+    assert claim_next() is None
+    authorize_bmo_learners(admin)
+    now = timezone.now()
+    StudyHelpAdminEvent.objects.filter(action=LEARNER_ARM).update(created_at=now - timedelta(days=3))
+    receipt = StudyHelpSpend.objects.create(
+        reserved_micros=999_999,
+        actual_micros=999_999,
+        state=StudyHelpSpend.State.SETTLED,
+        input_price=1,
+        output_price=1,
+        dispatched_at=now - timedelta(days=2),
+    )
+    StudyHelpSpend.objects.filter(pk=receipt.pk).update(created_at=now - timedelta(days=2))
+    client.force_login(learner)
+    response = submit(client, archive, spec(archive, "hint"))
+    assert response.status_code == 503
+    assert response.json()["code"] == "budget_limit"
+    assert not StudyHelpRequest.objects.filter(owner=learner).exists()
 
 
 @pytest.mark.parametrize("change", ["statement", "prompt", "proof", "expiry"])
