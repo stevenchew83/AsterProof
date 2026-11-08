@@ -3300,45 +3300,29 @@ textarea.form-control-lg {
   margin: 0;
   font-weight: 600;
 }
+.problem-solving .solving-pane-heading label {
+  cursor: text;
+}
 .problem-solving .solving-pane-heading > span {
   font-size: 10px;
   color: var(--w-muted);
 }
-.problem-solving .solving-input-block {
-  margin-bottom: 16px;
-}
-.problem-solving .solving-input-block label {
-  display: -webkit-box;
-  display: -ms-flexbox;
-  display: flex;
-  -webkit-box-align: center;
-      -ms-flex-align: center;
-          align-items: center;
-  gap: 10px;
-  font-size: 11px;
-  font-weight: 600;
-  margin-bottom: 6px;
-}
-.problem-solving .solving-input-block label span {
-  color: var(--w-muted);
-  font-size: 9px;
-  font-weight: 400;
-}
-.problem-solving .solving-input-block textarea {
+.problem-solving .solving-document-source {
   display: block;
   width: 100%;
-  min-height: 92px;
+  min-height: 360px;
+  margin-bottom: 16px;
   resize: vertical;
   border: 1px solid #b9c9bf;
   border-radius: 3px;
   background: #fffefa;
   color: var(--w-ink);
-  padding: 10px 12px;
-  font: 12px/1.7 ui-monospace, SFMono-Regular, Consolas, monospace;
+  padding: 12px;
+  font: 12px/1.75 ui-monospace, SFMono-Regular, Consolas, monospace;
   -webkit-transition: border-color 0.2s;
   transition: border-color 0.2s;
 }
-.problem-solving .solving-input-block textarea:focus {
+.problem-solving .solving-document-source:focus {
   border-color: var(--w-accent);
 }
 .problem-solving .solving-preview-pane {
@@ -3355,16 +3339,7 @@ textarea.form-control-lg {
   letter-spacing: -0.025em;
   margin: 0 0 28px;
 }
-.problem-solving .solving-preview-block {
-  margin-bottom: 20px;
-}
-.problem-solving .solving-preview-block h5, .problem-solving .solving-preview-block .h5 {
-  font-size: 11px;
-  font-weight: 600;
-  color: var(--w-accent);
-  margin-bottom: 7px;
-}
-.problem-solving .solving-preview-block > div {
+.problem-solving .solving-preview-document {
   font-size: 13px;
   line-height: 1.8;
   white-space: pre-wrap;
@@ -3711,7 +3686,7 @@ textarea.form-control-lg {
   .problem-solving .solving-write-pane, .problem-solving .solving-preview-pane {
     padding: 16px;
   }
-  .problem-solving .solving-input-block textarea {
+  .problem-solving .solving-document-source {
     font-size: 16px;
   }
   .problem-solving .solving-preview-paper {
