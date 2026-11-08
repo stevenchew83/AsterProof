@@ -84,16 +84,22 @@ def test_my_solutions_links_to_the_saved_entry_and_keeps_admin_drafts_private(cl
     assert detail.context["solution"].pk == solution.pk
 
 
-def test_my_solutions_shows_shared_zero_score_and_marks_changed_statement_as_earlier(client, solution, settings):
+@pytest.mark.parametrize(
+    ("score", "tone"), [(0, "danger"), (1, "danger"), (3, "warning"), (6, "success"), (7, "success")],
+)
+def test_my_solutions_shows_current_shared_score_bar(client, solution, settings, score, tone):
     settings.SELF_SOLUTION_REVIEW_ENABLED = False
-    review = _review(solution, Status.COMPLETED, score=0, shared=True)
-    _review(solution, Status.COMPLETED, score=7)
+    review = _review(solution, Status.COMPLETED, score=score, shared=True)
+    _review(solution, Status.COMPLETED, score=2)
     review_url = reverse("solutions:solution_detail", args=[solution.pk]) + "#ai-review"
 
     html = _inventory(client, solution)
     assert f'href="{review_url}"' in html
-    assert "0/7</span> · Reviewed" in html
-    assert "7/7" not in html
+    assert f"{score}/7</span> · Reviewed" in html
+    assert f'class="progress-bar bg-{tone}"' in html
+    assert f"width: calc({score} * 100% / 7)" in html
+    assert ("progress progress-sm mt-1 bg-danger-subtle" in html) == (score == 0)
+    assert "2/7" not in html
     assert FEEDBACK not in html
 
     ContestProblemStatement.objects.filter(pk=review.target.statement_id_value).update(
@@ -101,7 +107,8 @@ def test_my_solutions_shows_shared_zero_score_and_marks_changed_statement_as_ear
     )
     html = _inventory(client, solution)
     assert "Earlier version</a>" in html
-    assert "0/7" not in html
+    assert f"{score}/7" not in html
+    assert 'class="progress-bar ' not in html
 
 
 @pytest.mark.parametrize(
