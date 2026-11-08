@@ -320,6 +320,17 @@
       ],
       "rationale": "Creates only four isolated immutable reference-package, human-decision, synthetic-report and hint-reveal tables across two frozen migrations. No backfill, account permission grants, publication, policy funding or provider activation. Existing evaluation workspace models and migration 0010 remain unchanged. Requires the exact PostgreSQL 17.9 preservation proof and a separately installed trusted allowance; this classification grants no production authority."
     },
+    "solutions.0016_admin_review_takedown": {
+      "classification": "backward-compatible-schema",
+      "recovery_required": false,
+      "code_rollback_permitted": true,
+      "data_preconditions": [
+        "self_review_usage_schema_applied",
+        "existing_review_scores_publication_and_notification_preserved",
+        "take_down_columns_initially_null"
+      ],
+      "rationale": "Adds two nullable fields to existing AI reviews, with an index and a user reference for the take-down actor. Existing scores, feedback, publication state and notification state are preserved. There is no backfill. Code recovery retains the columns and take-down records. Production application requires a separately reviewed frozen allowance and PostgreSQL preservation proof."
+    },
     "solutions.0015_self_solution_review_usage": {
       "classification": "backward-compatible-schema",
       "recovery_required": false,

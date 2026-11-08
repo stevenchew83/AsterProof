@@ -22,6 +22,7 @@ from django.db import close_old_connections
 from django.db import connection
 from django.db import connections
 from django.db import transaction
+from django.db.migrations.executor import MigrationExecutor
 from django.http import QueryDict
 from django.test import Client
 from django.urls import reverse
@@ -406,6 +407,51 @@ def test_worker_skips_claimed_notice_when_review_is_taken_down_before_sending(cl
     review.refresh_from_db()
     assert review.notification == AdminSolutionReview.Notification.NONE
     assert not getattr(mail, "outbox", [])
+
+
+@pytest.mark.django_db(transaction=True)
+def test_postgresql_takedown_migration_preserves_an_existing_published_review(client, proof, config):
+    if connection.vendor != "postgresql":
+        pytest.skip("Requires PostgreSQL migration and constraint checks.")
+    queue(client, proof, config, models=MODELS[:1])
+    review = AdminSolutionReview.objects.get()
+    AdminSolutionReview.objects.filter(pk=review.pk).update(
+        status="completed", score=0, feedback=FEEDBACK, published_at=timezone.now(), published_by=proof.admin,
+        notification=AdminSolutionReview.Notification.PENDING,
+    )
+
+    previous = ("solutions", "0015_self_solution_review_usage")
+    migration = ("solutions", "0016_admin_review_takedown")
+    executor = MigrationExecutor(connection)
+    leaves = executor.loader.graph.leaf_nodes()
+    table = AdminSolutionReview._meta.db_table  # noqa: SLF001
+    try:
+        executor.migrate([previous])
+        legacy = executor.loader.project_state([previous]).apps.get_model("solutions", "AdminSolutionReview")
+        before = legacy.objects.values().get(pk=review.pk)
+        with connection.cursor() as cursor:
+            old_constraints = connection.introspection.get_constraints(cursor, table)
+
+        executor = MigrationExecutor(connection)
+        assert [(node.app_label, node.name, backwards) for node, backwards in executor.migration_plan(leaves)] == [
+            (*migration, False),
+        ]
+        executor.migrate(leaves)
+
+        assert AdminSolutionReview.objects.values().get(pk=review.pk) == {
+            **before, "taken_down_at": None, "taken_down_by_id": None,
+        }
+        with connection.cursor() as cursor:
+            constraints = connection.introspection.get_constraints(cursor, table)
+        assert {name: constraints[name] for name in old_constraints} == old_constraints
+        additions = [value for name, value in constraints.items() if name not in old_constraints]
+        assert all(value["columns"] == ["taken_down_by_id"] for value in additions)
+        assert sorted((value["index"], value["foreign_key"]) for value in additions) == [
+            (False, ("users_user", "id")), (True, None),
+        ]
+        connection.check_constraints(table_names=[table])
+    finally:
+        MigrationExecutor(connection).migrate(leaves)
 
 
 def test_missing_solution_and_statement_block_generation(client, proof, config):
