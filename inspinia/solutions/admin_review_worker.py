@@ -222,7 +222,14 @@ def claim_review():
 
 def process_claim(review_id, *, notification=False):
     if notification:
-        review = _review_jobs().filter(pk=review_id, notification=Notice.SENDING).first()
+        with transaction.atomic():
+            review = _review_jobs().select_for_update(of=("self",)).filter(
+                pk=review_id, notification=Notice.SENDING,
+            ).first()
+            if review and review.published_at is None:
+                review.notification = Notice.NONE
+                review.save(update_fields=["notification"])
+                review = None
         return {"review": str(review_id), "notification": _notify(review) if review else "skipped"}
     review = _review_jobs().filter(pk=review_id, status=Status.RUNNING).first()
     return {"review": str(review_id), "status": _generate(review) if review else "skipped"}

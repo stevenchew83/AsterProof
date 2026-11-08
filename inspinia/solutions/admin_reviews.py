@@ -15,6 +15,7 @@ from django.db.models import Count
 from django.db.models import Q
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
+from django.utils.dateparse import parse_datetime
 from django.views.decorators.debug import sensitive_variables
 
 from inspinia.pages.models import ContestProblemStatement
@@ -191,7 +192,12 @@ def _batch_config(data, *, self_requested):
 def _validate_self_request(user, solution, target):
     if self_review_restricted(user, solution.problem.problem_uuid, target.statement_id_value):
         raise forum.ForumError("AI review is restricted for this problem.")
-    if target.ai_reviews.filter(self_request__user=user, status=STATUS.COMPLETED).exists():
+    completed = target.ai_reviews.filter(
+        self_request__user=user, status=STATUS.COMPLETED,
+    ).only("taken_down_at").first()
+    if completed:
+        if completed.taken_down_at:
+            raise forum.ForumError("You already used an AI review for this version.")
         raise forum.ForumError("Your review for this version is awaiting publication.")
     if blocker := self_review_limit_blocker(self_review_allowance(user, solution.problem.problem_uuid)):
         raise forum.ForumError(blocker)
@@ -261,18 +267,33 @@ def enqueue(user, solution_pk, data):
     return True
 
 
-@transaction.atomic
-def publish(user, solution_pk, review_id):
-    require_admin(user)
-    lock_study_help()
-    solution = _locked_solution(solution_pk)
-    review = get_object_or_404(
+def _locked_review(solution, review_id):
+    return get_object_or_404(
         AdminSolutionReview.objects.select_for_update(of=("self",)).select_related("target"),
         pk=review_id,
         target__solution=solution,
     )
+
+
+def _timestamp_matches(value, recorded_at):
+    if recorded_at is None:
+        return not value
+    try:
+        return parse_datetime(value) == recorded_at
+    except ValueError:
+        return False
+
+
+@transaction.atomic
+def publish(user, solution_pk, review_id, *, last_taken_down=""):
+    require_admin(user)
+    lock_study_help()
+    solution = _locked_solution(solution_pk)
+    review = _locked_review(solution, review_id)
     if review.published_at:
         return False
+    if not _timestamp_matches(last_taken_down, review.taken_down_at):
+        raise forum.ForumError("Publication changed. Refresh before publishing this review.")
     current = forum.current_target_data(solution)
     if (review.solver_id != solution.author_id or review.target.key != current["key"]
             or review.problem_label != problem_label(solution)
@@ -289,6 +310,25 @@ def publish(user, solution_pk, review_id):
         raise forum.ForumError("A review has already been published for this version.")
     review.published_by = user
     review.published_at = timezone.now()
-    review.notification = AdminSolutionReview.Notification.PENDING
+    if review.will_notify_on_publish:
+        review.notification = AdminSolutionReview.Notification.PENDING
     review.save(update_fields=["published_by", "published_at", "notification"])
+    return True
+
+
+@transaction.atomic
+def take_down(user, solution_pk, review_id, publication):
+    require_admin(user)
+    review = _locked_review(_locked_solution(solution_pk), review_id)
+    if review.published_at is None:
+        return False
+    if not _timestamp_matches(publication, review.published_at):
+        raise forum.ForumError("Publication changed. Refresh the queue before taking down this review.")
+    review.taken_down_at = timezone.now()
+    review.taken_down_by = user
+    review.published_at = None
+    review.published_by = None
+    if review.notification == AdminSolutionReview.Notification.PENDING:
+        review.notification = AdminSolutionReview.Notification.NONE
+    review.save(update_fields=["taken_down_at", "taken_down_by", "published_at", "published_by", "notification"])
     return True

@@ -15,6 +15,10 @@ urlpatterns = [
         "entries/<int:solution_pk>/ai-review/<uuid:review_id>/publish/",
         ai.publish_view, name="admin_ai_review_publish",
     ),
+    path(
+        "entries/<int:solution_pk>/ai-review/<uuid:review_id>/take-down/",
+        ai.take_down_view, name="admin_ai_review_take_down",
+    ),
     path("entries/<int:solution_pk>/", views.solution_detail, name="solution_detail"),
     path("entries/<int:solution_pk>/actions/<str:action>/", views.forum_action, name="forum_action"),
     path("entries/<int:solution_pk>/history/", views.forum_history, name="forum_history"),

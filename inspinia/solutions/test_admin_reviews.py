@@ -134,6 +134,10 @@ def publisher(proof, review):
     return reverse("solutions:admin_ai_review_publish", args=[proof.solution.pk, review.pk])
 
 
+def take_down_url(proof, review):
+    return reverse("solutions:admin_ai_review_take_down", args=[proof.solution.pk, review.pk])
+
+
 def response(score=6, feedback=FEEDBACK):
     return SimpleNamespace(status="completed", id="resp_fixture", output_text=json.dumps({
         "score": score, "feedback": feedback,
@@ -271,7 +275,7 @@ def test_admin_can_compare_drafts_then_publish_once_to_solver(client, proof, con
 
 
 @pytest.mark.usefixtures("self_review_enabled")
-def test_admin_queue_lists_active_model_requests_and_refreshes_privately(client, proof, config, second_solution):
+def test_admin_queue_keeps_the_same_rows_after_completion_or_failure(client, proof, config, second_solution):
     queue(client, proof, config)
     waiting = list(AdminSolutionReview.objects.order_by("created_at", "pk"))
     client.force_login(proof.author)
@@ -289,19 +293,119 @@ def test_admin_queue_lists_active_model_requests_and_refreshes_privately(client,
     client.force_login(proof.admin)
     page = client.get(url)
     assert page.status_code == HTTPStatus.OK
-    assert list(page.context["queue_page"]) == [running, *waiting]
+    assert list(page.context["queue_rows"]) == [running, *waiting]
     assert b"2 waiting" in page.content
     assert b"1 reviewing" in page.content
     assert b">Solver</td>" in page.content
     assert b">Admin</td>" in page.content
-    assert f'{reverse("solutions:solution_detail", args=[second_solution.pk])}#ai-review'.encode() in page.content
+    solution_url = reverse("solutions:solution_detail", args=[second_solution.pk])
+    assert f"{solution_url}?ai_review={running.pk}".encode() in page.content
     assert b"Check the equality case." not in page.content
 
     AdminSolutionReview.objects.filter(pk=running.pk).update(status="failed")
+    AdminSolutionReview.objects.filter(pk=waiting[0].pk).update(status="completed", score=0, feedback=FEEDBACK)
     fragment = client.get(url, {"fragment": "1"})
     assert "no-store" in fragment["Cache-Control"]
-    assert list(fragment.context["queue_page"]) == waiting
+    assert list(fragment.context["queue_rows"]) == [waiting[1], running, waiting[0]]
+    assert f'id="ai-queue-{waiting[0].pk}"'.encode() in fragment.content
+    assert b"0 / 7" in fragment.content
+    assert b"Unpublished" in fragment.content
+    assert b"Failed" in fragment.content
     assert b"0 reviewing" in fragment.content
+    assert b"Check the equality case." not in fragment.content
+
+
+def test_queue_history_pages_and_dates_keep_all_active_reviews(client, proof, config, review_backlog, monkeypatch):
+    monkeypatch.setattr("inspinia.solutions.admin_review_views.QUEUE_HISTORY_SIZE", 2)
+    active, *history = review_backlog
+    now = timezone.now()
+    old = now - timedelta(days=5)
+    AdminSolutionReview.objects.filter(pk__in=[row.pk for row in history]).update(status="failed")
+    AdminSolutionReview.objects.filter(pk=history[0].pk).update(created_at=old)
+    url = reverse(QUEUE_URL)
+
+    first = client.get(url)
+    assert list(first.context["queue_rows"]) == [active, *history[-2:][::-1]]
+    assert first.context["history_page"].paginator.count == len(history)
+    assert b"Older history" in first.content
+
+    last = client.get(url, {"page": 3})
+    assert list(last.context["queue_rows"]) == [active, history[1], history[0]]
+    filtered = client.get(url, {"date_to": timezone.localdate(old).isoformat()})
+    assert list(filtered.context["queue_rows"]) == [active, history[0]]
+
+
+@pytest.mark.parametrize("send_before_take_down", [False, True])
+def test_queue_publish_and_take_down_preserve_history_and_hide_solver_feedback(
+    client, proof, config, monkeypatch, send_before_take_down,
+):
+    queue(client, proof, config, models=MODELS[:1])
+    monkeypatch.setattr(worker, "request_review", Mock(return_value=response(score=0)))
+    assert worker.process_next()["status"] == "completed"
+    review = AdminSolutionReview.objects.get()
+    queue_url = reverse(QUEUE_URL)
+    date = timezone.localdate(review.created_at).isoformat()
+    suffix = f"?date_to={date}&page=1"
+    publish = f"{publisher(proof, review)}?from_queue=1&date_to={date}&page=1"
+    take_down = take_down_url(proof, review) + suffix
+    assert client.post(publish).url == queue_url + suffix
+    review.refresh_from_db()
+    publication = {"publication": review.published_at.isoformat()}
+    published_queue = client.get(queue_url)
+    assert b"Published to solver" in published_queue.content
+    assert b"Take down</button>" in published_queue.content
+    if send_before_take_down:
+        assert worker.process_next()["notification"] == "sent"
+
+    client.force_login(proof.author)
+    linked_review = {"ai_review": review.pk}
+    assert b"Check the equality case." in client.get(proof.url, linked_review).content
+    assert client.post(take_down, publication).status_code == HTTPStatus.FORBIDDEN
+    client.force_login(proof.admin)
+    assert client.get(take_down).status_code == HTTPStatus.METHOD_NOT_ALLOWED
+    assert client.post(take_down, publication).url == queue_url + suffix
+    assert client.post(take_down, publication).url == queue_url + suffix
+    review.refresh_from_db()
+    assert review.published_at is None
+    assert review.taken_down_by == proof.admin
+    assert review.taken_down_at is not None
+    assert review.score == 0
+    assert review.feedback == FEEDBACK
+    assert b"Taken down" in client.get(queue_url).content
+    assert b"Check the equality case." in client.get(proof.url, linked_review).content
+    assert worker.process_next()["status"] == "idle"
+
+    client.force_login(proof.author)
+    hidden = client.get(proof.url, linked_review)
+    assert b"Check the equality case." not in hidden.content
+    assert b"0 / 7" not in hidden.content
+    assert f'id="ai-review-{review.pk}"'.encode() not in hidden.content
+
+    client.force_login(proof.admin)
+    client.post(publish)
+    review.refresh_from_db()
+    assert review.published_at is None  # A replay of the original publish cannot undo a take-down.
+    client.post(publish, {"last_taken_down": review.taken_down_at.isoformat()})
+    client.post(take_down, publication)
+    review.refresh_from_db()
+    assert review.published_at is not None  # A stale take-down cannot revoke a newer publication.
+    expected = "sent" if send_before_take_down else "pending"
+    assert review.notification == expected
+
+
+def test_worker_skips_claimed_notice_when_review_is_taken_down_before_sending(client, proof, config, monkeypatch):
+    queue(client, proof, config, models=MODELS[:1])
+    monkeypatch.setattr(worker, "request_review", Mock(return_value=response()))
+    worker.process_next()
+    review = AdminSolutionReview.objects.get()
+    client.post(publisher(proof, review))
+    assert worker.claim_notification() == review.pk
+    review.refresh_from_db()
+    client.post(take_down_url(proof, review), {"publication": review.published_at.isoformat()})
+    assert worker.process_claim(review.pk, notification=True)["notification"] == "skipped"
+    review.refresh_from_db()
+    assert review.notification == AdminSolutionReview.Notification.NONE
+    assert not getattr(mail, "outbox", [])
 
 
 def test_missing_solution_and_statement_block_generation(client, proof, config):
