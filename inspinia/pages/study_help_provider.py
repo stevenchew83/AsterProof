@@ -11,6 +11,8 @@ from django.conf import settings
 
 from inspinia.pages.study_help_models import HINT_ACTIONS
 from inspinia.pages.study_help_models import StudyHelpAction
+from inspinia.pages.study_help_pilot import PILOT_MODEL
+from inspinia.pages.study_help_pilot import pilot_review_key
 
 HINT_PROMPT = (
     "Help a competition-math student make their own progress. Give one short observation or question. "
@@ -152,7 +154,13 @@ def validate_result(action, result, prior):
 
 def call_provider(model, action, messages, *, evaluation=False):
     enabled = settings.STUDY_HELP_EVALUATION_ENABLED if evaluation else settings.STUDY_HELP_ENABLED
-    if not enabled or not settings.STUDY_HELP_OPENAI_API_KEY:
+    key = settings.STUDY_HELP_OPENAI_API_KEY
+    provider_options = {}
+    if settings.STUDY_HELP_DRAFT_HINT_PILOT_ENABLED:
+        enabled = not evaluation and action in HINT_ACTIONS and model == PILOT_MODEL
+        key = pilot_review_key() if enabled else ""
+        provider_options["service_tier"] = "default"
+    if not enabled or not key:
         return ProviderResult(error="provider_disabled", definitive_rejection=True)
     try:
         import openai
@@ -162,7 +170,7 @@ def call_provider(model, action, messages, *, evaluation=False):
     _, output_limit = maximum_tokens(action, messages)
     try:
         with openai.OpenAI(
-            api_key=settings.STUDY_HELP_OPENAI_API_KEY,
+            api_key=key,
             timeout=TIMEOUT_SECONDS,
             max_retries=0,
         ) as client:
@@ -174,6 +182,7 @@ def call_provider(model, action, messages, *, evaluation=False):
                 text={
                     "format": {"type": "json_schema", "name": "archive_study_help", "strict": True, "schema": SCHEMA},
                 },
+                **provider_options,
             )
     except openai.APIStatusError as error:
         return ProviderResult(

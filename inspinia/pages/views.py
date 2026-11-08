@@ -5916,7 +5916,7 @@ def problem_statement_detail_view(request, statement_uuid: uuid.UUID):
 
     context = {
         "problem_statement": statement,
-        "show_study_help": settings.STUDY_HELP_ENABLED,
+        "show_study_help": settings.STUDY_HELP_ENABLED and not settings.STUDY_HELP_DRAFT_HINT_PILOT_ENABLED,
         "problem_statement_context": {
             "completion_display": (
                 completion_date.isoformat()
