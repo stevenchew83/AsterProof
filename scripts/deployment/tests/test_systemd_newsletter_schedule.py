@@ -1,6 +1,7 @@
 # ruff: noqa: S603, T201, PLR2004
 """Verify maintenance isolation on synthetic units on an ephemeral Actions host."""
 
+import json
 import os
 import re
 import subprocess
@@ -23,12 +24,12 @@ pytestmark = pytest.mark.skipif(
 
 
 
-def _pool_ready(unit):
+def _worker_logged(unit, marker):
     journal = subprocess.run(
         ["/usr/bin/journalctl", "-u", unit, "-o", "cat", "-n", "12", "--no-pager"],
         check=True, capture_output=True, text=True, timeout=10,
     )
-    return "review-pool-ready" in journal.stdout
+    return marker in journal.stdout
 
 
 @pytest.mark.parametrize(("kind", "service_name", "timer_name"), [
@@ -51,13 +52,29 @@ def test_worker_cannot_start_drained_app_and_stops_with_app(tmp_path, kind, serv
     # synthetic executable/path. No application environment or data is used.
     executable = "/bin/sleep 600"
     if kind == "admin-reviews":
-        executable = (
-            '/usr/bin/python3 -c "import os, time; from concurrent.futures import ProcessPoolExecutor; '
-            "from multiprocessing import get_context; pool = ProcessPoolExecutor(max_workers=6, "
-            "mp_context=get_context('spawn')); assert pool.submit(os.getpid).result(timeout=10) != os.getpid(); "
-            'print(\'review-pool-ready\', flush=True); time.sleep(600)"'
-        )
-    service = re.sub(r"^ExecStart=.*$", f"ExecStart={executable}", units[service_name], flags=re.MULTILINE)
+        driver = """
+import os, signal, time
+from concurrent.futures import ProcessPoolExecutor
+from multiprocessing import get_context
+
+stopping = False
+
+def stop(*_):
+    global stopping
+    stopping = True
+
+signal.signal(signal.SIGTERM, stop)
+with ProcessPoolExecutor(max_workers=6, mp_context=get_context('spawn')) as pool:
+    assert pool.submit(os.getpid).result(timeout=10) != os.getpid()
+    pending = pool.submit(time.sleep, 1)
+    print('review-pool-ready', flush=True)
+    while not stopping:
+        time.sleep(0.05)
+    pending.result(timeout=10)
+print('review-pool-drained', flush=True)
+"""
+        executable = f"/usr/bin/python3 -c {json.dumps(driver)}"
+    service = re.sub(r"^ExecStart=.*$", lambda _: f"ExecStart={executable}", units[service_name], flags=re.MULTILINE)
     service = re.sub(r"^WorkingDirectory=.*$", "WorkingDirectory=/", service, flags=re.MULTILINE)
     definitions = {
         app: f"[Service]\nType=simple\nUser={app_user}\nExecStart=/bin/sleep 600\nTimeoutStopSec=10s\n",
@@ -86,7 +103,7 @@ def test_worker_cannot_start_drained_app_and_stops_with_app(tmp_path, kind, serv
         systemctl("start", app)
         systemctl("start", "--no-block", job)
         for _ in range(80):
-            if pid(job) not in {"", "0"} and (kind != "admin-reviews" or _pool_ready(job)):
+            if pid(job) not in {"", "0"} and (kind != "admin-reviews" or _worker_logged(job, "review-pool-ready")):
                 break
             time.sleep(0.1)
         else:
@@ -94,6 +111,8 @@ def test_worker_cannot_start_drained_app_and_stops_with_app(tmp_path, kind, serv
         systemctl("stop", app)
         assert pid(app) == "0"
         assert pid(job) == "0"
+        if kind == "admin-reviews":
+            assert _worker_logged(job, "review-pool-drained")
         systemctl("start", app)
         assert pid(job) == "0", "Starting the app must not launch heavy maintenance"
         systemctl("restart", app)

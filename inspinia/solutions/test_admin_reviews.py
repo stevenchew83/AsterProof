@@ -2,11 +2,13 @@
 
 import base64
 import json
+import signal
 import uuid
 from concurrent.futures import ThreadPoolExecutor
 from datetime import timedelta
 from http import HTTPStatus
 from io import BytesIO
+from io import StringIO
 from queue import Queue
 from threading import Barrier
 from threading import Event
@@ -17,6 +19,7 @@ import pytest
 from cryptography.fernet import Fernet
 from django.core import mail
 from django.core.files.base import ContentFile
+from django.core.management import call_command
 from django.db import IntegrityError
 from django.db import close_old_connections
 from django.db import connection
@@ -763,7 +766,7 @@ def test_worker_refills_a_review_slot_while_other_reviews_and_email_are_running(
 
     def drain(executor):
         try:
-            worker.drain_queue(executor, execute, results.append)
+            worker.drain_queue(executor, execute, results.append, stop_requested=lambda: False)
         finally:
             connections.close_all()
 
@@ -783,6 +786,49 @@ def test_worker_refills_a_review_slot_while_other_reviews_and_email_are_running(
     assert provider.call_count == len(review_ids)
     assert {result["review"] for result in results if result.get("status") == "completed"} == set(map(str, review_ids))
     assert {result["review"] for result in results if result.get("notification") == "sent"} == {str(notice.pk)}
+
+
+@pytest.mark.django_db(transaction=True)
+def test_sigterm_finishes_claimed_reviews_and_leaves_queued_reviews(review_backlog, monkeypatch):
+    original_handler = signal.getsignal(signal.SIGTERM)
+    claim_review = worker.claim_review
+    in_progress = [review.pk for review in review_backlog[:2]]
+    claimed = []
+    stop_sent = Event()
+
+    def claim_then_stop():
+        review_id = claim_review()
+        claimed.append(review_id)
+        if claimed == in_progress:
+            assert signal.getsignal(signal.SIGTERM) is not original_handler
+            signal.raise_signal(signal.SIGTERM)
+            stop_sent.set()
+        return review_id
+
+    def execute(review_id, *, notification=False):
+        try:
+            assert stop_sent.wait(10)
+            return worker.process_claim(review_id, notification=notification)
+        finally:
+            connections.close_all()
+
+    monkeypatch.setattr(worker, "claim_review", claim_then_stop)
+    monkeypatch.setattr(worker, "request_review", Mock(return_value=response()))
+    monkeypatch.setattr(review_command, "_process_claim", execute)
+    monkeypatch.setattr(
+        review_command, "ProcessPoolExecutor", lambda **_options: ThreadPoolExecutor(max_workers=1),
+    )
+    output = StringIO()
+
+    call_command("process_admin_solution_reviews", "--drain", stdout=output)
+
+    assert signal.getsignal(signal.SIGTERM) is original_handler
+    assert claimed == in_progress
+    results = {result["review"]: result["status"] for result in map(json.loads, output.getvalue().splitlines())}
+    assert results == {str(review_id): "completed" for review_id in claimed}
+    for review in review_backlog:
+        review.refresh_from_db()
+        assert review.status == (worker.Status.COMPLETED if review.pk in in_progress else worker.Status.QUEUED)
 
 
 @pytest.mark.django_db(transaction=True)

@@ -14,8 +14,9 @@ Environment=DJANGO_READ_DOT_ENV_FILE=False
 Environment=PYTHONDONTWRITEBYTECODE=1
 ExecStart=@CURRENT@/.venv/bin/python -B manage.py process_admin_solution_reviews --drain
 TimeoutStartSec=30s
-TimeoutStopSec=15s
-KillMode=control-group
+# Give claimed jobs their five-minute deadline plus time to close the pool.
+TimeoutStopSec=330s
+KillMode=mixed
 Nice=10
 CPUWeight=20
 IOWeight=20

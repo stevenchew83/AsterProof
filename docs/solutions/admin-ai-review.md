@@ -100,9 +100,20 @@ schema and worker before enabling author requests.
    limit. The timer checks for new work every five seconds while the worker is
    idle. Once running, the worker refills up to five review slots in queue
    order as each job finishes. One separate slot sends notification emails.
-   Each job has a five-minute deadline. Uncertain outcomes are recorded and
-   require reconciliation before another attempt. Author review allowances still
-   apply when requests are queued.
+   Each job has a five-minute deadline. On shutdown, the supervisor stops
+   claiming new work and lets claimed reviews and notifications finish.
+   Systemd gives the worker up to 330 seconds to exit before restarting it.
+   Queued jobs remain available to the new worker. Uncertain outcomes are
+   recorded and require reconciliation before another attempt. Author review
+   allowances still apply when requests are queued.
+
+   For the first rollout of graceful shutdown, pause the review timer and let
+   the old worker exit before activating the updated code. Install and reload
+   the updated worker unit through the approved host procedure before resuming
+   the timer. Both the application code and the unit are required.
+   Before using it for a maintenance deployment, also install the matching
+   trusted deployment helper through the approved bootstrap procedure. Its
+   ordered stop deadline allows the review worker to drain before the app stops.
 4. Set `ADMIN_SOLUTION_REVIEW_ENABLED=True` to allow generation. Disabling this
    setting pauses OpenAI requests; previously published reviews and their email
    notifications still work. This setting is independent of student coaching,

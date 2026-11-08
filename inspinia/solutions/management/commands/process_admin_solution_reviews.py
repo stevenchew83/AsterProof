@@ -51,10 +51,20 @@ class Command(BaseCommand):
 
     def handle(self, *args, **options):
         if options["drain"]:
-            with ProcessPoolExecutor(
-                max_workers=worker.REVIEW_SLOTS + 1, mp_context=get_context("spawn"), initializer=django.setup,
-            ) as executor:
-                worker.drain_queue(executor, _process_claim, self._report)
+            stopping = False
+
+            def request_stop(_signum, _frame):
+                nonlocal stopping
+                stopping = True
+
+            previous = signal.signal(signal.SIGTERM, request_stop)
+            try:
+                with ProcessPoolExecutor(
+                    max_workers=worker.REVIEW_SLOTS + 1, mp_context=get_context("spawn"), initializer=django.setup,
+                ) as executor:
+                    worker.drain_queue(executor, _process_claim, self._report, stop_requested=lambda: stopping)
+            finally:
+                signal.signal(signal.SIGTERM, previous)
             return
 
         previous = signal.signal(signal.SIGALRM, _deadline)
