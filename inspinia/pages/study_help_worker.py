@@ -31,7 +31,7 @@ from inspinia.pages.study_help_models import StudyHelpEvent
 from inspinia.pages.study_help_models import StudyHelpPolicy
 from inspinia.pages.study_help_models import StudyHelpRequest
 from inspinia.pages.study_help_models import StudyHelpSpend
-from inspinia.pages.study_help_pilot import PILOT_FUNDING
+from inspinia.pages.study_help_pilot import study_help_funding
 from inspinia.pages.study_help_provider import MAX_BODY
 from inspinia.pages.study_help_provider import TIMEOUT_SECONDS
 from inspinia.pages.study_help_provider import ProviderResult
@@ -65,7 +65,7 @@ def _context(job, policy):
     from inspinia.pages.models import ContestProblemStatement
 
     user = locked_account(job.owner_id)
-    if (job.funding_source == PILOT_FUNDING) != settings.STUDY_HELP_DRAFT_HINT_PILOT_ENABLED:
+    if job.funding_source != study_help_funding(policy):
         raise StudyHelpError("unavailable")
     if user is None or not can_use_study_help(user, policy):
         raise StudyHelpError("unavailable")
