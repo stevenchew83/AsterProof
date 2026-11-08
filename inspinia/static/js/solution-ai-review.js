@@ -67,7 +67,7 @@
       const data = new FormData(form);
       data.set("action", form.querySelector('[name="writer_draft_token"]') ? "save_draft" : "save");
       message("Saving the version to review…");
-      const result = await json(await fetch(form.action || window.location.href, {
+      const result = await json(await fetch(form.getAttribute("action") || window.location.href, {
         method: "POST", body: data, credentials: "same-origin", headers: {"X-Requested-With": "XMLHttpRequest"},
       }));
       config.revisionId = result.revision_id;
@@ -177,7 +177,8 @@
       busy = true; update();
       clearTimeout(timer); pollGeneration += 1;
       try {
-        await save();
+        const runExplicitSave = editor()?.runExplicitSave;
+        await (runExplicitSave ? runExplicitSave(save) : save());
         if (!requestPending && last && last.revision_id === config.revisionId && !last.stale && last.reviewed_source === text() && ["completed", "queued", "running", "outcome_unknown"].includes(last.status)) {
           await poll(); return;
         }

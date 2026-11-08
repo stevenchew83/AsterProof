@@ -3,6 +3,7 @@ from django.urls import path
 from . import admin_review_views as ai
 from . import evaluation_views as evaluation
 from . import forum_views as views
+from .draft_autosave import draft_autosave_view
 
 urlpatterns = [
     path("admin/ai-review/", ai.settings_view, name="admin_ai_review_settings"),
@@ -30,7 +31,8 @@ urlpatterns = [
     ),
     path("review-queue/", views.forum_review_queue, name="forum_review_queue"),
     path("admin/forum/", views.forum_admin_queue, name="forum_admin_queue"),
-    # Register the private protocol routes through the existing include so the reviewed image routes stay frozen.
+    # Register private authoring routes through this include so the reviewed image routes stay frozen.
+    path("problems/<uuid:problem_uuid>/draft/autosave/", draft_autosave_view, name="problem_solution_autosave"),
     path(
         "evaluation/snapshots/<uuid:snapshot_id>/protocols/new/",
         evaluation.evaluation_protocol_create,

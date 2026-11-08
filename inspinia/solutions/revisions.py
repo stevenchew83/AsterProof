@@ -43,7 +43,7 @@ class DocumentWritesDisabled(InvalidDocument):
 @dataclass(frozen=True)
 class SaveDocumentResult:
     solution: ProblemSolution
-    revision: SolutionRevision
+    revision: SolutionRevision | None
     changed: bool
 
 
@@ -127,8 +127,11 @@ def _locked_solution(solution, user, context, base_version):
 
 
 def _apply_action(solution, action):
-    if action not in {"save", "save_draft", "publish"}:
+    if action not in {"save", "save_draft", "publish", "autosave"}:
         message = "Choose a valid solution save action."
+        raise InvalidDocument(message)
+    if action == "autosave" and solution.status != ProblemSolution.Status.DRAFT:
+        message = "Autosave is only available for private drafts."
         raise InvalidDocument(message)
     before = (solution.status, solution.published_at, solution.submitted_at)
     if action == "publish" and solution.status != ProblemSolution.Status.PUBLISHED:
@@ -165,7 +168,11 @@ def save_document(  # noqa: PLR0913
     action_changed = _apply_action(current, action)
     digest = source_digest(source, title, summary, pdf_options)
     revision = current.current_revision if current.current_revision_id else None
-    document_changed = revision is None or digest != revision.source_digest
+    previous_digest = revision.source_digest if revision else None
+    if action == "autosave" and revision is None and current.pk:
+        previous_options = {name: getattr(current, name) for name in PDF_OPTION_FIELDS}
+        previous_digest = source_digest(previous_source, current.title, current.summary, previous_options)
+    document_changed = digest != previous_digest
     if not document_changed and not action_changed:
         return SaveDocumentResult(current, revision, changed=False)
     if not current.pk:
