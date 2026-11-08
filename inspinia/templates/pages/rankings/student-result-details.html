@@ -1,0 +1,51 @@
+<div class="student-record-body">
+  <div class="student-detail-grid">
+    <section aria-label="Achievement context">
+      <h3 class="h6">Achievement &amp; context</h3>
+      <dl class="student-metadata">
+        <div><dt>Record type</dt><dd>{{ row.record_type_label }}{% if not row.classification_reviewed %}<small>{% if row.classification_stale %}Classification needs review after a result change.{% else %}Display classification has not been reviewed.{% endif %}</small>{% endif %}</dd></div>
+        {% if row.scope_label or row.scope_detail %}<div><dt>Competition scope / stage</dt><dd>{{ row.scope_label }}{% if row.scope_detail %} · {{ row.scope_detail }}{% endif %}</dd></div>{% endif %}
+        {% if row.participation_label %}<div><dt>Individual / team</dt><dd>{{ row.participation_label }}</dd></div>{% endif %}
+        {% if row.verified_date %}<div><dt>Verified assessment date</dt><dd>{{ row.verified_date|date:'j M Y' }}</dd></div>{% endif %}
+        {% if row.school %}<div><dt>School at this result</dt><dd>{{ row.school }}<small>{{ row.school_basis }}</small></dd></div>{% endif %}
+      </dl>
+      {% if row.notes %}<section class="student-source-context"><h4 class="h6">{% if row.record_type == 'context' %}Research context{% else %}Source notes &amp; attribution limits{% endif %}</h4><div class="student-source-notes mt-2">{{ row.notes }}</div></section>{% endif %}
+      <a href="{{ row.review_url }}" class="btn btn-sm btn-outline-secondary mt-3">Review classification</a>
+    </section>
+    <section aria-label="Claim evidence">
+      <h3 class="h6">Evidence for each claim</h3>
+      {% for claim in row.claims %}<article class="student-claim">
+        <div class="d-flex flex-wrap align-items-center gap-2"><strong>{{ claim.kind_label }}</strong><span class="student-evidence student-evidence-{{ claim.status }}">{{ claim.status_label }}</span></div>
+        <p class="mb-1">{{ claim.label }}{% if claim.award_kind != 'unknown' %}<small>{{ claim.award_kind_label }}</small>{% endif %}</p>
+        {% if claim.stale %}<p class="student-muted">The result or its provenance changed after this claim was reviewed. This is the earlier reviewed claim.</p>{% endif %}
+        {% if claim.source_type != 'unknown' %}<p class="student-muted mb-1">{{ claim.source_type_label }}{% if claim.source_label %} · {{ claim.source_label }}{% endif %}</p>{% endif %}
+        {% if claim.evidence %}<p class="student-source-notes mb-1">{{ claim.evidence }}</p>{% endif %}
+        {% if claim.url %}<a href="{{ claim.url }}" target="_blank" rel="noopener noreferrer">View evidence <i class="ti ti-external-link" aria-hidden="true"></i></a>{% endif %}
+        {% if claim.reviewed_at %}<small>Reviewed {{ claim.reviewed_at|date:'j M Y, H:i T' }}</small>{% endif %}
+        <div class="mt-1"><a href="{{ claim.review_url }}">Review {{ claim.kind_label|lower }} evidence</a></div>
+      </article>{% empty %}<p class="student-muted">No claim evidence has been reviewed.</p>{% endfor %}
+      <a href="{{ row.claim_review_url }}" class="btn btn-sm btn-outline-secondary mt-2">Review an award claim</a>
+      {% if row.url %}<p class="mt-2 mb-0"><a href="{{ row.url }}" target="_blank" rel="noopener noreferrer">Recorded source link <i class="ti ti-external-link" aria-hidden="true"></i></a><small>A recorded link does not itself verify a claim.</small></p>{% endif %}
+    </section>
+  </div>
+  <details id="student-import-{{ row.id }}" class="student-import-history mt-3"><summary>Import history &amp; original values</summary>
+    <dl class="student-metadata student-import-grid mt-2">
+      <div><dt>Full assessment</dt><dd>{{ row.full_title }}</dd></div>
+      <div><dt>Stored code</dt><dd><code>{{ row.code }}</code></dd></div>
+      <div><dt>Season</dt><dd>{{ row.year }}</dd></div>
+      <div><dt>Recorded category</dt><dd>{{ row.original_band|default:'Not recorded' }}</dd></div>
+      <div><dt>Recorded medal</dt><dd>{{ row.original_medal|default:'Not recorded' }}</dd></div>
+      <div><dt>Recorded status</dt><dd>{{ row.original_status|default:'Not recorded' }}</dd></div>
+      {% if row.has_alias %}<div><dt>Reviewed display aliases</dt><dd>Category: {{ row.band|default:'—' }} · Medal: {{ row.medal|default:'—' }} · Status: {{ row.status|default:'—' }}</dd></div>{% endif %}
+      {% if row.unverified_date %}<div><dt>Stored date (unverified)</dt><dd>{{ row.unverified_date|date:'j M Y' }}</dd></div>{% endif %}
+      {% if row.source_date %}<div><dt>Legacy source date (not an event date)</dt><dd>{{ row.source_date|date:'j M Y' }}</dd></div>{% endif %}
+      <div><dt>School recorded with result</dt><dd>{{ row.school|default:'Not recorded' }}{% if row.school %}<small>{{ row.school_basis }}</small>{% endif %}{% if row.school != row.original_school %}<small>Original school label: {{ row.original_school }}</small>{% endif %}</dd></div>
+      <div><dt>Source filename</dt><dd>{{ row.source.label|default:'Not recorded' }}</dd></div>
+      {% if row.source.original != row.source.label %}<div><dt>Original source label</dt><dd>{{ row.source.original }}</dd></div>{% endif %}
+      {% if row.source.row %}<div><dt>Source row</dt><dd>{{ row.source.row }} (Sheet1)</dd></div>{% endif %}
+      {% if row.source.checksum %}<div><dt>Source SHA-256</dt><dd>{{ row.source.checksum }}</dd></div>{% endif %}
+      <div><dt>Imported</dt><dd>{{ row.imported_at|date:'j M Y, H:i T'|default:'Not recorded' }}</dd></div>
+      <div><dt>Database updated</dt><dd>{{ row.updated_at|date:'j M Y, H:i T' }}</dd></div>
+    </dl>
+  </details>
+</div>

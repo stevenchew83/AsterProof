@@ -1,0 +1,71 @@
+{% extends 'layouts/vertical.html' %}
+
+{% block title %}
+  Publish a community solution
+{% endblock title %}
+{% block extra_css %}
+  {% include 'pages/partials/community-styles.html' %}
+{% endblock extra_css %}
+{% block page_content %}
+  <div class="container-fluid">
+    {% url 'pages:proof_attempt_edit' attempt_id=attempt.pk as attempt_url %}
+    <header class="page-title-head app-page-header">
+      {% include 'partials/page-header-intro.html' with title='Publish a community solution' subtitle='A separate public contribution' back_url=attempt_url back_label='Private attempt' page_icon='ti-send' only %}
+    </header>
+    {% include 'pages/proof/partials/messages.html' %}
+    <div class="row g-3">
+      <div class="col-lg-8">
+        <section class="card">
+          <div class="card-body">
+            <p class="text-muted fs-xs text-uppercase fw-semibold">
+              Selected saved proof · Statement version {{ revision.number }}
+            </p>
+            <h2 class="fs-20">{{ form.title.value|default:attempt.title|default:'A community proof' }}</h2>
+            <p class="text-muted fs-sm">Public credit: {{ form.public_credit.value|default:'Community contributor' }}</p>
+            {% if form.summary.value %}<p>{{ form.summary.value }}</p>{% endif %}
+            <div class="community-problem-text tex2jax_ignore"
+                 data-proof-source
+                 data-proof-media-prefix="{{ attempt_media_prefix }}">
+              {{ body_source|default:attempt.body_source }}
+            </div>
+          </div>
+        </section>
+        <details class="card mt-3">
+          <summary class="card-body fw-semibold">Problem this proof answers</summary>
+          <div class="card-body pt-0">
+            <h2 class="fs-16">{{ snapshot.title }}</h2>
+            {% include 'pages/proof/partials/statement.html' %}
+          </div>
+        </details>
+      </div>
+      <aside class="col-lg-4">
+        <section class="card">
+          <div class="card-body">
+            <h2 class="header-title fs-16 mb-3">Review your public copy</h2>
+            <p class="text-muted fs-sm">
+              Only the saved proof shown here and selected images are included. Your private attempt and review feedback stay private. Publication requires basic moderation.
+            </p>
+            <form method="post">
+              {% csrf_token %}
+              {% include 'pages/proof/partials/fields.html' %}
+              {% if review_token %}<input type="hidden" name="review_token" value="{{ review_token }}" />{% endif %}
+              <div class="d-flex flex-wrap gap-2">
+                <button type="submit"
+                        name="action"
+                        value="preview"
+                        class="btn btn-outline-primary"
+                        formnovalidate>Preview public copy</button>
+                {% if review_token %}
+                  <button type="submit" name="action" value="submit" class="btn btn-primary">Submit proof for publication</button>
+                {% endif %}
+              </div>
+            </form>
+          </div>
+        </section>
+      </aside>
+    </div>
+  </div>
+{% endblock page_content %}
+{% block extra_javascript %}
+  {% include 'pages/proof/partials/render-scripts.html' %}
+{% endblock extra_javascript %}

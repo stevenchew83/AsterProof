@@ -109,6 +109,10 @@ from inspinia.pages.handle_summary_parser import HandleSummaryParseValidationErr
 from inspinia.pages.handle_summary_parser import HandleSummaryPreviewPayload
 from inspinia.pages.handle_summary_parser import build_handle_summary_preview_payload
 from inspinia.pages.handle_summary_parser import parse_handle_summary_text
+from inspinia.pages.inventory_ai_reviews import DRAFT_READY
+from inspinia.pages.inventory_ai_reviews import completion_review_summaries
+from inspinia.pages.inventory_ai_reviews import draft_ready_completions
+from inspinia.pages.inventory_ai_reviews import latest_solution_review_summaries
 from inspinia.pages.models import DIFFICULTY_RATING_MAX
 from inspinia.pages.models import DIFFICULTY_RATING_MIN
 from inspinia.pages.models import ContestMetadata
@@ -186,6 +190,7 @@ from inspinia.pages.technique_progress_catalog import request_technique_progress
 from inspinia.pages.topic_labels import FULL_TOPIC_LABEL_MAP
 from inspinia.pages.topic_labels import display_topic_label
 from inspinia.problemsets.selectors import problem_list_add_target_rows
+from inspinia.solutions.forum_access import can_read_solution
 from inspinia.solutions.models import ProblemSolution
 from inspinia.users.models import AuditEvent
 from inspinia.users.models import User
@@ -648,22 +653,32 @@ def _statement_completions_by_statement_id(
             if statement.id not in completion_by_statement_id and statement.linked_problem_id is not None
         },
     )
-    if not unresolved_linked_problem_ids:
+    unresolved_uuids = [
+        statement.problem_uuid for statement in statements
+        if statement.id not in completion_by_statement_id and statement.linked_problem_id is None
+    ]
+    if not unresolved_linked_problem_ids and not unresolved_uuids:
         return completion_by_statement_id
 
+    legacy_completions = list(UserProblemCompletion.objects.filter(
+        Q(problem_id__in=unresolved_linked_problem_ids) | Q(problem__problem_uuid__in=unresolved_uuids),
+        user=user, statement__isnull=True,
+    ).select_related("problem"))
     legacy_completion_by_problem_id = {
         completion.problem_id: completion
-        for completion in UserProblemCompletion.objects.filter(
-            user=user,
-            statement__isnull=True,
-            problem_id__in=unresolved_linked_problem_ids,
-        )
+        for completion in legacy_completions
+        if completion.problem_id is not None
+    }
+    legacy_completion_by_uuid = {
+        completion.problem.problem_uuid: completion for completion in legacy_completions
         if completion.problem_id is not None
     }
     for statement in statements:
         if statement.id in completion_by_statement_id:
             continue
         if statement.linked_problem_id is None:
+            if statement.problem_uuid in legacy_completion_by_uuid:
+                completion_by_statement_id[statement.id] = legacy_completion_by_uuid[statement.problem_uuid]
             continue
         legacy_completion = legacy_completion_by_problem_id.get(statement.linked_problem_id)
         if statement.linked_problem_id in legacy_completion_by_problem_id:
@@ -771,7 +786,7 @@ def _completion_problem_for_statement(statement: ContestProblemStatement | None)
     return statement.linked_problem
 
 
-def _statement_table_rows(base, *, user=None) -> list[dict]:
+def _statement_table_rows(base, *, user=None, progress_user=None) -> list[dict]:
     statements_list = list(base)
     statement_ids = [statement.id for statement in statements_list]
     linked_problem_ids = sorted(
@@ -787,7 +802,7 @@ def _statement_table_rows(base, *, user=None) -> list[dict]:
     if user is not None:
         completion_dates_by_statement_id = _statement_completion_dates_by_statement_id(
             statements_list,
-            user=user,
+            user=progress_user if progress_user is not None else user,
         )
     if user is not None and linked_problem_ids:
         visible_solution_problem_ids = set(
@@ -870,6 +885,7 @@ def _statement_table_rows(base, *, user=None) -> list[dict]:
                 "linked_problem_uuid": linked_problem_uuid,
                 "problem_code": statement.problem_code,
                 "statement_uuid": str(statement.statement_uuid),
+                "has_statement": bool(statement.statement_latex.strip()),
                 "statement_detail_url": reverse("pages:problem_statement_detail", args=[statement.statement_uuid]),
                 "solution_start_url": (
                     reverse("solutions:statement_solution_start", args=[statement.statement_uuid])
@@ -2840,7 +2856,7 @@ def _user_completion_table_rows(completions: list[UserProblemCompletion]) -> tup
                 "problem_uuid": str(problem.problem_uuid) if problem is not None else "",
                 "statement_uuid": str(statement.statement_uuid) if statement is not None else "",
                 "problem_year": contest_year,
-                "topic": display_topic_label(problem.topic) if problem is not None else "Unlinked",
+                "topic": display_topic_label(problem.topic) if problem is not None else "Uncategorized",
                 **completion_metadata_payload(completion),
             },
         )
@@ -2874,6 +2890,9 @@ def _user_completion_table_rows(completions: list[UserProblemCompletion]) -> tup
 
 def _admin_completion_listing_rows(
     completions: list[UserProblemCompletion] | None = None,
+    *,
+    viewer: User,
+    ai_reviews: dict[int, dict] | None = None,
 ) -> tuple[list[dict], dict[str, int]]:
     if completions is None:
         completions = list(
@@ -2911,10 +2930,10 @@ def _admin_completion_listing_rows(
     solution_rows = ProblemSolution.objects.filter(
         author_id__in=completion_user_ids,
         problem_id__in=completion_problem_ids,
-    ).values("author_id", "problem_id", "status")
-    solution_status_by_key = {
-        (row["author_id"], row["problem_id"]): row["status"]
-        for row in solution_rows
+    ).only("id", "author", "problem", "status")
+    solutions_by_key = {
+        (solution.author_id, solution.problem_id): solution
+        for solution in solution_rows
     }
 
     table_rows: list[dict] = []
@@ -2936,7 +2955,13 @@ def _admin_completion_listing_rows(
                 problem_label,
                 f"{contest_year}-{problem_code}",
             )
-        solution_status = solution_status_by_key.get((user.id, problem.id), "") if problem is not None else ""
+        solution = solutions_by_key.get((user.id, problem.id)) if problem is not None else None
+        solution_status = solution.status if solution is not None else ""
+        solution_url = (
+            reverse("solutions:solution_detail", args=[solution.pk])
+            if solution is not None and can_read_solution(viewer, solution)
+            else ""
+        )
         if completion.completion_date is not None:
             known_date_total += 1
         if solution_status:
@@ -2976,7 +3001,8 @@ def _admin_completion_listing_rows(
                 "solution_status_label": (
                     ProblemSolution.Status(solution_status).label if solution_status else "No solution"
                 ),
-                "topic": display_topic_label(problem.topic) if problem is not None else "Unlinked",
+                "solution_url": solution_url,
+                "topic": display_topic_label(problem.topic) if problem is not None else "Uncategorized",
                 "updated_at": timezone.localtime(completion.updated_at).strftime("%Y-%m-%d %H:%M"),
                 "updated_at_sort": completion.updated_at.isoformat(),
                 "user_email": user.email,
@@ -2987,6 +3013,13 @@ def _admin_completion_listing_rows(
                 "status_badge_class": _completion_status_badge_class(completion.status),
             },
         )
+        if ai_reviews is not None and solution_url:
+            review = ai_reviews.get(completion.pk, {})
+            table_rows[-1]["ai_review"] = {
+                "label": review.get("label", "Not reviewed"),
+                "score": review.get("score"),
+                "url": solution_url + "#ai-review",
+            }
 
     table_rows = _completion_progress_apply_difficulty_payloads(table_rows, user=None)
     area_metadata = completion_record_area_metadata(completions)
@@ -3008,6 +3041,8 @@ def _admin_completion_listing_rows(
 
 def _admin_solution_listing_rows(
     solutions: list[ProblemSolution] | None = None,
+    *,
+    show_ai_reviews: bool = False,
 ) -> tuple[list[dict], dict[str, int]]:
     if solutions is None:
         solutions = list(
@@ -3030,6 +3065,7 @@ def _admin_solution_listing_rows(
         [solution.problem.contest for solution in solutions],
     )
     status_counts = Counter(solution.status for solution in solutions)
+    ai_reviews = latest_solution_review_summaries(solutions) if show_ai_reviews else {}
     table_rows: list[dict] = []
     for solution in solutions:
         problem = solution.problem
@@ -3078,6 +3114,8 @@ def _admin_solution_listing_rows(
                 "year": problem.year,
             },
         )
+        if show_ai_reviews:
+            table_rows[-1]["ai_review"] = ai_reviews.get(solution.pk)
 
     return table_rows, {
         "author_total": len({solution.author_id for solution in solutions}),
@@ -3217,12 +3255,41 @@ def _completion_record_filter_options(
     }
 
 
-def _completion_record_remove_filter_url(query_params, key: str) -> str:
+def _completion_record_filter_url(query_params, **changes: str) -> str:
     params = query_params.copy()
-    params.pop(key, None)
+    for key, value in changes.items():
+        if value:
+            params[key] = value
+        else:
+            params.pop(key, None)
     query_string = params.urlencode()
     base_url = reverse("pages:completion_record_list")
     return f"{base_url}?{query_string}" if query_string else base_url
+
+
+def _completion_record_quick_filters(
+    query_params, selected_filters: dict[str, str], *, show_ai_reviews: bool,
+) -> list[dict[str, str | bool]]:
+    no_solution = selected_filters["solution_status"] == "none"
+    quick_filters: list[dict[str, str | bool]] = []
+    if show_ai_reviews:
+        draft_ready = selected_filters.get("ai_review") == DRAFT_READY
+        draft_changes = {"ai_review": "" if draft_ready else DRAFT_READY}
+        if no_solution and not draft_ready:
+            draft_changes["solution_status"] = ""
+        quick_filters.append({
+            "label": "Draft ready",
+            "active": draft_ready,
+            "url": _completion_record_filter_url(query_params, **draft_changes),
+        })
+
+    no_solution_changes = {"solution_status": ""} if no_solution else {"solution_status": "none", "ai_review": ""}
+    quick_filters.append({
+        "label": "No solution",
+        "active": no_solution,
+        "url": _completion_record_filter_url(query_params, **no_solution_changes),
+    })
+    return quick_filters
 
 
 def _completion_record_active_filters(
@@ -3246,6 +3313,7 @@ def _completion_record_active_filters(
             lambda value: _completion_record_choice_label(UserProblemCompletion.Confidence.choices, value),
         ),
         "solution_status": ("Solution", _completion_record_solution_status_label),
+        "ai_review": ("AI review", lambda _value: "Draft ready"),
     }
     for key, value in selected_filters.items():
         if not value:
@@ -3255,7 +3323,7 @@ def _completion_record_active_filters(
             {
                 "key": key,
                 "label": label,
-                "remove_url": _completion_record_remove_filter_url(query_params, key),
+                "remove_url": _completion_record_filter_url(query_params, **{key: ""}),
                 "value": value_labeler(value),
             },
         )
@@ -3302,7 +3370,7 @@ def _completion_record_base_queryset():
             "problem__topic",
             Value("", output_field=CharField()),
         ),
-        _effective_problem_id=Coalesce(
+        effective_problem_id=Coalesce(
             "statement__linked_problem_id",
             "problem_id",
         ),
@@ -3312,7 +3380,7 @@ def _completion_record_base_queryset():
 def _completion_record_solution_status_queryset():
     return ProblemSolution.objects.filter(
         author_id=OuterRef("user_id"),
-        problem_id=OuterRef("_effective_problem_id"),
+        problem_id=OuterRef("effective_problem_id"),
     )
 
 
@@ -3918,11 +3986,7 @@ def _completion_board_payload(base, *, user, row_limit: int | None) -> dict[str,
                         is_solved=is_solved,
                         completion_date=completion_date,
                     ),
-                    "topic": (
-                        display_topic_label(linked_problem.topic)
-                        if linked_problem is not None
-                        else "Unlinked"
-                    ),
+                    "topic": display_topic_label(effective_topic(statement)) or "Uncategorized",
                 },
             )
 
@@ -5903,6 +5967,7 @@ def problem_statement_detail_view(request, statement_uuid: uuid.UUID):
 
     context = {
         "problem_statement": statement,
+        "show_study_help": settings.STUDY_HELP_ENABLED,
         "problem_statement_context": {
             "completion_display": (
                 completion_date.isoformat()
@@ -6474,7 +6539,7 @@ def _render_completion_progress_analytics(  # noqa: PLR0913
     if request.GET.get("export") == "csv":
         return _completion_progress_csv_response(filtered_rows, selected_user)
 
-    table_rows = completion_progress_table_rows(filtered_rows)
+    table_rows = completion_progress_table_rows(filtered_rows, viewer=request.user, learner=selected_user)
     table_rows = _completion_progress_apply_difficulty_payloads(table_rows, user=selected_user)
     can_edit_difficulty = selected_user == request.user
     show_difficulty = can_edit_difficulty or _completion_progress_has_user_difficulty(table_rows)
@@ -6552,6 +6617,7 @@ def _render_completion_progress_analytics(  # noqa: PLR0913
 
 
 @login_required
+@never_cache
 def completion_progress_analytics_view(request):
     """Admin progress analytics for one selected user's completion history."""
     _require_admin_tools_access(request)
@@ -6566,6 +6632,7 @@ def completion_progress_analytics_view(request):
 
 
 @login_required
+@never_cache
 def my_completion_progress_analytics_view(request):
     """Personal progress analytics scoped to the signed-in user's completion history."""
     return _render_completion_progress_analytics(
@@ -6624,10 +6691,14 @@ def completion_record_user_options_view(request):
 
 
 @login_required
+@never_cache
 def completion_record_list_view(request):
     """Admin inventory of all saved user completion rows."""
     _require_admin_tools_access(request)
+    show_ai_reviews = user_has_admin_role(request.user)
     selected_filters = _completion_record_selected_filters(request)
+    if show_ai_reviews and request.GET.get("ai_review") == DRAFT_READY:
+        selected_filters["ai_review"] = DRAFT_READY
     solution_status_queryset = _completion_record_solution_status_queryset()
     base_completion_queryset = _completion_record_base_queryset()
     completion_queryset = _completion_record_apply_basic_filters(
@@ -6645,12 +6716,19 @@ def completion_record_list_view(request):
         solution_status_queryset=solution_status_queryset,
     )
 
-    latest_completions = list(
-        completion_queryset.order_by("-updated_at", "-id")[: ADMIN_TABLE_LATEST_LIMIT + 1],
-    )
+    completion_queryset = completion_queryset.order_by("-updated_at", "-id")
+    ai_reviews = None
+    if selected_filters.get("ai_review") == DRAFT_READY:
+        latest_completions, ai_reviews = draft_ready_completions(completion_queryset, ADMIN_TABLE_LATEST_LIMIT + 1)
+    else:
+        latest_completions = list(completion_queryset[: ADMIN_TABLE_LATEST_LIMIT + 1])
+        if show_ai_reviews:
+            ai_reviews = completion_review_summaries(latest_completions[:ADMIN_TABLE_LATEST_LIMIT])
     completion_is_capped = len(latest_completions) > ADMIN_TABLE_LATEST_LIMIT
     completion_rows, _completion_stats = _admin_completion_listing_rows(
         latest_completions[:ADMIN_TABLE_LATEST_LIMIT],
+        viewer=request.user,
+        ai_reviews=ai_reviews,
     )
     completion_visible_total = len(completion_rows)
 
@@ -6677,12 +6755,21 @@ def completion_record_list_view(request):
             selected_filters["date_status"]
             or selected_filters["status"]
             or selected_filters["confidence"]
-            or selected_filters["solution_status"],
+            or selected_filters["solution_status"] not in {"", "none"},
         ),
         "completion_record_filter_options": completion_filter_options,
         "completion_record_filters": selected_filters,
+        "completion_record_filter_chips": [
+            chip for chip in completion_active_filters
+            if chip["key"] != "ai_review"
+            and (chip["key"] != "solution_status" or selected_filters["solution_status"] != "none")
+        ],
         "completion_record_has_active_filters": bool(completion_active_filters),
+        "completion_record_quick_filters": _completion_record_quick_filters(
+            request.GET, selected_filters, show_ai_reviews=show_ai_reviews,
+        ),
         "completion_record_rows": completion_rows,
+        "completion_record_show_ai_reviews": show_ai_reviews,
         "completion_record_stats": completion_stats,
         "completion_record_visible_total": completion_visible_total,
         "completion_record_result_limit": ADMIN_TABLE_LATEST_LIMIT,
@@ -6729,8 +6816,10 @@ def user_solution_record_list_view(request):
             solution_queryset = solution_queryset.filter(token_query)
 
     solution_filtered_total = solution_queryset.count()
+    show_ai_reviews = user_has_admin_role(request.user)
     solution_rows, _solution_stats = _admin_solution_listing_rows(
         list(solution_queryset.order_by("-updated_at", "-id")[:ADMIN_TABLE_LATEST_LIMIT]),
+        show_ai_reviews=show_ai_reviews,
     )
     solution_visible_total = len(solution_rows)
 
@@ -6777,6 +6866,7 @@ def user_solution_record_list_view(request):
         "user_solution_record_is_capped": solution_filtered_total > solution_visible_total,
         "user_solution_record_latest_updated_at": solution_rows[0]["updated_at"] if solution_rows else "—",
         "user_solution_record_rows": solution_rows,
+        "user_solution_record_show_ai_reviews": show_ai_reviews,
         "user_solution_record_stats": solution_stats,
         "user_solution_record_visible_total": solution_visible_total,
         "user_solution_record_result_limit": ADMIN_TABLE_LATEST_LIMIT,
@@ -6937,7 +7027,7 @@ def problem_statement_editor_update_view(request):
 
 @login_required
 def problem_statement_list_view(request):
-    """Statement library listing with shared problem UUIDs and link status."""
+    """Shared problem library with explicitly scoped learner progress."""
     if request.method == "POST" and request.POST.get("action") == "recheck_links":
         _require_admin_tools_access(request)
         relink_result = relink_problem_statement_rows()
@@ -6954,128 +7044,18 @@ def problem_statement_list_view(request):
         )
         return redirect("pages:problem_statement_list")
 
-    base = ContestProblemStatement.objects.all()
-    year_bounds = base.aggregate(
-        statement_total=Count("id"),
-        linked_total=Count("id", filter=Q(linked_problem__isnull=False)),
-        contest_total=Count("contest_name", distinct=True),
-        year_min=Min("contest_year"),
-        year_max=Max("contest_year"),
-    )
-    statement_total = year_bounds["statement_total"]
-    linked_total = year_bounds["linked_total"]
-    contest_total = year_bounds["contest_total"]
+    from inspinia.pages.shared_library import shared_library_context
 
-    year_min = year_bounds["year_min"]
-    year_max = year_bounds["year_max"]
-    year_range_label = "Awaiting statement import"
-    if year_min is not None and year_max is not None:
-        year_range_label = str(year_min) if year_min == year_max else f"{year_min}-{year_max}"
-
-    fq = (request.GET.get("q") or "").strip()
-    fyear = (request.GET.get("year") or "").strip()
-    ftopic = (request.GET.get("topic") or "").strip()
-    fconfidence = (request.GET.get("confidence") or "").strip()
-    fmohs_min = (request.GET.get("mohs_min") or "").strip()
-    fmohs_max = (request.GET.get("mohs_max") or "").strip()
-
-    filtered_statements = _filter_statement_queryset(
-        base,
-        q=fq,
-        year=fyear,
-        topic=ftopic,
-        confidence=fconfidence,
-        mohs_min=fmohs_min,
-        mohs_max=fmohs_max,
-        include_concepts=True,
-    )
-    fconcept = str(request.GET.get("concept") or "").strip()
-    if fconcept:
-        from inspinia.pages.concept_assignment_registry import REGISTRY
-        from inspinia.pages.concept_assignment_service import accepted_problem_ids
-        from inspinia.pages.concept_assignment_service import projection_enabled
-
-        if projection_enabled():
-            fconcept = REGISTRY.canonical(fconcept)
-            filtered_statements = filtered_statements.filter(problem_uuid__in=accepted_problem_ids(fconcept))
-        else:
-            definition = REGISTRY.definitions.get(REGISTRY.canonical(fconcept))
-            filtered_statements = filtered_statements.filter(
-                statement_concept_search(definition["label"] if definition else fconcept),
-            )
-    statement_filtered_total = filtered_statements.count()
-    visible_statement_rows = (
-        _statement_table_rows(
-            list(
-                filtered_statements.order_by("-updated_at", "-id")[:ADMIN_TABLE_LATEST_LIMIT],
-            ),
-            user=request.user,
-        )
-        if statement_filtered_total
-        else []
-    )
-    visible_statement_rows = _json_script_safe(visible_statement_rows)
-    _ = json.dumps(visible_statement_rows, cls=DjangoJSONEncoder, allow_nan=False)
-    statement_visible_total = len(visible_statement_rows)
-
-    filter_options = _problem_statement_list_filter_options(base)
-    statement_datatable_rows = visible_statement_rows
-    _ = json.dumps(statement_datatable_rows, cls=DjangoJSONEncoder, allow_nan=False)
-    copy_tsv = _statement_table_rows_copy_tsv(visible_statement_rows)
-
-    statement_list_filters = {
-        "q": fq,
-        "year": fyear,
-        "topic": ftopic,
-        "confidence": fconfidence,
-        "mohs_min": fmohs_min,
-        "mohs_max": fmohs_max,
-    }
-    if fconcept:
-        statement_list_filters["concept"] = fconcept
-    active_filter_chips = _problem_statement_list_active_filter_chips(statement_list_filters)
-
-    context = {
-        "statement_total": statement_total,
-        "statement_stats": {
-            "contest_total": contest_total,
-            "linked_total": linked_total,
-            "unlinked_total": statement_total - linked_total,
-            "year_range_label": year_range_label,
-        },
-        "statement_table_rows": visible_statement_rows,
-        "statement_datatable_rows": statement_datatable_rows,
-        "statement_filtered_total": statement_filtered_total,
-        "statement_visible_total": statement_visible_total,
-        "statement_result_limit": ADMIN_TABLE_LATEST_LIMIT,
-        "statement_is_capped": statement_filtered_total > statement_visible_total,
-        "statement_list_filters": statement_list_filters,
-        "statement_loaded_summary": _problem_statement_list_loaded_summary(
-            filtered_total=statement_filtered_total,
-            visible_total=statement_visible_total,
-        ),
-        "statement_has_active_filters": bool(active_filter_chips),
-        "statement_has_advanced_filters": bool(fconfidence or fmohs_min or fmohs_max),
-        "statement_active_filter_chips": active_filter_chips,
-        "statement_filter_years": filter_options["years"],
-        "statement_filter_topics": filter_options["topics"],
-        "statement_filter_confidences": filter_options["confidences"],
-        "statement_copy_tsv": copy_tsv,
-    }
+    context = shared_library_context(request)
     record_page_view(
         request,
         payload=PageViewPayload(
             view_type=PageViewEvent.ViewType.LIST,
-            label="Problem statement list",
+            label="Problem library",
             metadata={
-                "confidence": fconfidence,
-                "filtered_total": statement_filtered_total,
+                **context["statement_list_filters"],
+                "filtered_total": context["statement_filtered_total"],
                 "kind": "statement_list",
-                "mohs_max": fmohs_max,
-                "mohs_min": fmohs_min,
-                "q": fq,
-                "topic": ftopic,
-                "year": fyear,
             },
         ),
     )
@@ -7377,9 +7357,9 @@ def archive_hub_view(request):
                 "url": reverse("pages:contest_mohs_summary"),
             },
             {
-                "description": "Statement UUIDs, linked problem UUIDs, topics, confidence, and MOHS filters.",
+                "description": "Shared problems, topics and concepts, with separate progress for each learner.",
                 "icon": "ti-file-text",
-                "title": "Problem statements",
+                "title": "Problem library",
                 "url": reverse("pages:problem_statement_list"),
             },
             {
@@ -8173,6 +8153,9 @@ def contest_analytics_view(request):
 @login_required
 def contest_advanced_analytics_view(request):
     """Drill-down analytics for one contest, selected by query string."""
+    from inspinia.pages.contest_progress import contest_completion_heatmap
+    from inspinia.pages.shared_library import solved_statements
+
     contest_choices = [
         {
             "contest": row["contest_name"],
@@ -8220,6 +8203,9 @@ def contest_advanced_analytics_view(request):
             distinct=True,
         ),
         linked_statement_total=Count("id", filter=Q(linked_problem__isnull=False)),
+        needs_metadata_total=Count(
+            "id", filter=Q(_eff_topic="") | Q(_eff_topic__isnull=True) | Q(_eff_mohs__isnull=True),
+        ),
         max_mohs=Max("_eff_mohs"),
         problem_count=Count("id"),
         year_max=Max("contest_year"),
@@ -8232,12 +8218,20 @@ def contest_advanced_analytics_view(request):
     statement_row_total = int(stats["problem_count"] or 0)
     statement_problem_total = int(stats["linked_statement_total"] or 0)
     solution_problem_total = (
-        contest_base.filter(linked_problem__solutions__isnull=False).distinct().count()
+        contest_base.filter(
+            Q(linked_problem__solutions__author=request.user)
+            | Q(linked_problem__solutions__status=ProblemSolution.Status.PUBLISHED),
+        ).distinct().count()
     )
     published_solution_total = contest_base.filter(
         linked_problem__solutions__status=ProblemSolution.Status.PUBLISHED,
     ).distinct().count()
 
+    solved_statement_ids = set(solved_statements(contest_base, request.user).values_list("id", flat=True))
+    solved_by_year = dict(
+        contest_base.filter(id__in=solved_statement_ids).values("contest_year")
+        .annotate(total=Count("id")).values_list("contest_year", "total"),
+    )
     year_rows = list(
         annotate_effective_statement_analytics(contest_base)
         .values("contest_year")
@@ -8255,17 +8249,15 @@ def contest_advanced_analytics_view(request):
                 distinct=True,
             ),
             problem_count=Count("id", distinct=True),
-            solved_problem_total=Count(
-                "id",
-                filter=Q(user_completions__user=request.user)
-                | Q(linked_problem__user_completions__user=request.user),
-                distinct=True,
+            needs_metadata_total=Count(
+                "id", filter=Q(_eff_topic="") | Q(_eff_topic__isnull=True) | Q(_eff_mohs__isnull=True),
             ),
         )
         .order_by("-contest_year"),
     )
     for row in year_rows:
         row["year"] = int(row.pop("contest_year"))
+        row["solved_problem_total"] = solved_by_year.get(row["year"], 0)
         row["avg_mohs"] = (
             round(float(row["avg_mohs"]), 2) if row["avg_mohs"] is not None else None
         )
@@ -8286,119 +8278,12 @@ def contest_advanced_analytics_view(request):
             "id",
             "linked_problem_id",
             "linked_problem__problem_uuid",
+            "statement_uuid",
             "problem_code",
             "contest_year",
         ),
     )
-    direct_solved_statement_ids = set(
-        UserProblemCompletion.objects.filter(
-            user=request.user,
-            statement_id__in=[row["id"] for row in contest_statements],
-        ).values_list("statement_id", flat=True),
-    )
-    legacy_solved_problem_ids = set(
-        UserProblemCompletion.objects.filter(
-            user=request.user,
-            statement__isnull=True,
-            problem__contest=selected_contest,
-        ).values_list("problem_id", flat=True),
-    )
-    heatmap_solution_urls: dict[tuple[int, str], str] = {}
-    heatmap_problem_codes = sorted(
-        {
-            str(record["problem_code"]).strip()
-            for record in contest_statements
-            if record["problem_code"]
-        },
-        key=_problem_sort_key,
-    )
-    heatmap_years = sorted(
-        {
-            int(record["contest_year"])
-            for record in contest_statements
-            if record["contest_year"] is not None
-        },
-        reverse=True,
-    )
-    heatmap_counts: dict[tuple[int, str], dict[str, int]] = {}
-    for record in contest_statements:
-        problem_code = str(record["problem_code"] or "").strip()
-        year = record["contest_year"]
-        if not problem_code or year is None:
-            continue
-        heatmap_key = (int(year), problem_code)
-        cell_counts = heatmap_counts.setdefault(
-            heatmap_key,
-            {
-                "problem_total": 0,
-                "solved_total": 0,
-            },
-        )
-        cell_counts["problem_total"] += 1
-        linked_problem_id = record["linked_problem_id"]
-        linked_problem_uuid = record["linked_problem__problem_uuid"]
-        if linked_problem_uuid is not None:
-            heatmap_solution_urls.setdefault(
-                heatmap_key,
-                reverse("solutions:problem_solution_list", args=[linked_problem_uuid]),
-            )
-        if record["id"] in direct_solved_statement_ids or (
-            linked_problem_id is not None and int(linked_problem_id) in legacy_solved_problem_ids
-        ):
-            cell_counts["solved_total"] += 1
-
-    heatmap_rows: list[dict[str, object]] = []
-    has_partial_heatmap_cells = False
-    for year in heatmap_years:
-        row_cells: list[dict[str, object]] = []
-        for problem_code in heatmap_problem_codes:
-            counts = heatmap_counts.get((year, problem_code))
-            if counts is None:
-                row_cells.append(
-                    {
-                        "display": "",
-                        "problem_code": problem_code,
-                        "solution_url": "",
-                        "state": "empty",
-                        "title": f"{selected_contest} {year} {problem_code}: no statement",
-                    },
-                )
-                continue
-
-            problem_total = int(counts["problem_total"])
-            solved_total = int(counts["solved_total"])
-            if solved_total == 0:
-                state = "unsolved"
-            elif solved_total == problem_total:
-                state = "solved"
-            else:
-                state = "partial"
-                has_partial_heatmap_cells = True
-
-            rows_word = "statement" if problem_total == 1 else "statements"
-            row_cells.append(
-                {
-                    "display": (
-                        "✓"
-                        if problem_total == 1 and state == "solved"
-                        else ("•" if problem_total == 1 else f"{solved_total}/{problem_total}")
-                    ),
-                    "problem_code": problem_code,
-                    "solution_url": heatmap_solution_urls.get((year, problem_code), ""),
-                    "state": state,
-                    "title": (
-                        f"{selected_contest} {year} {problem_code}: "
-                        f"{solved_total} of {problem_total} {rows_word} completed by you"
-                    ),
-                },
-            )
-
-        heatmap_rows.append(
-            {
-                "cells": row_cells,
-                "year": year,
-            },
-        )
+    completion_heatmap = contest_completion_heatmap(contest_statements, solved_statement_ids, selected_contest)
 
     topic_rows = list(
         contest_base_eff.filter(~Q(_eff_topic=""))
@@ -8412,7 +8297,7 @@ def contest_advanced_analytics_view(request):
     )
     for row in topic_rows:
         raw_topic = row.pop("_eff_topic")
-        row["topic"] = display_topic_label(raw_topic) if raw_topic else "Unlinked"
+        row["topic"] = display_topic_label(raw_topic) if raw_topic else "Uncategorized"
         row["avg_mohs"] = (
             round(float(row["avg_mohs"]), 2) if row["avg_mohs"] is not None else None
         )
@@ -8433,11 +8318,11 @@ def contest_advanced_analytics_view(request):
     recent_statement_rows = [
         {
             "day_label": statement.day_label or "",
-            "is_linked": statement.linked_problem_id is not None,
+            "topic": display_topic_label(effective_topic(statement)) or "Uncategorized",
             "problem_code": statement.problem_code,
             "updated_at_label": timezone.localtime(statement.updated_at).strftime("%Y-%m-%d"),
         }
-        for statement in contest_base.order_by(
+        for statement in contest_base.select_related("linked_problem").order_by(
             "-updated_at",
             "-contest_year",
             "day_label",
@@ -8470,6 +8355,7 @@ def contest_advanced_analytics_view(request):
             "avg_mohs": round(float(stats["avg_mohs"] or 0), 2),
             "distinct_topics": stats["distinct_topics"],
             "linked_statement_total": statement_problem_total,
+            "needs_metadata_total": stats["needs_metadata_total"],
             "max_mohs": stats["max_mohs"] or 0,
             "problem_count": stats["problem_count"],
             "published_solution_total": published_solution_total,
@@ -8490,16 +8376,7 @@ def contest_advanced_analytics_view(request):
             "year_span_label": _format_year_span_label(stats["year_min"], stats["year_max"]) or "-",
         },
         "confidence_rows": confidence_rows,
-        "contest_completion_heatmap": {
-            "chart": _contest_completion_heatmap_chart_payload(heatmap_rows),
-            "filled_cell_total": len(heatmap_counts),
-            "has_partial_cells": has_partial_heatmap_cells,
-            "problem_code_groups": _contest_heatmap_problem_code_groups(heatmap_problem_codes),
-            "problem_code_total": len(heatmap_problem_codes),
-            "problem_codes": heatmap_problem_codes,
-            "rows": heatmap_rows,
-            "year_total": len(heatmap_rows),
-        },
+        "contest_completion_heatmap": completion_heatmap,
         "has_contests": True,
         "contest_quick_update_url": contest_quick_update_url,
         "recent_statement_rows": recent_statement_rows,

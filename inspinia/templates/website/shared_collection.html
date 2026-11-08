@@ -28,7 +28,7 @@
       {% for row in collection_rows %}
       <section class="public-collection-entry" aria-label="Solution {{ forloop.counter }}">
         <div class="public-collection-entry-links"><span>Solution {{ forloop.counter }}</span><a href="#collection-contents">Back to contents ↑</a><button type="button" data-copy-public-link="{{ canonical_url }}#{{ row.anchor }}">Copy solution link</button></div>
-        {% include 'solutions/partials/shared-solution-content.html' with snapshot=row.snapshot shared_anchor=row.anchor %}
+        {% include 'solutions/partials/shared-solution-content.html' with snapshot=row.snapshot shared_anchor=row.anchor image_base_url=row.image_base_url %}
       </section>
       {% endfor %}
     </div>

@@ -1,0 +1,11 @@
+[Unit]
+Description=Process pending AsterProof Study Help requests
+
+[Timer]
+OnBootSec=10s
+OnUnitInactiveSec=5s
+AccuracySec=1s
+Unit=asterproof-study-help.service
+
+[Install]
+WantedBy=timers.target

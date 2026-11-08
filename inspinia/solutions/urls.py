@@ -28,10 +28,14 @@ from inspinia.solutions.views import solution_guide_preference_view
 from . import evaluation_views as evaluation
 from .evaluation_consent_views import solution_reuse_consent_create_view
 from .evaluation_consent_views import solution_reuse_consent_withdraw_view
+from .forum_urls import urlpatterns as forum_patterns
+from .image_urls import urlpatterns as image_patterns
 
 app_name = "solutions"
 
 urlpatterns = [
+    *image_patterns,
+    *forum_patterns,
     path("admin/review-prototype/", synthetic_review_workspace, name="synthetic_review_workspace"),
     path("admin/review-prototype/<uuid:review_id>/", synthetic_review_detail, name="synthetic_review_detail"),
     path("admin/review-prototype/<uuid:review_id>/hints/", synthetic_review_hint, name="synthetic_review_hint"),

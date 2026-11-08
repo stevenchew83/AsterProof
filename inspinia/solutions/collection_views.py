@@ -20,6 +20,8 @@ from django.views.decorators.cache import never_cache
 from django.views.decorators.http import require_http_methods
 
 from inspinia.solutions.forms import SolutionCollectionForm
+from inspinia.solutions.image_access import internal_image_base_url
+from inspinia.solutions.image_access import public_image_base_url
 from inspinia.solutions.models import ProblemSolution
 from inspinia.solutions.models import SolutionCollection
 from inspinia.solutions.models import SolutionCollectionEntry
@@ -84,6 +86,7 @@ def _review(solutions):
             {
                 "solution": solution,
                 "snapshot": snapshot,
+                "image_base_url": public_image_base_url(share) if active else internal_image_base_url(solution.pk),
                 "is_shared": active,
                 "anchor": f"review-{solution.pk}",
                 "share_manage_url": reverse("solutions:problem_solution_share", args=[solution.problem.problem_uuid]),

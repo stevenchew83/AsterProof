@@ -1,0 +1,95 @@
+{% extends 'layouts/vertical.html' %}
+{% load static %}
+
+{% block title %}Paste achievements · {{ student.full_name }}{% endblock title %}
+
+{% block page_content %}
+<div class="container-fluid app-table-page">
+  {% url 'rankings:student_detail' student.pk as student_url %}
+  <div class="page-title-head app-page-header">
+    {% include 'partials/page-header-intro.html' with title='Paste achievements' subtitle=student.full_name back_url=student_url back_label='Student profile' page_icon='ti-clipboard-text' only %}
+  </div>
+  {% include 'pages/rankings/result-messages.html' %}
+  <ol class="list-inline text-muted fs-sm mb-3" aria-label="Import steps">
+    <li class="list-inline-item {% if stage == 'source' %}fw-semibold text-body{% endif %}">1. Paste source</li>
+    <li class="list-inline-item {% if stage == 'edit' %}fw-semibold text-body{% endif %}">2. Edit suggestions</li>
+    <li class="list-inline-item {% if stage == 'review' %}fw-semibold text-body{% endif %}">3. Review &amp; import</li>
+    {% if stage == 'receipt' %}<li class="list-inline-item fw-semibold text-success">Imported</li>{% endif %}
+  </ol>
+  {% if stage == 'source' %}
+    <div class="card"><div class="card-body">
+      <h2 class="h4">Keep the source. Review each result.</h2>
+      <p>Paste achievement notes, a list or a table for <strong>{{ student.full_name }}</strong>. The original text will be saved as a separate context record when you import.</p>
+      <p class="text-muted fs-sm">Suggestions are extracted locally. A source saying “verified” stays reported until its evidence is checked separately. Family records retain family provenance. Maximum 200 KB, 2,000 lines and 80 reviewed rows per paste.</p>
+      <form method="post">
+        {% csrf_token %}<input type="hidden" name="action" value="preview">
+        {{ source_form.non_field_errors }}
+        <div class="row g-3 mb-3">
+          <div class="col-md-7"><label for="{{ source_form.source_label.id_for_label }}" class="form-label">{{ source_form.source_label.label }}</label>{{ source_form.source_label }}{{ source_form.source_label.errors }}</div>
+          <div class="col-md-5"><label for="{{ source_form.default_evidence.id_for_label }}" class="form-label">{{ source_form.default_evidence.label }}</label>{{ source_form.default_evidence }}{{ source_form.default_evidence.errors }}</div>
+        </div>
+        <div class="mb-3"><label for="{{ source_form.source_text.id_for_label }}" class="form-label">{{ source_form.source_text.label }}</label>{{ source_form.source_text }}{{ source_form.source_text.errors }}</div>
+        <button type="submit" class="btn btn-primary"><i class="ti ti-eye me-1" aria-hidden="true"></i>Build suggestions</button>
+      </form>
+    </div></div>
+  {% else %}
+    <div class="card"><div class="card-body">
+      <h2 class="h4 mb-1">{{ batch.summary_json.source_label }}</h2>
+      <p class="text-muted fs-sm mb-2">Batch {{ batch.pk }} · {{ batch.created_at|date:'j M Y, H:i T' }} · {{ batch.summary_json.source_lines }} source lines</p>
+      <details><summary class="fw-semibold">Original source text</summary><textarea class="form-control mt-2" rows="10" readonly aria-label="Preserved original source text">{{ batch.summary_json.source_text }}</textarea></details>
+      {% if batch.summary_json.warnings %}<details class="mt-2"><summary>Source warnings ({{ batch.summary_json.warnings|length }})</summary><ul class="mt-2 mb-0">{% for warning in batch.summary_json.warnings %}<li>{{ warning }}</li>{% endfor %}</ul></details>{% endif %}
+    </div></div>
+    {% if stage == 'edit' %}
+      <div class="alert alert-info" role="status">Review every included row. Unknown years need an exact event year. Linking an existing record retains this source as context and preserves all of that record’s current values and reviews.</div>
+      <form method="post" data-achievement-review data-max-rows="80">
+        {% csrf_token %}<input type="hidden" name="action" value="review"><input type="hidden" name="batch_id" value="{{ batch.pk }}">
+        {{ rows.management_form }}
+        {% if rows.non_form_errors %}<div class="alert alert-danger" role="alert">{{ rows.non_form_errors }}</div>{% endif %}
+        <div data-achievement-rows>
+          {% for form in rows %}{% include 'pages/rankings/achievement-text-row.html' with number=forloop.counter %}{% endfor %}
+        </div>
+        <template data-empty-row>{% include 'pages/rankings/achievement-text-row.html' with form=empty_row number='New' %}</template>
+        <div class="d-flex flex-wrap gap-2 mb-3">
+          <button class="btn btn-outline-secondary" type="button" data-add-row hidden><i class="ti ti-plus me-1" aria-hidden="true"></i>Add row</button>
+          <button class="btn btn-primary" type="submit">Review import summary<i class="ti ti-arrow-right ms-1" aria-hidden="true"></i></button>
+          <a class="btn btn-link" href="{% url 'rankings:achievement_text_import' student.pk %}">Start a new paste</a>
+        </div>
+        <p class="text-muted fs-sm" data-row-count aria-live="polite">You can import the context alone by excluding all result rows.</p>
+      </form>
+    {% else %}
+      {% if stage == 'receipt' %}
+        <div class="alert alert-success" role="status"><strong>Import recorded.</strong> {{ batch.summary_json.receipt.created_result_ids|length }} new result{{ batch.summary_json.receipt.created_result_ids|length|pluralize }}, {{ batch.summary_json.receipt.linked_result_ids|length }} existing record{{ batch.summary_json.receipt.linked_result_ids|length|pluralize }} linked for context, and one original-text context record.</div>
+        <div class="d-flex flex-wrap gap-2 mb-3"><a class="btn btn-primary" href="{{ student_url }}">View achievements</a><a class="btn btn-outline-secondary" href="{{ student_url }}?type=sources#student-sources">Sources &amp; notes</a><a class="btn btn-outline-secondary" href="{% url 'rankings:correction_detail' batch.summary_json.receipt.correction_id %}">Classification audit</a></div>
+      {% else %}
+        <div class="alert alert-info" role="status"><strong>Final review for {{ student.full_name }}.</strong> Only rows marked “New record” will add results. Existing records are linked for context only. One context record will preserve the full paste, including excluded lines. No claim will be marked Verified.</div>
+      {% endif %}
+      <div class="card"><div class="card-body">
+        <h2 class="h4">{{ review_rows|length }} selected row{{ review_rows|length|pluralize }}</h2>
+        <div class="app-table-region table-responsive" role="region" aria-label="Reviewed achievement import" tabindex="0">
+          <table class="table app-table-compact align-middle mb-0">
+            <thead><tr><th scope="col">Year / event</th><th scope="col">Action</th><th scope="col" class="d-none d-md-table-cell">Award / score / placing</th><th scope="col" class="d-none d-md-table-cell">Evidence from this paste</th></tr></thead>
+            <tbody>{% for row in review_rows %}<tr>
+              <td class="text-wrap"><strong>{{ row.year }}</strong><span class="d-block text-break">{{ row.title }}</span>
+                <div class="d-md-none fs-sm mt-1">{{ row.outcome|default:'—' }}{% if row.score is not None %}<span class="d-block">Score: {{ row.score }}</span>{% endif %}{% if row.ranking %}<span class="d-block">Placing: {{ row.ranking }}</span>{% endif %}<span class="badge bg-{{ row.evidence_tone }}-subtle text-{{ row.evidence_tone }}-emphasis text-wrap mt-1">{{ row.evidence_label }}</span></div>
+                <details class="mt-1"><summary>Details</summary><dl class="text-wrap text-break mt-2 mb-0"><dt>Record type / discipline</dt><dd>{{ row.record_type }} · {{ row.discipline }}</dd><dt>Category</dt><dd>{{ row.band|default:'Not recorded' }}</dd>{% if row.existing_result %}<dt>Linked record (unchanged)</dt><dd>{{ row.existing_label }}</dd>{% endif %}<dt>Source excerpt</dt><dd>{{ row.excerpt|default:'Manually entered during review' }}</dd><dt>Review notes</dt><dd>{{ row.notes|default:'None' }}</dd></dl></details></td>
+              <td class="text-wrap">{% if row.existing_result %}<span class="badge bg-secondary-subtle text-secondary text-wrap">Context link only</span><span class="d-none d-md-block fs-sm text-muted">{{ row.existing_label }}</span>{% else %}<span class="badge bg-primary-subtle text-primary text-wrap">New record</span>{% endif %}</td>
+              <td class="d-none d-md-table-cell">{{ row.outcome|default:'—' }}{% if row.score is not None %}<span class="d-block fs-sm">Score: {{ row.score }}</span>{% endif %}{% if row.ranking %}<span class="d-block fs-sm">Placing: {{ row.ranking }}</span>{% endif %}</td>
+              <td class="d-none d-md-table-cell"><span class="badge bg-{{ row.evidence_tone }}-subtle text-{{ row.evidence_tone }}-emphasis text-wrap">{{ row.evidence_label }}</span>{% if row.existing_result %}<span class="d-block fs-sm text-muted">Existing evidence reviews remain unchanged.</span>{% endif %}</td>
+            </tr>{% empty %}<tr><td colspan="4" class="text-muted">Context only: the original source will be saved without new achievement results.</td></tr>{% endfor %}</tbody>
+          </table>
+        </div>
+      </div></div>
+      {% if stage == 'review' %}
+      <form method="post" class="mb-4">
+        {% csrf_token %}<input type="hidden" name="action" value="apply"><input type="hidden" name="batch_id" value="{{ batch.pk }}"><input type="hidden" name="nonce" value="{{ batch.summary_json.review_nonce }}">
+        <div class="form-check mb-3"><input class="form-check-input" id="confirm-achievements" type="checkbox" name="confirm" value="yes" required><label class="form-check-label" for="confirm-achievements">I reviewed the selected records and evidence labels. Save the original text as context and import this summary.</label></div>
+        <div class="d-flex flex-wrap gap-2"><button class="btn btn-primary" type="submit"><i class="ti ti-check me-1" aria-hidden="true"></i>Import reviewed records</button><a href="?batch={{ batch.pk }}&amp;edit=1" class="btn btn-outline-secondary">Edit rows</a></div>
+      </form>
+      {% endif %}
+    {% endif %}
+  {% endif %}
+  {% if recent_batches %}<details class="mb-4"><summary>Your recent pastes for this student</summary><ul class="mt-2 mb-0">{% for recent in recent_batches %}<li><a href="?batch={{ recent.pk }}">{{ recent.summary_json.source_label }}</a> · {{ recent.get_status_display }} · {{ recent.created_at|date:'j M Y, H:i' }}</li>{% endfor %}</ul></details>{% endif %}
+</div>
+{% endblock page_content %}
+
+{% block extra_javascript %}<script src="{% static 'js/achievement-text-import.js' %}" defer></script>{% endblock extra_javascript %}

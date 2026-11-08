@@ -15,6 +15,7 @@ from inspinia.pages.views import _render_completion_progress_analytics
 from inspinia.training.progress import training_progress_summary
 
 
+@never_cache
 @login_required
 @require_safe
 def shared_progress_view(request, learner: str, section: str = "completions"):

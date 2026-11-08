@@ -1,0 +1,9 @@
+{% extends "account/email/base_message.txt" %}
+{% block content %}An AsterProof administrator has published AI feedback on your solution.
+
+Your score: {{ review_score }}/7
+
+Sign in to read what earned credit and find a next step:
+{{ review_url }}
+
+Only you and AsterProof administrators can view this feedback.{% endblock content %}

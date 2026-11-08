@@ -1,0 +1,1421 @@
+{
+  "columns": [
+    {
+      "collation": "default",
+      "column": "action",
+      "default": null,
+      "nullable": false,
+      "position": 2,
+      "schema": "public",
+      "table": "pages_studyhelpadminevent",
+      "type": "character varying(24)"
+    },
+    {
+      "collation": "default",
+      "column": "action",
+      "default": null,
+      "nullable": false,
+      "position": 4,
+      "schema": "public",
+      "table": "pages_studyhelpevent",
+      "type": "character varying(16)"
+    },
+    {
+      "collation": "default",
+      "column": "action",
+      "default": null,
+      "nullable": false,
+      "position": 7,
+      "schema": "public",
+      "table": "pages_studyhelprequest",
+      "type": "character varying(16)"
+    },
+    {
+      "collation": "default",
+      "column": "audience",
+      "default": null,
+      "nullable": false,
+      "position": 3,
+      "schema": "public",
+      "table": "pages_studyhelppolicy",
+      "type": "character varying(8)"
+    },
+    {
+      "collation": "default",
+      "column": "body",
+      "default": null,
+      "nullable": false,
+      "position": 15,
+      "schema": "public",
+      "table": "pages_studyhelprequest",
+      "type": "text"
+    },
+    {
+      "collation": "default",
+      "column": "evaluation_batch",
+      "default": null,
+      "nullable": false,
+      "position": 16,
+      "schema": "public",
+      "table": "pages_studyhelpspend",
+      "type": "character varying(64)"
+    },
+    {
+      "collation": "default",
+      "column": "evaluation_key",
+      "default": null,
+      "nullable": true,
+      "position": 15,
+      "schema": "public",
+      "table": "pages_studyhelpspend",
+      "type": "character varying(64)"
+    },
+    {
+      "collation": "default",
+      "column": "evaluation_manifest",
+      "default": null,
+      "nullable": false,
+      "position": 17,
+      "schema": "public",
+      "table": "pages_studyhelpspend",
+      "type": "character varying(64)"
+    },
+    {
+      "collation": "default",
+      "column": "failure_code",
+      "default": null,
+      "nullable": false,
+      "position": 17,
+      "schema": "public",
+      "table": "pages_studyhelprequest",
+      "type": "character varying(32)"
+    },
+    {
+      "collation": "default",
+      "column": "funding_source",
+      "default": null,
+      "nullable": false,
+      "position": 18,
+      "schema": "public",
+      "table": "pages_studyhelprequest",
+      "type": "character varying(16)"
+    },
+    {
+      "collation": "default",
+      "column": "hint",
+      "default": null,
+      "nullable": false,
+      "position": 2,
+      "schema": "public",
+      "table": "pages_studyhelpprompt",
+      "type": "text"
+    },
+    {
+      "collation": "default",
+      "column": "kind",
+      "default": null,
+      "nullable": false,
+      "position": 5,
+      "schema": "public",
+      "table": "pages_studyhelpevent",
+      "type": "character varying(16)"
+    },
+    {
+      "collation": "default",
+      "column": "method",
+      "default": null,
+      "nullable": false,
+      "position": 16,
+      "schema": "public",
+      "table": "pages_studyhelprequest",
+      "type": "character varying(100)"
+    },
+    {
+      "collation": "default",
+      "column": "model",
+      "default": null,
+      "nullable": false,
+      "position": 12,
+      "schema": "public",
+      "table": "pages_studyhelprequest",
+      "type": "character varying(100)"
+    },
+    {
+      "collation": "default",
+      "column": "model",
+      "default": null,
+      "nullable": false,
+      "position": 4,
+      "schema": "public",
+      "table": "pages_studyhelppolicy",
+      "type": "character varying(100)"
+    },
+    {
+      "collation": "default",
+      "column": "profile_digest",
+      "default": null,
+      "nullable": false,
+      "position": 13,
+      "schema": "public",
+      "table": "pages_studyhelprequest",
+      "type": "character varying(64)"
+    },
+    {
+      "collation": "default",
+      "column": "profile_digest",
+      "default": null,
+      "nullable": false,
+      "position": 2,
+      "schema": "public",
+      "table": "pages_studyhelpqualification",
+      "type": "character varying(64)"
+    },
+    {
+      "collation": "default",
+      "column": "provider_request_id",
+      "default": null,
+      "nullable": false,
+      "position": 10,
+      "schema": "public",
+      "table": "pages_studyhelpspend",
+      "type": "character varying(160)"
+    },
+    {
+      "collation": "default",
+      "column": "provider_response_id",
+      "default": null,
+      "nullable": false,
+      "position": 11,
+      "schema": "public",
+      "table": "pages_studyhelpspend",
+      "type": "character varying(160)"
+    },
+    {
+      "collation": "default",
+      "column": "reconciliation_ref",
+      "default": null,
+      "nullable": false,
+      "position": 14,
+      "schema": "public",
+      "table": "pages_studyhelpspend",
+      "type": "character varying(160)"
+    },
+    {
+      "collation": "default",
+      "column": "reference",
+      "default": null,
+      "nullable": false,
+      "position": 3,
+      "schema": "public",
+      "table": "pages_studyhelpadminevent",
+      "type": "character varying(160)"
+    },
+    {
+      "collation": "default",
+      "column": "revision",
+      "default": null,
+      "nullable": false,
+      "position": 6,
+      "schema": "public",
+      "table": "pages_studyhelprequest",
+      "type": "character varying(64)"
+    },
+    {
+      "collation": "default",
+      "column": "solution",
+      "default": null,
+      "nullable": false,
+      "position": 3,
+      "schema": "public",
+      "table": "pages_studyhelpprompt",
+      "type": "text"
+    },
+    {
+      "collation": "default",
+      "column": "state",
+      "default": null,
+      "nullable": false,
+      "position": 11,
+      "schema": "public",
+      "table": "pages_studyhelprequest",
+      "type": "character varying(8)"
+    },
+    {
+      "collation": "default",
+      "column": "state",
+      "default": null,
+      "nullable": false,
+      "position": 2,
+      "schema": "public",
+      "table": "pages_studyhelpspend",
+      "type": "character varying(12)"
+    },
+    {
+      "collation": "default",
+      "column": "statement_text",
+      "default": null,
+      "nullable": false,
+      "position": 14,
+      "schema": "public",
+      "table": "pages_studyhelprequest",
+      "type": "text"
+    },
+    {
+      "collation": null,
+      "column": "active_prompt_id",
+      "default": null,
+      "nullable": true,
+      "position": 12,
+      "schema": "public",
+      "table": "pages_studyhelppolicy",
+      "type": "uuid"
+    },
+    {
+      "collation": null,
+      "column": "actor_id",
+      "default": null,
+      "nullable": true,
+      "position": 5,
+      "schema": "public",
+      "table": "pages_studyhelpadminevent",
+      "type": "bigint"
+    },
+    {
+      "collation": null,
+      "column": "actual_micros",
+      "default": null,
+      "nullable": true,
+      "position": 6,
+      "schema": "public",
+      "table": "pages_studyhelpspend",
+      "type": "bigint"
+    },
+    {
+      "collation": null,
+      "column": "created_at",
+      "default": null,
+      "nullable": false,
+      "position": 19,
+      "schema": "public",
+      "table": "pages_studyhelprequest",
+      "type": "timestamp with time zone"
+    },
+    {
+      "collation": null,
+      "column": "created_at",
+      "default": null,
+      "nullable": false,
+      "position": 2,
+      "schema": "public",
+      "table": "pages_studyhelpenrollment",
+      "type": "timestamp with time zone"
+    },
+    {
+      "collation": null,
+      "column": "created_at",
+      "default": null,
+      "nullable": false,
+      "position": 4,
+      "schema": "public",
+      "table": "pages_studyhelpadminevent",
+      "type": "timestamp with time zone"
+    },
+    {
+      "collation": null,
+      "column": "created_at",
+      "default": null,
+      "nullable": false,
+      "position": 4,
+      "schema": "public",
+      "table": "pages_studyhelpprompt",
+      "type": "timestamp with time zone"
+    },
+    {
+      "collation": null,
+      "column": "created_at",
+      "default": null,
+      "nullable": false,
+      "position": 6,
+      "schema": "public",
+      "table": "pages_studyhelpevent",
+      "type": "timestamp with time zone"
+    },
+    {
+      "collation": null,
+      "column": "created_at",
+      "default": null,
+      "nullable": false,
+      "position": 7,
+      "schema": "public",
+      "table": "pages_studyhelpspend",
+      "type": "timestamp with time zone"
+    },
+    {
+      "collation": null,
+      "column": "day_cap",
+      "default": null,
+      "nullable": false,
+      "position": 10,
+      "schema": "public",
+      "table": "pages_studyhelppolicy",
+      "type": "bigint"
+    },
+    {
+      "collation": null,
+      "column": "dispatched_at",
+      "default": null,
+      "nullable": true,
+      "position": 8,
+      "schema": "public",
+      "table": "pages_studyhelpspend",
+      "type": "timestamp with time zone"
+    },
+    {
+      "collation": null,
+      "column": "editor_id",
+      "default": null,
+      "nullable": true,
+      "position": 5,
+      "schema": "public",
+      "table": "pages_studyhelpprompt",
+      "type": "bigint"
+    },
+    {
+      "collation": null,
+      "column": "evidence",
+      "default": null,
+      "nullable": false,
+      "position": 3,
+      "schema": "public",
+      "table": "pages_studyhelpqualification",
+      "type": "jsonb"
+    },
+    {
+      "collation": null,
+      "column": "finished_at",
+      "default": null,
+      "nullable": true,
+      "position": 20,
+      "schema": "public",
+      "table": "pages_studyhelprequest",
+      "type": "timestamp with time zone"
+    },
+    {
+      "collation": null,
+      "column": "generation_enabled",
+      "default": null,
+      "nullable": false,
+      "position": 2,
+      "schema": "public",
+      "table": "pages_studyhelppolicy",
+      "type": "boolean"
+    },
+    {
+      "collation": null,
+      "column": "generation_id",
+      "default": null,
+      "nullable": true,
+      "position": 8,
+      "schema": "public",
+      "table": "pages_studyhelpevent",
+      "type": "uuid"
+    },
+    {
+      "collation": null,
+      "column": "hint_day",
+      "default": null,
+      "nullable": true,
+      "position": 10,
+      "schema": "public",
+      "table": "pages_studyhelprequest",
+      "type": "date"
+    },
+    {
+      "collation": null,
+      "column": "id",
+      "default": null,
+      "nullable": false,
+      "position": 1,
+      "schema": "public",
+      "table": "pages_studyhelpadminevent",
+      "type": "bigint"
+    },
+    {
+      "collation": null,
+      "column": "id",
+      "default": null,
+      "nullable": false,
+      "position": 1,
+      "schema": "public",
+      "table": "pages_studyhelpenrollment",
+      "type": "bigint"
+    },
+    {
+      "collation": null,
+      "column": "id",
+      "default": null,
+      "nullable": false,
+      "position": 1,
+      "schema": "public",
+      "table": "pages_studyhelpevent",
+      "type": "bigint"
+    },
+    {
+      "collation": null,
+      "column": "id",
+      "default": null,
+      "nullable": false,
+      "position": 1,
+      "schema": "public",
+      "table": "pages_studyhelppolicy",
+      "type": "smallint"
+    },
+    {
+      "collation": null,
+      "column": "id",
+      "default": null,
+      "nullable": false,
+      "position": 1,
+      "schema": "public",
+      "table": "pages_studyhelpprompt",
+      "type": "uuid"
+    },
+    {
+      "collation": null,
+      "column": "id",
+      "default": null,
+      "nullable": false,
+      "position": 1,
+      "schema": "public",
+      "table": "pages_studyhelpqualification",
+      "type": "bigint"
+    },
+    {
+      "collation": null,
+      "column": "id",
+      "default": null,
+      "nullable": false,
+      "position": 1,
+      "schema": "public",
+      "table": "pages_studyhelprequest",
+      "type": "uuid"
+    },
+    {
+      "collation": null,
+      "column": "id",
+      "default": null,
+      "nullable": false,
+      "position": 1,
+      "schema": "public",
+      "table": "pages_studyhelprestriction",
+      "type": "bigint"
+    },
+    {
+      "collation": null,
+      "column": "id",
+      "default": null,
+      "nullable": false,
+      "position": 1,
+      "schema": "public",
+      "table": "pages_studyhelpspend",
+      "type": "uuid"
+    },
+    {
+      "collation": null,
+      "column": "input_price",
+      "default": null,
+      "nullable": false,
+      "position": 4,
+      "schema": "public",
+      "table": "pages_studyhelpspend",
+      "type": "bigint"
+    },
+    {
+      "collation": null,
+      "column": "input_price",
+      "default": null,
+      "nullable": false,
+      "position": 5,
+      "schema": "public",
+      "table": "pages_studyhelppolicy",
+      "type": "bigint"
+    },
+    {
+      "collation": null,
+      "column": "input_tokens",
+      "default": null,
+      "nullable": true,
+      "position": 12,
+      "schema": "public",
+      "table": "pages_studyhelpspend",
+      "type": "integer"
+    },
+    {
+      "collation": null,
+      "column": "interaction_key",
+      "default": null,
+      "nullable": false,
+      "position": 3,
+      "schema": "public",
+      "table": "pages_studyhelpevent",
+      "type": "uuid"
+    },
+    {
+      "collation": null,
+      "column": "interaction_key",
+      "default": null,
+      "nullable": false,
+      "position": 3,
+      "schema": "public",
+      "table": "pages_studyhelprequest",
+      "type": "uuid"
+    },
+    {
+      "collation": null,
+      "column": "month_cap",
+      "default": null,
+      "nullable": false,
+      "position": 11,
+      "schema": "public",
+      "table": "pages_studyhelppolicy",
+      "type": "bigint"
+    },
+    {
+      "collation": null,
+      "column": "output_price",
+      "default": null,
+      "nullable": false,
+      "position": 5,
+      "schema": "public",
+      "table": "pages_studyhelpspend",
+      "type": "bigint"
+    },
+    {
+      "collation": null,
+      "column": "output_price",
+      "default": null,
+      "nullable": false,
+      "position": 6,
+      "schema": "public",
+      "table": "pages_studyhelppolicy",
+      "type": "bigint"
+    },
+    {
+      "collation": null,
+      "column": "output_tokens",
+      "default": null,
+      "nullable": true,
+      "position": 13,
+      "schema": "public",
+      "table": "pages_studyhelpspend",
+      "type": "integer"
+    },
+    {
+      "collation": null,
+      "column": "owner_id",
+      "default": null,
+      "nullable": false,
+      "position": 22,
+      "schema": "public",
+      "table": "pages_studyhelprequest",
+      "type": "bigint"
+    },
+    {
+      "collation": null,
+      "column": "owner_id",
+      "default": null,
+      "nullable": false,
+      "position": 7,
+      "schema": "public",
+      "table": "pages_studyhelpevent",
+      "type": "bigint"
+    },
+    {
+      "collation": null,
+      "column": "policy_id",
+      "default": null,
+      "nullable": false,
+      "position": 3,
+      "schema": "public",
+      "table": "pages_studyhelprestriction",
+      "type": "uuid"
+    },
+    {
+      "collation": null,
+      "column": "pricing_verified_at",
+      "default": null,
+      "nullable": true,
+      "position": 7,
+      "schema": "public",
+      "table": "pages_studyhelppolicy",
+      "type": "timestamp with time zone"
+    },
+    {
+      "collation": null,
+      "column": "prior_id",
+      "default": null,
+      "nullable": true,
+      "position": 9,
+      "schema": "public",
+      "table": "pages_studyhelprequest",
+      "type": "uuid"
+    },
+    {
+      "collation": null,
+      "column": "problem_uuid",
+      "default": null,
+      "nullable": false,
+      "position": 5,
+      "schema": "public",
+      "table": "pages_studyhelprequest",
+      "type": "uuid"
+    },
+    {
+      "collation": null,
+      "column": "prompt_id",
+      "default": null,
+      "nullable": false,
+      "position": 23,
+      "schema": "public",
+      "table": "pages_studyhelprequest",
+      "type": "uuid"
+    },
+    {
+      "collation": null,
+      "column": "prompt_id",
+      "default": null,
+      "nullable": false,
+      "position": 5,
+      "schema": "public",
+      "table": "pages_studyhelpqualification",
+      "type": "uuid"
+    },
+    {
+      "collation": null,
+      "column": "prompt_id",
+      "default": null,
+      "nullable": true,
+      "position": 6,
+      "schema": "public",
+      "table": "pages_studyhelpadminevent",
+      "type": "uuid"
+    },
+    {
+      "collation": null,
+      "column": "recorded_at",
+      "default": null,
+      "nullable": false,
+      "position": 4,
+      "schema": "public",
+      "table": "pages_studyhelpqualification",
+      "type": "timestamp with time zone"
+    },
+    {
+      "collation": null,
+      "column": "request_cap",
+      "default": null,
+      "nullable": false,
+      "position": 9,
+      "schema": "public",
+      "table": "pages_studyhelppolicy",
+      "type": "bigint"
+    },
+    {
+      "collation": null,
+      "column": "request_key",
+      "default": null,
+      "nullable": false,
+      "position": 2,
+      "schema": "public",
+      "table": "pages_studyhelprequest",
+      "type": "uuid"
+    },
+    {
+      "collation": null,
+      "column": "reserved_micros",
+      "default": null,
+      "nullable": false,
+      "position": 3,
+      "schema": "public",
+      "table": "pages_studyhelpspend",
+      "type": "bigint"
+    },
+    {
+      "collation": null,
+      "column": "revealed_at",
+      "default": null,
+      "nullable": true,
+      "position": 21,
+      "schema": "public",
+      "table": "pages_studyhelprequest",
+      "type": "timestamp with time zone"
+    },
+    {
+      "collation": null,
+      "column": "settled_at",
+      "default": null,
+      "nullable": true,
+      "position": 9,
+      "schema": "public",
+      "table": "pages_studyhelpspend",
+      "type": "timestamp with time zone"
+    },
+    {
+      "collation": null,
+      "column": "slot",
+      "default": null,
+      "nullable": false,
+      "position": 8,
+      "schema": "public",
+      "table": "pages_studyhelprequest",
+      "type": "smallint"
+    },
+    {
+      "collation": null,
+      "column": "spend_id",
+      "default": null,
+      "nullable": false,
+      "position": 24,
+      "schema": "public",
+      "table": "pages_studyhelprequest",
+      "type": "uuid"
+    },
+    {
+      "collation": null,
+      "column": "statement_uuid",
+      "default": null,
+      "nullable": false,
+      "position": 2,
+      "schema": "public",
+      "table": "pages_studyhelpevent",
+      "type": "uuid"
+    },
+    {
+      "collation": null,
+      "column": "statement_uuid",
+      "default": null,
+      "nullable": false,
+      "position": 2,
+      "schema": "public",
+      "table": "pages_studyhelprestriction",
+      "type": "uuid"
+    },
+    {
+      "collation": null,
+      "column": "statement_uuid",
+      "default": null,
+      "nullable": false,
+      "position": 4,
+      "schema": "public",
+      "table": "pages_studyhelprequest",
+      "type": "uuid"
+    },
+    {
+      "collation": null,
+      "column": "user_id",
+      "default": null,
+      "nullable": false,
+      "position": 3,
+      "schema": "public",
+      "table": "pages_studyhelpenrollment",
+      "type": "bigint"
+    },
+    {
+      "collation": null,
+      "column": "worker_checked_at",
+      "default": null,
+      "nullable": true,
+      "position": 8,
+      "schema": "public",
+      "table": "pages_studyhelppolicy",
+      "type": "timestamp with time zone"
+    }
+  ],
+  "constraints": [
+    {
+      "definition": "CHECK (actual_micros >= 0)",
+      "name": "pages_studyhelpspend_actual_micros_check",
+      "schema": "public",
+      "table": "pages_studyhelpspend",
+      "type": "c"
+    },
+    {
+      "definition": "CHECK (day_cap >= 0)",
+      "name": "pages_studyhelppolicy_day_cap_check",
+      "schema": "public",
+      "table": "pages_studyhelppolicy",
+      "type": "c"
+    },
+    {
+      "definition": "CHECK (id = 1)",
+      "name": "study_help_one_policy",
+      "schema": "public",
+      "table": "pages_studyhelppolicy",
+      "type": "c"
+    },
+    {
+      "definition": "CHECK (id >= 0)",
+      "name": "pages_studyhelppolicy_id_check",
+      "schema": "public",
+      "table": "pages_studyhelppolicy",
+      "type": "c"
+    },
+    {
+      "definition": "CHECK (input_price >= 0)",
+      "name": "pages_studyhelppolicy_input_price_check",
+      "schema": "public",
+      "table": "pages_studyhelppolicy",
+      "type": "c"
+    },
+    {
+      "definition": "CHECK (input_price >= 0)",
+      "name": "pages_studyhelpspend_input_price_check",
+      "schema": "public",
+      "table": "pages_studyhelpspend",
+      "type": "c"
+    },
+    {
+      "definition": "CHECK (input_tokens >= 0)",
+      "name": "pages_studyhelpspend_input_tokens_check",
+      "schema": "public",
+      "table": "pages_studyhelpspend",
+      "type": "c"
+    },
+    {
+      "definition": "CHECK (month_cap >= 0)",
+      "name": "pages_studyhelppolicy_month_cap_check",
+      "schema": "public",
+      "table": "pages_studyhelppolicy",
+      "type": "c"
+    },
+    {
+      "definition": "CHECK (output_price >= 0)",
+      "name": "pages_studyhelppolicy_output_price_check",
+      "schema": "public",
+      "table": "pages_studyhelppolicy",
+      "type": "c"
+    },
+    {
+      "definition": "CHECK (output_price >= 0)",
+      "name": "pages_studyhelpspend_output_price_check",
+      "schema": "public",
+      "table": "pages_studyhelpspend",
+      "type": "c"
+    },
+    {
+      "definition": "CHECK (output_tokens >= 0)",
+      "name": "pages_studyhelpspend_output_tokens_check",
+      "schema": "public",
+      "table": "pages_studyhelpspend",
+      "type": "c"
+    },
+    {
+      "definition": "CHECK (request_cap >= 0)",
+      "name": "pages_studyhelppolicy_request_cap_check",
+      "schema": "public",
+      "table": "pages_studyhelppolicy",
+      "type": "c"
+    },
+    {
+      "definition": "CHECK (reserved_micros >= 0)",
+      "name": "pages_studyhelpspend_reserved_micros_check",
+      "schema": "public",
+      "table": "pages_studyhelpspend",
+      "type": "c"
+    },
+    {
+      "definition": "CHECK (slot >= 0)",
+      "name": "pages_studyhelprequest_slot_check",
+      "schema": "public",
+      "table": "pages_studyhelprequest",
+      "type": "c"
+    },
+    {
+      "definition": "FOREIGN KEY (active_prompt_id) REFERENCES pages_studyhelpprompt(id) DEFERRABLE INITIALLY DEFERRED",
+      "name": "pages_studyhelppolic_active_prompt_id_af25624e_fk_pages_stu",
+      "schema": "public",
+      "table": "pages_studyhelppolicy",
+      "type": "f"
+    },
+    {
+      "definition": "FOREIGN KEY (actor_id) REFERENCES users_user(id) DEFERRABLE INITIALLY DEFERRED",
+      "name": "pages_studyhelpadminevent_actor_id_218f982d_fk_users_user_id",
+      "schema": "public",
+      "table": "pages_studyhelpadminevent",
+      "type": "f"
+    },
+    {
+      "definition": "FOREIGN KEY (editor_id) REFERENCES users_user(id) DEFERRABLE INITIALLY DEFERRED",
+      "name": "pages_studyhelpprompt_editor_id_17dffd47_fk_users_user_id",
+      "schema": "public",
+      "table": "pages_studyhelpprompt",
+      "type": "f"
+    },
+    {
+      "definition": "FOREIGN KEY (generation_id) REFERENCES pages_studyhelprequest(id) DEFERRABLE INITIALLY DEFERRED",
+      "name": "pages_studyhelpevent_generation_id_44cd2781_fk_pages_stu",
+      "schema": "public",
+      "table": "pages_studyhelpevent",
+      "type": "f"
+    },
+    {
+      "definition": "FOREIGN KEY (owner_id) REFERENCES users_user(id) DEFERRABLE INITIALLY DEFERRED",
+      "name": "pages_studyhelpevent_owner_id_2a78bc8a_fk_users_user_id",
+      "schema": "public",
+      "table": "pages_studyhelpevent",
+      "type": "f"
+    },
+    {
+      "definition": "FOREIGN KEY (owner_id) REFERENCES users_user(id) DEFERRABLE INITIALLY DEFERRED",
+      "name": "pages_studyhelprequest_owner_id_1fb1b4dd_fk_users_user_id",
+      "schema": "public",
+      "table": "pages_studyhelprequest",
+      "type": "f"
+    },
+    {
+      "definition": "FOREIGN KEY (policy_id) REFERENCES solutions_assistancepolicy(id) DEFERRABLE INITIALLY DEFERRED",
+      "name": "pages_studyhelprestr_policy_id_8a173311_fk_solutions",
+      "schema": "public",
+      "table": "pages_studyhelprestriction",
+      "type": "f"
+    },
+    {
+      "definition": "FOREIGN KEY (prompt_id) REFERENCES pages_studyhelpprompt(id) DEFERRABLE INITIALLY DEFERRED",
+      "name": "pages_studyhelpadmin_prompt_id_52056aae_fk_pages_stu",
+      "schema": "public",
+      "table": "pages_studyhelpadminevent",
+      "type": "f"
+    },
+    {
+      "definition": "FOREIGN KEY (prompt_id) REFERENCES pages_studyhelpprompt(id) DEFERRABLE INITIALLY DEFERRED",
+      "name": "pages_studyhelpquali_prompt_id_a8f023a7_fk_pages_stu",
+      "schema": "public",
+      "table": "pages_studyhelpqualification",
+      "type": "f"
+    },
+    {
+      "definition": "FOREIGN KEY (prompt_id) REFERENCES pages_studyhelpprompt(id) DEFERRABLE INITIALLY DEFERRED",
+      "name": "pages_studyhelpreque_prompt_id_dc87dd89_fk_pages_stu",
+      "schema": "public",
+      "table": "pages_studyhelprequest",
+      "type": "f"
+    },
+    {
+      "definition": "FOREIGN KEY (spend_id) REFERENCES pages_studyhelpspend(id) DEFERRABLE INITIALLY DEFERRED",
+      "name": "pages_studyhelpreque_spend_id_38b93b3a_fk_pages_stu",
+      "schema": "public",
+      "table": "pages_studyhelprequest",
+      "type": "f"
+    },
+    {
+      "definition": "FOREIGN KEY (user_id) REFERENCES users_user(id) DEFERRABLE INITIALLY DEFERRED",
+      "name": "pages_studyhelpenrollment_user_id_f8e138f5_fk_users_user_id",
+      "schema": "public",
+      "table": "pages_studyhelpenrollment",
+      "type": "f"
+    },
+    {
+      "definition": "PRIMARY KEY (id)",
+      "name": "pages_studyhelpadminevent_pkey",
+      "schema": "public",
+      "table": "pages_studyhelpadminevent",
+      "type": "p"
+    },
+    {
+      "definition": "PRIMARY KEY (id)",
+      "name": "pages_studyhelpenrollment_pkey",
+      "schema": "public",
+      "table": "pages_studyhelpenrollment",
+      "type": "p"
+    },
+    {
+      "definition": "PRIMARY KEY (id)",
+      "name": "pages_studyhelpevent_pkey",
+      "schema": "public",
+      "table": "pages_studyhelpevent",
+      "type": "p"
+    },
+    {
+      "definition": "PRIMARY KEY (id)",
+      "name": "pages_studyhelppolicy_pkey",
+      "schema": "public",
+      "table": "pages_studyhelppolicy",
+      "type": "p"
+    },
+    {
+      "definition": "PRIMARY KEY (id)",
+      "name": "pages_studyhelpprompt_pkey",
+      "schema": "public",
+      "table": "pages_studyhelpprompt",
+      "type": "p"
+    },
+    {
+      "definition": "PRIMARY KEY (id)",
+      "name": "pages_studyhelpqualification_pkey",
+      "schema": "public",
+      "table": "pages_studyhelpqualification",
+      "type": "p"
+    },
+    {
+      "definition": "PRIMARY KEY (id)",
+      "name": "pages_studyhelprequest_pkey",
+      "schema": "public",
+      "table": "pages_studyhelprequest",
+      "type": "p"
+    },
+    {
+      "definition": "PRIMARY KEY (id)",
+      "name": "pages_studyhelprestriction_pkey",
+      "schema": "public",
+      "table": "pages_studyhelprestriction",
+      "type": "p"
+    },
+    {
+      "definition": "PRIMARY KEY (id)",
+      "name": "pages_studyhelpspend_pkey",
+      "schema": "public",
+      "table": "pages_studyhelpspend",
+      "type": "p"
+    },
+    {
+      "definition": "UNIQUE (evaluation_key)",
+      "name": "pages_studyhelpspend_evaluation_key_key",
+      "schema": "public",
+      "table": "pages_studyhelpspend",
+      "type": "u"
+    },
+    {
+      "definition": "UNIQUE (owner_id, interaction_key)",
+      "name": "study_help_interaction_unique",
+      "schema": "public",
+      "table": "pages_studyhelprequest",
+      "type": "u"
+    },
+    {
+      "definition": "UNIQUE (owner_id, request_key)",
+      "name": "study_help_request_key_unique",
+      "schema": "public",
+      "table": "pages_studyhelprequest",
+      "type": "u"
+    },
+    {
+      "definition": "UNIQUE (owner_id, statement_uuid, interaction_key, action, kind)",
+      "name": "study_help_event_unique",
+      "schema": "public",
+      "table": "pages_studyhelpevent",
+      "type": "u"
+    },
+    {
+      "definition": "UNIQUE (policy_id, statement_uuid)",
+      "name": "study_help_restriction_unique",
+      "schema": "public",
+      "table": "pages_studyhelprestriction",
+      "type": "u"
+    },
+    {
+      "definition": "UNIQUE (prompt_id, profile_digest)",
+      "name": "study_help_qualification_unique",
+      "schema": "public",
+      "table": "pages_studyhelpqualification",
+      "type": "u"
+    },
+    {
+      "definition": "UNIQUE (spend_id)",
+      "name": "pages_studyhelprequest_spend_id_key",
+      "schema": "public",
+      "table": "pages_studyhelprequest",
+      "type": "u"
+    },
+    {
+      "definition": "UNIQUE (user_id)",
+      "name": "pages_studyhelpenrollment_user_id_key",
+      "schema": "public",
+      "table": "pages_studyhelpenrollment",
+      "type": "u"
+    }
+  ],
+  "extensions": [],
+  "indexes": [
+    {
+      "definition": "CREATE INDEX pages_studyhelpadminevent_actor_id_218f982d ON public.pages_studyhelpadminevent USING btree (actor_id)",
+      "name": "pages_studyhelpadminevent_actor_id_218f982d",
+      "schema": "public",
+      "table": "pages_studyhelpadminevent"
+    },
+    {
+      "definition": "CREATE INDEX pages_studyhelpadminevent_prompt_id_52056aae ON public.pages_studyhelpadminevent USING btree (prompt_id)",
+      "name": "pages_studyhelpadminevent_prompt_id_52056aae",
+      "schema": "public",
+      "table": "pages_studyhelpadminevent"
+    },
+    {
+      "definition": "CREATE INDEX pages_studyhelpevent_generation_id_44cd2781 ON public.pages_studyhelpevent USING btree (generation_id)",
+      "name": "pages_studyhelpevent_generation_id_44cd2781",
+      "schema": "public",
+      "table": "pages_studyhelpevent"
+    },
+    {
+      "definition": "CREATE INDEX pages_studyhelpevent_owner_id_2a78bc8a ON public.pages_studyhelpevent USING btree (owner_id)",
+      "name": "pages_studyhelpevent_owner_id_2a78bc8a",
+      "schema": "public",
+      "table": "pages_studyhelpevent"
+    },
+    {
+      "definition": "CREATE INDEX pages_studyhelppolicy_active_prompt_id_af25624e ON public.pages_studyhelppolicy USING btree (active_prompt_id)",
+      "name": "pages_studyhelppolicy_active_prompt_id_af25624e",
+      "schema": "public",
+      "table": "pages_studyhelppolicy"
+    },
+    {
+      "definition": "CREATE INDEX pages_studyhelpprompt_editor_id_17dffd47 ON public.pages_studyhelpprompt USING btree (editor_id)",
+      "name": "pages_studyhelpprompt_editor_id_17dffd47",
+      "schema": "public",
+      "table": "pages_studyhelpprompt"
+    },
+    {
+      "definition": "CREATE INDEX pages_studyhelpqualification_prompt_id_a8f023a7 ON public.pages_studyhelpqualification USING btree (prompt_id)",
+      "name": "pages_studyhelpqualification_prompt_id_a8f023a7",
+      "schema": "public",
+      "table": "pages_studyhelpqualification"
+    },
+    {
+      "definition": "CREATE INDEX pages_studyhelprequest_owner_id_1fb1b4dd ON public.pages_studyhelprequest USING btree (owner_id)",
+      "name": "pages_studyhelprequest_owner_id_1fb1b4dd",
+      "schema": "public",
+      "table": "pages_studyhelprequest"
+    },
+    {
+      "definition": "CREATE INDEX pages_studyhelprequest_prompt_id_dc87dd89 ON public.pages_studyhelprequest USING btree (prompt_id)",
+      "name": "pages_studyhelprequest_prompt_id_dc87dd89",
+      "schema": "public",
+      "table": "pages_studyhelprequest"
+    },
+    {
+      "definition": "CREATE INDEX pages_studyhelprestriction_policy_id_8a173311 ON public.pages_studyhelprestriction USING btree (policy_id)",
+      "name": "pages_studyhelprestriction_policy_id_8a173311",
+      "schema": "public",
+      "table": "pages_studyhelprestriction"
+    },
+    {
+      "definition": "CREATE INDEX pages_studyhelprestriction_statement_uuid_11ed27a2 ON public.pages_studyhelprestriction USING btree (statement_uuid)",
+      "name": "pages_studyhelprestriction_statement_uuid_11ed27a2",
+      "schema": "public",
+      "table": "pages_studyhelprestriction"
+    },
+    {
+      "definition": "CREATE INDEX pages_studyhelpspend_evaluation_batch_89d33eb2 ON public.pages_studyhelpspend USING btree (evaluation_batch)",
+      "name": "pages_studyhelpspend_evaluation_batch_89d33eb2",
+      "schema": "public",
+      "table": "pages_studyhelpspend"
+    },
+    {
+      "definition": "CREATE INDEX pages_studyhelpspend_evaluation_batch_89d33eb2_like ON public.pages_studyhelpspend USING btree (evaluation_batch varchar_pattern_ops)",
+      "name": "pages_studyhelpspend_evaluation_batch_89d33eb2_like",
+      "schema": "public",
+      "table": "pages_studyhelpspend"
+    },
+    {
+      "definition": "CREATE INDEX pages_studyhelpspend_evaluation_key_713d1db9_like ON public.pages_studyhelpspend USING btree (evaluation_key varchar_pattern_ops)",
+      "name": "pages_studyhelpspend_evaluation_key_713d1db9_like",
+      "schema": "public",
+      "table": "pages_studyhelpspend"
+    },
+    {
+      "definition": "CREATE INDEX study_help_event_rate_idx ON public.pages_studyhelpevent USING btree (owner_id, created_at)",
+      "name": "study_help_event_rate_idx",
+      "schema": "public",
+      "table": "pages_studyhelpevent"
+    },
+    {
+      "definition": "CREATE INDEX study_help_event_report_idx ON public.pages_studyhelpevent USING btree (created_at, action, kind)",
+      "name": "study_help_event_report_idx",
+      "schema": "public",
+      "table": "pages_studyhelpevent"
+    },
+    {
+      "definition": "CREATE INDEX study_help_owner_statement_idx ON public.pages_studyhelprequest USING btree (owner_id, statement_uuid, state)",
+      "name": "study_help_owner_statement_idx",
+      "schema": "public",
+      "table": "pages_studyhelprequest"
+    },
+    {
+      "definition": "CREATE INDEX study_help_queue_idx ON public.pages_studyhelprequest USING btree (state, created_at)",
+      "name": "study_help_queue_idx",
+      "schema": "public",
+      "table": "pages_studyhelprequest"
+    },
+    {
+      "definition": "CREATE INDEX study_help_spend_window_idx ON public.pages_studyhelpspend USING btree (state, dispatched_at)",
+      "name": "study_help_spend_window_idx",
+      "schema": "public",
+      "table": "pages_studyhelpspend"
+    },
+    {
+      "definition": "CREATE UNIQUE INDEX pages_studyhelpadminevent_pkey ON public.pages_studyhelpadminevent USING btree (id)",
+      "name": "pages_studyhelpadminevent_pkey",
+      "schema": "public",
+      "table": "pages_studyhelpadminevent"
+    },
+    {
+      "definition": "CREATE UNIQUE INDEX pages_studyhelpenrollment_pkey ON public.pages_studyhelpenrollment USING btree (id)",
+      "name": "pages_studyhelpenrollment_pkey",
+      "schema": "public",
+      "table": "pages_studyhelpenrollment"
+    },
+    {
+      "definition": "CREATE UNIQUE INDEX pages_studyhelpenrollment_user_id_key ON public.pages_studyhelpenrollment USING btree (user_id)",
+      "name": "pages_studyhelpenrollment_user_id_key",
+      "schema": "public",
+      "table": "pages_studyhelpenrollment"
+    },
+    {
+      "definition": "CREATE UNIQUE INDEX pages_studyhelpevent_pkey ON public.pages_studyhelpevent USING btree (id)",
+      "name": "pages_studyhelpevent_pkey",
+      "schema": "public",
+      "table": "pages_studyhelpevent"
+    },
+    {
+      "definition": "CREATE UNIQUE INDEX pages_studyhelppolicy_pkey ON public.pages_studyhelppolicy USING btree (id)",
+      "name": "pages_studyhelppolicy_pkey",
+      "schema": "public",
+      "table": "pages_studyhelppolicy"
+    },
+    {
+      "definition": "CREATE UNIQUE INDEX pages_studyhelpprompt_pkey ON public.pages_studyhelpprompt USING btree (id)",
+      "name": "pages_studyhelpprompt_pkey",
+      "schema": "public",
+      "table": "pages_studyhelpprompt"
+    },
+    {
+      "definition": "CREATE UNIQUE INDEX pages_studyhelpqualification_pkey ON public.pages_studyhelpqualification USING btree (id)",
+      "name": "pages_studyhelpqualification_pkey",
+      "schema": "public",
+      "table": "pages_studyhelpqualification"
+    },
+    {
+      "definition": "CREATE UNIQUE INDEX pages_studyhelprequest_pkey ON public.pages_studyhelprequest USING btree (id)",
+      "name": "pages_studyhelprequest_pkey",
+      "schema": "public",
+      "table": "pages_studyhelprequest"
+    },
+    {
+      "definition": "CREATE UNIQUE INDEX pages_studyhelprequest_spend_id_key ON public.pages_studyhelprequest USING btree (spend_id)",
+      "name": "pages_studyhelprequest_spend_id_key",
+      "schema": "public",
+      "table": "pages_studyhelprequest"
+    },
+    {
+      "definition": "CREATE UNIQUE INDEX pages_studyhelprestriction_pkey ON public.pages_studyhelprestriction USING btree (id)",
+      "name": "pages_studyhelprestriction_pkey",
+      "schema": "public",
+      "table": "pages_studyhelprestriction"
+    },
+    {
+      "definition": "CREATE UNIQUE INDEX pages_studyhelpspend_evaluation_key_key ON public.pages_studyhelpspend USING btree (evaluation_key)",
+      "name": "pages_studyhelpspend_evaluation_key_key",
+      "schema": "public",
+      "table": "pages_studyhelpspend"
+    },
+    {
+      "definition": "CREATE UNIQUE INDEX pages_studyhelpspend_pkey ON public.pages_studyhelpspend USING btree (id)",
+      "name": "pages_studyhelpspend_pkey",
+      "schema": "public",
+      "table": "pages_studyhelpspend"
+    },
+    {
+      "definition": "CREATE UNIQUE INDEX study_help_event_unique ON public.pages_studyhelpevent USING btree (owner_id, statement_uuid, interaction_key, action, kind)",
+      "name": "study_help_event_unique",
+      "schema": "public",
+      "table": "pages_studyhelpevent"
+    },
+    {
+      "definition": "CREATE UNIQUE INDEX study_help_interaction_unique ON public.pages_studyhelprequest USING btree (owner_id, interaction_key)",
+      "name": "study_help_interaction_unique",
+      "schema": "public",
+      "table": "pages_studyhelprequest"
+    },
+    {
+      "definition": "CREATE UNIQUE INDEX study_help_one_inflight_per_owner ON public.pages_studyhelprequest USING btree (owner_id) WHERE (((state)::text = 'queued'::text) OR ((state)::text = 'running'::text))",
+      "name": "study_help_one_inflight_per_owner",
+      "schema": "public",
+      "table": "pages_studyhelprequest"
+    },
+    {
+      "definition": "CREATE UNIQUE INDEX study_help_qualification_unique ON public.pages_studyhelpqualification USING btree (prompt_id, profile_digest)",
+      "name": "study_help_qualification_unique",
+      "schema": "public",
+      "table": "pages_studyhelpqualification"
+    },
+    {
+      "definition": "CREATE UNIQUE INDEX study_help_request_key_unique ON public.pages_studyhelprequest USING btree (owner_id, request_key)",
+      "name": "study_help_request_key_unique",
+      "schema": "public",
+      "table": "pages_studyhelprequest"
+    },
+    {
+      "definition": "CREATE UNIQUE INDEX study_help_restriction_unique ON public.pages_studyhelprestriction USING btree (policy_id, statement_uuid)",
+      "name": "study_help_restriction_unique",
+      "schema": "public",
+      "table": "pages_studyhelprestriction"
+    },
+    {
+      "definition": "CREATE UNIQUE INDEX study_help_unique_hint_slot ON public.pages_studyhelprequest USING btree (owner_id, statement_uuid, revision, slot) WHERE ((((action)::text = 'hint'::text) OR ((action)::text = 'stronger_hint'::text)) AND (((state)::text = 'queued'::text) OR ((state)::text = 'running'::text) OR ((state)::text = 'ready'::text)))",
+      "name": "study_help_unique_hint_slot",
+      "schema": "public",
+      "table": "pages_studyhelprequest"
+    },
+    {
+      "definition": "CREATE UNIQUE INDEX study_help_unique_solution_slot ON public.pages_studyhelprequest USING btree (owner_id, statement_uuid, slot) WHERE ((((action)::text = 'solution'::text) OR ((action)::text = 'alternative'::text)) AND (((state)::text = 'queued'::text) OR ((state)::text = 'running'::text) OR ((state)::text = 'ready'::text)))",
+      "name": "study_help_unique_solution_slot",
+      "schema": "public",
+      "table": "pages_studyhelprequest"
+    }
+  ],
+  "tables": [
+    {
+      "kind": "r",
+      "schema": "public",
+      "table": "pages_studyhelpadminevent"
+    },
+    {
+      "kind": "r",
+      "schema": "public",
+      "table": "pages_studyhelpenrollment"
+    },
+    {
+      "kind": "r",
+      "schema": "public",
+      "table": "pages_studyhelpevent"
+    },
+    {
+      "kind": "r",
+      "schema": "public",
+      "table": "pages_studyhelppolicy"
+    },
+    {
+      "kind": "r",
+      "schema": "public",
+      "table": "pages_studyhelpprompt"
+    },
+    {
+      "kind": "r",
+      "schema": "public",
+      "table": "pages_studyhelpqualification"
+    },
+    {
+      "kind": "r",
+      "schema": "public",
+      "table": "pages_studyhelprequest"
+    },
+    {
+      "kind": "r",
+      "schema": "public",
+      "table": "pages_studyhelprestriction"
+    },
+    {
+      "kind": "r",
+      "schema": "public",
+      "table": "pages_studyhelpspend"
+    }
+  ]
+}

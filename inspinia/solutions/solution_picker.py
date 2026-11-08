@@ -1,109 +1,66 @@
-"""Statement-first solution picker, separate from the frozen document reader."""
+"""Solution selection from the shared library, separate from the frozen reader."""
 
 from urllib.parse import urlencode
 
 from django.contrib.auth.decorators import login_required
 from django.shortcuts import render
 from django.urls import reverse
-from django.utils import timezone
 from django.views.decorators.cache import never_cache
 
-from inspinia.pages.contest_links import contest_dashboard_listing_url
 from inspinia.pages.models import ContestProblemStatement
-from inspinia.pages.statement_analytics import effective_mohs
-from inspinia.pages.statement_analytics import effective_topic
-from inspinia.pages.topic_labels import display_topic_label
+from inspinia.pages.shared_library import library_rows
+from inspinia.pages.shared_library import library_sources
 from inspinia.solutions.models import ProblemSolution
 from inspinia.solutions.views import STATEMENT_BACKED_PROBLEM_LIST_LIMIT
-from inspinia.solutions.views import _build_contest_slug_maps
-from inspinia.solutions.views import _problem_anchor
 from inspinia.solutions.views import _solution_status_badge
 from inspinia.solutions.views import _statement_preview_text
 from inspinia.solutions.writer_drafts import get_writer_draft
 
 
 def _statement_backed_problem_rows(user) -> tuple[list[dict], dict[str, bool | int]]:
-    statements = list(
-        ContestProblemStatement.objects.filter(is_active=True)
-        .select_related("linked_problem")
-        .order_by("-updated_at", "-id")[:STATEMENT_BACKED_PROBLEM_LIST_LIMIT + 1],
+    statements, problems = library_sources(active_only=True)
+    candidates = library_rows(
+        statements, problems, viewer=user, progress_user=user, limit=STATEMENT_BACKED_PROBLEM_LIST_LIMIT + 1,
     )
-    list_is_capped = len(statements) > STATEMENT_BACKED_PROBLEM_LIST_LIMIT
-    statements = statements[:STATEMENT_BACKED_PROBLEM_LIST_LIMIT]
-    problem_ids = [statement.linked_problem_id for statement in statements if statement.linked_problem_id is not None]
-    solution_status_by_problem_id = {
-        row["problem_id"]: row["status"]
+    capped = len(candidates) > STATEMENT_BACKED_PROBLEM_LIST_LIMIT
+    candidates = candidates[:STATEMENT_BACKED_PROBLEM_LIST_LIMIT]
+    statuses = {
+        str(row["problem__problem_uuid"]): row["status"]
         for row in ProblemSolution.objects.filter(
-            author=user,
-            problem_id__in=problem_ids,
-        ).values("problem_id", "status")
+            author=user, problem__problem_uuid__in=[row["problem_uuid"] for row in candidates],
+        ).values("problem__problem_uuid", "status")
     }
-    contest_to_slug, _slug_to_contest = _build_contest_slug_maps(
-        [statement.contest_name for statement in statements],
-    )
-
-    rows: list[dict] = []
-    for statement in sorted(
-        statements,
-        key=lambda row: (
-            -int(row.contest_year),
-            row.contest_name,
-            row.problem_code,
-        ),
-    ):
-        problem = statement.linked_problem
-        problem_label = statement.contest_year_problem
-        solution_status = solution_status_by_problem_id.get(statement.linked_problem_id, "")
-        contest_slug = contest_to_slug.get(statement.contest_name)
-        contest_archive_url = ""
-        if contest_slug:
-            contest_archive_url = contest_dashboard_listing_url(
-                statement.contest_name,
-                year=int(statement.contest_year),
-            ) + "#" + _problem_anchor(
-                problem_label,
-                f"statement-{statement.id}",
-            )
-
-        rows.append(
-            {
-                "contest_archive_url": contest_archive_url,
-                "editor_button_label": "Continue solution" if solution_status else "Start solution",
-                "editor_url": (
-                    reverse("solutions:problem_solution_edit", args=[problem.problem_uuid]) if problem else ""
-                ),
-                "solution_start_url": (
-                    reverse("solutions:statement_solution_start", args=[statement.statement_uuid])
-                    if not problem else ""
-                ),
-                "has_solution": bool(solution_status),
-                "problem_label": problem_label,
-                "problem_topic": display_topic_label(effective_topic(statement)),
-                "problem_mohs": effective_mohs(statement),
-                "problem_url": (
-                    reverse("solutions:problem_solution_list", args=[problem.problem_uuid]) if problem else ""
-                ),
-                "solution_status_badge_class": (
-                    _solution_status_badge(solution_status) if solution_status else "text-bg-light"
-                ),
-                "solution_status_label": (
-                    ProblemSolution.Status(solution_status).label if solution_status else "Not started"
-                ),
-                "statement_label": (
-                    f"{statement.problem_code} · {statement.day_label}"
-                    if statement.day_label
-                    else statement.problem_code
-                ),
-                "statement_preview": _statement_preview_text(statement.statement_latex),
-                "statement_updated_at_label": timezone.localtime(statement.updated_at).strftime("%Y-%m-%d"),
-            },
-        )
-
-    return rows, {
-        "is_capped": list_is_capped,
-        "limit": STATEMENT_BACKED_PROBLEM_LIST_LIMIT,
-    }
-
+    texts = dict(ContestProblemStatement.objects.filter(
+        statement_uuid__in=[row["statement_uuid"] for row in candidates if row["statement_uuid"]],
+    ).values_list("statement_uuid", "statement_latex"))
+    texts = {str(key): value for key, value in texts.items()}
+    rows = []
+    for row in sorted(candidates, key=lambda row: (-row["contest_year"], row["contest_name"], row["problem_code"])):
+        status = statuses.get(row["problem_uuid"], "")
+        can_start = bool(row["solution_start_url"])
+        rows.append({
+            "contest_archive_url": (
+                reverse("pages:problem_statement_list") + "?" + urlencode({"q": row["problem_uuid"]})
+            ),
+            "editor_button_label": "Continue solution" if status else "Start solution",
+            "editor_url": (
+                "" if can_start else reverse("solutions:problem_solution_edit", args=[row["problem_uuid"]])
+            ),
+            "solution_start_url": row["solution_start_url"],
+            "has_solution": bool(status), "has_statement": row["has_statement"],
+            "problem_label": row["contest_year_problem"],
+            "problem_topic": row["linked_problem_topic"], "problem_mohs": row["linked_problem_mohs"],
+            "problem_url": "" if can_start else reverse("solutions:problem_solution_list", args=[row["problem_uuid"]]),
+            "solution_status_badge_class": _solution_status_badge(status) if status else "text-bg-light",
+            "solution_status_label": ProblemSolution.Status(status).label if status else "Not started",
+            "statement_label": row["problem_code"] if row["has_statement"] else "Statement missing",
+            "statement_preview": (
+                _statement_preview_text(texts.get(row["statement_uuid"], "")) if row["has_statement"]
+                else "A statement has not been uploaded yet. Existing progress and solutions are retained."
+            ),
+            "statement_updated_at_label": row["updated_at"].split(" ")[0],
+        })
+    return rows, {"is_capped": capped, "limit": STATEMENT_BACKED_PROBLEM_LIST_LIMIT}
 
 
 @login_required

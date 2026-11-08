@@ -1,0 +1,42 @@
+{% extends 'layouts/vertical.html' %}
+
+{% block title %}Hint analytics{% endblock title %}
+
+{% block page_content %}
+  <div class="container-fluid">
+    <header class="page-title-head app-page-header">
+      {% url 'solutions:admin_ai_review_settings' as settings_url %}
+      {% include 'partials/page-header-intro.html' with title='Hint analytics' subtitle='Track how students use archive assistance.' page_icon='ti-chart-line' back_url=settings_url back_label='AI settings' only %}
+    </header>
+    {% for message in messages %}
+      <p class="alert {% if message.level_tag == 'error' %}alert-danger{% else %}alert-success{% endif %}" role="status">{{ message }}</p>
+    {% endfor %}
+    {% include 'pages/partials/study-help-prompt-settings.html' %}
+    <section class="card mt-3" aria-labelledby="study-help-analytics">
+      <div class="card-body">
+        <div class="d-flex flex-wrap justify-content-between gap-3 align-items-end mb-3">
+          <div>
+            <h2 class="header-title" id="study-help-analytics">Student usage</h2>
+            <p class="small text-body-secondary mb-0">Counts by event date in Kuala Lumpur. Browser clicks may be undercounted.</p>
+          </div>
+          <form class="d-flex flex-wrap align-items-end gap-2" method="get">
+            {% if selected %}<input type="hidden" name="prompt" value="{{ selected.pk }}">{% endif %}
+            <div><label class="form-label small mb-1" for="study-help-start">Start date</label><input id="study-help-start" class="form-control form-control-sm" type="date" name="start" value="{{ start|date:'Y-m-d' }}"></div>
+            <div><label class="form-label small mb-1" for="study-help-end">End date</label><input id="study-help-end" class="form-control form-control-sm" type="date" name="end" value="{{ end|date:'Y-m-d' }}"></div>
+            <button class="btn btn-outline-secondary btn-sm" type="submit">Apply dates</button>
+          </form>
+        </div>
+        <div class="table-responsive">
+          <table class="table table-sm align-middle mb-0">
+            <thead><tr><th scope="col">Action</th>{% for label in event_kinds %}<th scope="col" class="text-end">{{ label }}</th>{% endfor %}</tr></thead>
+            <tbody>
+              {% for action, counts in analytics %}
+                <tr><th scope="row">{{ action }}</th>{% for count in counts %}<td class="text-end">{{ count }}</td>{% endfor %}</tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+  </div>
+{% endblock page_content %}

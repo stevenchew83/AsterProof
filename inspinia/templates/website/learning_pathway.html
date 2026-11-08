@@ -1,0 +1,37 @@
+{% extends 'website/base.html' %}
+
+{% load static %}
+
+{% block public_content %}
+  <article class="website-container website-section website-reading-width">
+    <p class="website-kicker">Learning pathway</p>
+    <h1>{{ revision.title }}</h1>
+    <p>{{ revision.summary }}</p>
+    {% for row in items %}
+      <section>
+        <h2>{{ forloop.counter }}. {{ row.title }}</h2>
+        {% if row.available %}
+          {% if row.public_url %}
+            <a href="{{ row.public_url }}">Read lecture</a>
+          {% elif row.rendered_exercise %}
+            <div class="website-prose" data-learning-math>{{ row.rendered_exercise }}</div>
+          {% endif %}
+          {% for hint in row.rendered_hints %}
+            <details>
+              <summary>Hint {{ forloop.counter }}</summary>
+              <div data-learning-math>{{ hint }}</div>
+            </details>
+          {% endfor %}
+        {% else %}
+          <p>This activity is unavailable.</p>
+        {% endif %}
+      </section>
+    {% endfor %}
+    <p>
+      <a href="{% url 'learning:pathway' path.slug %}">Study in Training</a>
+    </p>
+  </article>
+{% endblock %}
+{% block website_javascript %}
+  <script src="{% static 'js/learning-math.bundle.js' %}" defer></script>
+{% endblock %}

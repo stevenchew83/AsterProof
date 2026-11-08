@@ -1240,6 +1240,15 @@
         title: "Solution",
         className: "text-nowrap",
         render: function (data, type, row) {
+          if (row.solution_url) {
+            var score = row.ai_review_score == null ? "" : "AI score: " + row.ai_review_score + "/7";
+            if (type === "filter") return [data, "View solution", score].join(" ");
+            if (type === "display") {
+              return '<a class="fw-semibold link-primary text-decoration-underline" href="' + escapeHtml(row.solution_url) +
+                '" aria-label="View solution for ' + escapeHtml(row.problem_label) + '">View solution</a>' +
+                (score ? '<div class="text-body-secondary fs-xs">' + escapeHtml(score) + '</div>' : '');
+            }
+          }
           if (type === "display") {
             return '<span class="badge ' + row.solution_status_badge_class + '">' + escapeHtml(data) + "</span>";
           }
@@ -1360,7 +1369,7 @@
         return;
       }
       if (!statementUuid) {
-        setDifficultyError(editor, "This row is not linked to a statement.");
+        setDifficultyError(editor, "A statement has not been uploaded for this problem yet.");
         return;
       }
 

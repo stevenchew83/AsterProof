@@ -1,6 +1,8 @@
 from django.contrib import admin
 from django.contrib import messages
 from django.db.models import Prefetch
+from django.urls import reverse
+from django.utils.html import format_html
 
 from .models import Assessment
 from .models import ImportBatch
@@ -31,8 +33,26 @@ class SchoolAdmin(admin.ModelAdmin):
     readonly_fields = ("created_at", "updated_at")
 
 
+class ReviewedRankingAdmin(admin.ModelAdmin):
+    """Existing analytical values are edited through the auditable workflow."""
+
+    correction_kind = ""
+    reviewed_fields = ()
+
+    def get_readonly_fields(self, request, obj=None):
+        fields = tuple(super().get_readonly_fields(request, obj))
+        return fields + self.reviewed_fields + ("reviewed_correction",) if obj else fields
+
+    @admin.display(description="Reviewed changes")
+    def reviewed_correction(self, obj):
+        return format_html('<a href="{}?kind={}&amp;target={}">Prepare a reviewed correction</a>',
+                           reverse("rankings:correction_new"), self.correction_kind, obj.pk)
+
+
 @admin.register(Student)
-class StudentAdmin(admin.ModelAdmin):
+class StudentAdmin(ReviewedRankingAdmin):
+    correction_kind = "student"
+    reviewed_fields = ("full_name", "birth_year", "school")
     list_display = ("full_name", "school", "birth_year", "external_code", "active", "updated_at")
     search_fields = ("full_name", "external_code", "legacy_code", "full_nric", "school__name")
     list_filter = ("active", "gender", "birth_year", "state", "school__state")
@@ -41,7 +61,9 @@ class StudentAdmin(admin.ModelAdmin):
 
 
 @admin.register(Assessment)
-class AssessmentAdmin(admin.ModelAdmin):
+class AssessmentAdmin(ReviewedRankingAdmin):
+    correction_kind = "assessment"
+    reviewed_fields = ("display_name", "assessment_date")
     list_display = (
         "code",
         "display_name",
@@ -122,7 +144,9 @@ class RankingFormulaAdmin(admin.ModelAdmin):
 
 
 @admin.register(StudentResult)
-class StudentResultAdmin(admin.ModelAdmin):
+class StudentResultAdmin(ReviewedRankingAdmin):
+    correction_kind = "result"
+    reviewed_fields = ("raw_score", "medal", "band", "status_text")
     list_display = (
         "student",
         "assessment",

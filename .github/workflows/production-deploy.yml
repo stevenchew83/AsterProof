@@ -138,6 +138,28 @@ jobs:
           .release-quality/bin/python manage.py makemigrations --check --dry-run
           .release-quality/bin/python -m pytest
 
+      - name: Test forum privacy and concurrency on PostgreSQL 17.9
+        if: ${{ !inputs.skip_ci && inputs.migration_class == 'backward-compatible-schema' && fromJSON(inputs.schema_disclosure).migration == 'solutions.0013_solution_forum' }}
+        env:
+          DATABASE_URL: postgres://postgres@127.0.0.1:5432/asterproof_schema_rehearsal
+        run: |
+          .release-quality/bin/python - <<'PY'
+          from django.conf import settings
+          from scripts.deployment.schema_rehearsal import configure_rehearsal_database
+          configure_rehearsal_database(settings)
+          settings.DATABASES['default']['TEST'] = {'NAME': 'test_solution_forum_release_locks'}
+          import django
+          django.setup()
+          from django.db import connection
+          if connection.pg_version != 170009:
+              raise SystemExit('Forum privacy/concurrency checks require PostgreSQL 17.9')
+          import pytest
+          raise SystemExit(pytest.main([
+              'inspinia/solutions/test_forum.py',
+              'inspinia/solutions/test_image_access.py', '--create-db', '-q',
+          ]))
+          PY
+
       - name: Record CI exception
         if: ${{ inputs.skip_ci }}
         run: |
@@ -179,8 +201,18 @@ jobs:
           active_sha="$(python -c 'import json,os; print(json.loads(os.environ["SCHEMA_DISCLOSURE"])["active_sha"])')"
           mkdir "$RUNNER_TEMP/active-catalogue-smoke"
           git archive "$active_sha" | tar -x -C "$RUNNER_TEMP/active-catalogue-smoke"
-          if [ "$(python -c 'import json,os; print(json.loads(os.environ["SCHEMA_DISCLOSURE"]).get("kind", ""))')" = 'statement-authoring-maintenance-v1' ]; then
+          if [ "$(python -c 'import json,os; print(json.loads(os.environ["SCHEMA_DISCLOSURE"]).get("kind", ""))')" = 'ranking-profile-maintenance-v1' ]; then
+            .release-runtime/bin/python -m scripts.deployment.ranking_profile_schema_rehearsal \
+              --active-source "$RUNNER_TEMP/active-catalogue-smoke" \
+              --active-sha "$active_sha" --release-sha "$RELEASE_SHA" \
+              --output "$RUNNER_TEMP/schema-evidence.json"
+          elif [ "$(python -c 'import json,os; print(json.loads(os.environ["SCHEMA_DISCLOSURE"]).get("kind", ""))')" = 'statement-authoring-maintenance-v1' ]; then
             .release-runtime/bin/python -m scripts.deployment.statement_authoring_rehearsal \
+              --active-source "$RUNNER_TEMP/active-catalogue-smoke" \
+              --active-sha "$active_sha" --release-sha "$RELEASE_SHA" \
+              --output "$RUNNER_TEMP/schema-evidence.json"
+          elif [ "$(python -c 'import json,os; print(json.loads(os.environ["SCHEMA_DISCLOSURE"]).get("kind", ""))')" = 'community-proof-library-maintenance-v1' ]; then
+            .release-runtime/bin/python -m scripts.deployment.community_proof_schema_rehearsal \
               --active-source "$RUNNER_TEMP/active-catalogue-smoke" \
               --active-sha "$active_sha" --release-sha "$RELEASE_SHA" \
               --output "$RUNNER_TEMP/schema-evidence.json"
@@ -268,10 +300,52 @@ jobs:
               output.write(f"archive_size={envelope['archive_size']}\n")
           PY
 
+      - name: Generate build provenance predicate
+        id: provenance
+        uses: actions/attest-build-provenance/predicate@864457a58d4733d7f1574bd8821fa24e02cf7538
+
       - name: Attest immutable release archive
-        uses: actions/attest-build-provenance@96278af6caaf10aea03fd8d33a09a777ca52d62f # v3.2.0
-        with:
-          subject-path: ${{ runner.temp }}/asterproof-release.tar
+        env:
+          PREDICATE: ${{ steps.provenance.outputs.predicate }}
+          PREDICATE_TYPE: ${{ steps.provenance.outputs.predicate-type }}
+        run: |
+          set -euo pipefail
+          test "$PREDICATE_TYPE" = https://slsa.dev/provenance/v1
+          printf '%s\n' "$PREDICATE" > "$RUNNER_TEMP/release-predicate.json"
+
+          # This Cosign binary is pinned to the reviewed Sigstore release digest.
+          curl --fail --silent --show-error --location --max-time 90 --proto '=https' --tlsv1.2 \
+            https://github.com/sigstore/cosign/releases/download/v3.1.4/cosign-linux-amd64 \
+            --output "$RUNNER_TEMP/cosign"
+          printf '%s  %s\n' 424e2c97d0b45fd7a6b608a87f090f35633f4c23ece5f092d48bba11aaf4bbfa "$RUNNER_TEMP/cosign" \
+            | sha256sum --check
+          chmod 0755 "$RUNNER_TEMP/cosign"
+
+          "$RUNNER_TEMP/cosign" signing-config create --with-default-rekor-v2 --out "$RUNNER_TEMP/signing-config.json"
+          jq -e 'any(.rekorTlogUrls[]; .majorApiVersion == 2)' "$RUNNER_TEMP/signing-config.json" >/dev/null
+          "$RUNNER_TEMP/cosign" attest-blob --yes --oidc-provider github-actions \
+            --type slsaprovenance1 --predicate "$RUNNER_TEMP/release-predicate.json" \
+            --signing-config "$RUNNER_TEMP/signing-config.json" --bundle "$RUNNER_TEMP/release-bundle.json" \
+            "$RUNNER_TEMP/asterproof-release.tar"
+          jq -e 'any(.verificationMaterial.tlogEntries[]; .kindVersion.kind == "hashedrekord" and .inclusionProof != null)' \
+            "$RUNNER_TEMP/release-bundle.json" >/dev/null
+
+      - name: Verify and register build attestation
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_SHA: ${{ inputs.release_sha }}
+        run: |
+          set -euo pipefail
+          verify() {
+            gh attestation verify "$RUNNER_TEMP/asterproof-release.tar" \
+              --repo "$GITHUB_REPOSITORY" --signer-workflow "$GITHUB_REPOSITORY/.github/workflows/production-deploy.yml" \
+              --signer-digest "$RELEASE_SHA" --source-ref refs/heads/main --source-digest "$RELEASE_SHA" \
+              --deny-self-hosted-runners "$@"
+          }
+          verify --bundle "$RUNNER_TEMP/release-bundle.json"
+          jq -c '{bundle: .}' "$RUNNER_TEMP/release-bundle.json" \
+            | gh api --method POST "repos/$GITHUB_REPOSITORY/attestations" --input - --jq .id
+          verify
 
       - name: Upload immutable release archive
         id: upload
@@ -378,13 +452,27 @@ jobs:
           print(f"- Target SHA: `{value['target_sha']}`")
           print(f"- Migration class: `{value['classification']}`")
           print(f"- Classified migrations: `{len(value['migrations'])}`")
+          if value.get('learning_reader_preparation'):
+              print('- Learning reader preparation: no database changes; four migrations remain deferred.')
+              print(json.dumps(value['learning_reader_preparation'], sort_keys=True, indent=2))
+          if value.get('learning_reader_successor'):
+              print('- Apply the four migrations deferred by the verified active reader bridge.')
           import os
           if os_disclosure := os.environ.get('SCHEMA_DISCLOSURE'):
               if value['classification'] == 'data-or-non-compatible':
                   from scripts.deployment.maintenance_schema import validate_disclosure
-                  if json.loads(os_disclosure).get('kind') == 'statement-authoring-maintenance-v1':
+                  if json.loads(os_disclosure).get('kind') == 'ranking-profile-maintenance-v1':
+                      from scripts.deployment.ranking_profile_schema import MIGRATION
+                      expected = [{'migration': MIGRATION, 'classification': 'data-or-non-compatible'}]
+                  elif json.loads(os_disclosure).get('kind') == 'statement-authoring-maintenance-v1':
                       from scripts.deployment.statement_authoring_schema import MIGRATION
                       expected = [{'migration': MIGRATION, 'classification': 'data-or-non-compatible'}]
+                  elif json.loads(os_disclosure).get('kind') == 'community-proof-library-maintenance-v1':
+                      from scripts.deployment.community_proof_schema import MIGRATIONS, MIGRATION_CLASSES
+                      expected = [
+                          {'migration': 'pages.' + name, 'classification': classification}
+                          for name, classification in zip(MIGRATIONS, MIGRATION_CLASSES, strict=True)
+                      ]
                   elif json.loads(os_disclosure).get('kind') == 'community-problems-maintenance-v1':
                       from scripts.deployment.community_schema import MIGRATIONS, MIGRATION_CLASSES
                       expected = [
@@ -400,7 +488,20 @@ jobs:
               else:
                   from scripts.deployment.additive_schema import schema_for_disclosure, validate_disclosure
                   approved = schema_for_disclosure(json.loads(os_disclosure))
-                  expected = [{'migration': approved.MIGRATION, 'classification': 'backward-compatible-schema'}]
+                  from scripts.deployment import assessment_prototype_schema, learning_schema
+                  if approved is learning_schema:
+                      expected = sorted([
+                          {'migration': app + '.' + name, 'classification': 'backward-compatible-schema'}
+                          for app, name in learning_schema.MIGRATIONS
+                      ], key=lambda row: row['migration'])
+                  elif approved is assessment_prototype_schema:
+                      expected = sorted([
+                          {'migration': app + '.' + name, 'classification': 'backward-compatible-schema'}
+                          for app, name in assessment_prototype_schema.MIGRATIONS
+                      ], key=lambda row: row['migration'])
+
+                  else:
+                      expected = [{'migration': approved.MIGRATION, 'classification': 'backward-compatible-schema'}]
               schema = validate_disclosure(json.loads(os_disclosure), target_sha=value['target_sha'])
               if schema['active_sha'] != value['active_sha']:
                   raise SystemExit('Schema disclosure active release mismatch')

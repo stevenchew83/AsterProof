@@ -6,13 +6,17 @@ from __future__ import annotations
 import copy
 import hashlib
 import json
+import sys
 from pathlib import Path
 from types import SimpleNamespace
 
 import pytest
+import yaml
 
 from scripts.deployment import additive_schema
 from scripts.deployment import assessment_prototype_schema as schema
+from scripts.deployment import community_proof_schema
+from scripts.deployment import learning_schema
 from scripts.deployment.operation_worker import WorkerBackend
 from scripts.deployment.operation_worker import run_operation
 from scripts.deployment.protocol import OperationEnvelope
@@ -88,6 +92,47 @@ def test_router_preserves_existing_allowances_and_only_admits_exact_assessment_p
         migration_class="backward-compatible-schema",
         initial_adoption=False,
     )
+
+
+@pytest.mark.parametrize("change", ["none", "missing_second", "extra", "reordered"])
+def test_production_disclosure_accepts_only_the_complete_frozen_two_migration_bundle(tmp_path, monkeypatch, change):
+    workflow = yaml.safe_load((ROOT / ".github/workflows/production-deploy.yml").read_text())
+    step = next(
+        step
+        for step in workflow["jobs"]["disclose"]["steps"]
+        if step["name"] == "Derive reviewed migration disclosure"
+    )
+    snippet = step["run"].split("<<'PY'\n", 1)[1].rsplit("\nPY", 1)[0]
+    migrations = [
+        {"migration": f"{app}.{name}", "classification": "backward-compatible-schema"}
+        for app, name in schema.MIGRATIONS
+    ]
+    if change == "missing_second":
+        migrations.pop()
+    elif change == "extra":
+        migrations.append({"migration": "solutions.0013_unapproved", "classification": "backward-compatible-schema"})
+    elif change == "reordered":
+        migrations.reverse()
+    path = tmp_path / "disclosure.json"
+    path.write_text(
+        json.dumps(
+            {
+                "active_sha": OLD_SHA,
+                "target_sha": NEW_SHA,
+                "classification": "backward-compatible-schema",
+                "migrations": migrations,
+            },
+        ),
+    )
+    monkeypatch.setenv("SCHEMA_DISCLOSURE", json.dumps(disclosure()))
+    monkeypatch.setattr(sys, "argv", ["disclosure", str(path)])
+    command = compile(snippet, "<production-disclosure>", "exec", optimize=2)
+    if change == "none":
+        exec(command, {})  # noqa: S102 - Execute the exact checked-in workflow's Python contract.
+        assert json.loads(path.read_text())["schema_disclosure"] == disclosure()
+    else:
+        with pytest.raises(SystemExit, match="outside the approved migrations"):
+            exec(command, {})  # noqa: S102 - Execute the exact checked-in workflow's Python contract.
 
 
 def test_assessment_prototype_schema_is_bound_to_the_oidc_request_and_cannot_be_used_for_rollback():
@@ -181,6 +226,44 @@ def test_assessment_prototype_plan_guard_remains_literal_under_optimized_python(
             exec(command, {})  # noqa: S102 - exact fixed plan guard
     else:
         exec(command, {})  # noqa: S102 - exact fixed plan guard
+
+
+@pytest.mark.parametrize("other_plan", ["community_proof", "training"])
+def test_real_assessment_preflight_api_rejects_mixed_pending_plans(monkeypatch, other_plan):
+    from django.conf import settings
+
+    for name in (
+        "SOLUTION_AI_REVIEW_ENABLED", "PROBLEM_STATEMENT_AI_REVIEW_ENABLED", "SYNTHETIC_REVIEW_PROTOTYPE_ENABLED",
+    ):
+        monkeypatch.setattr(settings, name, False)
+    extra = (
+        [(
+            "pages", community_proof_schema.MIGRATIONS[0], False,
+            [signature[0] for signature in community_proof_schema.OPERATION_SIGNATURES],
+        )]
+        if other_plan == "community_proof" else learning_schema.EXPECTED_PLAN
+    )
+    plan = [
+        (SimpleNamespace(app_label=app, name=name, operations=[type(kind, (), {})() for kind in kinds]), backwards)
+        for app, name, backwards, kinds in [*schema.EXPECTED_PLAN, *extra]
+    ]
+    executor = SimpleNamespace(
+        loader=SimpleNamespace(graph=SimpleNamespace(leaf_nodes=list)),
+        migration_plan=lambda targets: plan,
+        migrate=lambda targets: pytest.fail("Assessment preflight must not apply migrations"),
+    )
+    monkeypatch.setattr("django.db.migrations.executor.MigrationExecutor", lambda connection: executor)
+    calls = []
+
+    def run_candidate(contract, release, arguments):
+        calls.append(arguments)
+        exec(compile(arguments[-1], "<exact-assessment-preflight>", "exec", optimize=2), {})  # noqa: S102
+
+    backend = WorkerBackend()
+    monkeypatch.setattr(backend, "_run_candidate", run_candidate)
+    with pytest.raises(RuntimeError, match="Unapproved pending migration plan"):
+        backend.check_assessment_prototype_schema(None, ROOT)
+    assert calls == [["shell", "--command", schema.PLAN_CHECK]]
 
 
 class AssessmentPrototypeBackend(SchemaBackend):

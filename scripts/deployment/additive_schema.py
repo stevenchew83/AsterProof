@@ -2,30 +2,51 @@
 
 from __future__ import annotations
 
+from scripts.deployment import admin_review_takedown_schema
+from scripts.deployment import admin_solution_review_schema
 from scripts.deployment import assessment_prototype_schema
 from scripts.deployment import concept_schema
 from scripts.deployment import curated_collections_schema
 from scripts.deployment import learning_activity_schema
+from scripts.deployment import learning_schema
 from scripts.deployment import newsletter_automation_schema
 from scripts.deployment import newsletter_schema
 from scripts.deployment import onboarding_schema
+from scripts.deployment import ranking_analysis_schema
+from scripts.deployment import self_solution_review_schema
 from scripts.deployment import solution_analytics_schema
 from scripts.deployment import solution_collections_schema
 from scripts.deployment import solution_document_schema
 from scripts.deployment import solution_evaluation_schema
+from scripts.deployment import solution_forum_schema
 from scripts.deployment import solution_pdf_schema
 from scripts.deployment import solution_sharing_schema
 from scripts.deployment import statement_reports_schema
+from scripts.deployment import study_help_schema
 from scripts.deployment import website_schema
 
 
 def schema_for_disclosure(value):  # noqa: C901, PLR0911, PLR0912 - Keep each frozen allowance explicit.
+    if isinstance(value, dict) and value.get("migration") == admin_review_takedown_schema.MIGRATION:
+        return admin_review_takedown_schema
+    if isinstance(value, dict) and value.get("migration") == self_solution_review_schema.MIGRATION:
+        return self_solution_review_schema
+    if isinstance(value, dict) and value.get("migration") == admin_solution_review_schema.MIGRATION:
+        return admin_solution_review_schema
+    if isinstance(value, dict) and value.get("migration") == study_help_schema.MIGRATION:
+        return study_help_schema
+    if isinstance(value, dict) and value.get("migration") == ranking_analysis_schema.MIGRATION:
+        return ranking_analysis_schema
+    if isinstance(value, dict) and value.get("migration") == solution_forum_schema.MIGRATION:
+        return solution_forum_schema
     if isinstance(value, dict) and value.get("migration") == assessment_prototype_schema.MIGRATION:
         return assessment_prototype_schema
     if isinstance(value, dict) and value.get("migration") == solution_evaluation_schema.MIGRATION:
         return solution_evaluation_schema
     if isinstance(value, dict) and value.get("migration") == learning_activity_schema.MIGRATION:
         return learning_activity_schema
+    if isinstance(value, dict) and value.get("migration") == learning_schema.MIGRATION:
+        return learning_schema
     if isinstance(value, dict) and value.get("migration") == statement_reports_schema.MIGRATION:
         return statement_reports_schema
     if isinstance(value, dict) and value.get("migration") == solution_document_schema.MIGRATION:

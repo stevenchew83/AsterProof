@@ -5,6 +5,7 @@ from django.conf import settings
 from django.core.validators import MaxValueValidator
 from django.core.validators import MinValueValidator
 from django.db import models
+from django.db import transaction
 from django.utils import timezone
 
 from inspinia.pages.analytics_field_parse import parse_core_ideas_value
@@ -33,6 +34,17 @@ from inspinia.pages.community_models import StatementSimilarityTerm  # noqa: F40
 from inspinia.pages.contest_names import PROJECT_CONTEST_NAME_MAX_LENGTH
 from inspinia.pages.contest_names import normalize_contest_name
 from inspinia.pages.contest_names import normalize_text_list
+from inspinia.pages.prerequisite_models import CataloguePrerequisite  # noqa: F401
+from inspinia.pages.prerequisite_models import PrerequisiteGraphState  # noqa: F401
+from inspinia.pages.proof_models import CommunityAttempt  # noqa: F401
+from inspinia.pages.proof_models import CommunityContentReport  # noqa: F401
+from inspinia.pages.proof_models import CommunityPrivateAsset  # noqa: F401
+from inspinia.pages.proof_models import CommunityProblemRevision  # noqa: F401
+from inspinia.pages.proof_models import CommunitySolution  # noqa: F401
+from inspinia.pages.proof_models import CommunitySolutionAsset  # noqa: F401
+from inspinia.pages.proof_models import CommunitySolutionRevision  # noqa: F401
+from inspinia.pages.proof_models import ModerationEvent  # noqa: F401
+from inspinia.pages.proof_models import ProblemPublication  # noqa: F401
 from inspinia.pages.topic_tags_parse import clean_token
 from inspinia.pages.topic_tags_parse import domains_dedup_preserve_order
 from inspinia.pages.topic_tags_parse import normalize_topic_tag
@@ -282,7 +294,19 @@ class ContestProblemStatement(models.Model):
                 "pitfalls_value",
             }
 
-        super().save(*args, **kwargs)
+        if self._state.adding:
+            super().save(*args, **kwargs)
+            return
+
+        from inspinia.pages.study_help_access import bind_statement_restrictions
+        from inspinia.pages.study_help_access import lock_study_help
+
+        with transaction.atomic():
+            lock_study_help()
+            previous_uuid = type(self).objects.filter(pk=self.pk).values_list("problem_uuid", flat=True).first()
+            if previous_uuid and previous_uuid != self.problem_uuid:
+                bind_statement_restrictions(self.statement_uuid, (previous_uuid, self.problem_uuid))
+            super().save(*args, **kwargs)
 
 
 class StatementIssueReport(models.Model):
@@ -998,3 +1022,14 @@ from inspinia.pages.concept_assignment_models import ConceptAssignmentReviewBatc
 from inspinia.pages.concept_assignment_models import ConceptAssignmentReviewEvent  # noqa: E402, F401
 from inspinia.pages.concept_assignment_models import ConceptAssignmentState  # noqa: E402, F401
 from inspinia.pages.concept_assignment_models import ProblemConceptAssignment  # noqa: E402, F401
+
+# Register the archive assistance tables with Django.
+from inspinia.pages.study_help_models import StudyHelpAdminEvent  # noqa: E402, F401
+from inspinia.pages.study_help_models import StudyHelpEnrollment  # noqa: E402, F401
+from inspinia.pages.study_help_models import StudyHelpEvent  # noqa: E402, F401
+from inspinia.pages.study_help_models import StudyHelpPolicy  # noqa: E402, F401
+from inspinia.pages.study_help_models import StudyHelpPrompt  # noqa: E402, F401
+from inspinia.pages.study_help_models import StudyHelpQualification  # noqa: E402, F401
+from inspinia.pages.study_help_models import StudyHelpRequest  # noqa: E402, F401
+from inspinia.pages.study_help_models import StudyHelpRestriction  # noqa: E402, F401
+from inspinia.pages.study_help_models import StudyHelpSpend  # noqa: E402, F401

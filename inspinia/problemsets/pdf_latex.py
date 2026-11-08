@@ -87,7 +87,7 @@ def build_problem_list_tex_source(problem_list: ProblemList, item_rows: list[dic
             lines.append(statement_latex)
             lines.append(r"\end{mdframed}")
         else:
-            lines.append(r"\textit{No linked statement is available for this problem yet.}")
+            lines.append(r"\textit{A statement has not been uploaded for this problem yet.}")
 
     lines.append(r"\end{document}")
     return "\n".join(lines)

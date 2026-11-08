@@ -1,0 +1,12 @@
+<div data-local-tools hidden>
+  <div class="app-table-toolbar d-flex flex-wrap align-items-end gap-2 mb-2">
+    <div class="flex-grow-1">
+      <label for="{{ table_id }}-filter" class="form-label mb-1">Filter this page</label>
+      <input id="{{ table_id }}-filter" type="search" class="form-control form-control-sm" data-local-filter aria-describedby="{{ table_id }}-scope" autocomplete="off">
+    </div>
+    <button type="button" class="btn btn-sm btn-outline-primary" data-local-copy><i class="ti ti-copy me-1" aria-hidden="true"></i>Copy visible rows</button>
+    <span class="text-muted fs-xs" data-local-count role="status"></span>
+    <span class="fs-xs" data-local-feedback role="status"></span>
+  </div>
+  <p id="{{ table_id }}-scope" class="text-muted fs-xs mb-2">Filter, sort and copy apply only to this page. Use the filters above to search all records. Copy includes headers and excludes source notes.</p>
+</div>

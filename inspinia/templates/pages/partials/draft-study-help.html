@@ -1,0 +1,5 @@
+{% load static %}
+{% if problem_statement %}
+  {% include 'pages/partials/study-help.html' %}
+  <script defer src="{% static 'js/study-help.js' %}"></script>
+{% endif %}

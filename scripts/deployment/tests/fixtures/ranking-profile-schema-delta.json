@@ -1,0 +1,420 @@
+{
+  "columns": [
+    {
+      "collation": "default",
+      "column": "award_kind",
+      "default": null,
+      "nullable": false,
+      "position": 4,
+      "schema": "public",
+      "table": "rankings_resultclaim",
+      "type": "character varying(16)"
+    },
+    {
+      "collation": "default",
+      "column": "claim_label",
+      "default": null,
+      "nullable": false,
+      "position": 3,
+      "schema": "public",
+      "table": "rankings_resultclaim",
+      "type": "character varying(255)"
+    },
+    {
+      "collation": "default",
+      "column": "claim_type",
+      "default": null,
+      "nullable": false,
+      "position": 2,
+      "schema": "public",
+      "table": "rankings_resultclaim",
+      "type": "character varying(16)"
+    },
+    {
+      "collation": "default",
+      "column": "discipline",
+      "default": null,
+      "nullable": false,
+      "position": 3,
+      "schema": "public",
+      "table": "rankings_resultprofile",
+      "type": "character varying(20)"
+    },
+    {
+      "collation": "default",
+      "column": "evidence",
+      "default": null,
+      "nullable": false,
+      "position": 9,
+      "schema": "public",
+      "table": "rankings_resultclaim",
+      "type": "text"
+    },
+    {
+      "collation": "default",
+      "column": "participation",
+      "default": null,
+      "nullable": false,
+      "position": 6,
+      "schema": "public",
+      "table": "rankings_resultprofile",
+      "type": "character varying(20)"
+    },
+    {
+      "collation": "default",
+      "column": "record_type",
+      "default": null,
+      "nullable": false,
+      "position": 2,
+      "schema": "public",
+      "table": "rankings_resultprofile",
+      "type": "character varying(20)"
+    },
+    {
+      "collation": "default",
+      "column": "result_fingerprint",
+      "default": null,
+      "nullable": false,
+      "position": 11,
+      "schema": "public",
+      "table": "rankings_resultclaim",
+      "type": "character varying(64)"
+    },
+    {
+      "collation": "default",
+      "column": "result_fingerprint",
+      "default": null,
+      "nullable": false,
+      "position": 9,
+      "schema": "public",
+      "table": "rankings_resultprofile",
+      "type": "character varying(64)"
+    },
+    {
+      "collation": "default",
+      "column": "scope",
+      "default": null,
+      "nullable": false,
+      "position": 4,
+      "schema": "public",
+      "table": "rankings_resultprofile",
+      "type": "character varying(20)"
+    },
+    {
+      "collation": "default",
+      "column": "scope_detail",
+      "default": null,
+      "nullable": false,
+      "position": 5,
+      "schema": "public",
+      "table": "rankings_resultprofile",
+      "type": "character varying(255)"
+    },
+    {
+      "collation": "default",
+      "column": "source_label",
+      "default": null,
+      "nullable": false,
+      "position": 7,
+      "schema": "public",
+      "table": "rankings_resultclaim",
+      "type": "character varying(255)"
+    },
+    {
+      "collation": "default",
+      "column": "source_type",
+      "default": null,
+      "nullable": false,
+      "position": 6,
+      "schema": "public",
+      "table": "rankings_resultclaim",
+      "type": "character varying(16)"
+    },
+    {
+      "collation": "default",
+      "column": "source_url",
+      "default": null,
+      "nullable": false,
+      "position": 8,
+      "schema": "public",
+      "table": "rankings_resultclaim",
+      "type": "character varying(500)"
+    },
+    {
+      "collation": "default",
+      "column": "verification_status",
+      "default": null,
+      "nullable": false,
+      "position": 5,
+      "schema": "public",
+      "table": "rankings_resultclaim",
+      "type": "character varying(16)"
+    },
+    {
+      "collation": null,
+      "column": "active",
+      "default": null,
+      "nullable": false,
+      "position": 10,
+      "schema": "public",
+      "table": "rankings_resultclaim",
+      "type": "boolean"
+    },
+    {
+      "collation": null,
+      "column": "active",
+      "default": null,
+      "nullable": false,
+      "position": 8,
+      "schema": "public",
+      "table": "rankings_resultprofile",
+      "type": "boolean"
+    },
+    {
+      "collation": null,
+      "column": "featured",
+      "default": null,
+      "nullable": false,
+      "position": 7,
+      "schema": "public",
+      "table": "rankings_resultprofile",
+      "type": "boolean"
+    },
+    {
+      "collation": null,
+      "column": "id",
+      "default": null,
+      "nullable": false,
+      "position": 1,
+      "schema": "public",
+      "table": "rankings_resultclaim",
+      "type": "bigint"
+    },
+    {
+      "collation": null,
+      "column": "id",
+      "default": null,
+      "nullable": false,
+      "position": 1,
+      "schema": "public",
+      "table": "rankings_resultprofile",
+      "type": "bigint"
+    },
+    {
+      "collation": null,
+      "column": "result_id",
+      "default": null,
+      "nullable": false,
+      "position": 12,
+      "schema": "public",
+      "table": "rankings_resultprofile",
+      "type": "bigint"
+    },
+    {
+      "collation": null,
+      "column": "result_id",
+      "default": null,
+      "nullable": false,
+      "position": 14,
+      "schema": "public",
+      "table": "rankings_resultclaim",
+      "type": "bigint"
+    },
+    {
+      "collation": null,
+      "column": "reviewed_at",
+      "default": null,
+      "nullable": false,
+      "position": 10,
+      "schema": "public",
+      "table": "rankings_resultprofile",
+      "type": "timestamp with time zone"
+    },
+    {
+      "collation": null,
+      "column": "reviewed_at",
+      "default": null,
+      "nullable": false,
+      "position": 12,
+      "schema": "public",
+      "table": "rankings_resultclaim",
+      "type": "timestamp with time zone"
+    },
+    {
+      "collation": null,
+      "column": "reviewed_by_id",
+      "default": null,
+      "nullable": true,
+      "position": 13,
+      "schema": "public",
+      "table": "rankings_resultprofile",
+      "type": "bigint"
+    },
+    {
+      "collation": null,
+      "column": "reviewed_by_id",
+      "default": null,
+      "nullable": true,
+      "position": 15,
+      "schema": "public",
+      "table": "rankings_resultclaim",
+      "type": "bigint"
+    },
+    {
+      "collation": null,
+      "column": "updated_at",
+      "default": null,
+      "nullable": false,
+      "position": 11,
+      "schema": "public",
+      "table": "rankings_resultprofile",
+      "type": "timestamp with time zone"
+    },
+    {
+      "collation": null,
+      "column": "updated_at",
+      "default": null,
+      "nullable": false,
+      "position": 13,
+      "schema": "public",
+      "table": "rankings_resultclaim",
+      "type": "timestamp with time zone"
+    }
+  ],
+  "constraints": [
+    {
+      "definition": "CHECK (NOT active OR NOT verification_status::text = 'verified'::text OR NOT evidence = ''::text AND (source_type::text = ANY (ARRAY['organizer'::character varying, 'news'::character varying, 'other'::character varying]::text[])) AND (NOT source_label::text = ''::text OR NOT source_url::text = ''::text))",
+      "name": "rank_claim_verified_evidence",
+      "schema": "public",
+      "table": "rankings_resultclaim",
+      "type": "c"
+    },
+    {
+      "definition": "CHECK (NOT featured OR record_type::text = 'achievement'::text)",
+      "name": "rank_profile_featured_achievement",
+      "schema": "public",
+      "table": "rankings_resultprofile",
+      "type": "c"
+    },
+    {
+      "definition": "CHECK (claim_type::text = 'award'::text OR award_kind::text = 'unknown'::text)",
+      "name": "rank_claim_award_kind_only",
+      "schema": "public",
+      "table": "rankings_resultclaim",
+      "type": "c"
+    },
+    {
+      "definition": "FOREIGN KEY (result_id) REFERENCES rankings_studentresult(id) DEFERRABLE INITIALLY DEFERRED",
+      "name": "rankings_resultclaim_result_id_6284ad21_fk_rankings_",
+      "schema": "public",
+      "table": "rankings_resultclaim",
+      "type": "f"
+    },
+    {
+      "definition": "FOREIGN KEY (result_id) REFERENCES rankings_studentresult(id) DEFERRABLE INITIALLY DEFERRED",
+      "name": "rankings_resultprofi_result_id_0c3db197_fk_rankings_",
+      "schema": "public",
+      "table": "rankings_resultprofile",
+      "type": "f"
+    },
+    {
+      "definition": "FOREIGN KEY (reviewed_by_id) REFERENCES users_user(id) DEFERRABLE INITIALLY DEFERRED",
+      "name": "rankings_resultclaim_reviewed_by_id_94daefbb_fk_users_user_id",
+      "schema": "public",
+      "table": "rankings_resultclaim",
+      "type": "f"
+    },
+    {
+      "definition": "FOREIGN KEY (reviewed_by_id) REFERENCES users_user(id) DEFERRABLE INITIALLY DEFERRED",
+      "name": "rankings_resultprofile_reviewed_by_id_98eac332_fk_users_user_id",
+      "schema": "public",
+      "table": "rankings_resultprofile",
+      "type": "f"
+    },
+    {
+      "definition": "PRIMARY KEY (id)",
+      "name": "rankings_resultclaim_pkey",
+      "schema": "public",
+      "table": "rankings_resultclaim",
+      "type": "p"
+    },
+    {
+      "definition": "PRIMARY KEY (id)",
+      "name": "rankings_resultprofile_pkey",
+      "schema": "public",
+      "table": "rankings_resultprofile",
+      "type": "p"
+    },
+    {
+      "definition": "UNIQUE (result_id)",
+      "name": "rankings_resultprofile_result_id_key",
+      "schema": "public",
+      "table": "rankings_resultprofile",
+      "type": "u"
+    },
+    {
+      "definition": "UNIQUE (result_id, claim_type)",
+      "name": "rank_claim_unique_result_type",
+      "schema": "public",
+      "table": "rankings_resultclaim",
+      "type": "u"
+    }
+  ],
+  "extensions": [],
+  "indexes": [
+    {
+      "definition": "CREATE INDEX rankings_resultclaim_result_id_6284ad21 ON public.rankings_resultclaim USING btree (result_id)",
+      "name": "rankings_resultclaim_result_id_6284ad21",
+      "schema": "public",
+      "table": "rankings_resultclaim"
+    },
+    {
+      "definition": "CREATE INDEX rankings_resultclaim_reviewed_by_id_94daefbb ON public.rankings_resultclaim USING btree (reviewed_by_id)",
+      "name": "rankings_resultclaim_reviewed_by_id_94daefbb",
+      "schema": "public",
+      "table": "rankings_resultclaim"
+    },
+    {
+      "definition": "CREATE INDEX rankings_resultprofile_reviewed_by_id_98eac332 ON public.rankings_resultprofile USING btree (reviewed_by_id)",
+      "name": "rankings_resultprofile_reviewed_by_id_98eac332",
+      "schema": "public",
+      "table": "rankings_resultprofile"
+    },
+    {
+      "definition": "CREATE UNIQUE INDEX rank_claim_unique_result_type ON public.rankings_resultclaim USING btree (result_id, claim_type)",
+      "name": "rank_claim_unique_result_type",
+      "schema": "public",
+      "table": "rankings_resultclaim"
+    },
+    {
+      "definition": "CREATE UNIQUE INDEX rankings_resultclaim_pkey ON public.rankings_resultclaim USING btree (id)",
+      "name": "rankings_resultclaim_pkey",
+      "schema": "public",
+      "table": "rankings_resultclaim"
+    },
+    {
+      "definition": "CREATE UNIQUE INDEX rankings_resultprofile_pkey ON public.rankings_resultprofile USING btree (id)",
+      "name": "rankings_resultprofile_pkey",
+      "schema": "public",
+      "table": "rankings_resultprofile"
+    },
+    {
+      "definition": "CREATE UNIQUE INDEX rankings_resultprofile_result_id_key ON public.rankings_resultprofile USING btree (result_id)",
+      "name": "rankings_resultprofile_result_id_key",
+      "schema": "public",
+      "table": "rankings_resultprofile"
+    }
+  ],
+  "tables": [
+    {
+      "kind": "r",
+      "schema": "public",
+      "table": "rankings_resultclaim"
+    },
+    {
+      "kind": "r",
+      "schema": "public",
+      "table": "rankings_resultprofile"
+    }
+  ]
+}

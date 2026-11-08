@@ -90,6 +90,30 @@ def _snapshot(connection):
 
 
 def _approved_rehearsal(disclosed_migration):  # noqa: C901, PLR0911, PLR0912 - Only literal, reviewed rehearsal imports.
+    if disclosed_migration == "solutions.0016_admin_review_takedown":
+        from scripts.deployment.admin_review_takedown_schema_rehearsal import run
+
+        return run
+    if disclosed_migration == "solutions.0015_self_solution_review_usage":
+        from scripts.deployment.self_solution_review_schema_rehearsal import run
+
+        return run
+    if disclosed_migration == "solutions.0014_admin_solution_review":
+        from scripts.deployment.admin_solution_review_schema_rehearsal import run
+
+        return run
+    if disclosed_migration == "pages.0047_study_help":
+        from scripts.deployment.study_help_schema_rehearsal import run
+
+        return run
+    if disclosed_migration == "rankings.0005_ranking_analysis_review":
+        from scripts.deployment.ranking_analysis_schema_rehearsal import run
+
+        return run
+    if disclosed_migration == "solutions.0013_solution_forum":
+        from scripts.deployment.solution_forum_schema_rehearsal import run
+
+        return run
     if disclosed_migration == "solutions.0011_problem_evaluation_packages":
         from scripts.deployment.assessment_prototype_schema_rehearsal import run
 
@@ -100,6 +124,10 @@ def _approved_rehearsal(disclosed_migration):  # noqa: C901, PLR0911, PLR0912 - 
         return run
     if disclosed_migration == "pages.0044_learning_page_activity":
         from scripts.deployment.learning_activity_schema_rehearsal import run
+
+        return run
+    if disclosed_migration == "learning.0002_contentdraft_is_archived":
+        from scripts.deployment.learning_schema_rehearsal import run
 
         return run
     if disclosed_migration == "pages.0041_statement_issue_reports":

@@ -22,6 +22,9 @@ CONTENT_FIELDS = (
     "contest_year",
     "problem_code",
     "solution_outline",
+    "solution_known",
+    "embargo_until",
+    "public_hint",
 )
 MIN_CONTEST_YEAR = 1900
 
@@ -29,8 +32,8 @@ MIN_CONTEST_YEAR = 1900
 class CommunityProblemForm(forms.ModelForm):
     sharing_confirmed = forms.BooleanField(
         label=(
-            "I can share this statement and its attribution. "
-            "It will be visible to signed-in users, including before review."
+            "I can submit this statement and attribution for publication review. "
+            "It stays private until I explicitly share an approved version."
         ),
     )
     version = forms.IntegerField(min_value=1, widget=forms.HiddenInput, required=False)
@@ -47,6 +50,9 @@ class CommunityProblemForm(forms.ModelForm):
             "source_details": "Author or source",
             "source_url": "Source link",
             "solution_outline": "Solution outline",
+            "solution_known": "I know a solution or an approach",
+            "embargo_until": "Competition embargo ends (optional)",
+            "public_hint": "Optional hint to publish",
         }
         help_texts = {
             "statement_latex": (
@@ -60,6 +66,14 @@ class CommunityProblemForm(forms.ModelForm):
             ),
             "core_ideas": "The main observation or approach; a full proof is optional.",
             "solution_outline": "Optional supporting evidence for reviewers. It is never shown on the community list.",
+            "mohs": "Leave blank if the difficulty is unknown. Zero is a difficulty value, not unknown.",
+            "public_hint": (
+                "Only this hint can appear publicly after you preview and share it. "
+                "Your private outline stays private."
+            ),
+            "embargo_until": (
+                "Disclose any competition embargo. Sharing stays blocked until it ends and publication is approved."
+            ),
         }
         widgets = {
             "statement_latex": forms.Textarea(attrs={"rows": 6, "spellcheck": "false"}),
@@ -67,6 +81,8 @@ class CommunityProblemForm(forms.ModelForm):
             "rationale": forms.Textarea(attrs={"rows": 2}),
             "pitfalls": forms.Textarea(attrs={"rows": 2}),
             "solution_outline": forms.Textarea(attrs={"rows": 4}),
+            "public_hint": forms.Textarea(attrs={"rows": 3}),
+            "embargo_until": forms.DateTimeInput(attrs={"type": "datetime-local"}, format="%Y-%m-%dT%H:%M"),
         }
 
     def __init__(self, *args, **kwargs):
@@ -83,6 +99,7 @@ class CommunityProblemForm(forms.ModelForm):
             "rationale": 2000,
             "pitfalls": 2000,
             "solution_outline": 6000,
+            "public_hint": 2000,
         }
         for name, limit in limits.items():
             self.fields[name].max_length = limit
@@ -104,6 +121,8 @@ class CommunityProblemForm(forms.ModelForm):
         }
         for name, placeholder in placeholders.items():
             self.fields[name].widget.attrs["placeholder"] = placeholder
+        for name in ("mohs", "topic_tags", "core_ideas", "rationale", "solution_known"):
+            self.fields[name].required = False
         for name, prompt in (("topic", "Choose a subject"), ("source_kind", "Choose an origin")):
             self.fields[name].choices = [
                 (value, label if value else prompt) for value, label in self.fields[name].choices
@@ -121,7 +140,7 @@ class CommunityProblemForm(forms.ModelForm):
 
     def clean(self):
         data = super().clean()
-        for name in ("statement_latex", "core_ideas", "rationale"):
+        for name in ("statement_latex",):
             if name in data and not data[name].strip():
                 self.add_error(name, "This field is required.")
         if (
