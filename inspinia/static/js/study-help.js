@@ -24,30 +24,55 @@
   const proof = action => action === "solution" || action === "alternative";
   const actionOrder = Object.keys(labels).filter(action => !draft || !proof(action));
   const token = find("[name=csrfmiddlewaretoken]").value;
+  const controls = find("[data-controls]");
   const actions = find("[data-actions]");
+  const hintCost = find("[data-hint-cost]");
+  const quota = find("[data-quota]");
   const feedback = find("[data-feedback]");
   const confirmation = find("[data-confirmation]");
   const answer = find("[data-answer]");
   const answerBody = find("[data-answer-body]");
+  const answerLevel = find("[data-answer-level]");
+  const copyFeedback = find("[data-copy-feedback]");
   const history = find("[data-history]");
   const historyList = find("[data-history-list]");
-  let state, confirmationData, autoOpenId, openId, timer, focusLabel, busy = false;
+  let state, confirmationData, autoOpenId, openId, answerSource, timer, returnFocus, busy = false;
   let statusRequest = 0;
   const dateFormat = new Intl.DateTimeFormat("en-MY", {
     dateStyle: "medium", timeZone: "Asia/Kuala_Lumpur",
   });
 
-  function button(label, style, handler) {
+  const savedFocus = item => "saved:" + item.id;
+  const actionFocus = action => "action:" + action;
+
+  function button(label, style, key, handler) {
     const node = document.createElement("button");
     node.type = "button";
     node.className = "btn btn-sm " + style;
     node.textContent = label;
+    node.dataset.studyHelpFocus = key;
     node.addEventListener("click", handler);
     return node;
   }
 
-  function note(message) {
+  function focusControl(key) {
+    if (!key) return;
+    [...root.querySelectorAll("[data-study-help-focus]")]
+      .find(item => item.dataset.studyHelpFocus === key && item.getClientRects().length)?.focus();
+  }
+
+  function metric(value, label) {
+    const item = document.createElement("li");
+    const number = document.createElement("strong");
+    number.textContent = value;
+    item.append(number, " " + label);
+    return item;
+  }
+
+  function note(message, tone = "neutral") {
     if (feedback.textContent !== message) feedback.textContent = message;
+    feedback.dataset.tone = tone;
+    feedback.hidden = !message;
   }
 
   async function request(url, payload, keepalive = false) {
@@ -74,23 +99,23 @@
     answerBody.replaceChildren();
     answer.hidden = true;
     openId = undefined;
+    answerSource = undefined;
   }
 
   function present(next) {
     state = next;
     root.hidden = false;
-    const quota = find("[data-quota]");
     const limits = [
-      next.account_remaining + (next.account_remaining === 1 ? " AI credit left" : " AI credits left"),
-      next.statement_hints_used + " of " + next.statement_hint_limit + " hints used here",
+      metric(next.account_remaining, next.account_remaining === 1 ? "AI credit left" : "AI credits left"),
+      metric(next.statement_hints_used + " / " + next.statement_hint_limit, "hints used here"),
     ];
     if (!draft) {
       limits.push(
-        next.solutions_left + (next.solutions_left === 1 ? " solution credit left" : " solution credits left"),
-        next.statement_solutions_used + " of " + next.statement_solution_limit + " used here",
+        metric(next.solutions_left, next.solutions_left === 1 ? "solution credit left" : "solution credits left"),
+        metric(next.statement_solutions_used + " / " + next.statement_solution_limit, "solutions used here"),
       );
     }
-    quota.textContent = limits.join(" · ");
+    quota.replaceChildren(...limits);
     if (confirmationData && (
       next.revision !== confirmationData.revision ||
       next.actions[confirmationData.action]?.slot !== confirmationData.slot
@@ -103,52 +128,42 @@
       !draft && next.solutions_left === 0 ? "You’ve used all your free solution credits." :
       !draft && next.statement_solutions_used >= next.statement_solution_limit ? "Both solution slots are used." : ""
     );
-    note(message);
-    const saved = next.saved.filter(item => actionOrder.includes(item.action));
+    note(message, next.pending_here ? "loading" : !next.message && next.failure ? "error" : "neutral");
+    const saved = next.saved.filter(item => actionOrder.includes(item.action))
+      .sort((left, right) => actionOrder.indexOf(left.action) - actionOrder.indexOf(right.action));
     if (openId && !saved.some(item => item.id === openId)) closeAnswer();
-    const focusedText = root.contains(document.activeElement) ? document.activeElement.textContent : "";
-    const currentHint = saved.find(item => item.action === "hint");
-    const currentProof = saved.find(item => item.current && proof(item.action));
+    const focusedKey = root.contains(document.activeElement) ? document.activeElement.dataset.studyHelpFocus : undefined;
     actions.replaceChildren();
-    if (currentHint && openId !== currentHint.id) {
-      actions.append(button("View saved hint", "btn-light border text-body-emphasis", () => show(currentHint, "View saved hint")));
-    }
     for (const action of actionOrder) {
-      if (action === "alternative" && currentProof && openId !== currentProof.id) {
-        actions.append(button("View saved solution", "btn-light border text-body-emphasis", () => show(currentProof, "View saved solution")));
-      }
       const option = next.actions[action];
       if (option) {
-        actions.append(button(labels[action], proof(action) ? "btn-light border text-body-emphasis" : "btn-primary bg-primary-subtle text-body-emphasis", () => {
-          begin(action, option);
-        }));
+        const style = proof(action) ? "btn-outline-secondary" : "btn-primary";
+        actions.append(button(labels[action], style, actionFocus(action), () => begin(action, option)));
       }
     }
+    controls.hidden = !actions.childElementCount;
+    hintCost.hidden = !(next.actions.hint || next.actions.stronger_hint);
     history.hidden = !saved.length;
-    find("[data-history-label]").textContent = "My saved responses (" + saved.length + ")";
     historyList.replaceChildren();
     for (const item of saved) {
       const row = document.createElement("li");
-      row.className = "d-flex flex-wrap align-items-center gap-2 py-1";
       const title = responseLabels[item.action];
-      const meta = document.createElement("span");
-      meta.className = "small text-body-secondary";
-      meta.textContent = dateFormat.format(new Date(item.created_at)) + (item.current ? "" : " · Earlier revision");
-      row.append(button("View " + title.toLowerCase(), "btn-light border text-body-emphasis", () => {
-        show(item, "View " + title.toLowerCase());
-      }), meta);
+      const date = dateFormat.format(new Date(item.created_at));
+      const label = item.current ? title : title + " · " + date;
+      const select = button(label, "study-help-saved-button", savedFocus(item), () => show(item));
+      select.setAttribute("aria-pressed", String(item.id === openId));
+      select.setAttribute("aria-controls", "study-help-response");
+      select.title = item.current ? "Saved " + date : "Earlier revision";
+      row.append(select);
       historyList.append(row);
     }
-    if (focusedText) {
-      [...actions.querySelectorAll("button"), ...historyList.querySelectorAll("button")]
-        .find(item => item.textContent === focusedText && item.getClientRects().length)?.focus();
-    }
+    focusControl(focusedKey);
     clearTimeout(timer);
     if (next.pending && !document.hidden) timer = setTimeout(refresh, 2000);
     if (autoOpenId && !next.pending) {
       const item = saved.find(response => response.id === autoOpenId);
       autoOpenId = undefined;
-      if (item) show(item, labels[item.action], true);
+      if (item) show(item, true);
     }
   }
 
@@ -159,13 +174,14 @@
       closeAnswer();
       history.hidden = true;
       actions.replaceChildren();
-      find("[data-quota]").textContent = "";
+      controls.hidden = true;
+      quota.replaceChildren();
       confirmation.hidden = true;
       confirmationData = undefined;
       state = undefined;
     }
     if (error.status) present(error.status);
-    note(error.message || "Study help couldn’t be reached. Reload the page to try again.");
+    note(error.message || "Study help couldn’t be reached. Reload the page to try again.", "error");
   }
 
   async function refresh() {
@@ -206,7 +222,7 @@
     confirmation.hidden = true;
     confirmationData = undefined;
     actions.querySelectorAll("button").forEach(item => { item.disabled = true; });
-    note("Requesting AI study help…");
+    note("Requesting AI study help…", "loading");
     feedback.focus({preventScroll: true});
     try {
       const result = await request(root.dataset.requestUrl, data);
@@ -221,26 +237,31 @@
     }
   }
 
-  async function show(item, triggerLabel, automatic = false) {
-    if (busy) return;
+  async function show(item, automatic = false) {
+    if (busy || item.id === openId) return;
     statusRequest++;
     busy = true;
-    focusLabel = triggerLabel;
     try {
       const result = await request(root.dataset.revealUrl, {
         response_id: item.id, interaction_key: crypto.randomUUID(),
         automatic,
       });
       openId = item.id;
+      returnFocus = savedFocus(item);
+      answerSource = result.response.body;
+      const level = !proof(item.action) && /^Hint \(Level ([1-4])\):[ \t]+/.exec(answerSource);
       find("[data-answer-title]").textContent = responseLabels[item.action] +
         (result.response.current ? "" : " · Earlier revision");
+      answerLevel.hidden = !level;
+      answerLevel.textContent = level ? "Level " + level[1] : "";
+      copyFeedback.textContent = "";
       window.MathJax?.typesetClear?.([answerBody]);
-      answerBody.textContent = result.response.body;
+      answerBody.textContent = level ? answerSource.slice(level[0].length) : answerSource;
       answer.hidden = false;
       present(result.status);
       find("[data-answer-title]").focus({preventScroll: false});
       const renderMath = () => window.MathJax?.typesetPromise?.([answerBody]).catch(() => {});
-      if (window.MathJax?.typesetPromise) renderMath();
+      if (window.MathJax?.typesetPromise) await renderMath();
       else window.addEventListener("asterproof:mathjax-ready", renderMath, {once: true});
     } catch (error) {
       showError(error);
@@ -252,8 +273,17 @@
   find("[data-close]").addEventListener("click", () => {
     closeAnswer();
     if (state) present(state);
-    [...root.querySelectorAll("button")]
-      .find(item => item.textContent === focusLabel && item.getClientRects().length)?.focus();
+    focusControl(returnFocus);
+  });
+  find("[data-copy]").addEventListener("click", async () => {
+    if (!answerSource) return;
+    const copiedId = openId;
+    try {
+      await navigator.clipboard.writeText(answerSource);
+      if (openId === copiedId) copyFeedback.textContent = "Copied";
+    } catch {
+      if (openId === copiedId) copyFeedback.textContent = "Copy unavailable. Select the response to copy it.";
+    }
   });
   find("[data-confirm]").addEventListener("click", () => {
     if (confirmationData) generate(confirmationData);
@@ -262,7 +292,7 @@
     const action = confirmationData?.action;
     confirmationData = undefined;
     confirmation.hidden = true;
-    [...actions.querySelectorAll("button")].find(item => item.textContent === labels[action])?.focus();
+    focusControl(actionFocus(action));
   }
   find("[data-cancel]").addEventListener("click", cancel);
   confirmation.addEventListener("keydown", event => {
