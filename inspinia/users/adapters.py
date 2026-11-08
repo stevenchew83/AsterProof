@@ -13,6 +13,8 @@ from django.urls import Resolver404
 from django.urls import resolve
 from django.utils.http import url_has_allowed_host_and_scheme
 
+from inspinia.users.models import UserAccessSettings
+
 if typing.TYPE_CHECKING:
     from allauth.socialaccount.models import SocialLogin
     from django.http import HttpRequest
@@ -21,8 +23,6 @@ if typing.TYPE_CHECKING:
 
 
 def _apply_signup_auto_approval(user: User) -> None:
-    from inspinia.users.models import UserAccessSettings
-
     if UserAccessSettings.get_solo().auto_approve_new_users:
         user.is_approved = True
 
@@ -71,7 +71,7 @@ class AccountAdapter(DefaultAccountAdapter):
         return message
 
     def is_open_for_signup(self, request: HttpRequest) -> bool:
-        return getattr(settings, "ACCOUNT_ALLOW_REGISTRATION", True)
+        return UserAccessSettings.public_registration_is_open()
 
     def save_user(self, request: HttpRequest, user: User, form, commit=True) -> User:  # noqa: FBT002
         _apply_signup_auto_approval(user)
@@ -106,13 +106,6 @@ class AccountAdapter(DefaultAccountAdapter):
 
 
 class SocialAccountAdapter(DefaultSocialAccountAdapter):
-    def is_open_for_signup(
-        self,
-        request: HttpRequest,
-        sociallogin: SocialLogin,
-    ) -> bool:
-        return getattr(settings, "ACCOUNT_ALLOW_REGISTRATION", True)
-
     def populate_user(
         self,
         request: HttpRequest,

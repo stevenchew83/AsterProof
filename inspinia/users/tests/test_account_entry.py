@@ -6,6 +6,8 @@ import pytest
 from django.core import mail
 from django.urls import reverse
 
+from inspinia.users.models import User
+from inspinia.users.models import UserAccessSettings
 from inspinia.users.tests.factories import UserFactory
 
 pytestmark = pytest.mark.django_db
@@ -26,6 +28,42 @@ def test_login_keeps_accessible_fields_and_recovery_links(client):
     assert 'id="id_password_helptext"' in html
     assert f'href="{reverse("account_reset_password")}"' in html
     assert f'href="{reverse("account_signup")}"' in html
+
+
+def test_closed_registration_blocks_direct_signup_and_hides_links(client):
+    UserAccessSettings.objects.create(allow_public_registration=False)
+    signup_url = reverse("account_signup")
+    login_url = reverse("account_login")
+    new_email = "blocked-signup@example.test"
+
+    for response in (
+        client.get(signup_url),
+        client.post(
+            signup_url,
+            {"email": new_email, "password1": TEST_OLD_PASSWORD, "password2": TEST_OLD_PASSWORD},
+        ),
+    ):
+        assert response.status_code == HTTPStatus.OK
+        html = response.content.decode()
+        assert "Registration is currently closed." in html
+        assert f'href="{login_url}"' in html
+        assert 'name="password1"' not in html
+    assert not User.objects.filter(email=new_email).exists()
+
+    for name in ("account_login", "pages:home", "website:solution_preview"):
+        response = client.get(reverse(name))
+        html = response.content.decode()
+        assert response.status_code == HTTPStatus.OK
+        assert f'href="{signup_url}"' not in html
+        assert "data-signup-handoff" not in html
+
+    existing_user = UserFactory(password=TEST_OLD_PASSWORD)
+    response = client.post(reverse("account_reset_password"), {"email": existing_user.email})
+    assert response.url == reverse("account_reset_password_done")
+    assert mail.outbox[0].to == [existing_user.email]
+    response = client.post(login_url, {"login": existing_user.email, "password": TEST_OLD_PASSWORD})
+    assert response.status_code == HTTPStatus.FOUND
+    assert client.session["_auth_user_id"] == str(existing_user.pk)
 
 
 def test_login_displays_errors_and_keeps_password_private(client):

@@ -13,6 +13,7 @@ from scripts.deployment import newsletter_automation_schema
 from scripts.deployment import newsletter_schema
 from scripts.deployment import onboarding_schema
 from scripts.deployment import ranking_analysis_schema
+from scripts.deployment import registration_schema
 from scripts.deployment import self_solution_review_schema
 from scripts.deployment import solution_analytics_schema
 from scripts.deployment import solution_collections_schema
@@ -55,6 +56,8 @@ def schema_for_disclosure(value):  # noqa: C901, PLR0911, PLR0912 - Keep each fr
         return curated_collections_schema
     if isinstance(value, dict) and value.get("migration") == solution_collections_schema.MIGRATION:
         return solution_collections_schema
+    if isinstance(value, dict) and value.get("migration") == registration_schema.MIGRATION:
+        return registration_schema
     if isinstance(value, dict) and value.get("migration") == onboarding_schema.MIGRATION:
         return onboarding_schema
     if isinstance(value, dict) and value.get("migration") == solution_analytics_schema.MIGRATION:

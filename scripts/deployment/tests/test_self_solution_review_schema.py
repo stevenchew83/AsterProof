@@ -15,9 +15,10 @@ from scripts.deployment.schema_fingerprint import schema_state
 def test_frozen_migration_and_quota_table_delta(tmp_path):
     root = Path.cwd()
     successor = Path("inspinia/solutions/migrations/0016_admin_review_takedown.py")
+    later_registration = Path("inspinia/users/migrations/0010_public_registration.py")
     for migration in root.glob("inspinia/**/migrations/*"):
         relative = migration.relative_to(root)
-        if migration.suffix in {".py", ".json"} and relative != successor:
+        if migration.suffix in {".py", ".json"} and relative not in {successor, later_registration}:
             staged = tmp_path / relative
             staged.parent.mkdir(parents=True, exist_ok=True)
             staged.write_bytes(migration.read_bytes())

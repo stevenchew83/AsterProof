@@ -562,6 +562,64 @@ class TestManageRolesView:
         assert pending_user.is_approved is False
         assert "Saved user access settings." in response.content.decode("utf-8")
 
+    def test_admin_can_close_and_reopen_public_registration_and_audit_each_change(self, client: Client):
+        admin_user = UserFactory(role=User.Role.ADMIN)
+        client.force_login(admin_user)
+        manage_url = reverse("users:manage_roles")
+        event_type = AuditEvent.EventType.PUBLIC_REGISTRATION_CHANGED
+        assert UserAccessSettings.get_solo().allow_public_registration
+
+        for posted_value in ("0", "0", "1"):
+            response = client.post(
+                manage_url, {"action": "save_public_registration", "allow_public_registration": posted_value},
+            )
+            assert response.url == manage_url
+            assert UserAccessSettings.get_solo().allow_public_registration is (posted_value == "1")
+
+        events = AuditEvent.objects.filter(event_type=event_type).order_by("pk")
+        assert list(events.values_list("actor_id", "metadata")) == [
+            (admin_user.pk, {"from_allowed": True, "to_allowed": False}),
+            (admin_user.pk, {"from_allowed": False, "to_allowed": True}),
+        ]
+        log = client.get(reverse("users:event_log"), {"event_type": event_type})
+        assert log.status_code == HTTPStatus.OK
+        assert log.context["admin_action_count_24h"] == len(events)
+        html = log.content.decode()
+        assert "Public registration opened." in html
+        assert "Public registration closed." in html
+
+    def test_registration_write_requires_app_admin(self, client: Client):
+        client.force_login(UserFactory(role=User.Role.MODERATOR))
+        response = client.post(
+            reverse("users:manage_roles"),
+            {"action": "save_public_registration", "allow_public_registration": "0"},
+        )
+        assert response.status_code == HTTPStatus.FORBIDDEN
+        assert not UserAccessSettings.objects.exists()
+
+    def test_server_configuration_locks_registration(self, client: Client, settings):
+        settings.ACCOUNT_ALLOW_REGISTRATION = False
+        client.force_login(UserFactory(role=User.Role.ADMIN))
+        manage_url = reverse("users:manage_roles")
+        response = client.post(
+            manage_url, {"action": "save_public_registration", "allow_public_registration": "0"}, follow=True,
+        )
+        assert "Closed by server configuration." in response.content.decode()
+        assert UserAccessSettings.get_solo().allow_public_registration
+        assert not UserAccessSettings.public_registration_is_open()
+        assert not AuditEvent.objects.filter(event_type=AuditEvent.EventType.PUBLIC_REGISTRATION_CHANGED).exists()
+
+    def test_registration_is_not_changed_without_an_audit_event(self, client: Client, monkeypatch):
+        client.force_login(UserFactory(role=User.Role.ADMIN))
+        monkeypatch.setattr("inspinia.users.views.record_event", lambda **kwargs: None)
+        response = client.post(
+            reverse("users:manage_roles"),
+            {"action": "save_public_registration", "allow_public_registration": "0"},
+            follow=True,
+        )
+        assert "The registration change could not be logged." in response.content.decode()
+        assert UserAccessSettings.get_solo().allow_public_registration
+
     def test_manage_roles_page_shows_unknown_stored_role_without_defaulting_to_admin(self, client: Client):
         admin_user = UserFactory(role=User.Role.ADMIN)
         stale_role_user = UserFactory(email="stale-role@example.com", role="legacy", is_approved=False)

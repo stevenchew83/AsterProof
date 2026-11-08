@@ -27,6 +27,9 @@
 
   <div class="row g-3 mt-0">
     <div class="col-12">
+      <form id="public-registration-form" method="post">
+        {% csrf_token %}
+      </form>
       <form method="post" class="card">
         {% csrf_token %}
         <div class="card-header border-0 pb-0">
@@ -37,10 +40,40 @@
                 {% translate "Admin-only access settings. Approval unlocks authenticated AsterProof features. Admin and superuser accounts are always treated as approved." %}
               </p>
               <p class="text-muted fs-xs mb-0 mt-1">
-                {% translate "Review the rows below, then save all changes once." %}
+                {% translate "Review the roles and approvals below, then save all changes once." %}
               </p>
             </div>
             <div class="d-flex flex-wrap align-items-center justify-content-end gap-3">
+              <div class="d-flex flex-wrap align-items-center gap-2">
+                <div class="form-check form-switch mb-0">
+                  <input type="hidden" name="allow_public_registration" value="0" form="public-registration-form">
+                  <input
+                    class="form-check-input"
+                    type="checkbox"
+                    role="switch"
+                    name="allow_public_registration"
+                    value="1"
+                    id="allow-public-registration"
+                    form="public-registration-form"
+                    aria-describedby="public-registration-help"
+                    {% if registration_locked %}disabled{% elif access_settings.allow_public_registration %}checked{% endif %}
+                  >
+                  <label class="form-check-label fs-sm fw-semibold" for="allow-public-registration">
+                    {% translate "Allow public registration" %}
+                  </label>
+                  <div id="public-registration-help" class="form-text fs-xs mt-0">
+                    {% if registration_locked %}
+                      {% translate "Closed by server configuration." %}
+                    {% else %}
+                      {% translate "Controls whether visitors can create accounts." %}
+                    {% endif %}
+                  </div>
+                </div>
+                <button type="submit" name="action" value="save_public_registration" form="public-registration-form"
+                        class="btn btn-outline-primary btn-sm" {% if registration_locked %}disabled{% endif %}>
+                  {% translate "Save registration" %}
+                </button>
+              </div>
               <div class="form-check form-switch mb-0">
                 <input type="hidden" name="auto_approve_new_users" value="0">
                 <input

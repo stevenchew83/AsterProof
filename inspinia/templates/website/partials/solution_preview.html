@@ -1,4 +1,4 @@
-<div class="public-solution-tool" data-pdf-document data-pdf-date="{{ pdf_date_label }}" data-solution-preview data-solution-document-editor data-owner="{% if request.user.is_authenticated %}{{ request.user.pk }}{% else %}anonymous{% endif %}" data-login-url="{% url 'account_login' %}" data-signup-url="{% url 'account_signup' %}" data-writer-resumed="{{ writer_draft_resumed|yesno:'true,false' }}">
+<div class="public-solution-tool" data-pdf-document data-pdf-date="{{ pdf_date_label }}" data-solution-preview data-solution-document-editor data-owner="{% if request.user.is_authenticated %}{{ request.user.pk }}{% else %}anonymous{% endif %}" data-login-url="{% url 'account_login' %}"{% if ACCOUNT_ALLOW_REGISTRATION %} data-signup-url="{% url 'account_signup' %}"{% endif %} data-writer-resumed="{{ writer_draft_resumed|yesno:'true,false' }}">
   <form action="{% url 'website:solution_preview' %}" method="post" id="solution-preview-form" novalidate>
     {% csrf_token %}
     {% if form.non_field_errors %}<div class="public-tool-errors" role="alert"><strong>Please check your document.</strong>{{ form.non_field_errors }}</div>{% endif %}
@@ -30,7 +30,7 @@
       </section>
       <section class="public-tool-preview solution-preview-pane" aria-labelledby="converter-preview-title">
         <div class="public-tool-pane-title"><h2 id="converter-preview-title">Live preview</h2><span id="converter-preview-status" data-preview-status role="status">Updates as you write</span></div>
-        <p class="website-fineprint public-tool-tips">Your PDF includes a framed problem statement, styled claims, and proofs.{% if not request.user.is_authenticated %} To keep this writing in your workspace, <button type="submit" name="action" value="continue_signup" class="website-text-link" data-signup-handoff>create an account</button>.{% endif %}</p>
+        <p class="website-fineprint public-tool-tips">Your PDF includes a framed problem statement, styled claims, and proofs.{% if not request.user.is_authenticated and ACCOUNT_ALLOW_REGISTRATION %} To keep this writing in your workspace, <button type="submit" name="action" value="continue_signup" class="website-text-link" data-signup-handoff>create an account</button>.{% endif %}</p>
         <article class="public-tool-paper" aria-labelledby="converter-document-title">
           <p class="website-kicker">Your solution</p><h2 id="converter-document-title" class="tex2jax_ignore" data-preview-title>{{ form.title.value|default:'My solution' }}</h2>
           {% include 'solutions/partials/pdf-preview-metadata.html' %}

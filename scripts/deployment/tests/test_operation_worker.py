@@ -131,6 +131,9 @@ class FakeBackend(WorkerBackend):
     def document_reader_required(self, contract: TargetContract) -> bool:
         return False
 
+    def registration_reader_required(self) -> bool:
+        return False
+
     def ranking_profile_reader_required(self, contract: TargetContract) -> bool:
         return False
 

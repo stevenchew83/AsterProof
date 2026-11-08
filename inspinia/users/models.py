@@ -113,6 +113,11 @@ class User(AbstractUser):
 
 
 class UserAccessSettings(models.Model):
+    allow_public_registration = models.BooleanField(
+        _("Allow public registration"),
+        default=True,
+        db_default=True,
+    )
     auto_approve_new_users = models.BooleanField(
         _("Auto approve new users"),
         default=False,
@@ -124,6 +129,12 @@ class UserAccessSettings(models.Model):
     class Meta:
         verbose_name = _("User access settings")
         verbose_name_plural = _("User access settings")
+
+    @classmethod
+    def public_registration_is_open(cls) -> bool:
+        return settings.ACCOUNT_ALLOW_REGISTRATION and not cls.objects.filter(
+            pk=1, allow_public_registration=False,
+        ).exists()
 
     @classmethod
     def get_solo(cls) -> "UserAccessSettings":
@@ -200,6 +211,7 @@ class AuditEvent(models.Model):
         SIGNUP = "auth.signup", _("Signup")
         ROLE_CHANGED = "users.role_changed", _("Role changed")
         APPROVAL_CHANGED = "users.approval_changed", _("Approval changed")
+        PUBLIC_REGISTRATION_CHANGED = "users.public_registration_changed", _("Public registration changed")
         SESSION_REVOKED = "sessions.revoked", _("Session revoked")
         IMPORT_PREVIEWED = "imports.previewed", _("Workbook previewed")
         IMPORT_COMPLETED = "imports.completed", _("Workbook imported")
@@ -257,6 +269,7 @@ class AuditEvent(models.Model):
         if self.event_type in {
             self.EventType.ROLE_CHANGED,
             self.EventType.APPROVAL_CHANGED,
+            self.EventType.PUBLIC_REGISTRATION_CHANGED,
             self.EventType.SESSION_REVOKED,
         }:
             return "text-bg-warning"

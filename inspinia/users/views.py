@@ -2,6 +2,7 @@ from collections import Counter
 from datetime import timedelta
 from urllib.parse import urlencode
 
+from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.mixins import LoginRequiredMixin
@@ -426,8 +427,44 @@ def _apply_user_access_settings_update(request) -> bool:
         return False
 
     access_settings.auto_approve_new_users = next_auto_approve
-    access_settings.save()
+    access_settings.save(update_fields=["auto_approve_new_users", "updated_at"])
     return True
+
+
+def _save_public_registration(request) -> None:
+    if not settings.ACCOUNT_ALLOW_REGISTRATION:
+        messages.error(request, _("Registration is closed by server configuration."))
+        return
+
+    raw_value = request.POST.get("allow_public_registration")
+    if raw_value not in {"0", "1"}:
+        messages.error(request, _("Invalid public registration setting."))
+        return
+
+    allow_registration = raw_value == "1"
+    with transaction.atomic():
+        access_settings, _created = UserAccessSettings.objects.select_for_update().get_or_create(pk=1)
+        if access_settings.allow_public_registration == allow_registration:
+            messages.info(request, _("No registration change to save."))
+            return
+
+        event = record_event(
+            event_type=AuditEvent.EventType.PUBLIC_REGISTRATION_CHANGED,
+            message="Public registration opened." if allow_registration else "Public registration closed.",
+            request=request,
+            actor=request.user,
+            metadata={
+                "from_allowed": access_settings.allow_public_registration,
+                "to_allowed": allow_registration,
+            },
+        )
+        if event is None:
+            messages.error(request, _("The registration change could not be logged. Try again."))
+            return
+
+        access_settings.allow_public_registration = allow_registration
+        access_settings.save(update_fields=["allow_public_registration", "updated_at"])
+    messages.success(request, _("Saved public registration setting."))
 
 
 def _parse_bulk_user_access_updates(request) -> list[tuple[int, str | None, bool]] | None:
@@ -534,7 +571,9 @@ def manage_user_roles_view(request):
     allowed_roles = {choice[0] for choice in User.Role.choices}
 
     if request.method == "POST":
-        if request.POST.getlist("user_ids"):
+        if request.POST.get("action") == "save_public_registration":
+            _save_public_registration(request)
+        elif request.POST.getlist("user_ids"):
             _handle_bulk_user_access_post(request, allowed_roles)
         else:
             _handle_single_user_access_post(request, allowed_roles)
@@ -549,6 +588,7 @@ def manage_user_roles_view(request):
             "users": users,
             "role_choices": User.Role.choices,
             "access_settings": UserAccessSettings.get_solo(),
+            "registration_locked": not settings.ACCOUNT_ALLOW_REGISTRATION,
             "access_summary": _build_user_access_summary(users),
         },
     )
@@ -655,6 +695,7 @@ def event_log_view(request):
     admin_action_types = {
         AuditEvent.EventType.ROLE_CHANGED,
         AuditEvent.EventType.APPROVAL_CHANGED,
+        AuditEvent.EventType.PUBLIC_REGISTRATION_CHANGED,
         AuditEvent.EventType.SESSION_REVOKED,
         AuditEvent.EventType.IMPORT_COMPLETED,
     }

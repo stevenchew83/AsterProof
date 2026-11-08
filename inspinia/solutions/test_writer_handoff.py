@@ -167,6 +167,15 @@ def test_writer_can_choose_newly_uploaded_statement_without_manual_linking(clien
     assert WRITER_DRAFT_SESSION_KEY not in client.session
 
 
+def test_closed_signup_handoff_goes_to_login_and_preserves_draft(client):
+    UserAccessSettings.objects.create(allow_public_registration=False)
+
+    response = stage(client, action="continue_signup")
+
+    assert response.url.startswith(reverse("account_login"))
+    assert WRITER_DRAFT_SESSION_KEY in client.session
+
+
 def test_pending_signup_keeps_draft_and_resumes_after_approval(client, settings):
     settings.ACCOUNT_EMAIL_VERIFICATION = "none"
     access = UserAccessSettings.get_solo()
