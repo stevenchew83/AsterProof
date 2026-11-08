@@ -6,6 +6,7 @@ from dataclasses import dataclass
 from datetime import timedelta
 from uuid import UUID
 
+from django.conf import settings
 from django.db import transaction
 from django.db.models import Q
 from django.utils import timezone
@@ -13,20 +14,24 @@ from django.utils import timezone
 from inspinia.pages.study_help import StudyHelpError
 from inspinia.pages.study_help import _prior
 from inspinia.pages.study_help import budget_available
+from inspinia.pages.study_help import check_pilot_action
 from inspinia.pages.study_help import check_read
 from inspinia.pages.study_help import event_for
 from inspinia.pages.study_help import generation_ready
 from inspinia.pages.study_help import locked_account
+from inspinia.pages.study_help import prompt_qualified
 from inspinia.pages.study_help_access import can_use_study_help
 from inspinia.pages.study_help_access import lock_study_help
 from inspinia.pages.study_help_access import source_problem
 from inspinia.pages.study_help_access import statement_revision
+from inspinia.pages.study_help_models import StudyHelpAction
 from inspinia.pages.study_help_models import StudyHelpAdminEvent
 from inspinia.pages.study_help_models import StudyHelpEvent
 from inspinia.pages.study_help_models import StudyHelpPolicy
-from inspinia.pages.study_help_models import StudyHelpQualification
 from inspinia.pages.study_help_models import StudyHelpRequest
 from inspinia.pages.study_help_models import StudyHelpSpend
+from inspinia.pages.study_help_pilot import PILOT_FUNDING
+from inspinia.pages.study_help_provider import MAX_BODY
 from inspinia.pages.study_help_provider import TIMEOUT_SECONDS
 from inspinia.pages.study_help_provider import ProviderResult
 from inspinia.pages.study_help_provider import call_provider
@@ -59,12 +64,15 @@ def _context(job, policy):
     from inspinia.pages.models import ContestProblemStatement
 
     user = locked_account(job.owner_id)
+    if (job.funding_source == PILOT_FUNDING) != settings.STUDY_HELP_DRAFT_HINT_PILOT_ENABLED:
+        raise StudyHelpError("unavailable")
     if user is None or not can_use_study_help(user, policy):
         raise StudyHelpError("unavailable")
     statement = ContestProblemStatement.objects.select_for_update().filter(statement_uuid=job.statement_uuid).first()
     if statement is None:
         raise StudyHelpError("inactive_statement")
     check_read(user, statement, job.problem_uuid)
+    check_pilot_action(job.action)
     if (
         source_problem(statement)
         or statement_revision(statement) != job.revision
@@ -76,7 +84,7 @@ def _context(job, policy):
         not generation_ready(policy)
         or job.model != policy.model
         or job.profile_digest != profile_digest(job.prompt, job.model)
-        or not StudyHelpQualification.objects.filter(prompt=job.prompt, profile_digest=job.profile_digest).exists()
+        or not prompt_qualified(job.prompt, job.model)
     ):
         raise StudyHelpError("generation_paused")
     return _prior(user, statement, job.prior_id, job.action)
@@ -200,6 +208,12 @@ def finish(spend_id, result):
         return StudyHelpRequest.State.FAILED
 
     body, method, code = validate_result(job.action, result, prior)
+    if (
+        settings.STUDY_HELP_DRAFT_HINT_PILOT_ENABLED
+        and not code
+        and (len(body) > MAX_BODY[StudyHelpAction.HINT] or not body.startswith("Hint (Level 1): "))
+    ):
+        body, method, code = "", "", "invalid_response"
     state = StudyHelpRequest.State.FAILED if code else StudyHelpRequest.State.READY
     _end_job(job, state, now, code, body, method)
     return state

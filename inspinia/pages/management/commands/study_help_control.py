@@ -5,6 +5,7 @@
 import json
 from pathlib import Path
 
+from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.core.exceptions import ValidationError
 from django.core.management.base import BaseCommand
@@ -12,19 +13,35 @@ from django.core.management.base import CommandError
 from django.db import transaction
 from django.utils import timezone
 
+from inspinia.pages.models import ContestProblemStatement
+from inspinia.pages.study_help import ProblemUsage
+from inspinia.pages.study_help import generation_prompt
 from inspinia.pages.study_help import generation_ready
 from inspinia.pages.study_help import pricing_ready
+from inspinia.pages.study_help import prompt_qualified
+from inspinia.pages.study_help_access import assistance_restricted
+from inspinia.pages.study_help_access import draft_pilot_statement
 from inspinia.pages.study_help_access import lock_study_help
+from inspinia.pages.study_help_access import source_problem
 from inspinia.pages.study_help_models import StudyHelpAdminEvent
 from inspinia.pages.study_help_models import StudyHelpEnrollment
 from inspinia.pages.study_help_models import StudyHelpPolicy
 from inspinia.pages.study_help_models import StudyHelpPrompt
 from inspinia.pages.study_help_models import StudyHelpQualification
 from inspinia.pages.study_help_models import StudyHelpSpend
+from inspinia.pages.study_help_pilot import PILOT_ARM
+from inspinia.pages.study_help_pilot import PILOT_INPUT_PRICE
+from inspinia.pages.study_help_pilot import PILOT_MODEL
+from inspinia.pages.study_help_pilot import PILOT_OUTPUT_PRICE
+from inspinia.pages.study_help_pilot import PILOT_REQUEST_CAP
+from inspinia.pages.study_help_pilot import PILOT_STATEMENT
+from inspinia.pages.study_help_pilot import PILOT_TOTAL_CAP
+from inspinia.pages.study_help_pilot import pilot_review_configuration
 from inspinia.pages.study_help_provider import profile_digest
 from inspinia.pages.study_help_qualification import load_fixtures
 from inspinia.pages.study_help_qualification import summarize_reviews
 from inspinia.pages.study_help_worker import reconcile
+from inspinia.solutions.admin_reviews import read_credential
 from inspinia.users.roles import user_can_access_app_features
 from inspinia.users.roles import user_has_admin_role
 from inspinia.users.roles import user_has_trainer_or_admin_role
@@ -42,7 +59,7 @@ class Command(BaseCommand):
         readiness.add_argument("--prompt")
         receipt = subcommands.add_parser("receipt")
         receipt.add_argument("--receipt", required=True)
-        for operation in ("configure", "qualify", "enroll", "revoke", "enable", "pause", "reconcile"):
+        for operation in ("configure", "qualify", "enroll", "revoke", "enable", "pause", "reconcile", PILOT_ARM):
             sub = subcommands.add_parser(operation)
             sub.add_argument("--operator-id", type=int, required=True)
             sub.add_argument("--approval-ref", required=True)
@@ -77,8 +94,13 @@ class Command(BaseCommand):
             with transaction.atomic():
                 lock_study_help()
                 policy, _ = StudyHelpPolicy.objects.get_or_create(pk=1)
-                prompt = getattr(self, "_" + operation)(policy, actor, reference, options)
-                StudyHelpAdminEvent.objects.create(actor=actor, action=operation, reference=reference, prompt=prompt)
+                if operation == PILOT_ARM:
+                    self._arm_draft_pilot(policy, actor, reference)
+                else:
+                    prompt = getattr(self, "_" + operation)(policy, actor, reference, options)
+                    StudyHelpAdminEvent.objects.create(
+                        actor=actor, action=operation, reference=reference, prompt=prompt,
+                    )
         except (ValidationError, ValueError, TypeError, KeyError, AttributeError, OSError) as error:
             raise CommandError(f"Invalid Study Help operation or evidence: {error}") from error
         self.stdout.write(self.style.SUCCESS(f"Study Help {operation} recorded."))
@@ -179,6 +201,8 @@ class Command(BaseCommand):
         StudyHelpEnrollment.objects.filter(user_id=options["user_id"]).delete()
 
     def _enable(self, policy, _actor, _reference, options):
+        if settings.STUDY_HELP_DRAFT_HINT_PILOT_ENABLED:
+            raise CommandError("Use the one-time draft pilot authorization.")
         policy.audience = options["audience"]
         policy.generation_enabled = True
         if not generation_ready(policy):
@@ -186,7 +210,50 @@ class Command(BaseCommand):
                 "A qualified published prompt, funded pricing, enabled provider, and fresh worker are required.",
             )
         policy.save(update_fields=["audience", "generation_enabled"])
-        return policy.active_prompt
+        return generation_prompt(policy)
+
+    def _arm_draft_pilot(self, policy, actor, reference):
+        if (
+            not settings.STUDY_HELP_DRAFT_HINT_PILOT_ENABLED
+            or settings.STUDY_HELP_ENABLED
+            or settings.STUDY_HELP_EVALUATION_ENABLED
+            or policy.generation_enabled
+            or StudyHelpAdminEvent.objects.filter(action=PILOT_ARM).exists()
+        ):
+            raise CommandError("The draft pilot requires the other modes paused and can only be authorized once.")
+        prompt = generation_prompt(policy)
+        statement = ContestProblemStatement.objects.filter(statement_uuid=PILOT_STATEMENT).first()
+        if (
+            not prompt_qualified(prompt, PILOT_MODEL)
+            or statement is None
+            or not draft_pilot_statement(statement)
+            or source_problem(statement)
+            or assistance_restricted(actor, (statement.problem_uuid,), statement_uuid=statement.statement_uuid)
+        ):
+            raise CommandError("The approved BMO statement revision and saved prompt must be available to the admin.")
+        usage = ProblemUsage(actor, statement)
+        if (
+            usage.credits.remaining < 2
+            or usage.credits.review_pending
+            or usage.hints_used
+            or StudyHelpSpend.objects.exclude(state=StudyHelpSpend.State.SETTLED).exists()
+        ):
+            raise CommandError("The pilot requires two available shared credits and no pending or uncertain work.")
+        config = pilot_review_configuration().first()
+        if not config or not read_credential(config) or len(reference) > 123 or "|" in reference:
+            raise CommandError("The configured AI Review model, saved key, and approval reference are required.")
+        StudyHelpEnrollment.objects.get_or_create(user=actor)
+        policy.model = PILOT_MODEL
+        policy.input_price, policy.output_price = PILOT_INPUT_PRICE, PILOT_OUTPUT_PRICE
+        policy.request_cap, policy.day_cap, policy.month_cap = PILOT_REQUEST_CAP, PILOT_TOTAL_CAP, PILOT_TOTAL_CAP
+        policy.pricing_verified_at = timezone.now()
+        policy.worker_checked_at = None
+        policy.audience = StudyHelpPolicy.Audience.COHORT
+        policy.generation_enabled = True
+        policy.save()
+        StudyHelpAdminEvent.objects.create(
+            actor=actor, action=PILOT_ARM, reference=f"{reference}|{config.key_version}", prompt=prompt,
+        )
 
     def _pause(self, policy, _actor, _reference, _options):
         policy.generation_enabled = False

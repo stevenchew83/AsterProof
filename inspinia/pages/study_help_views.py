@@ -27,6 +27,7 @@ from inspinia.pages.models import ContestProblemStatement
 from inspinia.pages.study_help import KUALA_LUMPUR
 from inspinia.pages.study_help import RequestSpec
 from inspinia.pages.study_help import StudyHelpError
+from inspinia.pages.study_help import check_pilot_action
 from inspinia.pages.study_help import check_read
 from inspinia.pages.study_help import enqueue
 from inspinia.pages.study_help import policy_for
@@ -111,6 +112,7 @@ def study_help_request(request, statement_uuid):
     if spec.action in SOLUTION_ACTIONS:
         with transaction.atomic():
             _allowed_click(request, statement_uuid)
+            check_pilot_action(spec.action)
             if not telemetry_available(request.user):
                 raise StudyHelpError("interaction_limit")
             record_event(
@@ -148,6 +150,7 @@ def study_help_click(request, statement_uuid):
     interaction, action = UUID(data["interaction_key"]), StudyHelpAction(data["action"])
     with transaction.atomic():
         _allowed_click(request, statement_uuid)
+        check_pilot_action(action)
         if not telemetry_available(request.user):
             raise StudyHelpError("interaction_limit")
         job = StudyHelpRequest.objects.filter(

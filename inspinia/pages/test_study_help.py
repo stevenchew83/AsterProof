@@ -11,13 +11,17 @@ from threading import Barrier
 from uuid import uuid4
 
 import pytest
+from cryptography.fernet import Fernet
 from django.core.management import call_command
+from django.core.management.base import CommandError
 from django.db import close_old_connections
 from django.db import connection
 from django.test import Client
 from django.urls import reverse
 from django.utils import timezone
 
+from inspinia.pages import study_help
+from inspinia.pages import study_help_access
 from inspinia.pages.models import ContestProblemStatement
 from inspinia.pages.models import ProblemSolveRecord
 from inspinia.pages.study_help import ProblemUsage
@@ -34,12 +38,18 @@ from inspinia.pages.study_help_models import StudyHelpPrompt
 from inspinia.pages.study_help_models import StudyHelpQualification
 from inspinia.pages.study_help_models import StudyHelpRequest
 from inspinia.pages.study_help_models import StudyHelpSpend
+from inspinia.pages.study_help_pilot import PILOT_ARM
+from inspinia.pages.study_help_pilot import PILOT_MODEL
+from inspinia.pages.study_help_pilot import PILOT_PROMPT
+from inspinia.pages.study_help_pilot import PILOT_STATEMENT
+from inspinia.pages.study_help_pilot import pilot_review_key
 from inspinia.pages.study_help_provider import ProviderResult
 from inspinia.pages.study_help_provider import profile_digest
 from inspinia.pages.study_help_worker import claim_next
 from inspinia.pages.study_help_worker import finish
 from inspinia.pages.study_help_worker import process_next
 from inspinia.pages.study_help_worker import reconcile
+from inspinia.solutions.admin_review_models import AdminSolutionReviewSettings
 from inspinia.solutions.admin_review_models import SelfSolutionReviewUsage
 from inspinia.solutions.admin_reviews import self_review_allowance
 from inspinia.solutions.evaluation_models import AssistancePolicy
@@ -221,6 +231,150 @@ def test_draft_study_help_shares_archive_identity_and_access(client, settings, l
     archive.is_active = False
     archive.save(update_fields=["is_active"])
     assert b"study-help.js" not in client.get(draft_url).content
+
+
+@pytest.fixture
+def draft_pilot(settings, monkeypatch, policy, archive):
+    settings.STUDY_HELP_ENABLED = False
+    settings.STUDY_HELP_DRAFT_HINT_PILOT_ENABLED = True
+    admin = UserFactory(is_approved=True, role=User.Role.ADMIN)
+    problem = ProblemSolveRecord.objects.create(contest="BMO", year=2023, problem="P1")
+    archive.statement_uuid = PILOT_STATEMENT
+    archive.linked_problem = problem
+    archive.save()
+    monkeypatch.setattr(study_help_access, "PILOT_REVISION", statement_revision(archive))
+    prompt = StudyHelpPrompt.objects.create(
+        pk=PILOT_PROMPT,
+        hint="One Level 1 hint.",
+        solution="Proof.",
+    )
+    monkeypatch.setattr(study_help, "PILOT_DIGEST", profile_digest(prompt, PILOT_MODEL))
+    encryption_key = Fernet.generate_key()
+    settings.ADMIN_SOLUTION_REVIEW_ENCRYPTION_KEY = encryption_key.decode()
+    AdminSolutionReviewSettings.objects.create(
+        models_enabled=[PILOT_MODEL],
+        encrypted_key=Fernet(encryption_key).encrypt(b"review-key-fixture"),
+    )
+    policy.generation_enabled = False
+    policy.save(update_fields=["generation_enabled"])
+    call_command("study_help_control", PILOT_ARM, operator_id=admin.pk, approval_ref="fixture", stdout=StringIO())
+    policy.refresh_from_db()
+    assert claim_next() is None
+    policy.refresh_from_db()
+    return admin, prompt, reverse("solutions:problem_solution_edit", args=[problem.problem_uuid])
+
+
+def test_draft_pilot_limits_access_and_keeps_proofs_off(client, settings, policy, archive, draft_pilot):
+    admin, prompt, draft_url = draft_pilot
+    status_url = reverse("pages:study_help_status", args=[archive.statement_uuid])
+    client.force_login(admin)
+    assert b"data-study-help-draft" in client.get(draft_url).content
+    assert set(client.get(status_url).json()["actions"]) == {"hint"}
+
+    # A stale global flag must not expose the archive panel or widen the pilot.
+    settings.STUDY_HELP_ENABLED = True
+    archive_url = reverse("pages:problem_statement_detail", args=[archive.statement_uuid])
+    assert b"data-study-help" not in client.get(archive_url).content
+    assert client.get(status_url).status_code == 404
+    settings.STUDY_HELP_ENABLED = False
+    assert submit(client, archive_statement(2), spec(archive, "hint")).status_code == 404
+    assert submit(client, archive, spec(archive, "solution")).status_code == 404
+    assert submit(client, archive, spec(archive, "alternative", 2)).status_code == 404
+    assert not StudyHelpSpend.objects.exists()
+    assert not StudyHelpEvent.objects.exists()
+
+    learner = UserFactory(is_approved=True)
+    StudyHelpEnrollment.objects.create(user=learner)
+    for user in (learner, UserFactory(is_approved=True, role=User.Role.ADMIN)):
+        client.force_login(user)
+        assert b"data-study-help-draft" not in client.get(draft_url).content
+        assert client.get(status_url).status_code == 404
+        assert submit(client, archive, spec(archive, "hint")).status_code == 404
+
+    client.force_login(admin)
+    policy.audience = StudyHelpPolicy.Audience.ALL
+    policy.save(update_fields=["audience"])
+    assert client.get(status_url).status_code == 404
+    policy.active_prompt = prompt
+    settings.STUDY_HELP_DRAFT_HINT_PILOT_ENABLED = False
+    settings.STUDY_HELP_ENABLED = True
+    assert not study_help.generation_ready(policy)
+    settings.STUDY_HELP_ENABLED = False
+    assert b"data-study-help-draft" not in client.get(draft_url).content
+
+
+def test_draft_pilot_uses_saved_prompt_and_shared_credits(client, archive, draft_pilot):
+    admin, prompt, _ = draft_pilot
+    client.force_login(admin)
+    SelfSolutionReviewUsage.objects.create(
+        user=admin, problem_uuid=archive.problem_uuid, batch_id=uuid4(), succeeded=True,
+    )
+    status_url = reverse("pages:study_help_status", args=[archive.statement_uuid])
+    first = "Hint (Level 1): Look for a pattern in the first few partial sums."
+    second = "Hint (Level 1): What can you tell from the change between successive sums?"
+
+    assert client.get(status_url).json()["account_remaining"] == 49
+    request = spec(archive, "hint")
+    assert submit(client, archive, request).status_code == 202
+    job = StudyHelpRequest.objects.get(request_key=request.request_key)
+    assert job.prompt == prompt
+    assert process_next(provider_for(first)) == "ready"
+    assert self_review_allowance(admin, archive.problem_uuid)["account_remaining"] == 48
+    assert not client.get(status_url).json()["actions"]
+    assert saved(client, archive, job).json()["response"]["body"] == first
+    assert saved(client, archive, job).json()["status"]["account_remaining"] == 48
+    assert set(client.get(status_url).json()["actions"]) == {"stronger_hint"}
+
+    def second_provider(model, action, messages):
+        assert model == PILOT_MODEL
+        assert action == StudyHelpAction.STRONGER_HINT
+        assert "substantively different" in messages[0]["content"]
+        assert json.loads(messages[1]["content"])["prior_body"] == first
+        return result(second)
+
+    assert submit(client, archive, spec(archive, "stronger_hint", 2, job.pk)).status_code == 202
+    assert process_next(second_provider) == "ready"
+    latest = StudyHelpRequest.objects.get(action=StudyHelpAction.STRONGER_HINT)
+    assert saved(client, archive, latest).json()["response"]["body"] == second
+    assert self_review_allowance(admin, archive.problem_uuid)["account_remaining"] == 47
+    assert client.get(status_url).json()["actions"] == {}
+    assert submit(client, archive, spec(archive, "hint")).json()["code"] == "hint_statement_limit"
+    assert StudyHelpSpend.objects.count() == 2
+
+
+@pytest.mark.parametrize("change", ["statement", "prompt", "proof"])
+def test_draft_pilot_fences_ineligible_jobs_before_dispatch(client, archive, draft_pilot, change):
+    admin, prompt, draft_url = draft_pilot
+    client.force_login(admin)
+    assert submit(client, archive, spec(archive, "hint")).status_code == 202
+    if change == "statement":
+        archive.statement_latex += " Additional condition."
+        archive.save(update_fields=["statement_latex"])
+        assert b"data-study-help-draft" not in client.get(draft_url).content
+    elif change == "prompt":
+        StudyHelpPrompt.objects.filter(pk=prompt.pk).update(hint="An unreviewed prompt.")
+    else:
+        StudyHelpRequest.objects.update(action=StudyHelpAction.SOLUTION)
+    assert claim_next() is None
+    job = StudyHelpRequest.objects.get()
+    assert job.state == StudyHelpRequest.State.FAILED
+    assert job.spend.actual_micros == 0
+    assert self_review_allowance(admin, archive.problem_uuid)["account_remaining"] == 50
+
+
+def test_draft_pilot_one_shot_access_and_key_version(client, archive, draft_pilot):
+    admin, _, _ = draft_pilot
+    assert pilot_review_key() == "review-key-fixture"
+    AdminSolutionReviewSettings.objects.update(key_version=uuid4())
+    assert not pilot_review_key()
+    client.force_login(admin)
+    assert submit(client, archive, spec(archive, "hint")).status_code == 202
+    assert process_next(provider_for("An unusable hint.")) == "failed"
+    assert submit(client, archive, spec(archive, "hint")).json()["code"] == "stale_action"
+    assert StudyHelpSpend.objects.count() == 1
+    call_command("study_help_control", "pause", operator_id=admin.pk, approval_ref="fixture", stdout=StringIO())
+    with pytest.raises(CommandError, match="only be authorized once"):
+        call_command("study_help_control", PILOT_ARM, operator_id=admin.pk, approval_ref="fixture", stdout=StringIO())
 
 
 def test_proof_confirmations_clicks_and_stale_actions(client, learner, policy, archive):

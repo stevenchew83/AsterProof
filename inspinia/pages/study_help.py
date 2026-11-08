@@ -18,6 +18,7 @@ from inspinia.pages.ai_credits import account_credits
 from inspinia.pages.models import ContestProblemStatement
 from inspinia.pages.study_help_access import assistance_restricted
 from inspinia.pages.study_help_access import can_use_study_help
+from inspinia.pages.study_help_access import draft_pilot_statement
 from inspinia.pages.study_help_access import lock_study_help
 from inspinia.pages.study_help_access import source_problem
 from inspinia.pages.study_help_access import statement_revision
@@ -26,9 +27,19 @@ from inspinia.pages.study_help_models import SOLUTION_ACTIONS
 from inspinia.pages.study_help_models import StudyHelpAction
 from inspinia.pages.study_help_models import StudyHelpEvent
 from inspinia.pages.study_help_models import StudyHelpPolicy
+from inspinia.pages.study_help_models import StudyHelpPrompt
 from inspinia.pages.study_help_models import StudyHelpQualification
 from inspinia.pages.study_help_models import StudyHelpRequest
 from inspinia.pages.study_help_models import StudyHelpSpend
+from inspinia.pages.study_help_pilot import PILOT_DIGEST
+from inspinia.pages.study_help_pilot import PILOT_FUNDING
+from inspinia.pages.study_help_pilot import PILOT_INPUT_PRICE
+from inspinia.pages.study_help_pilot import PILOT_MODEL
+from inspinia.pages.study_help_pilot import PILOT_OUTPUT_PRICE
+from inspinia.pages.study_help_pilot import PILOT_PROMPT
+from inspinia.pages.study_help_pilot import PILOT_REQUEST_CAP
+from inspinia.pages.study_help_pilot import PILOT_TOTAL_CAP
+from inspinia.pages.study_help_pilot import pilot_lease
 from inspinia.pages.study_help_provider import cost_micros
 from inspinia.pages.study_help_provider import input_messages
 from inspinia.pages.study_help_provider import maximum_tokens
@@ -152,6 +163,8 @@ def _restricted(user, statement, prior_uuid=None):
 
 
 def check_read(user, statement, prior_uuid=None):
+    if settings.STUDY_HELP_DRAFT_HINT_PILOT_ENABLED and not draft_pilot_statement(statement):
+        raise StudyHelpError("unavailable")
     if not statement.is_active:
         raise StudyHelpError("inactive_statement")
     if _restricted(user, statement, prior_uuid):
@@ -170,20 +183,47 @@ def pricing_ready(policy):
     )
 
 
+def generation_prompt(policy):
+    if settings.STUDY_HELP_DRAFT_HINT_PILOT_ENABLED:
+        return StudyHelpPrompt.objects.filter(pk=PILOT_PROMPT).first()
+    return policy.active_prompt
+
+
+def prompt_qualified(prompt, model):
+    if prompt is None:
+        return False
+    digest = profile_digest(prompt, model)
+    if settings.STUDY_HELP_DRAFT_HINT_PILOT_ENABLED:
+        return prompt.pk == PILOT_PROMPT and model == PILOT_MODEL and digest == PILOT_DIGEST
+    return StudyHelpQualification.objects.filter(prompt=prompt, profile_digest=digest).exists()
+
+
 def generation_ready(policy):
+    if settings.STUDY_HELP_DRAFT_HINT_PILOT_ENABLED:
+        enabled = (
+            policy
+            and policy.audience == StudyHelpPolicy.Audience.COHORT
+            and policy.input_price == PILOT_INPUT_PRICE
+            and policy.output_price == PILOT_OUTPUT_PRICE
+            and policy.request_cap <= PILOT_REQUEST_CAP
+            and policy.month_cap <= PILOT_TOTAL_CAP
+            and pilot_lease() is not None
+        )
+    else:
+        enabled = settings.STUDY_HELP_ENABLED and settings.STUDY_HELP_OPENAI_API_KEY
     return bool(
-        settings.STUDY_HELP_ENABLED
-        and settings.STUDY_HELP_OPENAI_API_KEY
+        enabled
         and pricing_ready(policy)
         and policy.generation_enabled
         and policy.worker_checked_at
         and policy.worker_checked_at >= timezone.now() - timedelta(minutes=5)
-        and policy.active_prompt
-        and StudyHelpQualification.objects.filter(
-            prompt=policy.active_prompt,
-            profile_digest=profile_digest(policy.active_prompt, policy.model),
-        ).exists(),
+        and prompt_qualified(generation_prompt(policy), policy.model),
     )
+
+
+def check_pilot_action(action):
+    if settings.STUDY_HELP_DRAFT_HINT_PILOT_ENABLED and action not in HINT_ACTIONS:
+        raise StudyHelpError("unavailable")
 
 
 def budget_available(policy, additional=0):
@@ -270,9 +310,14 @@ class ProblemUsage:
                 options[StudyHelpAction.HINT] = {"slot": 1, "prior_id": None}
             elif self.hint.revealed_at and not _restricted(user, self.statement, self.hint.problem_uuid):
                 options[StudyHelpAction.STRONGER_HINT] = {"slot": 2, "prior_id": str(self.hint.pk)}
-        if self.solutions_left and self.solution_slot:
+        if not settings.STUDY_HELP_DRAFT_HINT_PILOT_ENABLED and self.solutions_left and self.solution_slot:
             action = StudyHelpAction.ALTERNATIVE if self.proof else StudyHelpAction.SOLUTION
             options[action] = {"slot": self.solution_slot, "prior_id": str(self.proof.pk) if self.proof else None}
+        if settings.STUDY_HELP_DRAFT_HINT_PILOT_ENABLED:
+            attempted = StudyHelpRequest.objects.filter(owner=user, funding_source=PILOT_FUNDING).values_list(
+                "action", flat=True,
+            )
+            return {action: value for action, value in options.items() if action not in attempted}
         return options
 
     def availability(self, policy):
@@ -301,6 +346,7 @@ class ProblemUsage:
             }
             for item in self.saved
             if item.problem_uuid not in withheld
+            and (not settings.STUDY_HELP_DRAFT_HINT_PILOT_ENABLED or item.action in HINT_ACTIONS)
         ]
         pending_here = self.pending and self.pending.statement_uuid == self.statement.statement_uuid
         failure = self.latest_failed
@@ -374,6 +420,7 @@ def enqueue(user, statement_uuid, spec):
     policy = policy_for(user)
     statement = _statement(statement_uuid, lock=True)
     check_read(user, statement)
+    check_pilot_action(spec.action)
     existing = StudyHelpRequest.objects.filter(owner=user, request_key=spec.request_key).first()
     if existing:
         return _check_replay(existing, statement_uuid, spec)
@@ -385,7 +432,8 @@ def enqueue(user, statement_uuid, spec):
         raise StudyHelpError(unavailable)
     _check_action(usage, spec, user)
     prior = _prior(user, statement, spec.prior_id, spec.action)
-    messages = input_messages(spec.action, statement.statement_latex, policy.active_prompt, prior)
+    prompt = generation_prompt(policy)
+    messages = input_messages(spec.action, statement.statement_latex, prompt, prior)
     pricing = {"input_price": policy.input_price, "output_price": policy.output_price}
     input_limit, output_limit = maximum_tokens(spec.action, messages)
     reserve = cost_micros(input_limit, output_limit, pricing)
@@ -402,10 +450,11 @@ def enqueue(user, statement_uuid, spec):
         slot=spec.slot,
         prior_id=spec.prior_id,
         hint_day=usage.day if spec.action in HINT_ACTIONS else None,
-        prompt=policy.active_prompt,
+        prompt=prompt,
         model=policy.model,
-        profile_digest=profile_digest(policy.active_prompt, policy.model),
+        profile_digest=profile_digest(prompt, policy.model),
         statement_text=statement.statement_latex,
+        funding_source=PILOT_FUNDING if settings.STUDY_HELP_DRAFT_HINT_PILOT_ENABLED else "asterproof",
         spend=StudyHelpSpend.objects.create(reserved_micros=reserve, **pricing),
     )
     StudyHelpEvent.objects.filter(
@@ -459,6 +508,7 @@ def reveal(user, statement_uuid, response_id, interaction, *, automatic=False):
         raise StudyHelpError("unavailable")
     policy_for(user)
     check_read(user, statement, item.problem_uuid)
+    check_pilot_action(item.action)
     if (not automatic or item.action in SOLUTION_ACTIONS) and telemetry_available(user):
         record_event(user, statement_uuid, interaction, item.action, StudyHelpEvent.Kind.VIEW_CLICK, item)
     if item.revealed_at is None:

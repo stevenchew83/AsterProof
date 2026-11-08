@@ -11,8 +11,12 @@ from django.utils import timezone
 from inspinia.pages.study_help_models import StudyHelpEnrollment
 from inspinia.pages.study_help_models import StudyHelpPolicy
 from inspinia.pages.study_help_models import StudyHelpRestriction
+from inspinia.pages.study_help_pilot import PILOT_REVISION
+from inspinia.pages.study_help_pilot import PILOT_STATEMENT
+from inspinia.pages.study_help_pilot import pilot_lease
 from inspinia.solutions.evaluation_models import AssistancePolicy
 from inspinia.users.roles import user_can_access_app_features
+from inspinia.users.roles import user_has_admin_role
 
 DENY_MODES = ("restricted_assessment", "quarantine", "withdrawal")
 MAX_STATEMENT_BYTES = 12_000
@@ -53,15 +57,27 @@ def source_problem(statement):
     return ""
 
 
-def can_use_study_help(user, policy):
+def draft_pilot_statement(statement):
     return bool(
-        settings.STUDY_HELP_ENABLED
-        and user.is_active
-        and user_can_access_app_features(user)
-        and policy
-        and (
-            policy.audience == StudyHelpPolicy.Audience.ALL or StudyHelpEnrollment.objects.filter(user=user).exists()
-        ),
+        statement.statement_uuid == PILOT_STATEMENT
+        and statement_revision(statement) == PILOT_REVISION,
+    )
+
+
+def can_use_study_help(user, policy):
+    if not (policy and user.is_active and user_can_access_app_features(user)):
+        return False
+    if settings.STUDY_HELP_DRAFT_HINT_PILOT_ENABLED:
+        if not user_has_admin_role(user) or policy.audience != StudyHelpPolicy.Audience.COHORT:
+            return False
+        lease = pilot_lease()
+        return (
+            lease is not None
+            and lease.actor_id == user.pk
+            and StudyHelpEnrollment.objects.filter(user=user).exists()
+        )
+    return settings.STUDY_HELP_ENABLED and (
+        policy.audience == StudyHelpPolicy.Audience.ALL or StudyHelpEnrollment.objects.filter(user=user).exists()
     )
 
 
