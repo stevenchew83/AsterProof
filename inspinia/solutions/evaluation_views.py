@@ -20,6 +20,7 @@ from django.views.decorators.http import require_GET
 from django.views.decorators.http import require_http_methods
 
 from . import evaluation as ev
+from . import evaluation_protocols as protocols
 from .evaluation_forms import DOMAINS
 from .evaluation_forms import MAX_DEFECTS
 from .evaluation_forms import AdjudicationForm
@@ -32,8 +33,10 @@ from .evaluation_forms import FindingAssessmentFormSet
 from .evaluation_forms import FindingReviewForm
 from .evaluation_forms import JudgmentForm
 from .evaluation_forms import ProfileForm
+from .evaluation_forms import ProtocolForm
 from .evaluation_forms import RunImportForm
 from .evaluation_forms import SnapshotForm
+from .evaluation_models import EvaluationAuditEvent
 from .evaluation_models import EvaluationRun
 
 PAGE_SIZE = 25
@@ -409,6 +412,7 @@ def evaluation_run_import(request, snapshot_id):
     form = RunImportForm(
         request.POST if request.method == "POST" else None,
         profiles=ev.visible_profiles(request.user),
+        registrations=protocols.visible_registrations(request.user, snapshot),
     )
     if request.method == "POST" and form.is_valid():
         try:
@@ -417,7 +421,10 @@ def evaluation_run_import(request, snapshot_id):
                 snapshot,
                 form.cleaned_data["profile"],
                 form.cleaned_data["reports"],
-                {**form.cleaned_data["protocol"], "partition": form.cleaned_data["partition"]},
+                {} if form.cleaned_data["registration"] else {
+                    **form.cleaned_data["protocol"], "partition": form.cleaned_data["partition"],
+                },
+                registration=form.cleaned_data["registration"],
             )
         except ev.EvaluationError as error:
             _error_on_form(form, error)
@@ -425,6 +432,54 @@ def evaluation_run_import(request, snapshot_id):
             messages.success(request, "Manual reports imported as unverified model evidence.")
             return redirect("solutions:evaluation_run_detail", run.pk)
     return _form_page(request, "Import offline reports", form, submit_label="Import unverified reports")
+
+
+@login_required
+@never_cache
+@require_http_methods(["GET", "POST"])
+@_evidence_errors
+def evaluation_protocol_create(request, snapshot_id):
+    snapshot = get_object_or_404(ev.visible_snapshots(request.user), pk=snapshot_id)
+    ev.require(request.user, "custodian", snapshot)
+    form = ProtocolForm(
+        request.POST if request.method == "POST" else None,
+        profiles=ev.visible_profiles(request.user),
+    )
+    if request.method == "POST" and form.is_valid():
+        try:
+            event = protocols.freeze_protocol(
+                request.user, snapshot, form.cleaned_data["profile"], form.cleaned_data["spec"],
+            )
+        except ev.EvaluationError as error:
+            _error_on_form(form, error)
+        else:
+            messages.success(request, "Offline protocol preregistered. Execution and activation remain unauthorized.")
+            return redirect("solutions:evaluation_protocol_detail", event.pk)
+    return _form_page(
+        request, "Preregister offline protocol", form, submit_label="Freeze protocol",
+        introduction=(
+            "Freeze the candidate, eligible partition, thresholds, recipients and run rules before importing reports."
+        ),
+        registered_protocols=protocols.visible_registrations(request.user, snapshot),
+    )
+
+
+@login_required
+@never_cache
+@require_GET
+@_evidence_errors
+def evaluation_protocol_detail(request, protocol_id):
+    event = get_object_or_404(
+        EvaluationAuditEvent.objects.filter(
+            kind=protocols.KIND, target_id__in=ev.visible_snapshots(request.user).values("pk"),
+        ),
+        pk=protocol_id,
+    )
+    payload = protocols.protocol_payload(request.user, event)
+    return _response(request, "protocol_detail", {
+        "page_title": "Preregistered offline protocol", "registration": payload,
+        "protocol_json": json.dumps(payload["body"], ensure_ascii=False, indent=2),
+    })
 
 
 @login_required

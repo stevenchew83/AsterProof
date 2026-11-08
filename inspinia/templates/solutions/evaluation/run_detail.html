@@ -2,6 +2,7 @@
 {% block workspace_content %}
 <div class="card"><div class="card-body">
   <div class="d-flex justify-content-between gap-2 flex-wrap mb-3"><h2 class="h5 mb-0">Evidence and coverage</h2><span class="badge bg-warning-subtle text-warning">{{ run_data.origin }} · Model readiness untested</span></div>
+  {% if not run_data.aggregate_only %}{% if run_data.preregistration %}<p><a href="{% url 'solutions:evaluation_protocol_detail' run_data.preregistration.id %}">Inspect preregistered protocol</a></p>{% else %}<p class="text-muted">Diagnostic import without preregistration. Its rules were not bound before report import.</p>{% endif %}{% endif %}
   {% if run_data.annotation_pending %}<div class="alert alert-warning" role="status">{{ run_data.annotation_pending }} case assessments remain. Quality metrics are unavailable until the required mathematical annotations are complete.</div>{% endif %}
   {% if metric_rows %}
   <div class="app-table-region table-responsive" tabindex="0" role="region" aria-label="Evaluation metric denominators">
