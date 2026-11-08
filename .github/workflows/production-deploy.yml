@@ -313,9 +313,10 @@ jobs:
           test "$PREDICATE_TYPE" = https://slsa.dev/provenance/v1
           printf '%s\n' "$PREDICATE" > "$RUNNER_TEMP/release-predicate.json"
 
-          # This Cosign binary is pinned to the reviewed Sigstore release digest.
+          # Fetch the pinned Cosign v3.1.4 Linux AMD64 asset through the Releases API.
           curl --fail --silent --show-error --location --max-time 90 --proto '=https' --tlsv1.2 \
-            https://github.com/sigstore/cosign/releases/download/v3.1.4/cosign-linux-amd64 \
+            -H 'Accept: application/octet-stream' -H 'X-GitHub-Api-Version: 2022-11-28' \
+            https://api.github.com/repos/sigstore/cosign/releases/assets/660069428 \
             --output "$RUNNER_TEMP/cosign"
           printf '%s  %s\n' 424e2c97d0b45fd7a6b608a87f090f35633f4c23ece5f092d48bba11aaf4bbfa "$RUNNER_TEMP/cosign" \
             | sha256sum --check
