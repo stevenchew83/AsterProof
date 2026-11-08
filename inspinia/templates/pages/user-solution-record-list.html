@@ -111,7 +111,7 @@
         {% endif %}
       </p>
       <div class="app-table-region table-responsive" tabindex="0" role="region" aria-label="Solution records" aria-describedby="user-solution-result-description">
-        <table data-paging-type="simple" id="user-solution-record-table" class="app-table-compact table table-sm table-hover align-middle w-100 mb-0"><caption class="visually-hidden">Saved user solutions, authors, publication status{% if user_solution_record_show_ai_reviews %}, latest AI review{% endif %} and last update</caption></table>
+        <table data-paging-type="simple" id="user-solution-record-table" class="app-table-compact table table-sm table-hover align-middle w-100 mb-0"><caption class="visually-hidden">Saved user solutions, authors, publication status{% if user_solution_record_show_ai_reviews %}, latest AI review{% endif %}, publication date and last update</caption></table>
       </div>
       {% else %}
       <div class="user-solution-empty" role="status">
@@ -159,6 +159,15 @@
     return '<div><dt>' + escapeHtml(label) + '</dt><dd>' + escapeHtml(value) + '</dd></div>';
   }
 
+  function renderDate(data, type, timestamp) {
+    if (type === "sort" || type === "type") return timestamp;
+    if (type !== "display") return data;
+    if (!timestamp) return '<span class="text-muted">—</span>';
+    var parts = data.split(" ");
+    return '<time datetime="' + escapeHtml(timestamp) + '">' + escapeHtml(parts[0]) +
+      ' <span class="user-solution-time">' + escapeHtml(parts[1]) + '</span></time>';
+  }
+
   new DataTable("#user-solution-record-table", {
     data: rows,
     columns: [
@@ -173,7 +182,7 @@
           if (type === "sort" || type === "type") return data;
           if (type !== "display") {
             return [data, title, row.contest, row.year, row.problem, row.topic, "MOHS " + row.mohs,
-              blockLabel, row.summary_length + " summary chars", row.published_at].join(" ");
+              blockLabel, row.summary_length + " summary chars"].join(" ");
           }
           var mohs = row.mohs === null || row.mohs === undefined || row.mohs === "" ? "—" : row.mohs;
           return '<div class="user-solution-problem-line">' +
@@ -184,7 +193,6 @@
             detail("Author", row.user_label) + detail("Email", row.user_email) +
             detail("Topic", row.topic || "—") + detail("MOHS", mohs) +
             detail("Content", blockLabel + " · " + (Number(row.summary_length) || 0) + " summary chars") +
-            detail("Published", row.published_at || "—") +
             '</dl></div></details></div>';
         }
       },
@@ -235,16 +243,23 @@
       },
       {% endif %}
       {
+        data: "published_at",
+        title: "Published date",
+        name: "published",
+        type: "string",
+        className: "text-nowrap",
+        orderSequence: ["desc", "asc", ""],
+        render: function (data, type, row) {
+          return renderDate(data, type, row.published_at_sort);
+        }
+      },
+      {
         data: "updated_at",
         title: "Updated",
         name: "updated",
         className: "text-nowrap user-solution-updated",
         render: function (data, type, row) {
-          if (type === "sort" || type === "type") return row.updated_at_sort;
-          if (type !== "display") return data;
-          var parts = String(data).split(" ");
-          return '<time datetime="' + escapeHtml(row.updated_at_sort) + '">' + escapeHtml(parts[0]) +
-            '<span class="user-solution-time">' + escapeHtml(parts.slice(1).join(" ")) + '</span></time>';
+          return renderDate(data, type, row.updated_at_sort);
         }
       },
       {
@@ -273,7 +288,7 @@
         }
       }
     ],
-    order: { name: "updated", dir: "desc" },
+    order: [{ name: "published", dir: "desc" }, { name: "updated", dir: "desc" }],
     pageLength: 25,
     lengthMenu: [10, 25, 50, 100],
     scrollX: true,
