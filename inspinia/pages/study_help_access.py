@@ -8,6 +8,7 @@ from django.db import connection
 from django.db.models import Q
 from django.utils import timezone
 
+from inspinia.pages.study_help_models import HINT_ACTIONS
 from inspinia.pages.study_help_models import StudyHelpEnrollment
 from inspinia.pages.study_help_models import StudyHelpPolicy
 from inspinia.pages.study_help_models import StudyHelpRestriction
@@ -58,6 +59,14 @@ def source_problem(statement):
     if UNSUPPORTED_SOURCE.search(source):
         return "diagram_required"
     return ""
+
+
+def hints_only_enabled():
+    return settings.STUDY_HELP_HINTS_ONLY and not settings.STUDY_HELP_DRAFT_HINT_PILOT_ENABLED
+
+
+def generation_action_allowed(action):
+    return not hints_only_enabled() or action in HINT_ACTIONS
 
 
 def draft_pilot_statement(statement):

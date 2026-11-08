@@ -22,6 +22,8 @@ from inspinia.pages.study_help import budget_available
 from inspinia.pages.study_help import locked_account
 from inspinia.pages.study_help import pricing_ready
 from inspinia.pages.study_help_access import assistance_restricted
+from inspinia.pages.study_help_access import generation_action_allowed
+from inspinia.pages.study_help_access import hints_only_enabled
 from inspinia.pages.study_help_access import lock_study_help
 from inspinia.pages.study_help_access import source_problem
 from inspinia.pages.study_help_access import statement_revision
@@ -37,6 +39,7 @@ from inspinia.pages.study_help_provider import maximum_tokens
 from inspinia.pages.study_help_provider import profile_digest
 from inspinia.pages.study_help_provider import validate_result
 from inspinia.pages.study_help_qualification import load_fixtures
+from inspinia.pages.study_help_qualification import validate_scope
 from inspinia.pages.study_help_worker import finish
 from inspinia.users.roles import user_has_admin_role
 
@@ -49,14 +52,15 @@ def _claim(prompt, fixture, action, prior, manifest):
     statement = ContestProblemStatement.objects.select_for_update().filter(pk=fixture.pk).first()
     actor = locked_account(manifest["actor"].pk)
     if (
-        not settings.STUDY_HELP_EVALUATION_ENABLED
+        not generation_action_allowed(action)
+        or not settings.STUDY_HELP_EVALUATION_ENABLED
         or not settings.STUDY_HELP_OPENAI_API_KEY
         or not pricing_ready(policy)
         or actor is None
         or not actor.is_active
         or not user_has_admin_role(actor)
         or policy.generation_enabled
-        or (manifest.get("mode") == "hint_pair" and settings.STUDY_HELP_ENABLED)
+        or (settings.STUDY_HELP_ENABLED and (manifest.get("mode") == "hint_pair" or hints_only_enabled()))
         or profile_digest(prompt, policy.model) != manifest["profile_digest"]
         or now >= manifest["expires"]
         or statement is None
@@ -123,6 +127,7 @@ class Command(BaseCommand):
             manifest = json.loads(raw)
             if not isinstance(manifest, dict):
                 raise TypeError
+            validate_scope(manifest)
             mode = manifest.get("mode", "sample")
             if mode not in {"sample", "hint_pair"}:
                 raise ValueError
@@ -150,7 +155,7 @@ class Command(BaseCommand):
         hint = self._attempt(prompt, statement, StudyHelpAction.HINT, None, manifest)
         if hint:
             self._attempt(prompt, statement, StudyHelpAction.STRONGER_HINT, hint, manifest)
-        if manifest["mode"] == "hint_pair":
+        if manifest["mode"] == "hint_pair" or hints_only_enabled():
             return
         proof = self._attempt(prompt, statement, StudyHelpAction.SOLUTION, None, manifest)
         if proof and row["alternative"]:

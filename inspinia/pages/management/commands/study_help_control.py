@@ -3,6 +3,7 @@
 # ruff: noqa: EM101, EM102, PLR2004, TRY003
 
 import json
+import re
 from pathlib import Path
 
 from django.conf import settings
@@ -47,7 +48,9 @@ from inspinia.pages.study_help_pilot import pilot_lease
 from inspinia.pages.study_help_pilot import pilot_review_configuration
 from inspinia.pages.study_help_provider import profile_digest
 from inspinia.pages.study_help_qualification import load_fixtures
+from inspinia.pages.study_help_qualification import qualification_scope
 from inspinia.pages.study_help_qualification import summarize_reviews
+from inspinia.pages.study_help_qualification import validate_scope
 from inspinia.pages.study_help_worker import reconcile
 from inspinia.solutions.admin_reviews import read_credential
 from inspinia.users.roles import user_can_access_app_features
@@ -133,6 +136,7 @@ class Command(BaseCommand):
             json.dumps(
                 {
                     "generation_ready": generation_ready(policy),
+                    "scope": qualification_scope(),
                     "model": policy.model if policy else "",
                     "audience": policy.audience if policy else "",
                     "worker_checked_at": (
@@ -186,6 +190,7 @@ class Command(BaseCommand):
         if prompt is None or not policy.model or path.stat().st_size > 256_000:
             raise CommandError("Provide a saved prompt, configured model, and a bounded evidence file.")
         evidence = json.loads(path.read_text())
+        validate_scope(evidence)
         digest = profile_digest(prompt, policy.model)
         if evidence["profile_digest"] != digest:
             raise CommandError("Evidence must bind the exact current prompt, model, and output settings.")
@@ -199,10 +204,16 @@ class Command(BaseCommand):
             reviewers.append(reviewer.pk)
         if len(set(reviewers)) != 2:
             raise CommandError("Two distinct reviewers are required.")
+        record = {"reference": reference, "usable": usable, "fixture_count": len(fixtures)}
+        if qualification_scope() == "hints_only":
+            sample_digest = evidence.get("sample_sha256", "")
+            if not re.fullmatch(r"[0-9a-f]{64}", sample_digest):
+                raise CommandError("Provide the SHA-256 of the fixed response export reviewed by both coaches.")
+            record.update(scope="hints_only", sample_sha256=sample_digest, reviewer_ids=reviewers)
         StudyHelpQualification.objects.get_or_create(
             prompt=prompt,
             profile_digest=digest,
-            defaults={"evidence": {"reference": reference, "usable": usable, "fixture_count": len(fixtures)}},
+            defaults={"evidence": record},
         )
         return prompt
 

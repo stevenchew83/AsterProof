@@ -9,6 +9,7 @@ from hashlib import sha256
 
 from django.conf import settings
 
+from inspinia.pages.study_help_access import hints_only_enabled
 from inspinia.pages.study_help_models import HINT_ACTIONS
 from inspinia.pages.study_help_models import StudyHelpAction
 from inspinia.pages.study_help_pilot import PILOT_MODEL
@@ -23,6 +24,11 @@ SECOND_HINT_RULE = (
     "Suggest a distinct observation, method, or next step that applies to the current statement. "
     "Do not repeat or paraphrase the first hint. Abstain if you cannot offer something different."
 )
+LEVEL_ONE_HINT_RULE = (
+    "For either hint, offer one short exploratory observation or question at Level 1. "
+    "Leave the decisive inference or calculation to the student. Keep both hints at the same depth."
+)
+SECOND_HINT_LABEL = "Second hint"
 SOLUTION_PROMPT = (
     "Write one rigorous contest proof. State the method briefly, justify nontrivial steps, and check "
     "relevant domains, boundary cases, and equality cases. For an alternative, use a materially different "
@@ -77,6 +83,8 @@ def profile_digest(prompt, model):
         "timeout": TIMEOUT_SECONDS,
         "protocol": "archive-study-help-v1",
     }
+    if hints_only_enabled():
+        profile.update(level_one_hint_rule=LEVEL_ONE_HINT_RULE, second_hint_label=SECOND_HINT_LABEL)
     return sha256(json.dumps(profile, sort_keys=True, ensure_ascii=False).encode()).hexdigest()
 
 
@@ -84,7 +92,12 @@ def input_messages(action, statement, prompt, prior=None):
     instruction = prompt.hint if action in HINT_ACTIONS else prompt.solution
     if action == StudyHelpAction.STRONGER_HINT:
         instruction = SECOND_HINT_RULE + "\n\n" + instruction
-    payload = {"action": StudyHelpAction(action).label, "problem_statement": statement}
+    label = StudyHelpAction(action).label
+    if hints_only_enabled() and action in HINT_ACTIONS:
+        instruction = LEVEL_ONE_HINT_RULE + "\n\n" + instruction
+        if action == StudyHelpAction.STRONGER_HINT:
+            label = SECOND_HINT_LABEL
+    payload = {"action": label, "problem_statement": statement}
     if prior:
         payload.update(prior_body=prior.body, prior_method=prior.method)
     return [

@@ -22,6 +22,7 @@ from inspinia.pages.study_help import generation_ready
 from inspinia.pages.study_help import locked_account
 from inspinia.pages.study_help import prompt_qualified
 from inspinia.pages.study_help_access import can_use_study_help
+from inspinia.pages.study_help_access import generation_action_allowed
 from inspinia.pages.study_help_access import lock_study_help
 from inspinia.pages.study_help_access import source_problem
 from inspinia.pages.study_help_access import statement_revision
@@ -82,7 +83,8 @@ def _context(job, policy):
     ):
         raise StudyHelpError("stale_action")
     if (
-        not generation_ready(policy)
+        not generation_action_allowed(job.action)
+        or not generation_ready(policy)
         or job.model != policy.model
         or job.profile_digest != profile_digest(generation_prompt_payload(job.prompt), job.model)
         or not prompt_qualified(job.prompt, job.model)

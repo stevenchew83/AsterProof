@@ -310,7 +310,9 @@ def test_draft_pilot_limits_access_and_keeps_proofs_off(client, settings, policy
     assert b"data-study-help-draft" not in client.get(draft_url).content
 
 
-def test_draft_pilot_uses_saved_prompt_and_shared_credits(client, archive, draft_pilot):
+@pytest.mark.parametrize("hints_only", [False, True])
+def test_draft_pilot_uses_saved_prompt_and_shared_credits(client, archive, draft_pilot, settings, hints_only):
+    settings.STUDY_HELP_HINTS_ONLY = hints_only
     admin, prompt, _ = draft_pilot
     client.force_login(admin)
     SelfSolutionReviewUsage.objects.create(
@@ -902,11 +904,54 @@ def test_provider_transport_disables_tools_storage_and_retries(settings, monkeyp
     assert "tools" not in transport.call_args.kwargs
 
 
-def test_coach_evidence_import_rejects_a_spoiler_and_checks_exact_profile(policy, tmp_path):
+def test_hints_only_release_gate_blocks_proof_requests_and_dispatch(client, settings, learner, policy, archive):
+    proof, _ = enqueue(learner, archive.statement_uuid, spec(archive))
+    settings.STUDY_HELP_HINTS_ONLY = True
+    client.force_login(learner)
+    assert status(learner, archive.statement_uuid)["actions"] == {}
+
+    digest = profile_digest(policy.active_prompt, policy.model)
+    assert digest != proof.profile_digest
+    StudyHelpQualification.objects.create(
+        prompt=policy.active_prompt,
+        profile_digest=digest,
+        evidence={"scope": "hints_only"},
+    )
+    assert claim_next() is None
+    proof.refresh_from_db()
+    assert proof.state == StudyHelpRequest.State.FAILED
+    assert proof.spend.actual_micros == 0
+
+    panel = status(learner, archive.statement_uuid)
+    assert panel["hints_only"] is True
+    assert set(panel["actions"]) == {"hint"}
+    for action in ("solution", "alternative"):
+        rejected = submit(client, archive, spec(archive, action))
+        assert rejected.status_code == 403
+        assert rejected.json()["code"] == "action_unavailable"
+    assert StudyHelpSpend.objects.count() == 1
+
+    hint, _ = enqueue(learner, archive.statement_uuid, spec(archive, "hint"))
+    assert process_next(provider_for("Look at the difference of consecutive squares.")) == StudyHelpRequest.State.READY
+    assert saved(client, archive, hint).status_code == 200
+    assert set(status(learner, archive.statement_uuid)["actions"]) == {"stronger_hint"}
+    enqueue(learner, archive.statement_uuid, spec(archive, "stronger_hint", slot=2, prior_id=hint.pk))
+    claim = claim_next()
+    assert claim.action == "stronger_hint"
+    assert "same depth" in claim.messages[0]["content"]
+    payload = json.loads(claim.messages[1]["content"])
+    assert payload["action"] == "Second hint"
+    assert payload["prior_body"] == "Look at the difference of consecutive squares."
+    assert finish(claim.spend_id, result("Try arranging the terms as layers.")) == StudyHelpRequest.State.READY
+
+
+@pytest.mark.parametrize("hints_only", [False, True])
+def test_coach_evidence_import_rejects_a_spoiler_and_checks_exact_profile(policy, tmp_path, settings, hints_only):
     from django.core.management.base import CommandError
 
     from inspinia.pages.study_help_qualification import DOMAINS
 
+    settings.STUDY_HELP_HINTS_ONLY = hints_only
     operator, reviewer = UserFactory.create_batch(2, role=User.Role.ADMIN, is_approved=True)
     candidate = StudyHelpPrompt.objects.create(hint="New candidate hint.", solution="New candidate proof.")
     fixtures, ratings = [], {}
@@ -915,11 +960,14 @@ def test_coach_evidence_import_rejects_a_spoiler_and_checks_exact_profile(policy
         key = str(statement.statement_uuid)
         fixtures.append({
             "statement_uuid": key, "revision": statement_revision(statement),
-            "domain": DOMAINS[number // 6], "alternative": number < 8,
+            "domain": DOMAINS[number // 6],
         })
-        ratings[key] = dict.fromkeys(("hint", "stronger_hint", "solution"), "usable")
-        if number < 8:
-            ratings[key]["alternative"] = "usable"
+        ratings[key] = dict.fromkeys(("hint", "stronger_hint"), "usable")
+        if not hints_only:
+            fixtures[-1]["alternative"] = number < 8
+            ratings[key]["solution"] = "usable"
+            if number < 8:
+                ratings[key]["alternative"] = "usable"
     evidence = {
         "profile_digest": profile_digest(candidate, policy.model), "fixtures": fixtures,
         "reviews": [
@@ -927,6 +975,8 @@ def test_coach_evidence_import_rejects_a_spoiler_and_checks_exact_profile(policy
             for actor in (operator, reviewer)
         ],
     }
+    if hints_only:
+        evidence.update(scope="hints_only", sample_sha256="f" * 64)
     path = tmp_path / "reviews.json"
 
     def qualify():
@@ -943,10 +993,26 @@ def test_coach_evidence_import_rejects_a_spoiler_and_checks_exact_profile(policy
         qualify()
     assert not StudyHelpQualification.objects.filter(prompt=candidate).exists()
     evidence["reviews"][0]["ratings"][key]["hint"] = "usable"
+    if hints_only:
+        first, second = (review["ratings"] for review in evidence["reviews"])
+        first[key]["stronger_hint"] = "unusable"
+        first[fixtures[1]["statement_uuid"]]["stronger_hint"] = "abstained"
+        third_key = fixtures[2]["statement_uuid"]
+        second[third_key]["stronger_hint"] = "unusable"
+        with pytest.raises(CommandError, match="thresholds"):
+            qualify()
+        second[third_key]["stronger_hint"] = "usable"
     qualify()
     record = StudyHelpQualification.objects.get(prompt=candidate)
     assert record.profile_digest == profile_digest(candidate, policy.model)
-    assert record.evidence["usable"]["alternative"] == 8
+    if hints_only:
+        assert record.evidence["usable"] == {"hint": 24, "stronger_hint": 22}
+        assert record.evidence["sample_sha256"] == "f" * 64
+        scoped_rule(statement, begins=timezone.now() + timedelta(hours=1))
+        with pytest.raises(CommandError, match="scheduled assistance denial"):
+            qualify()
+    else:
+        assert record.evidence["usable"]["alternative"] == 8
 
 
 def test_paid_sample_claim_is_separate_funded_and_never_replayed(settings, policy, archive):
@@ -978,14 +1044,17 @@ def test_paid_sample_claim_is_separate_funded_and_never_replayed(settings, polic
     assert StudyHelpSpend.objects.count() == 1
 
 
-def test_single_hint_pair_passes_the_first_hint_and_keeps_learner_generation_off(
-    settings, policy, archive, tmp_path, monkeypatch,
+@pytest.mark.parametrize("hints_only", [False, True])
+def test_hint_evaluation_passes_the_first_hint_and_keeps_learner_generation_off(
+    settings, policy, tmp_path, monkeypatch, hints_only,
 ):
     from django.core.management.base import CommandError
 
     from inspinia.pages.management.commands import evaluate_study_help
+    from inspinia.pages.study_help_qualification import DOMAINS
 
     settings.STUDY_HELP_EVALUATION_ENABLED = True
+    settings.STUDY_HELP_HINTS_ONLY = hints_only
     policy.generation_enabled = False
     policy.save(update_fields=["generation_enabled"])
     actor = UserFactory(role=User.Role.ADMIN, is_approved=True)
@@ -1000,18 +1069,22 @@ def test_single_hint_pair_passes_the_first_hint_and_keeps_learner_generation_off
         return result(answers[action])
 
     monkeypatch.setattr(evaluate_study_help, "call_provider", provider)
+    fixture_count = 24 if hints_only else 1
+    statements = [archive_statement(number) for number in range(1, fixture_count + 1)]
     manifest = {
-        "mode": "hint_pair",
+        "mode": "sample" if hints_only else "hint_pair",
         "prompt": str(policy.active_prompt_id),
         "profile_digest": profile_digest(policy.active_prompt, policy.model),
         "expires": (timezone.now() + timedelta(minutes=2)).isoformat(),
-        "budget_micros": 2 * policy.request_cap,
+        "budget_micros": 2 * len(statements) * policy.request_cap,
         "pricing": {"input_price": policy.input_price, "output_price": policy.output_price},
         "fixtures": [{
-            "statement_uuid": str(archive.statement_uuid), "revision": statement_revision(archive),
-            "domain": "algebra", "alternative": False,
-        }],
+            "statement_uuid": str(statement.statement_uuid), "revision": statement_revision(statement),
+            "domain": DOMAINS[index // 6], "alternative": False,
+        } for index, statement in enumerate(statements)],
     }
+    if hints_only:
+        manifest["scope"] = "hints_only"
     path = tmp_path / "hint-pair.json"
     raw = json.dumps(manifest).encode()
     path.write_bytes(raw)
@@ -1026,11 +1099,12 @@ def test_single_hint_pair_passes_the_first_hint_and_keeps_learner_generation_off
     assert not calls
     settings.STUDY_HELP_ENABLED = False
     call_command("evaluate_study_help", *arguments, stdout=stdout)
-    assert [action for action, _ in calls] == [StudyHelpAction.HINT, StudyHelpAction.STRONGER_HINT]
-    assert json.loads(calls[1][1][1]["content"])["prior_body"] == first_hint
-    assert [json.loads(line)["body"] for line in stdout.getvalue().splitlines()] == [first_hint, second_hint]
-    assert StudyHelpSpend.objects.filter(state=StudyHelpSpend.State.SETTLED).count() == 2
+    expected = [StudyHelpAction.HINT, StudyHelpAction.STRONGER_HINT] * len(statements)
+    assert [action for action, _ in calls] == expected
+    assert all(json.loads(messages[1]["content"])["prior_body"] == first_hint for _, messages in calls[1::2])
+    assert [json.loads(line)["body"] for line in stdout.getvalue().splitlines()] == [answers[a] for a in expected]
+    assert StudyHelpSpend.objects.filter(state=StudyHelpSpend.State.SETTLED).count() == len(expected)
     assert not StudyHelpRequest.objects.exists()
     with pytest.raises(CommandError, match="already exists"):
         call_command("evaluate_study_help", *arguments, stdout=stdout)
-    assert len(calls) == 2
+    assert len(calls) == len(expected)
