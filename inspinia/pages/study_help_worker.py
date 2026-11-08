@@ -17,6 +17,7 @@ from inspinia.pages.study_help import budget_available
 from inspinia.pages.study_help import check_pilot_action
 from inspinia.pages.study_help import check_read
 from inspinia.pages.study_help import event_for
+from inspinia.pages.study_help import generation_prompt_payload
 from inspinia.pages.study_help import generation_ready
 from inspinia.pages.study_help import locked_account
 from inspinia.pages.study_help import prompt_qualified
@@ -83,7 +84,7 @@ def _context(job, policy):
     if (
         not generation_ready(policy)
         or job.model != policy.model
-        or job.profile_digest != profile_digest(job.prompt, job.model)
+        or job.profile_digest != profile_digest(generation_prompt_payload(job.prompt), job.model)
         or not prompt_qualified(job.prompt, job.model)
     ):
         raise StudyHelpError("generation_paused")
@@ -163,7 +164,8 @@ def claim_next():
     spend.state = StudyHelpSpend.State.DISPATCHED
     spend.dispatched_at = now
     spend.save(update_fields=["state", "dispatched_at"])
-    return Claim(spend.pk, job.model, job.action, input_messages(job.action, job.statement_text, job.prompt, prior))
+    messages = input_messages(job.action, job.statement_text, generation_prompt_payload(job.prompt), prior)
+    return Claim(spend.pk, job.model, job.action, messages)
 
 
 @transaction.atomic

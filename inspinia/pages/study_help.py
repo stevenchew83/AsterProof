@@ -5,6 +5,7 @@
 import re
 from dataclasses import dataclass
 from datetime import timedelta
+from types import SimpleNamespace
 from uuid import UUID
 from zoneinfo import ZoneInfo
 
@@ -189,10 +190,17 @@ def generation_prompt(policy):
     return policy.active_prompt
 
 
+def generation_prompt_payload(prompt):
+    if not settings.STUDY_HELP_DRAFT_HINT_PILOT_ENABLED:
+        return prompt
+    # Browser forms submit CRLF. The pilot's reviewed provider payload uses LF.
+    return SimpleNamespace(hint=prompt.hint.replace("\r\n", "\n"), solution=prompt.solution)
+
+
 def prompt_qualified(prompt, model):
     if prompt is None:
         return False
-    digest = profile_digest(prompt, model)
+    digest = profile_digest(generation_prompt_payload(prompt), model)
     if settings.STUDY_HELP_DRAFT_HINT_PILOT_ENABLED:
         return prompt.pk == PILOT_PROMPT and model == PILOT_MODEL and digest == PILOT_DIGEST
     return StudyHelpQualification.objects.filter(prompt=prompt, profile_digest=digest).exists()
@@ -433,7 +441,8 @@ def enqueue(user, statement_uuid, spec):
     _check_action(usage, spec, user)
     prior = _prior(user, statement, spec.prior_id, spec.action)
     prompt = generation_prompt(policy)
-    messages = input_messages(spec.action, statement.statement_latex, prompt, prior)
+    payload = generation_prompt_payload(prompt)
+    messages = input_messages(spec.action, statement.statement_latex, payload, prior)
     pricing = {"input_price": policy.input_price, "output_price": policy.output_price}
     input_limit, output_limit = maximum_tokens(spec.action, messages)
     reserve = cost_micros(input_limit, output_limit, pricing)
@@ -452,7 +461,7 @@ def enqueue(user, statement_uuid, spec):
         hint_day=usage.day if spec.action in HINT_ACTIONS else None,
         prompt=prompt,
         model=policy.model,
-        profile_digest=profile_digest(prompt, policy.model),
+        profile_digest=profile_digest(payload, policy.model),
         statement_text=statement.statement_latex,
         funding_source=PILOT_FUNDING if settings.STUDY_HELP_DRAFT_HINT_PILOT_ENABLED else "asterproof",
         spend=StudyHelpSpend.objects.create(reserved_micros=reserve, **pricing),
