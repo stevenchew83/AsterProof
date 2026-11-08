@@ -3068,7 +3068,9 @@ def _admin_solution_listing_rows(
                     if solution.published_at is not None
                     else "—"
                 ),
-                "published_at_sort": solution.published_at.isoformat() if solution.published_at else "",
+                "published_at_sort": solution.published_at.isoformat(timespec="microseconds")
+                if solution.published_at
+                else "",
                 "status": solution.status,
                 "status_badge_class": _solution_status_badge_class(solution.status),
                 "status_label": solution.get_status_display(),
@@ -6765,10 +6767,15 @@ def user_solution_record_list_view(request):
     solution_filtered_total = solution_queryset.count()
     show_ai_reviews = user_has_admin_role(request.user)
     solution_rows, _solution_stats = _admin_solution_listing_rows(
-        list(solution_queryset.order_by("-updated_at", "-id")[:ADMIN_TABLE_LATEST_LIMIT]),
+        list(
+            solution_queryset.order_by(F("published_at").desc(nulls_last=True), "-updated_at", "-id")[
+                :ADMIN_TABLE_LATEST_LIMIT
+            ],
+        ),
         show_ai_reviews=show_ai_reviews,
     )
     solution_visible_total = len(solution_rows)
+    latest_updated_row = max(solution_rows, key=lambda row: row["updated_at_sort"], default=None)
 
     solution_filter_options = {
         "contests": sorted({row["contest"] for row in solution_rows if row["contest"]}),
@@ -6811,7 +6818,7 @@ def user_solution_record_list_view(request):
         "user_solution_record_filtered_total": solution_filtered_total,
         "user_solution_record_has_active_filters": bool(active_filter_chips),
         "user_solution_record_is_capped": solution_filtered_total > solution_visible_total,
-        "user_solution_record_latest_updated_at": solution_rows[0]["updated_at"] if solution_rows else "—",
+        "user_solution_record_latest_updated_at": latest_updated_row["updated_at"] if latest_updated_row else "—",
         "user_solution_record_rows": solution_rows,
         "user_solution_record_show_ai_reviews": show_ai_reviews,
         "user_solution_record_stats": solution_stats,

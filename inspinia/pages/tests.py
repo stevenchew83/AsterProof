@@ -9795,14 +9795,13 @@ def test_user_solution_record_list_renders_admin_inventory(client):
     assert "1 problem in loaded results" in response_html
     assert "Latest update" in response_html
     assert 'class="app-table-compact table table-sm table-hover align-middle w-100 mb-0"' in response_html
-    for column in ("Solution / problem", "Author", "Status", "AI review", "Updated", "Actions"):
+    for column in ("Solution / problem", "Author", "Status", "AI review", "Published date", "Updated", "Actions"):
         assert f'title: "{column}"' in response_html
     assert 'title: "Content"' not in response_html
     assert 'title: "Dates"' not in response_html
     assert "app-table-details user-solution-details" in response_html
     assert 'detail("Solution title", title)' in response_html
     assert 'detail("Content", blockLabel' in response_html
-    assert 'detail("Published", row.published_at' in response_html
     assert "Find in results:" in response_html
     assert "Quick find…" in response_html
     assert 'role="search" aria-label="Filter all solution records"' in response_html
@@ -9816,7 +9815,7 @@ def test_user_solution_record_list_renders_admin_inventory(client):
     assert ">Profile</span>" in response_html
 
 
-def test_user_solution_record_list_caps_to_latest_100_by_updated_at(client):
+def test_user_solution_record_list_caps_to_latest_100_by_publication_date(client):
     admin_user = UserFactory(role=User.Role.ADMIN)
     solution_author = UserFactory(name="Solution Cap User")
     client.force_login(admin_user)
@@ -9831,11 +9830,14 @@ def test_user_solution_record_list_caps_to_latest_100_by_updated_at(client):
             problem=f"P{offset + 1}",
             contest_year_problem=f"IMO 2026 P{offset + 1}",
         )
+        # P120 was published most recently even though its update is the oldest.
+        published_at = {0: now - timedelta(days=2), 119: now - timedelta(days=1)}.get(offset)
         solution = ProblemSolution.objects.create(
             problem=problem,
             author=solution_author,
             title=f"Solution {offset + 1}",
-            status=ProblemSolution.Status.DRAFT,
+            status=ProblemSolution.Status.PUBLISHED if published_at else ProblemSolution.Status.DRAFT,
+            published_at=published_at,
         )
         ProblemSolution.objects.filter(pk=solution.pk).update(
             updated_at=now - timedelta(minutes=offset),
@@ -9846,8 +9848,11 @@ def test_user_solution_record_list_caps_to_latest_100_by_updated_at(client):
     assert response.status_code == HTTPStatus.OK
     rows = response.context["user_solution_record_rows"]
     assert len(rows) == 100
-    assert rows[0]["problem"] == "P1"
-    assert rows[-1]["problem"] == "P100"
+    assert [row["problem"] for row in rows[:3]] == ["P120", "P1", "P2"]
+    assert rows[0]["published_at"] == timezone.localtime(now - timedelta(days=1)).strftime("%Y-%m-%d %H:%M")
+    assert rows[2]["published_at"] == "—"
+    assert rows[-1]["problem"] == "P99"
+    assert response.context["user_solution_record_latest_updated_at"] == rows[1]["updated_at"]
     assert response.context["user_solution_record_visible_total"] == 100
     assert response.context["user_solution_record_result_limit"] == 100
     assert response.context["user_solution_record_filtered_total"] == 120
