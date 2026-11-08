@@ -171,7 +171,10 @@ def test_first_proof_must_be_saved_privately_and_can_resume_on_another_session(
     solution.refresh_from_db()
     assert solution.current_revision_id is None
 
-    saved = client.post(url, {**data, "action": save_action}, HTTP_X_REQUESTED_WITH="XMLHttpRequest")
+    save_url = reverse("solutions:problem_solution_autosave", args=[solution.problem.problem_uuid]) if (
+        save_action == "autosave"
+    ) else url
+    saved = client.post(save_url, {**data, "action": save_action}, HTTP_X_REQUESTED_WITH="XMLHttpRequest")
     assert saved.status_code == HTTPStatus.OK
     solution.refresh_from_db()
     assert solution.status == ProblemSolution.Status.DRAFT

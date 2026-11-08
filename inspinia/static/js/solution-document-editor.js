@@ -99,15 +99,12 @@ function setup(root) {
   }
   async function saveDraft() {
     const savedSnapshot = snapshot();
-    const data = new FormData(form);
-    data.set("action", "autosave");
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 10000);
     updateState();
     try {
-      const response = await fetch(form.getAttribute("action") || window.location.href, {
-        method: "POST", body: data, credentials: "same-origin", signal: controller.signal,
-        headers: {"X-Requested-With": "XMLHttpRequest"},
+      const response = await fetch(form.dataset.draftAutosave, {
+        method: "POST", body: new FormData(form), credentials: "same-origin", signal: controller.signal,
       });
       if (response.redirected) throw new Error("Sign in again to save.");
       conflict = response.status === 409;
@@ -329,7 +326,7 @@ function setup(root) {
     setSource(saved.body_source); schedule(); form.dispatchEvent(new Event("change", {bubbles: true}));
   }});
   initial = observed = JSON.stringify(snapshot());
-  if (form.hasAttribute("data-draft-autosave")) {
+  if (form.dataset.draftAutosave) {
     autosave = createDraftAutosave({
       canSave: () => !submitting && !queuedSubmit && !explicitSave && !conflict && !pending.size &&
         observed !== initial && observed !== failedSnapshot && Boolean(textarea.value.trim()),

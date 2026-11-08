@@ -551,7 +551,7 @@ def _saved_document_json(solution):
     return JsonResponse(
         {
             "saved": True,
-            "revision_id": str(solution.current_revision_id or ""),
+            "revision_id": str(solution.current_revision_id),
             "edit_version": solution.edit_version,
             "editor_context": editor_context(solution.author, solution.problem.problem_uuid, solution=solution),
         },
@@ -971,9 +971,7 @@ def problem_solution_list_view(request, problem_uuid):
         return redirect(_solution_reference_url(selected))
 
     my_solution = solution_queryset.filter(author=request.user).first()
-    inline_form_context = None
     if request.method == "POST":
-        action = request.POST.get("action") or "save_draft"
         inline_form_context = _problem_solution_list_inline_form_context(
             request=request,
             problem=problem,
@@ -982,6 +980,7 @@ def problem_solution_list_view(request, problem_uuid):
         )
         form = inline_form_context["inline_draft_form"]
         if form is not None and form.is_valid():
+            action = request.POST.get("action") or "save_draft"
             try:
                 solution, message_text, message_level = _save_solution_form_request(
                     form=form,
@@ -990,15 +989,22 @@ def problem_solution_list_view(request, problem_uuid):
                 )
             except (InvalidDocument, InvalidEditorContext, StaleSolutionVersion) as error:
                 form.add_error(None, str(error))
-                if action == "autosave" or request.headers.get("X-Requested-With") == "XMLHttpRequest":
+                if request.headers.get("X-Requested-With") == "XMLHttpRequest":
                     return _document_error_json(error)
             else:
-                if action == "autosave" or request.headers.get("X-Requested-With") == "XMLHttpRequest":
+                if request.headers.get("X-Requested-With") == "XMLHttpRequest":
                     return _saved_document_json(solution)
                 getattr(messages, message_level)(request, message_text)
                 return redirect(_solution_reference_url(solution))
-        if action == "autosave":
-            return _autosave_validation_json(form)
+        return _solution_list_response(
+            request,
+            problem=problem,
+            problem_data=problem_data,
+            solution_queryset=solution_queryset,
+            selected_solution_id=selected_solution_id,
+            inline_form_context=inline_form_context,
+            show_inline_draft_editor=True,
+        )
 
     return _solution_list_response(
         request,
@@ -1006,8 +1012,6 @@ def problem_solution_list_view(request, problem_uuid):
         problem_data=problem_data,
         solution_queryset=solution_queryset,
         selected_solution_id=selected_solution_id,
-        inline_form_context=inline_form_context,
-        show_inline_draft_editor=request.method == "POST",
     )
 
 
@@ -1018,11 +1022,6 @@ def _document_error_json(error):
     elif isinstance(error, StaleSolutionVersion):
         status = 409
     return JsonResponse({"error": str(error)}, status=status)
-
-
-def _autosave_validation_json(form):
-    error = next(iter(form.errors.values()))[0]
-    return JsonResponse({"error": error}, status=422)
 
 
 def _save_editor_submission(request, form, writer_import):
@@ -1038,7 +1037,7 @@ def _save_editor_submission(request, form, writer_import):
         )
     except (InvalidDocument, InvalidEditorContext, StaleSolutionVersion) as error:
         form.add_error(None, str(error))
-        if action == "autosave" or request.headers.get("X-Requested-With") == "XMLHttpRequest":
+        if request.headers.get("X-Requested-With") == "XMLHttpRequest":
             return _document_error_json(error)
         return None
     except IntegrityError:
@@ -1050,7 +1049,7 @@ def _save_editor_submission(request, form, writer_import):
         return None
     if writer_import:
         request.session.pop(WRITER_DRAFT_SESSION_KEY, None)
-    if action == "autosave" or request.headers.get("X-Requested-With") == "XMLHttpRequest":
+    if request.headers.get("X-Requested-With") == "XMLHttpRequest":
         return _saved_document_json(solution)
     getattr(messages, message_level)(request, message_text)
     return redirect("solutions:problem_solution_edit", solution.problem.problem_uuid)
@@ -1081,7 +1080,7 @@ def problem_solution_edit_view(request, problem_uuid):
     if (
         request.method == "POST"
         and writer_token
-        and (not writer_import or existing_solution or request.POST.get("action") in {"publish", "autosave"})
+        and (not writer_import or existing_solution or request.POST.get("action") == "publish")
     ):
         form.add_error(
             None,
@@ -1095,8 +1094,6 @@ def problem_solution_edit_view(request, problem_uuid):
         response = _save_editor_submission(request, form, writer_import)
         if response is not None:
             return response
-    if request.method == "POST" and request.POST.get("action") == "autosave":
-        return _autosave_validation_json(form)
 
     current_status = solution.status or ProblemSolution.Status.DRAFT
     problem_data = _problem_context(problem)

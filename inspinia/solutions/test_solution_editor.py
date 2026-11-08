@@ -6,6 +6,7 @@ from io import BytesIO
 import pytest
 from django.contrib.auth import get_user_model
 from django.core.files.uploadedfile import SimpleUploadedFile
+from django.test import Client
 from django.urls import reverse
 from PIL import Image
 
@@ -185,9 +186,10 @@ def test_problem_page_edits_only_the_current_users_solution(editor):
 def test_autosave_creates_and_updates_only_private_drafts(editor, route):
     client, problem, _url = editor
     url = reverse(f"solutions:{route}", args=[problem.problem_uuid])
-    assert "data-draft-autosave" in client.get(url).content.decode()
-    payload = solution_payload(client, url, action="autosave")
-    first = client.post(url, payload)
+    autosave_url = reverse("solutions:problem_solution_autosave", args=[problem.problem_uuid])
+    assert f'data-draft-autosave="{autosave_url}"' in client.get(url).content.decode()
+    payload = solution_payload(client, url, action="publish")
+    first = client.post(autosave_url, payload)
     assert first.status_code == HTTPStatus.OK
     draft = ProblemSolution.objects.get(problem=problem)
     assert draft.status == ProblemSolution.Status.DRAFT
@@ -196,15 +198,15 @@ def test_autosave_creates_and_updates_only_private_drafts(editor, route):
 
     payload["solution-base_version"] = first.json()["edit_version"]
     payload["solution-editor_context"] = first.json()["editor_context"]
-    duplicate = client.post(url, payload)
+    duplicate = client.post(autosave_url, payload)
     assert duplicate.status_code == HTTPStatus.OK
     assert duplicate.json()["edit_version"] == first.json()["edit_version"]
     assert draft.revisions.count() == 1
 
     payload["solution-body_source"] = "An updated proof."
-    updated = client.post(url, payload)
+    updated = client.post(autosave_url, payload)
     assert updated.status_code == HTTPStatus.OK
-    assert client.post(url, payload).status_code == HTTPStatus.CONFLICT
+    assert client.post(autosave_url, payload).status_code == HTTPStatus.CONFLICT
     draft.refresh_from_db()
     assert draft.current_revision.body_source == "An updated proof."
     assert draft.status == ProblemSolution.Status.DRAFT
@@ -214,7 +216,7 @@ def test_autosave_creates_and_updates_only_private_drafts(editor, route):
     published = client.post(url, {**payload, "action": "publish"}, HTTP_X_REQUESTED_WITH="XMLHttpRequest")
     assert published.status_code == HTTPStatus.OK
     assert "data-draft-autosave" not in client.get(url, {"edit": "1"}).content.decode()
-    refused = client.post(url, {
+    refused = client.post(autosave_url, {
         **payload,
         "solution-base_version": published.json()["edit_version"],
         "solution-editor_context": published.json()["editor_context"],
@@ -228,10 +230,27 @@ def test_autosave_creates_and_updates_only_private_drafts(editor, route):
 
 
 def test_autosave_invalid_body_returns_json_without_creating_a_draft(editor):
-    client, _problem, url = editor
-    response = client.post(url, solution_payload(client, url, source=" ", action="autosave"))
+    client, problem, url = editor
+    autosave_url = reverse("solutions:problem_solution_autosave", args=[problem.problem_uuid])
+    response = client.post(autosave_url, solution_payload(client, url, source=" "))
     assert response.status_code == HTTPStatus.UNPROCESSABLE_ENTITY
     assert response.json()["error"] == "Write your solution before saving."
+    assert not ProblemSolution.objects.exists()
+
+
+def test_autosave_requires_post_csrf_and_matching_author(editor):
+    client, problem, url = editor
+    autosave_url = reverse("solutions:problem_solution_autosave", args=[problem.problem_uuid])
+    payload = solution_payload(client, url)
+    assert client.get(autosave_url).status_code == HTTPStatus.METHOD_NOT_ALLOWED
+    assert Client().post(autosave_url, payload).status_code == HTTPStatus.FOUND
+
+    other = UserFactory()
+    protected_client = Client(enforce_csrf_checks=True)
+    protected_client.force_login(other)
+    assert protected_client.post(autosave_url, payload).status_code == HTTPStatus.FORBIDDEN
+    client.force_login(other)
+    assert client.post(autosave_url, payload).status_code == HTTPStatus.UNPROCESSABLE_ENTITY
     assert not ProblemSolution.objects.exists()
 
 
