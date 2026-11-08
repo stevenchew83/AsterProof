@@ -16,31 +16,27 @@
     {% url 'pages:user_activity_dashboard' as header_home_url %}
     {% include 'partials/page-header-intro.html' with title='Completion records' subtitle='Admin inventory' page_icon='ti-checklist' back_url=header_home_url back_label='AsterProof' only %}
     <div class="app-page-header-actions">
-      <a href="{% url 'pages:completion_quick_update' %}" class="btn btn-sm btn-outline-primary d-inline-flex align-items-center gap-2" aria-label="Record progress" title="Record progress"><i class="ti ti-plus" aria-hidden="true"></i><span>Record progress</span></a>
+      <a href="{% url 'pages:completion_quick_update' %}" class="btn btn-sm btn-outline-primary d-inline-flex align-items-center gap-1" aria-label="Record progress" title="Record progress"><i class="ti ti-plus" aria-hidden="true"></i><span class="d-sm-none">Record</span><span class="d-none d-sm-inline">Record progress</span></a>
     </div>
   </header>
 
-  <section class="completion-record-overview" aria-label="Summary of loaded completion records">
-    <dl class="completion-record-metrics">
-      <div><dt>Loaded records</dt><dd>{{ completion_record_visible_total }}</dd></div>
-      <div><dt title="Records with solution">With solution</dt><dd>{{ completion_record_stats.solution_total }}<i class="ti ti-file-check text-primary" aria-hidden="true"></i></dd></div>
-      <div><dt title="Records without solution">Without solution</dt><dd>{{ completion_record_stats.missing_solution_total }}</dd></div>
-      <div><dt title="Users in loaded records">Users</dt><dd>{{ completion_record_stats.user_total }}</dd></div>
-    </dl>
-    <div class="completion-record-overview-meta">
-      <span title="Contests in loaded records">{{ completion_record_stats.contest_total }} contest{{ completion_record_stats.contest_total|pluralize }} in loaded results</span>
-      {% if completion_record_is_capped %}
-      <span class="completion-record-cap-note"><i class="ti ti-clock" aria-hidden="true"></i> Latest {{ completion_record_result_limit }} matches · More matches are available.</span>
-      {% else %}
-      <span><i class="ti ti-clock" aria-hidden="true"></i> Latest update {{ completion_record_rows.0.updated_at|default:"—" }}</span>
-      {% endif %}
-    </div>
-  </section>
-
   <section class="card completion-record-workspace" aria-label="Completion record inventory">
-    <div class="card-header completion-record-workspace-header">
-      <h2 class="header-title mb-0">Recent completion records</h2>
-      <span class="completion-record-admin-note"><i class="ti ti-shield-lock" aria-hidden="true"></i> Admin inventory</span>
+    <h2 class="visually-hidden">Recent completion records</h2>
+    <div class="completion-record-overview" role="group" aria-label="Summary of loaded completion records">
+      <dl class="completion-record-metrics">
+        <div><dt>Loaded records</dt><dd>{{ completion_record_visible_total }}</dd></div>
+        <div><dt title="Records with solution">With solution</dt><dd>{{ completion_record_stats.solution_total }}</dd></div>
+        <div><dt title="Records without solution">Without solution</dt><dd>{{ completion_record_stats.missing_solution_total }}</dd></div>
+        <div><dt title="Users in loaded records">Users</dt><dd>{{ completion_record_stats.user_total }}</dd></div>
+      </dl>
+      <div class="completion-record-overview-meta">
+        <span title="Contests in loaded records">{{ completion_record_stats.contest_total }} contest{{ completion_record_stats.contest_total|pluralize }}</span>
+        {% if completion_record_is_capped %}
+        <span class="completion-record-cap-note"><i class="ti ti-clock" aria-hidden="true"></i> Latest {{ completion_record_result_limit }} matches. Refine filters for older records.</span>
+        {% elif completion_record_rows %}
+        <span><i class="ti ti-clock" aria-hidden="true"></i> Updated {{ completion_record_rows.0.updated_at }}</span>
+        {% endif %}
+      </div>
     </div>
     <div class="completion-record-filter-panel">
       <form method="get" class="app-table-filters completion-record-filters" role="search" aria-label="Filter all completion records">
@@ -96,9 +92,7 @@
               >
                 <i class="ti ti-adjustments-horizontal me-1" aria-hidden="true"></i>More filters
               </button>
-              <a href="{% url 'pages:completion_record_list' %}" class="btn btn-sm btn-light">
-                Reset
-              </a>
+              {% if completion_record_has_active_filters %}<a href="{% url 'pages:completion_record_list' %}" class="btn btn-sm btn-light">Reset</a>{% endif %}
             </div>
           </div>
         </div>
@@ -159,35 +153,34 @@
         </div>
       </form>
 
-      <div class="d-flex flex-wrap align-items-center gap-2 mt-3" role="group" aria-labelledby="completion-record-quick-filter-label">
-        <span id="completion-record-quick-filter-label" class="text-muted fs-xs">Quick filters</span>
-        {% for filter in completion_record_quick_filters %}
-        <a href="{{ filter.url }}" class="btn btn-sm {% if filter.active %}btn-primary{% else %}btn-outline-secondary{% endif %}"{% if filter.active %} aria-current="true" aria-label="Clear {{ filter.label }} quick filter"{% endif %}>
-          {{ filter.label }}{% if filter.active %} <i class="ti ti-x ms-1" aria-hidden="true"></i>{% endif %}
-        </a>
-        {% endfor %}
-      </div>
-
-      {% if completion_record_active_filters %}
-      <div class="completion-record-filter-chips">
-        <div class="d-flex flex-wrap align-items-center gap-1">
-          <span class="text-muted fs-xs me-1">Active filters</span>
-          {% for chip in completion_record_active_filters %}
-          <a href="{{ chip.remove_url }}" class="badge bg-primary-subtle text-primary text-decoration-none completion-record-filter-chip" aria-label="Remove {{ chip.label }} filter">
-            <span>{{ chip.label }}: {{ chip.value }}</span>
-            <i class="ti ti-x"></i>
+      <div class="completion-record-shortcuts">
+        <div class="d-flex flex-wrap align-items-center gap-1" role="group" aria-labelledby="completion-record-quick-filter-label">
+          <span id="completion-record-quick-filter-label" class="text-muted fs-xs me-1">Quick filters</span>
+          {% for filter in completion_record_quick_filters %}
+          <a href="{{ filter.url }}" class="btn btn-sm completion-record-shortcut {% if filter.active %}btn-primary{% else %}btn-light{% endif %}"{% if filter.active %} aria-current="true" aria-label="Clear {{ filter.label }} quick filter"{% endif %}>
+            {{ filter.label }}{% if filter.active %} <i class="ti ti-x ms-1" aria-hidden="true"></i>{% endif %}
           </a>
           {% endfor %}
         </div>
+        {% if completion_record_filter_chips %}
+        <div class="completion-record-filter-chips d-flex flex-wrap align-items-center gap-1" role="group" aria-label="Active filters">
+          <span class="text-muted fs-xs me-1">Active filters</span>
+          {% for chip in completion_record_filter_chips %}
+          <a href="{{ chip.remove_url }}" class="badge bg-primary-subtle text-primary text-decoration-none completion-record-filter-chip" aria-label="Remove {{ chip.label }} filter">
+            <span>{{ chip.label }}: {{ chip.value }}</span>
+            <i class="ti ti-x" aria-hidden="true"></i>
+          </a>
+          {% endfor %}
+        </div>
+        {% endif %}
       </div>
-      {% endif %}
     </div>
     <div class="card-body completion-record-results">
       {% if completion_record_rows %}
       <div class="app-table-region table-responsive" tabindex="0" role="region" aria-label="Completion records" aria-describedby="completion-record-search-scope">
         <table data-paging-type="simple" id="completion-record-table"{% if completion_record_show_ai_reviews %} data-ai-reviews{% endif %} class="app-table-compact table table-sm table-hover align-middle w-100 mb-0"><caption class="visually-hidden">Completion records with topic, canonical areas, status and solution details{% if completion_record_show_ai_reviews %}, including AI reviews{% endif %}</caption></table>
       </div>
-      <p id="completion-record-search-scope" class="completion-record-scope-note mb-0">Pages and Quick find use these {{ completion_record_visible_total }} loaded records, including all mapped areas. Use the filters above to search all records.</p>
+      <p id="completion-record-search-scope" class="completion-record-scope-note mb-0">Quick find searches the {{ completion_record_visible_total }} loaded records, including all mapped areas. Use the top filters to search the full inventory.</p>
       {% else %}
       <div class="completion-record-empty" role="status">
         <span class="completion-record-empty-icon"><i class="ti ti-checklist" aria-hidden="true"></i></span>
@@ -652,7 +645,9 @@
         if (type === "display") {
           var fullLabel = email && email !== data ? data + " · " + email : data;
           return '<div class="completion-record-user-identity"><span class="completion-record-avatar" aria-hidden="true">' +
-            escapeHtml(learnerInitials(data || email)) + '</span>' + singleLine(data, row.user_url, fullLabel) + '</div>';
+            escapeHtml(learnerInitials(data || email)) + '</span><div class="completion-record-user-label">' +
+            singleLine(data, row.user_url, fullLabel) + '<span class="completion-record-mobile-status d-sm-none">' +
+            escapeHtml(row.status_label || "Unattempted") + '</span></div></div>';
         }
         return data + " " + email;
       }
@@ -730,8 +725,7 @@
       key: "aiReview",
       data: null,
       title: "AI review",
-      width: "11%",
-      className: "text-nowrap",
+      className: "completion-record-ai-review-cell text-nowrap text-start",
       render: function (_data, type, row) {
         if (type === "display") return aiReviewLink(row.ai_review);
         if (type === "sort" || type === "type") {
@@ -780,13 +774,13 @@
     pageLength: 25,
     lengthMenu: [10, 25, 50, 100],
     autoWidth: false,
-    layout: { topStart: "search", topEnd: "paging", bottomStart: ["pageLength", "info"], bottomEnd: "paging" },
+    layout: { topStart: "search", topEnd: ["info", "paging"], bottomStart: "pageLength", bottomEnd: "paging" },
     language: {
       search: "Find in results:",
       searchPlaceholder: "Quick find…",
-      info: "Page _PAGE_ of _PAGES_ · Showing _START_ to _END_ of _TOTAL_ loaded results",
+      info: "_START_–_END_ of _TOTAL_ · Page _PAGE_ of _PAGES_",
       infoEmpty: "No loaded results to show",
-      infoFiltered: "(filtered from _MAX_ loaded results)",
+      infoFiltered: "(from _MAX_ loaded)",
       lengthMenu: "_MENU_ per page",
       zeroRecords: "No loaded results match the table filter."
     }
@@ -799,6 +793,8 @@
     }
     tableApi.column(columnIndexByKey.completed).visible(!(hideCompletedQuery && hideCompletedQuery.matches), false);
     tableApi.column(columnIndexByKey.status).visible(!(hideStatusQuery && hideStatusQuery.matches), false);
+    tableApi.column(columnIndexByKey.topic).visible(!(hideStatusQuery && hideStatusQuery.matches), false);
+    tableApi.column(columnIndexByKey.area).visible(!(hideStatusQuery && hideStatusQuery.matches), false);
     tableApi.column(columnIndexByKey.mohs).visible(!(hideCompletedQuery && hideCompletedQuery.matches), false);
     tableApi.columns.adjust().draw(false);
   }

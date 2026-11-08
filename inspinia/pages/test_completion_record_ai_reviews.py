@@ -140,7 +140,8 @@ def test_draft_filter_finds_older_match_and_excludes_changed_targets(client, inv
     response = client.get(inventory, {"ai_review": "draft_ready", "user": author.email})
     assert list(_review_cells(response)) == [ready_completion.pk]
     assert response.context["completion_record_is_capped"] is False
-    assert response.context["completion_record_advanced_filters_open"] is True
+    assert response.context["completion_record_advanced_filters_open"] is False
+    assert [chip["key"] for chip in response.context["completion_record_filter_chips"]] == ["user"]
     chips = {chip["key"]: chip for chip in response.context["completion_record_active_filters"]}
     assert chips["ai_review"]["value"] == "Draft ready"
     assert "ai_review=" not in chips["ai_review"]["remove_url"]
