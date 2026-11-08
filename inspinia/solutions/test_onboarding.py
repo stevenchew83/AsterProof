@@ -149,12 +149,16 @@ def test_save_completes_getting_started_and_sharing_remains_optional(client, sol
 
 
 @pytest.mark.parametrize("editor_route", ["problem_solution_edit", "problem_solution_list"])
-def test_first_proof_must_be_saved_privately_and_can_resume_on_another_session(client, solution, editor_route):
+@pytest.mark.parametrize("save_action", ["save_draft", "autosave"])
+def test_first_proof_must_be_saved_privately_and_can_resume_on_another_session(
+    client, solution, editor_route, save_action,
+):
     url = reverse(f"solutions:{editor_route}", args=[solution.problem.problem_uuid])
     editor = client.get(url, {"edit": "1"})
     html = editor.content.decode()
     assert "Save private draft" in html
-    assert "Publish solution" not in html
+    assert 'class="btn btn-outline-primary btn-sm d-none" data-publish-after-save="desktop"' in html
+    assert 'class="d-sm-none d-none" data-publish-after-save="mobile"' in html
     assert 'id="solution-share-trigger"' not in html
     if editor_route == "problem_solution_edit":
         assert 'id="solution-first-draft-message"' in html
@@ -167,7 +171,10 @@ def test_first_proof_must_be_saved_privately_and_can_resume_on_another_session(c
     solution.refresh_from_db()
     assert solution.current_revision_id is None
 
-    saved = client.post(url, {**data, "action": "save_draft"}, HTTP_X_REQUESTED_WITH="XMLHttpRequest")
+    save_url = reverse("solutions:problem_solution_autosave", args=[solution.problem.problem_uuid]) if (
+        save_action == "autosave"
+    ) else url
+    saved = client.post(save_url, {**data, "action": save_action}, HTTP_X_REQUESTED_WITH="XMLHttpRequest")
     assert saved.status_code == HTTPStatus.OK
     solution.refresh_from_db()
     assert solution.status == ProblemSolution.Status.DRAFT
