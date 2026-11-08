@@ -1,7 +1,5 @@
 from datetime import timedelta
 from http import HTTPStatus
-from urllib.parse import parse_qs
-from urllib.parse import urlsplit
 from uuid import uuid4
 
 import pytest
@@ -239,34 +237,36 @@ def test_shortlist_groups_duplicate_cells_modes_and_score_boundaries(client):
     assert _cells(_dashboard(client, focus="low"))[2025, "A3"]["highlighted"]
 
 
-def test_suggestions_find_older_years_and_keep_summary_for_the_whole_contest(client):
+def test_heatmap_shows_all_years_and_suggestions_keep_whole_contest_summary(client):
     learner, admin = UserFactory(), UserFactory(role=User.Role.ADMIN)
     client.force_login(admin)
     for year in range(2015, 2026):
         _statement("A1", year=year, linked=False)
     oldest = _statement("G1", year=2015)
     scored = _statement("C1", year=2025)
-    _review(learner, oldest, 2)
+    oldest_review = _review(learner, oldest, 2)
     _review(learner, scored, 6)
     UserProblemCompletion.objects.create(user=learner, statement=oldest)
     UserProblemCompletion.objects.create(user=learner, statement=_statement("N1", year=2016))
 
     response = _dashboard(client, learner=learner.pk)
+    expected_years = list(range(2025, 2014, -1))
     years = [row["year"] for row in response.context["contest_completion_heatmap"]["rows"]]
-    assert years == list(range(2025, 2017, -1))
-    assert parse_qs(urlsplit(response.context["next_year_page_url"]).query) == {
-        "contest": [CONTEST], "learner": [str(learner.pk)], "year_page": ["2"],
-    }
-    earlier = client.get(response.context["next_year_page_url"])
-    assert (2015, "G1") in _cells(earlier)
+    assert years == expected_years
+    assert b'class="contest-progress-year">2015</th>' in response.content
+    assert b'aria-label="Heatmap years"' not in response.content
+    assert _cells(response)[2015, "G1"]["display"] == oldest_review.score
+
+    completion = _dashboard(client, learner=learner.pk, mode="completion", year_page=2)
+    assert [row["year"] for row in completion.context["contest_completion_heatmap"]["rows"]] == expected_years
 
     low = client.get(response.context["low_focus_url"])
     assert {key for key, cell in _cells(low).items() if cell.get("highlighted")} == {(2015, "G1")}
     assert low.context["contest_stats"] == response.context["contest_stats"]
     unscored = client.get(response.context["unscored_focus_url"])
     assert {key for key, cell in _cells(unscored).items() if cell.get("highlighted")} == {(2016, "N1")}
-    invalid = _dashboard(client, learner=learner.pk, mode="other", focus="other", year_page="200")
-    assert (invalid.context["mode"], invalid.context["focus"], invalid.context["year_page"]) == ("score", "", 1)
+    invalid = _dashboard(client, learner=learner.pk, mode="other", focus="other")
+    assert (invalid.context["mode"], invalid.context["focus"]) == ("score", "")
 
 
 def test_restricted_self_review_does_not_leak_through_admin_dashboard_metrics_or_suggestions(client):

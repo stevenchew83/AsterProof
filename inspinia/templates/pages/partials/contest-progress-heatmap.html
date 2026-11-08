@@ -81,15 +81,7 @@
         </tbody>
       </table>
     </div>
-    <div class="contest-progress-pagination">
-      <p class="text-muted fs-xs mb-0">Showing years {{ contest_completion_heatmap.page_start }}–{{ contest_completion_heatmap.page_end }} of {{ contest_completion_heatmap.year_total }}</p>
-      {% if previous_year_page_url or next_year_page_url %}
-      <nav aria-label="Heatmap years" class="d-flex flex-wrap gap-2">
-        {% if previous_year_page_url %}<a class="btn btn-sm btn-outline-secondary" href="{{ previous_year_page_url }}#contest-progress-heatmap"><i class="ti ti-chevron-left me-1" aria-hidden="true"></i>Newer years</a>{% endif %}
-        {% if next_year_page_url %}<a class="btn btn-sm btn-outline-secondary" href="{{ next_year_page_url }}#contest-progress-heatmap">Older years<i class="ti ti-chevron-right ms-1" aria-hidden="true"></i></a>{% endif %}
-      </nav>
-      {% endif %}
-    </div>
+    <p class="text-muted fs-xs mt-2 mb-0">{{ contest_completion_heatmap.year_total }} year{{ contest_completion_heatmap.year_total|pluralize }}</p>
 
     <div class="contest-progress-details">
       {% for row in contest_completion_heatmap.rows %}

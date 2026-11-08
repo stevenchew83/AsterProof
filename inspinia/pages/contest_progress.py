@@ -7,8 +7,6 @@ from http import HTTPStatus
 from urllib.parse import urlencode
 
 from django.contrib.auth.decorators import login_required
-from django.core.paginator import InvalidPage
-from django.core.paginator import Paginator
 from django.db.models import Exists
 from django.db.models import OuterRef
 from django.db.models import Q
@@ -27,7 +25,6 @@ LEARNER_MIN_SEARCH = 2
 LEARNER_MAX_SEARCH = 254
 LOW_SCORE_MAX = 2
 MID_SCORE_MAX = 5
-YEARS_PER_PAGE = 8
 SHORTLIST_GROUPS = {"A": "Algebra", "C": "Combinatorics", "G": "Geometry", "N": "Number theory"}
 
 
@@ -35,7 +32,6 @@ SHORTLIST_GROUPS = {"A": "Algebra", "C": "Combinatorics", "G": "Geometry", "N": 
 class ContestProgressDisplay:
     mode: str
     focus: str
-    year_page: str
     read_only: bool
 
     @classmethod
@@ -44,7 +40,7 @@ class ContestProgressDisplay:
         focus = query.get("focus", "")
         if mode != "score" or focus not in {"low", "unscored"}:
             focus = ""
-        return cls(mode, focus, query.get("year_page", "1"), read_only)
+        return cls(mode, focus, read_only)
 
 
 def can_select_contest_learner(user):
@@ -103,7 +99,7 @@ def contest_progress_learner_options_view(request):
     })
 
 
-def contest_progress_url(contest, *, learner="", mode="score", focus="", page=1):
+def contest_progress_url(contest, *, learner="", mode="score", focus=""):
     query = {"contest": contest} if contest else {}
     if learner:
         query["learner"] = learner
@@ -111,8 +107,6 @@ def contest_progress_url(contest, *, learner="", mode="score", focus="", page=1)
         query["mode"] = mode
     if mode == "score" and focus:
         query["focus"] = focus
-    if page > 1:
-        query["year_page"] = page
     path = reverse("pages:contest_advanced_dashboard")
     return f"{path}?{urlencode(query)}" if query else path
 
@@ -237,12 +231,6 @@ def contest_completion_heatmap(statements, solved_ids, reviews, contest, options
         group_order = {label: index for index, label in enumerate(SHORTLIST_GROUPS.values())}
         codes.sort(key=lambda code: group_order.get(_group_label(contest, code), len(group_order)))
 
-    paginator = Paginator(sorted(matching_years, reverse=True), YEARS_PER_PAGE)
-    try:
-        page = paginator.page(options.year_page)
-    except InvalidPage:
-        page = paginator.page(1)
-
     rows = [
         {
             "year": year,
@@ -251,17 +239,14 @@ def contest_completion_heatmap(statements, solved_ids, reviews, contest, options
                 for code in codes
             ],
         }
-        for year in page
+        for year in sorted(matching_years, reverse=True)
     ]
     return {
         "problem_code_groups": _group_columns(contest, codes),
         "problem_code_total": len(codes),
         "problem_codes": codes,
         "rows": rows,
-        "year_total": paginator.count,
-        "page_start": page.start_index(),
-        "page_end": page.end_index(),
-        "page": page,
+        "year_total": len(rows),
         "ai_reviewed_total": len(scores),
         "average_ai_score": round(sum(scores) / len(scores), 1) if scores else None,
         "low_score_total": low_total,
