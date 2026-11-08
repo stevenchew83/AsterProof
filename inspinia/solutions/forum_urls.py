@@ -1,6 +1,7 @@
 from django.urls import path
 
 from . import admin_review_views as ai
+from . import evaluation_views as evaluation
 from . import forum_views as views
 
 urlpatterns = [
@@ -29,4 +30,15 @@ urlpatterns = [
     ),
     path("review-queue/", views.forum_review_queue, name="forum_review_queue"),
     path("admin/forum/", views.forum_admin_queue, name="forum_admin_queue"),
+    # Register the private protocol routes through the existing include so the reviewed image routes stay frozen.
+    path(
+        "evaluation/snapshots/<uuid:snapshot_id>/protocols/new/",
+        evaluation.evaluation_protocol_create,
+        name="evaluation_protocol_create",
+    ),
+    path(
+        "evaluation/protocols/<uuid:protocol_id>/",
+        evaluation.evaluation_protocol_detail,
+        name="evaluation_protocol_detail",
+    ),
 ]
