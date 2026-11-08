@@ -1,0 +1,11 @@
+[Unit]
+Description=Process AsterProof admin solution reviews and notifications
+
+[Timer]
+OnBootSec=10s
+OnUnitInactiveSec=5s
+AccuracySec=1s
+Unit=asterproof-admin-solution-reviews.service
+
+[Install]
+WantedBy=timers.target

@@ -1,0 +1,36 @@
+<article class="border rounded p-3 {% if ai_reviews.admin or not forloop.first %}mt-3{% endif %}"
+         id="ai-review-{{ review.pk }}"
+         {% if review.is_live and review.batch_id == ai_reviews.active.batch_id %}data-ai-review-live{% endif %}>
+  <div class="d-flex justify-content-between flex-wrap gap-2">
+    <div>
+      <h3 class="fs-sm fw-semibold mb-1">
+        {% if ai_reviews.admin %}{{ review.get_model_display }}{% else %}{{ review.problem_label }}{% endif %}
+      </h3>
+      <p class="text-muted fs-xs mb-0">
+        {% if previous %}Earlier version · {% endif %}
+        {% if review.published_at %}{% if ai_reviews.admin %}Published{% else %}Reviewed{% endif %} {{ review.published_at|date:'j M Y' }}{% elif review.taken_down_at %}Taken down {{ review.taken_down_at|date:'j M Y' }}{% else %}<span data-ai-live-status>{{ review.get_status_display }}</span>{% endif %}
+        {% if ai_reviews.admin and review.published_at %} · {{ review.get_notification_display }}{% endif %}
+      </p>
+    </div>
+    {% if review.score != None %}
+      <span class="badge bg-primary-subtle text-primary align-self-start fs-sm">{{ review.score }} / 7</span>
+    {% endif %}
+  </div>
+  {% if review.is_live %}
+    <div data-ai-live-preview {% if not review.feedback %}hidden{% endif %} class="mt-2">
+      <p class="text-muted fs-xs mb-1">Live feedback · awaiting final score</p>
+      <pre class="text-wrap text-break mb-0" data-ai-live-text>{{ review.feedback }}</pre>
+    </div>
+  {% elif review.feedback %}
+    <div class="forum-markdown text-break mt-2" data-mathjax-scope="true">{{ review.feedback|linebreaks }}</div>
+  {% endif %}
+  {% if ai_reviews.admin and review.error %}<p class="text-muted fs-sm mt-2 mb-0">{{ review.error }}</p>{% endif %}
+  {% if ai_reviews.admin and not previous and not ai_reviews.published and review.status == 'completed' %}
+    <form method="post" action="{% url 'solutions:admin_ai_review_publish' solution.pk review.pk %}" class="mt-2">
+      {% csrf_token %}
+      <input type="hidden" name="last_taken_down" value="{{ review.taken_down_at|date:'c' }}">
+      <button type="submit" class="btn btn-outline-primary btn-sm"><i class="ti ti-send me-1" aria-hidden="true"></i>{% if review.will_notify_on_publish %}Publish and notify solver{% else %}Publish to solver{% endif %}</button>
+      <span class="d-block text-muted fs-xs mt-1">Shares this score and feedback with the solver{% if review.will_notify_on_publish %} and queues an email{% endif %}.</span>
+    </form>
+  {% endif %}
+</article>

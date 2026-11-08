@@ -5,6 +5,10 @@
 {% block page_content %}
 <div class="container-fluid app-table-page">
   {% include 'partials/page-title.html' with title='Import center' subtitle='Rankings' page_icon='ti-file-import' %}
+  <div class="app-table-toolbar mb-3">
+    <a href="{% url 'rankings:olympiad_sheet_import' %}" class="btn btn-outline-primary"><i class="ti ti-upload me-1" aria-hidden="true"></i>Import olympiad history / IMONST2 text</a>
+    {% if can_import_achievements %}<a href="{% url 'rankings:students_list' %}" class="btn btn-outline-primary"><i class="ti ti-clipboard-text me-1" aria-hidden="true"></i>Choose student to paste achievements</a>{% endif %}
+  </div>
 
   {% if messages %}
   <div class="mt-3">
@@ -39,6 +43,7 @@
           {% if student_master_preview %}
           <hr class="my-3">
           <p class="mb-1"><strong>Rows processed:</strong> {{ student_master_preview.rows_processed }}</p>
+          {% if student_master_preview.held_count %}<div class="alert alert-warning fs-sm">{{ student_master_preview.held_count }} source rows will be held unchanged to preserve approved corrections. Other rows can apply.</div>{% endif %}
           <p class="mb-1"><strong>Matched:</strong> {{ student_master_preview.match_count }}</p>
           <p class="mb-1"><strong>Create:</strong> {{ student_master_preview.create_count }}</p>
           <p class="mb-1"><strong>Ambiguous:</strong> {{ student_master_preview.ambiguous_count }}</p>
@@ -125,6 +130,7 @@
           <hr class="my-3">
           <p class="mb-1"><strong>Total rows:</strong> {{ assessment_result_preview.total_rows }}</p>
           <p class="mb-1"><strong>Matched:</strong> {{ assessment_result_preview.matched_count }}</p>
+          {% if assessment_result_preview.held_count %}<div class="alert alert-warning fs-sm">{{ assessment_result_preview.held_count }} source rows will be held unchanged to preserve approved corrections. Other rows can apply.</div>{% endif %}
           <p class="mb-1"><strong>Missing students:</strong> {{ assessment_result_preview.missing_student_count }}</p>
           <p class="mb-3"><strong>Invalid rows:</strong> {{ assessment_result_preview.invalid_count }}</p>
 
@@ -172,6 +178,7 @@
           {% if legacy_wide_preview %}
           <hr class="my-3">
           <p class="mb-1"><strong>Rows:</strong> {{ legacy_wide_preview.rows|length }}</p>
+          {% if legacy_wide_preview.held_count %}<div class="alert alert-warning fs-sm">{{ legacy_wide_preview.held_count }} source rows will be held unchanged to preserve approved corrections. Other rows can apply.</div>{% endif %}
           <p class="mb-1"><strong>Student columns:</strong> {{ legacy_wide_preview.classification.student_columns|length }}</p>
           <p class="mb-1"><strong>Assessment columns:</strong> {{ legacy_wide_preview.classification.assessment_columns|length }}</p>
           <p class="mb-1"><strong>Status columns:</strong> {{ legacy_wide_preview.classification.status_columns|length }}</p>
@@ -214,8 +221,8 @@
             {% for batch in import_batches %}
             <tr>
               <td>#{{ batch.id }}</td>
-              <td>{{ batch.get_import_type_display }}</td>
-              <td>{{ batch.original_filename }}</td>
+              <td>{% if batch.summary_json.kind == 'achievement_text_v1' %}Achievement paste{% else %}{{ batch.get_import_type_display }}{% endif %}</td>
+              <td>{% if batch.summary_json.kind == 'achievement_text_v1' and can_import_achievements and batch.created_by_id == request.user.pk %}<a href="{% url 'rankings:achievement_text_import' batch.summary_json.student_id %}?batch={{ batch.pk }}">{{ batch.original_filename }}</a>{% else %}{{ batch.original_filename }}{% endif %}</td>
               <td>{{ batch.get_status_display }}</td>
               <td>{{ batch.row_issues.count }}</td>
               <td>{{ batch.created_by.email|default:'-' }}</td>

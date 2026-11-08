@@ -1,0 +1,29 @@
+<section class="card" data-achievement-row aria-label="Achievement suggestion {{ number }}">
+  <div class="card-body">
+    <div class="d-flex flex-wrap justify-content-between gap-2 align-items-center mb-3">
+      <h2 class="h5 mb-0">Row <span data-row-number>{{ number }}</span>{% if form.source.source_line %}<span class="text-muted fs-sm ms-1">source line {{ form.source.source_line }}</span>{% endif %}</h2>
+      <div class="form-check">{{ form.include }}<label class="form-check-label" for="{{ form.include.id_for_label }}">Include this row</label>{{ form.include.errors }}</div>
+    </div>
+    {{ form.non_field_errors }}
+    {% if form.source.warnings %}<ul class="text-warning-emphasis fs-sm ps-3">{% for warning in form.source.warnings %}<li>{{ warning }}</li>{% endfor %}</ul>{% endif %}
+    <div class="row g-3">
+      <div class="col-sm-3 col-lg-2"><label class="form-label" for="{{ form.year.id_for_label }}">{{ form.year.label }}</label>{{ form.year }}{{ form.year.errors }}</div>
+      <div class="col-sm-9 col-lg-6"><label class="form-label" for="{{ form.title.id_for_label }}">{{ form.title.label }}</label>{{ form.title }}{{ form.title.errors }}</div>
+      <div class="col-lg-4"><label class="form-label" for="{{ form.outcome.id_for_label }}">{{ form.outcome.label }}</label>{{ form.outcome }}{{ form.outcome.errors }}</div>
+      <div class="col-md-6 col-lg-4"><label class="form-label" for="{{ form.evidence.id_for_label }}">{{ form.evidence.label }}</label>{{ form.evidence }}{{ form.evidence.errors }}</div>
+      <div class="col-sm-6 col-lg-4"><label class="form-label" for="{{ form.record_type.id_for_label }}">{{ form.record_type.label }}</label>{{ form.record_type }}{{ form.record_type.errors }}</div>
+      <div class="col-sm-6 col-lg-4"><label class="form-label" for="{{ form.discipline.id_for_label }}">{{ form.discipline.label }}</label>{{ form.discipline }}{{ form.discipline.errors }}</div>
+      <div class="col-12"><label class="form-label" for="{{ form.existing_result.id_for_label }}">{{ form.existing_result.label }}</label>{{ form.existing_result }}{{ form.existing_result.errors }}<p class="form-text mb-0">A context link keeps existing results and evidence unchanged. Suggested labels above are not applied to a linked record.</p></div>
+    </div>
+    <details class="mt-3" {% if form.score.errors or form.ranking.errors or form.band.errors or form.notes.errors %}open{% endif %}>
+      <summary class="fw-semibold">Score, placing &amp; source details</summary>
+      <div class="row g-3 mt-0">
+        <div class="col-sm-4"><label class="form-label" for="{{ form.score.id_for_label }}">{{ form.score.label }}</label>{{ form.score }}{{ form.score.errors }}</div>
+        <div class="col-sm-4"><label class="form-label" for="{{ form.ranking.id_for_label }}">{{ form.ranking.label }}</label>{{ form.ranking }}{{ form.ranking.errors }}</div>
+        <div class="col-sm-4"><label class="form-label" for="{{ form.band.id_for_label }}">{{ form.band.label }}</label>{{ form.band }}{{ form.band.errors }}</div>
+        <div class="col-12"><label class="form-label" for="{{ form.notes.id_for_label }}">{{ form.notes.label }}</label>{{ form.notes }}{{ form.notes.errors }}</div>
+      </div>
+      <p class="text-muted fs-sm mt-2 mb-0">Source excerpt: <span class="text-break">{{ form.source.excerpt|default:'Manual row. The full original paste is retained separately.' }}</span></p>
+    </details>
+  </div>
+</section>

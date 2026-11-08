@@ -1,0 +1,12 @@
+<section data-student-highlights {% if not show_highlights or not highlights %}hidden{% endif %} aria-labelledby="student-highlights-title" class="student-highlights">
+  <div class="d-flex align-items-baseline justify-content-between gap-2 mb-2"><h2 id="student-highlights-title" class="student-section-title">Selected highlights</h2><span class="student-muted">Evidence shown for each claim</span></div>
+  <div class="student-highlight-grid {% if highlights|length > 4 %}student-highlight-grid-many{% endif %}">
+    {% for row in highlights %}<article class="student-highlight">
+      <div class="d-flex align-items-center justify-content-between gap-2"><span class="student-muted">{{ row.year }}{% if row.discipline_label %} · {{ row.discipline_label }}{% endif %}</span><i class="ti ti-award fs-22" aria-hidden="true"></i></div>
+      <h3><a href="{{ row.highlight_url }}">{{ row.title }}</a></h3>
+      <p>{% for outcome in row.outcomes %}<span class="student-outcome student-outcome-{{ outcome.tone }}">{{ outcome.label }}</span>{% endfor %}</p>
+      <p class="student-muted">{% if row.scope_label %}{{ row.scope_label }}{% endif %}{% if row.scope_detail %} · {{ row.scope_detail }}{% endif %}{% if row.participation_label %} · {{ row.participation_label }}{% endif %}</p>
+      <span class="student-evidence student-evidence-{{ row.evidence_status }}">{{ row.evidence_label }}</span>
+    </article>{% endfor %}
+  </div>
+</section>

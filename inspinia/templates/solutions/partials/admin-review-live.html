@@ -1,0 +1,60 @@
+<script>
+  (() => {
+    const panel = document.querySelector("[data-ai-review-progress]");
+    const batchStatus = panel.querySelector("[data-ai-review-batch-status]");
+    const cards = panel.querySelectorAll("[data-ai-review-live]");
+    const queueIndicators = panel.querySelectorAll("[data-ai-review-queue-spinner], [data-ai-review-queue-hint]");
+    const runningIndicators = panel.querySelectorAll("[data-ai-review-running-bar], [data-ai-review-running-hint]");
+    const setPhase = (label, queued, reviewing) => {
+      if (batchStatus.textContent !== label) batchStatus.textContent = label;
+      for (const element of queueIndicators) element.hidden = !queued;
+      for (const element of runningIndicators) element.hidden = !reviewing;
+    };
+    const updatePreview = (card, feedback) => {
+      card.querySelector("[data-ai-live-text]").textContent = feedback;
+      card.querySelector("[data-ai-live-preview]").hidden = !feedback;
+    };
+    const poll = async () => {
+      if (document.hidden) {
+        window.setTimeout(poll, 2500);
+        return;
+      }
+      try {
+        const response = await fetch(panel.dataset.aiReviewProgress, {
+          cache: "no-store",
+          headers: {"Accept": "application/json"},
+          signal: AbortSignal.timeout(10000),
+        });
+        if (response.redirected || response.status === 403) {
+          for (const card of cards) updatePreview(card, "");
+          setPhase("Live updates unavailable", false, false);
+          return;
+        }
+        if (!response.ok) throw new Error("Review status unavailable");
+        const {reviews} = await response.json();
+        const working = reviews.filter(row => row.active);
+        if (!working.length) {
+          window.location.reload();
+          return;
+        }
+        const reviewing = working.some(row => row.status === "Reviewing");
+        setPhase(reviewing ? "Reviewing" : "Waiting in queue", !reviewing, reviewing);
+        const active = new Map(working.map(row => [`ai-review-${row.id}`, row]));
+        for (const card of cards) {
+          const row = active.get(card.id);
+          if (!row) {
+            window.location.reload();
+            return;
+          }
+          card.querySelector("[data-ai-live-status]").textContent = row.status;
+          updatePreview(card, row.feedback);
+        }
+        window.setTimeout(poll, 2500);
+      } catch {
+        if (batchStatus.textContent !== "Reconnecting…") batchStatus.textContent = "Reconnecting…";
+        window.setTimeout(poll, 10000);
+      }
+    };
+    window.setTimeout(poll, 1500);
+  })();
+</script>

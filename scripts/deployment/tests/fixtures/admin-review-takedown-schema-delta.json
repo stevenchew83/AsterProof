@@ -1,0 +1,43 @@
+{
+  "columns": [
+    {
+      "collation": null,
+      "column": "taken_down_at",
+      "default": null,
+      "nullable": true,
+      "position": 24,
+      "schema": "public",
+      "table": "solutions_adminsolutionreview",
+      "type": "timestamp with time zone"
+    },
+    {
+      "collation": null,
+      "column": "taken_down_by_id",
+      "default": null,
+      "nullable": true,
+      "position": 25,
+      "schema": "public",
+      "table": "solutions_adminsolutionreview",
+      "type": "bigint"
+    }
+  ],
+  "constraints": [
+    {
+      "definition": "FOREIGN KEY (taken_down_by_id) REFERENCES users_user(id) DEFERRABLE INITIALLY DEFERRED",
+      "name": "solutions_adminsolut_taken_down_by_id_975cb96a_fk_users_use",
+      "schema": "public",
+      "table": "solutions_adminsolutionreview",
+      "type": "f"
+    }
+  ],
+  "extensions": [],
+  "indexes": [
+    {
+      "definition": "CREATE INDEX solutions_adminsolutionreview_taken_down_by_id_975cb96a ON public.solutions_adminsolutionreview USING btree (taken_down_by_id)",
+      "name": "solutions_adminsolutionreview_taken_down_by_id_975cb96a",
+      "schema": "public",
+      "table": "solutions_adminsolutionreview"
+    }
+  ],
+  "tables": []
+}

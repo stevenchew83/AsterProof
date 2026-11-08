@@ -1,11 +1,13 @@
 from django import forms
 from django.forms import BaseInlineFormSet
 from django.forms import inlineformset_factory
+from django.utils.functional import cached_property
 
 from inspinia.solutions.models import ProblemSolution
 from inspinia.solutions.models import ProblemSolutionBlock
 from inspinia.solutions.models import SolutionBlockType
 from inspinia.solutions.models import SolutionCollection
+from inspinia.solutions.onboarding import needs_private_first_save
 
 PREVIEW_BLOCK_LIMIT = 32
 PREVIEW_BODY_LIMIT = 12_000
@@ -69,7 +71,8 @@ class ProblemSolutionForm(PdfDisplayOptionsMixin, forms.ModelForm):
         from inspinia.solutions.revisions import editor_context
 
         super().__init__(*args, **kwargs)
-        self.initial.setdefault("body_source", solution_source(self.instance))
+        self._saved_body_source = solution_source(self.instance)
+        self.initial.setdefault("body_source", self._saved_body_source)
         self.initial.setdefault("base_version", self.instance.edit_version or 0)
         self.initial.setdefault(
             "editor_context",
@@ -79,6 +82,10 @@ class ProblemSolutionForm(PdfDisplayOptionsMixin, forms.ModelForm):
                 solution=self.instance,
             ),
         )
+
+    @cached_property
+    def first_private_save(self):
+        return needs_private_first_save(self.instance.author, self.instance, self._saved_body_source)
 
     def clean_body_source(self):
         source = self.cleaned_data["body_source"]

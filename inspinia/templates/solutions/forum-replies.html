@@ -1,0 +1,30 @@
+{% extends 'layouts/vertical.html' %}
+
+{% block title %}
+  Solution discussion
+{% endblock title %}
+{% block page_content %}
+  <div class="container-fluid solution-forum">
+    {% url 'solutions:solution_detail' solution.pk as detail_url %}
+    <header class="page-title-head app-page-header">
+      {% include 'partials/page-header-intro.html' with title='Discussion replies' subtitle='Member solution' page_icon='ti-messages' back_url=detail_url back_label='Back to solution' only %}
+    </header>
+    <section class="card forum-thread" aria-label="Discussion thread">
+      {% include 'solutions/forum-comment.html' with row=parent_row %}
+      <div class="card-header border-top border-bottom">
+        <h2 class="h6 mb-0">Replies</h2>
+      </div>
+      {% for row in comment_rows %}
+        {% include 'solutions/forum-comment.html' %}
+      {% empty %}
+        <div class="card-body">
+          <p class="text-muted mb-0">No replies yet.</p>
+        </div>
+      {% endfor %}
+      {% include 'solutions/forum-pagination.html' with page=comment_page %}
+    </section>
+  </div>
+{% endblock page_content %}
+{% block extra_javascript %}
+  {% include 'solutions/forum-math.html' %}
+{% endblock extra_javascript %}

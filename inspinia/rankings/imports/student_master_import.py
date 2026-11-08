@@ -20,6 +20,11 @@ from inspinia.rankings.models import ImportRowIssue
 from inspinia.rankings.models import Student
 from inspinia.rankings.models import normalize_name
 from inspinia.rankings.models import normalize_whitespace
+from inspinia.rankings.services.import_protection import begin_import
+from inspinia.rankings.services.import_protection import guard_import_row
+from inspinia.rankings.services.import_protection import protected_changes
+from inspinia.rankings.services.import_protection import ranking_write_lock
+from inspinia.rankings.services.import_protection import reviewed_name_candidates
 from inspinia.users.roles import user_has_admin_role
 
 CSV_ISSUE_MESSAGE = "Unsupported upload format."
@@ -135,6 +140,7 @@ class StudentMasterImportPreview:
     matched_by_external_code: int = 0
     matched_by_full_nric: int = 0
     matched_by_name_birth_year: int = 0
+    held_count: int = 0
 
     @property
     def rows_processed(self) -> int:
@@ -154,6 +160,7 @@ class StudentMasterImportPreview:
             "matched_by_external_code": self.matched_by_external_code,
             "matched_by_full_nric": self.matched_by_full_nric,
             "matched_by_name_birth_year": self.matched_by_name_birth_year,
+            "held_count": self.held_count,
         }
 
 
@@ -162,6 +169,7 @@ class StudentMasterImportApplyResult:
     created: int
     updated: int
     skipped: int
+    held_count: int = 0
 
     def to_summary_json(self, preview: StudentMasterImportPreview) -> dict[str, Any]:
         return {
@@ -169,6 +177,8 @@ class StudentMasterImportApplyResult:
             "created": self.created,
             "updated": self.updated,
             "skipped": self.skipped,
+            "held_count": self.held_count,
+            "applied_rows": self.created + self.updated,
             "match_count": preview.match_count,
             "create_count": preview.create_count,
             "ambiguous_count": preview.ambiguous_count,
@@ -188,7 +198,9 @@ class StudentMatchResult:
     issue_message: str = ""
 
 
+@ranking_write_lock()
 def preview_student_master_import(*, import_batch: ImportBatch, actor: object | None) -> StudentMasterImportPreview:
+    begin_import(import_batch)
     raw_rows = list(_load_import_rows(import_batch.uploaded_file))
     issue_rows: list[ImportRowIssue] = []
     preview_rows: list[StudentMasterPreviewRow] = []
@@ -199,6 +211,7 @@ def preview_student_master_import(*, import_batch: ImportBatch, actor: object | 
     matched_by_external_code = 0
     matched_by_full_nric = 0
     matched_by_name_birth_year = 0
+    held_count = 0
 
     import_batch.row_issues.all().delete()
 
@@ -237,6 +250,16 @@ def preview_student_master_import(*, import_batch: ImportBatch, actor: object | 
                 matched_by_full_nric += 1
             elif match_result.strategy == "normalized_name_birth_year":
                 matched_by_name_birth_year += 1
+
+            conflicts = protected_changes("student", match_result.student.pk, _incoming_student_values(data))
+            if conflicts:
+                held_count += 1
+                issue_rows.append(ImportRowIssue(
+                    import_batch=import_batch, row_number=row_number, severity=ImportRowIssue.Severity.WARNING,
+                    issue_code="REVIEWED_VALUE_CONFLICT",
+                    message="This source row will be held for correction review.",
+                    raw_row_json={"conflicts": conflicts},
+                ))
 
             preview_rows.append(
                 StudentMasterPreviewRow(
@@ -302,6 +325,7 @@ def preview_student_master_import(*, import_batch: ImportBatch, actor: object | 
         matched_by_external_code=matched_by_external_code,
         matched_by_full_nric=matched_by_full_nric,
         matched_by_name_birth_year=matched_by_name_birth_year,
+        held_count=held_count,
     )
     import_batch.status = ImportBatch.Status.PREVIEWED
     import_batch.summary_json = preview.to_summary_json()
@@ -309,6 +333,7 @@ def preview_student_master_import(*, import_batch: ImportBatch, actor: object | 
     return preview
 
 
+@ranking_write_lock()
 def apply_student_master_import(
     *,
     preview: StudentMasterImportPreview,
@@ -318,17 +343,31 @@ def apply_student_master_import(
     if preview.import_batch_id != import_batch.id:
         msg = "Preview and batch must refer to the same import batch."
         raise ValueError(msg)
+    begin_import(import_batch)
 
     created = 0
     updated = 0
+    held = 0
 
     with transaction.atomic():
         for row in preview.rows:
+            if row.bucket in {"matched", "create"}:
+                current_match = _match_student_row(row.data, actor=actor)
+                current_id = current_match.student.pk if current_match.student else None
+                if current_match.bucket != row.bucket or current_id != row.matched_student_id:
+                    msg = "Student matches changed since preview. Create a new preview."
+                    raise ValueError(msg)
             if row.bucket == "matched":
                 if row.matched_student_id is None:
                     msg = "Matched preview rows must carry a student id."
                     raise ValueError(msg)
                 student = Student.objects.select_for_update().get(pk=row.matched_student_id)
+                values = _incoming_student_values(row.data)
+                if guard_import_row(import_batch, row.row_number, [
+                    {"kind": "student", "target_id": student.pk, "values": values},
+                ]):
+                    held += 1
+                    continue
                 _apply_row_to_student(student, row.data, actor=actor)
                 student.save()
                 updated += 1
@@ -343,16 +382,24 @@ def apply_student_master_import(
     result = StudentMasterImportApplyResult(
         created=created,
         updated=updated,
-        skipped=preview.skipped_count,
+        skipped=preview.skipped_count + held,
+        held_count=held,
     )
     import_batch.status = (
         ImportBatch.Status.PARTIAL
-        if preview.skipped_count
+        if preview.skipped_count or held
         else ImportBatch.Status.APPLIED
     )
     import_batch.summary_json = result.to_summary_json(preview)
     import_batch.save(update_fields=["status", "summary_json"])
     return result
+
+
+def _incoming_student_values(data):
+    values = {"full_name": data.full_name}
+    if data.birth_year is not None:
+        values["birth_year"] = data.birth_year
+    return values
 
 
 def _apply_row_to_student(student: Student, row: StudentMasterRowData, *, actor: object | None) -> None:
@@ -412,6 +459,17 @@ def _match_student_row(row: StudentMasterRowData, *, actor: object | None) -> St
         if result is not None:
             return result
 
+    former = list(reviewed_name_candidates(row.full_name))
+    if former:
+        # A reviewed former identity does not override another current student
+        # with the same name. Only stable identifiers or an unambiguous scoped
+        # match above can resolve such an identity.
+        current = Student.objects.filter(normalized_name=row.normalized_name)
+        candidates = {student.pk: student for student in [*current, *former]}
+        return _match_unique_students(
+            list(candidates.values()), strategy="reviewed_former_name", issue_code=AMBIGUOUS_NAME_BIRTH_YEAR,
+            issue_message="A former reviewed name matches more than one student; review identity.",
+        )
     return StudentMatchResult(bucket="create")
 
 

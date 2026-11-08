@@ -1,0 +1,16 @@
+{% if page.has_other_pages %}
+  <nav class="card-body border-top d-flex align-items-center justify-content-between gap-3"
+       aria-label="Pagination">
+    <span class="text-muted fs-sm">Page {{ page.number }} of {{ page.paginator.num_pages }}</span>
+    <div class="d-flex gap-2">
+      {% if page.has_previous %}
+        <a class="btn btn-outline-secondary btn-sm"
+           href="?{{ parameter|default:'page' }}={{ page.previous_page_number }}{% if queue_state %}&amp;state={{ queue_state|urlencode }}{% endif %}{% if queue_state == 'reports' %}&amp;report_status={{ report_status }}{% endif %}{% if selected_target %}&amp;target={{ selected_target.pk }}{% endif %}">Previous</a>
+      {% endif %}
+      {% if page.has_next %}
+        <a class="btn btn-outline-secondary btn-sm"
+           href="?{{ parameter|default:'page' }}={{ page.next_page_number }}{% if queue_state %}&amp;state={{ queue_state|urlencode }}{% endif %}{% if queue_state == 'reports' %}&amp;report_status={{ report_status }}{% endif %}{% if selected_target %}&amp;target={{ selected_target.pk }}{% endif %}">Next</a>
+      {% endif %}
+    </div>
+  </nav>
+{% endif %}

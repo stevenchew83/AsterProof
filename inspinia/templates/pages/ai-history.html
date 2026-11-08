@@ -1,0 +1,69 @@
+{% extends 'layouts/vertical.html' %}
+
+{% block title %}{{ page_title }}{% endblock title %}
+
+{% block page_content %}
+  <div class="container-fluid app-table-page">
+    <header class="page-title-head app-page-header">
+      {% url 'pages:ai_user_usage' as usage_url %}
+      {% if is_hint %}
+        {% include 'partials/page-header-intro.html' with title=page_title subtitle='Saved hints by problem and learner.' page_icon='ti-bulb' back_url=usage_url back_label='User AI usage' only %}
+      {% else %}
+        {% include 'partials/page-header-intro.html' with title=page_title subtitle='Completed AI reviews by problem and solver.' page_icon='ti-message-check' back_url=usage_url back_label='User AI usage' only %}
+      {% endif %}
+    </header>
+    <section class="card">
+      <div class="card-body">
+        <form method="get" class="app-table-filters d-flex flex-wrap align-items-end gap-2 mb-3">
+          {% if selected_user %}<input type="hidden" name="user" value="{{ selected_user.pk }}">{% endif %}
+          <div>
+            <label for="ai-history-search" class="form-label">Problem or user</label>
+            <input class="form-control form-control-sm" type="search" id="ai-history-search" name="q" value="{{ search }}" maxlength="160">
+          </div>
+          <button type="submit" class="btn btn-outline-primary btn-sm">Search</button>
+          {% if selected_user %}
+            <a class="btn btn-outline-secondary btn-sm" href="?q={{ search|urlencode }}">Show all users</a>
+            <span class="small text-body-secondary align-self-center">{{ selected_user.name|default:selected_user.email }}</span>
+          {% endif %}
+        </form>
+        <div class="app-table-region table-responsive" role="region" aria-label="{{ page_title }}" tabindex="0">
+          <table class="table app-table-compact align-middle mb-0">
+            <thead>
+              <tr><th scope="col">Problem</th><th scope="col">User</th><th scope="col">Model</th><th scope="col">Date</th><th scope="col">{% if is_hint %}Hint{% else %}Review{% endif %}</th></tr>
+            </thead>
+            <tbody>
+              {% for row in page_obj %}
+                <tr>
+                  <th scope="row">{% if row.problem_label %}{{ row.problem_label }}{% elif is_hint %}{{ row.problem_uuid }}{% endif %}</th>
+                  <td>
+                    {% if is_hint %}{% include 'pages/partials/ai-usage-user-link.html' with account=row.owner only %}
+                    {% else %}{% include 'pages/partials/ai-usage-user-link.html' with account=row.solver only %}{% endif %}
+                  </td>
+                  <td>{{ row.model }}</td>
+                  <td>{% if is_hint %}{{ row.finished_at|date:'d M Y, H:i' }}{% else %}{{ row.created_at|date:'d M Y, H:i' }}{% endif %}</td>
+                  <td>
+                    <details class="app-table-details">
+                      {% if is_hint %}
+                        <summary>{% if row.action == 'hint' %}First hint{% else %}Second hint{% endif %}</summary>
+                        <div class="app-table-details-body text-wrap text-break">{{ row.body|linebreaksbr }}</div>
+                      {% else %}
+                        <summary>{{ row.score }}/7 · {% if row.published_at %}Shared{% else %}Draft{% endif %}</summary>
+                        <div class="app-table-details-body text-wrap text-break">
+                          <p class="text-body-secondary small mb-2">Requested by {% if row.requested_by %}{{ row.requested_by.name|default:row.requested_by.email }}{% else %}Deleted account{% endif %} · {% if row.self_request %}Author request{% else %}Admin request{% endif %}</p>
+                          {{ row.feedback|linebreaksbr }}
+                        </div>
+                      {% endif %}
+                    </details>
+                  </td>
+                </tr>
+              {% empty %}
+                <tr><td colspan="5" class="text-body-secondary py-3">{% if is_hint %}No saved hints match.{% else %}No completed reviews match.{% endif %}</td></tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        {% include 'pages/partials/server-pagination.html' %}
+      </div>
+    </section>
+  </div>
+{% endblock page_content %}

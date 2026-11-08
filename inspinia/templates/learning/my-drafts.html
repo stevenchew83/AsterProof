@@ -1,0 +1,58 @@
+{% extends 'learning/base.html' %}
+
+{% block learning_content %}
+  <div class="d-flex justify-content-between gap-3 mb-3">
+    <h1 class="h2">My notes</h1>
+    <a href="{% url 'learning:new' %}" class="btn btn-primary">Draft a note</a>
+  </div>
+  <p class="text-muted">
+    Keep up to 25 active drafts. Archive finished notes to make room; their writing, proposals and published versions are retained.
+  </p>
+  <div class="row g-3">
+    <section class="col-lg-6">
+      <h2 class="h4">Private drafts</h2>
+      <div class="list-group">
+        {% for draft in drafts %}
+          <a class="list-group-item list-group-item-action"
+             href="{% url 'learning:edit' draft.pk %}">{{ draft.title }}
+            <div class="text-muted fs-xs">Saved {{ draft.updated_at|date:'M j, H:i' }} · Version {{ draft.edit_version }}</div>
+          </a>
+          <form method="post" action="{% url 'learning:archive' draft.pk %}" class="list-group-item">
+            {% csrf_token %}
+            <input type="hidden" name="edit_version" value="{{ draft.edit_version }}" />
+            <button class="btn btn-sm btn-light" name="action" value="archive">Archive {{ draft.title }}</button>
+          </form>
+        {% empty %}
+          <div class="list-group-item text-muted">Your private drafts will appear here.</div>
+        {% endfor %}
+      </div>
+    </section>
+    <section class="col-lg-6">
+      <h2 class="h4">Submitted proposals</h2>
+      <div class="list-group">
+        {% for proposal in proposals %}
+          <a class="list-group-item list-group-item-action"
+             href="{% url 'learning:proposal' proposal.pk %}">{{ proposal.revision.title }} <span class="badge text-bg-light">{{ proposal.get_status_display }}</span></a>{% empty %}
+          <div class="list-group-item text-muted">Submit a draft when it is ready for Steven’s review.</div>
+        {% endfor %}
+      </div>
+    </section>
+  </div>
+  <details class="card card-body mt-4">
+    <summary>Archived drafts</summary>
+    <div class="list-group mt-3">
+      {% for draft in archived_drafts %}
+        <form method="post"
+              action="{% url 'learning:archive' draft.pk %}"
+              class="list-group-item">
+          {% csrf_token %}
+          <input type="hidden" name="edit_version" value="{{ draft.edit_version }}" />
+          <strong>{{ draft.title }}</strong>
+          <button class="btn btn-sm btn-outline-primary" name="action" value="reopen">Reopen draft</button>
+        </form>
+      {% empty %}
+        <p class="text-muted">No archived drafts.</p>
+      {% endfor %}
+    </div>
+  </details>
+{% endblock %}

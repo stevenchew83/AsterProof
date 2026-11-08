@@ -1,33 +1,30 @@
-<article class="public-shared-paper"{% if shared_anchor %} id="{{ shared_anchor }}"{% endif %} aria-label="Shared solution">
+<article class="public-shared-paper" data-solution-image-base-url="{{ image_base_url|default:solution_media_url }}"{% if shared_anchor %} id="{{ shared_anchor }}"{% endif %} aria-label="Shared solution">
   <header>
     <p class="public-shared-kicker">A shared solution</p>
     {% if review_snapshot or shared_anchor %}<h2 class="public-shared-title">{{ snapshot.title }}</h2>{% else %}<h1>{{ snapshot.title }}</h1>{% endif %}
     {% if snapshot.author or snapshot.date %}<p class="public-shared-byline">{% if snapshot.author %}By {{ snapshot.author }}{% endif %}{% if snapshot.author and snapshot.date %} · {% endif %}{{ snapshot.date }}</p>{% endif %}
   </header>
   <section class="public-shared-problem" aria-labelledby="{% if shared_anchor %}{{ shared_anchor }}-problem{% else %}shared-problem-heading{% endif %}">
-    {% if shared_anchor %}<h3 id="{{ shared_anchor }}-problem">Problem statement</h3>{% else %}<h2 id="shared-problem-heading">Problem statement</h2>{% endif %}
-    {% if snapshot.problem.label != snapshot.title or snapshot.problem.topic %}<p class="public-shared-tags">{% if snapshot.problem.label != snapshot.title %}{{ snapshot.problem.label }}{% if snapshot.problem.topic %} · {% endif %}{% endif %}{{ snapshot.problem.topic }}</p>{% endif %}
+    {% if shared_anchor %}<h3 id="{{ shared_anchor }}-problem">{{ snapshot.problem.label }}</h3>{% else %}<h2 id="shared-problem-heading">{{ snapshot.problem.label }}</h2>{% endif %}
+    <p class="public-shared-tags">{{ snapshot.problem.topic }}</p>
     {% for segment in snapshot.problem.segments %}
       {% if segment.kind == 'text' %}<div class="public-shared-body solution-block-body-latex">{{ segment.content }}</div>
       {% elif segment.kind == 'image' %}<img class="public-shared-diagram" src="{{ segment.src }}" alt="Problem diagram" />
       {% else %}<details><summary>Diagram source</summary><p>The diagram could not be rendered. Its original source is available below.</p><pre class="tex2jax_ignore"><code>{{ segment.content }}</code></pre></details>{% endif %}
     {% empty %}<p>No catalogue statement is available for this problem.</p>{% endfor %}
   </section>
-  <section class="public-shared-solution" aria-labelledby="{% if shared_anchor %}{{ shared_anchor }}-solution{% else %}shared-solution-heading{% endif %}">
-    {% if shared_anchor %}<h3 id="{{ shared_anchor }}-solution">Solution</h3>{% else %}<h2 id="shared-solution-heading">Solution</h2>{% endif %}
-    {% if snapshot.summary %}<p class="public-shared-summary solution-block-body-latex">{{ snapshot.summary }}</p>{% endif %}
-    <div class="public-shared-blocks">
-      {% if snapshot.version == 2 %}
-      <div class="public-shared-body tex2jax_ignore" data-solution-document-source>{{ snapshot.document.source }}</div>
-      {% else %}
-      {% for block in snapshot.blocks %}
-      <section class="public-shared-block">
-        {% if shared_anchor %}<h4>{% else %}<h3>{% endif %}{% if block.heading %}{{ block.heading }}{% elif block.label %}{{ block.label }}{% else %}Step {{ forloop.counter }}{% endif %}{% if shared_anchor %}</h4>{% else %}</h3>{% endif %}
-        <div class="public-shared-body {% if block.format == 'latex' %}solution-block-body-latex{% else %}tex2jax_ignore{% endif %}">{{ block.source }}</div>
-      </section>
-      {% endfor %}
-      {% endif %}
-    </div>
-  </section>
+  {% if snapshot.summary %}<p class="public-shared-summary solution-block-body-latex">{{ snapshot.summary }}</p>{% endif %}
+  <div class="public-shared-blocks">
+    {% if snapshot.version == 2 %}
+    <div class="public-shared-body tex2jax_ignore" data-solution-document-source>{{ snapshot.document.source }}</div>
+    {% else %}
+    {% for block in snapshot.blocks %}
+    <section class="public-shared-block">
+      {% if shared_anchor %}<h3>{% else %}<h2>{% endif %}{% if block.heading %}{{ block.heading }}{% elif block.label %}{{ block.label }}{% else %}Step {{ forloop.counter }}{% endif %}{% if shared_anchor %}</h3>{% else %}</h2>{% endif %}
+      <div class="public-shared-body {% if block.format == 'latex' %}solution-block-body-latex{% else %}tex2jax_ignore{% endif %}">{{ block.source }}</div>
+    </section>
+    {% endfor %}
+    {% endif %}
+  </div>
   {% if snapshot.show_footer %}<footer class="public-shared-page-number" aria-label="Page number">1</footer>{% endif %}
 </article>

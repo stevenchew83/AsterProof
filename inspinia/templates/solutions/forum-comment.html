@@ -1,0 +1,119 @@
+<article class="card-body forum-comment" id="comment-{{ row.comment.pk }}">
+  <div class="d-flex flex-wrap align-items-center justify-content-between gap-2">
+    <h3 class="h6 mb-0">{{ row.comment.author.name|default:'AsterProof member' }}</h3>
+    <span class="text-muted fs-xs">{{ row.comment.created_at|date:'j M Y, H:i' }}
+      {% if row.comment.was_edited %}· Edited{% endif %}
+    </span>
+  </div>
+  {% if row.comment.state == 'visible' %}
+    <div class="forum-markdown mt-2">{{ row.body }}</div>
+  {% else %}
+    <p class="text-muted fst-italic mt-2 mb-0">
+      {% if row.comment.state == 'hidden' %}
+        This comment has been hidden by an admin.
+      {% else %}
+        This comment was removed by its author.
+      {% endif %}
+    </p>
+  {% endif %}
+  {% if can_discuss or is_forum_admin %}
+    <div class="forum-comment-actions mt-3">
+      {% if row.can_reply and can_discuss %}
+        <details>
+          <summary>Reply</summary>
+          <form method="post"
+                action="{% url 'solutions:forum_action' solution.pk 'comment' %}"
+                class="mt-2">
+            {% csrf_token %}
+            <input type="hidden" name="parent_id" value="{{ row.comment.pk }}" />
+            <label for="reply-{{ row.comment.pk }}" class="visually-hidden">
+              Reply to {{ row.comment.author.name|default:'member' }}
+            </label>
+            <textarea id="reply-{{ row.comment.pk }}"
+                      name="body"
+                      class="form-control"
+                      rows="3"
+                      maxlength="8000"
+                      required></textarea>
+            <button class="btn btn-primary btn-sm mt-2" type="submit">Post reply</button>
+          </form>
+        </details>
+      {% endif %}
+      {% if row.can_edit and can_discuss %}
+        <details>
+          <summary>Edit</summary>
+          <form method="post"
+                action="{% url 'solutions:forum_action' solution.pk 'edit_comment' %}"
+                class="mt-2">
+            {% csrf_token %}
+            <input type="hidden" name="comment_id" value="{{ row.comment.pk }}" />
+            <input type="hidden" name="version" value="{{ row.comment.version }}" />
+            <label for="edit-comment-{{ row.comment.pk }}" class="visually-hidden">Edit your comment</label>
+            <textarea id="edit-comment-{{ row.comment.pk }}"
+                      name="body"
+                      class="form-control"
+                      rows="3"
+                      maxlength="8000"
+                      required>{{ row.comment.body }}</textarea>
+            <button class="btn btn-primary btn-sm mt-2" type="submit">Save changes</button>
+          </form>
+        </details>
+        <form method="post"
+              action="{% url 'solutions:forum_action' solution.pk 'remove_comment' %}">
+          {% csrf_token %}
+          <input type="hidden" name="comment_id" value="{{ row.comment.pk }}" />
+          <input type="hidden" name="version" value="{{ row.comment.version }}" />
+          <button class="forum-text-button text-danger" type="submit">Remove</button>
+        </form>
+      {% endif %}
+      {% if row.can_report and can_discuss %}
+        <details>
+          <summary>Report</summary>
+          <form method="post"
+                action="{% url 'solutions:forum_action' solution.pk 'report' %}"
+                class="mt-2">
+            {% csrf_token %}
+            <input type="hidden" name="comment_id" value="{{ row.comment.pk }}" />
+            <label for="report-comment-{{ row.comment.pk }}" class="form-label">Reason for reporting</label>
+            <textarea id="report-comment-{{ row.comment.pk }}"
+                      name="reason"
+                      class="form-control"
+                      rows="2"
+                      maxlength="12000"
+                      required></textarea>
+            <button class="btn btn-outline-secondary btn-sm mt-2" type="submit">Send report</button>
+          </form>
+        </details>
+      {% endif %}
+      {% if row.can_moderate %}
+        <details>
+          <summary>
+            {% if row.comment.state == 'hidden' %}
+              Restore
+            {% else %}
+              Hide
+            {% endif %}
+          </summary>
+          <form method="post"
+                action="{% if row.comment.state == 'hidden' %}{% url 'solutions:forum_action' solution.pk 'restore_comment' %}{% else %}{% url 'solutions:forum_action' solution.pk 'hide_comment' %}{% endif %}"
+                class="mt-2">
+            {% csrf_token %}
+            <input type="hidden" name="comment_id" value="{{ row.comment.pk }}" />
+            <input type="hidden" name="version" value="{{ row.comment.version }}" />
+            <label for="moderation-comment-{{ row.comment.pk }}" class="form-label">Moderation reason</label>
+            <textarea id="moderation-comment-{{ row.comment.pk }}"
+                      name="reason"
+                      class="form-control"
+                      rows="2"
+                      required></textarea>
+            <button class="btn btn-outline-danger btn-sm mt-2" type="submit">Save moderation decision</button>
+          </form>
+        </details>
+      {% endif %}
+    </div>
+  {% endif %}
+  {% if row.comment.reply_count %}
+    <a class="d-inline-flex align-items-center gap-1 fs-sm mt-3"
+       href="{% url 'solutions:forum_comment_replies' solution.pk row.comment.pk %}"><i class="ti ti-messages" aria-hidden="true"></i>{{ row.comment.reply_count }} repl{{ row.comment.reply_count|pluralize:'y,ies' }}</a>
+  {% endif %}
+</article>

@@ -1,0 +1,400 @@
+{% extends 'layouts/vertical.html' %}
+
+{% load static %}
+
+{% block title %}
+  {{ solution_row.title }}
+{% endblock title %}
+{% block page_content %}
+  <div class="container-fluid solution-forum solution-forum-reader">
+    <header class="page-title-head app-page-header forum-heading">
+      <div class="forum-heading-content">
+        {% if solution.title %}
+          {% include 'partials/page-header-intro.html' with title=solution.title subtitle=problem_data.problem_label page_icon='ti-file-text' back_url=problem_data.solutions_url back_label='Problem workspace' only %}
+        {% else %}
+          {% include 'partials/page-header-intro.html' with title=problem_data.problem_label subtitle='Member solution' page_icon='ti-file-text' back_url=problem_data.solutions_url back_label='Problem workspace' only %}
+        {% endif %}
+        <div class="forum-byline">
+          <span class="forum-avatar" aria-hidden="true">{{ solution.author.name|default:'A'|slice:':1'|upper }}</span>
+          <span class="forum-author">{{ solution.author.name|default:'AsterProof member' }}</span>
+          <span class="forum-meta-divider" aria-hidden="true">·</span>
+          <span>Updated {{ solution.updated_at|date:'j M Y' }}</span>
+          {% if solution.current_revision_id %}
+            <span class="forum-version">v{{ solution.current_revision.sequence }}</span>
+          {% endif %}
+          <span class="forum-audience"><i class="ti ti-lock" aria-hidden="true"></i>Members only</span>
+        </div>
+      </div>
+      <div class="app-page-header-actions forum-heading-actions">
+        {% if is_author %}
+          <a href="{{ solution_row.edit_url }}" class="btn btn-primary btn-sm"><i class="ti ti-pencil me-1" aria-hidden="true"></i>Edit solution</a>
+          <a href="{{ solution_row.share_manage_url }}"
+             class="btn btn-outline-secondary btn-sm"><i class="ti ti-world me-1" aria-hidden="true"></i>Share publicly</a>
+        {% elif can_verify %}
+          <a href="#verification-tools" class="btn btn-primary btn-sm"><i class="ti ti-shield-check me-1" aria-hidden="true"></i>Review solution</a>
+        {% elif can_assess %}
+          <a href="#assessment-composer" class="btn btn-primary btn-sm"><i class="ti ti-pencil-check me-1" aria-hidden="true"></i>Add assessment</a>
+        {% endif %}
+        {% if ai_reviews %}
+          <a href="#ai-review" class="btn btn-outline-primary btn-sm"><i class="ti ti-sparkles me-1" aria-hidden="true"></i>AI review</a>
+        {% endif %}
+        {% if is_forum_admin %}
+          <a href="{% url 'solutions:forum_history' solution.pk %}"
+             class="btn btn-outline-secondary btn-sm"><i class="ti ti-history me-1" aria-hidden="true"></i>History</a>
+        {% endif %}
+      </div>
+    </header>
+    {% for message in messages %}
+      <div class="alert alert-{% if message.tags == 'error' %}danger{% else %}{{ message.tags|default:'info' }}{% endif %}"
+           role="status">{{ message }}</div>
+    {% endfor %}
+    {% if forum_error %}
+      <div class="alert alert-danger" role="alert">
+        <strong>Your change was not saved.</strong> {{ forum_error }} <a href="{% url 'solutions:solution_detail' solution.pk %}"
+    class="alert-link">Load the latest version</a>.
+      </div>
+    {% endif %}
+    {% if forum_error and retry_fields %}
+      <details class="card mb-3" open>
+        <summary class="card-body fw-semibold">Your unsaved submission</summary>
+        <form class="card-body pt-0"
+              method="post"
+              action="{% url 'solutions:forum_action' solution.pk posted_action %}">
+          {% csrf_token %}
+          {% for field in retry_fields %}
+            {% if field.label %}
+              <div class="mb-3">
+                <label class="form-label" for="retry-{{ field.name }}">{{ field.label }}</label>
+                <textarea id="retry-{{ field.name }}"
+                          class="form-control"
+                          name="{{ field.name }}"
+                          rows="3">{{ field.value }}</textarea>
+              </div>
+            {% else %}
+              <input type="hidden" name="{{ field.name }}" value="{{ field.value }}" />
+            {% endif %}
+          {% endfor %}
+          <p class="text-muted fs-sm">
+            Your original version references are preserved. If the saved proof or discussion changed, copy this text before loading the latest version.
+          </p>
+          <button class="btn btn-outline-primary btn-sm" type="submit">Submit again</button>
+        </form>
+      </details>
+    {% endif %}
+    <div class="forum-status-bar" aria-label="Assessment summary">
+      <div class="forum-status-main">
+        {% if forum_summary.verified %}
+          <span class="forum-status-pill forum-verified"><i class="ti ti-rosette-discount-check" aria-hidden="true"></i>Verified</span>
+          <span class="forum-status-detail">Verified by <strong>{{ forum_summary.decision.admin.name|default:'Admin' }}</strong><span class="forum-status-date">· {{ forum_summary.decision.created_at|date:'j M Y' }}</span></span>
+        {% else %}
+          <span class="forum-status-pill {% if forum_summary.disputed %}forum-status-warning{% else %}forum-status-neutral{% endif %}"><i class="ti {% if forum_summary.disputed %}ti-alert-circle{% else %}ti-shield-question{% endif %}"
+   aria-hidden="true"></i>{{ forum_summary.verification_label }}</span>
+          <span class="forum-status-detail">{{ forum_summary.assessment_label }}</span>
+        {% endif %}
+      </div>
+      <div class="forum-status-actions">
+        <span class="forum-publication">
+          {% if is_member_published %}
+            Published to members
+          {% else %}
+            {{ solution.get_status_display }}
+          {% endif %}
+        </span>
+        {% if can_vote %}
+          <form method="post"
+                action="{% url 'solutions:forum_action' solution.pk 'upvote' %}">
+            {% csrf_token %}
+            <input type="hidden"
+                   name="active"
+                   value="{% if has_upvoted %}0{% else %}1{% endif %}" />
+            <button type="submit"
+                    class="forum-vote {% if has_upvoted %}is-voted{% endif %}"
+                    aria-label="{% if has_upvoted %}Remove your upvote{% else %}Upvote solution{% endif %}; {{ vote_count }} upvote{{ vote_count|pluralize }}"
+                    aria-pressed="{{ has_upvoted|yesno:'true,false' }}"
+                    title="{% if has_upvoted %}Remove your upvote{% else %}Upvote this solution{% endif %}">
+              <i class="ti ti-arrow-up" aria-hidden="true"></i><span>{{ vote_count }}</span><span class="forum-vote-label">
+                {% if has_upvoted %}
+                  Upvoted
+                {% else %}
+                  Upvote
+                {% endif %}
+              </span>
+            </button>
+          </form>
+        {% else %}
+          <span class="forum-vote forum-vote-count"><i class="ti ti-arrow-up" aria-hidden="true"></i>{{ vote_count }} <span class="forum-vote-label">upvote{{ vote_count|pluralize }}</span></span>
+        {% endif %}
+      </div>
+    </div>
+    <nav class="forum-section-nav" aria-label="On this solution">
+      <a href="#solution-proof"><i class="ti ti-file-text" aria-hidden="true"></i>Solution</a>
+      <a href="#trainer-assessments"><i class="ti ti-user-check" aria-hidden="true"></i>Assessments<span class="forum-count">{{ assessment_rows|length }}</span></a>
+      <a href="#discussion"><i class="ti ti-messages" aria-hidden="true"></i>Discussion<span class="forum-count">{{ comment_page.paginator.count }}</span></a>
+      <a href="{{ problem_data.solutions_url }}" class="forum-other-solutions">Other solutions<i class="ti ti-arrow-up-right" aria-hidden="true"></i></a>
+    </nav>
+    <div class="solution-forum-layout">
+      <main class="solution-forum-main">
+        <section class="card forum-proof"
+                 id="solution-proof"
+                 aria-labelledby="forum-proof-title">
+          <details class="forum-statement">
+            <summary>
+              <span><i class="ti ti-book-2" aria-hidden="true"></i>Problem statement</span><span class="forum-disclosure-hint">View question<i class="ti ti-chevron-down" aria-hidden="true"></i></span>
+            </summary>
+            <div class="forum-statement-body">
+              {% if problem_data.statement_entry %}
+                {% include 'partials/statement-render-content.html' with segments=problem_data.statement_render_segments %}
+              {% else %}
+                <p class="text-muted mb-0">
+                  The statement is not available. <a href="{{ problem_data.solutions_url }}">Open the problem workspace</a>.
+                </p>
+              {% endif %}
+            </div>
+          </details>
+          <header class="forum-proof-heading">
+            <h2 id="forum-proof-title">Solution</h2>
+            <span><i class="ti ti-file-check" aria-hidden="true"></i>Saved
+              {% if solution.current_revision_id %}
+                version {{ solution.current_revision.sequence }}
+              {% else %}
+                proof
+              {% endif %}
+            </span>
+          </header>
+          <article class="card-body forum-proof-body" aria-label="Solution proof">
+            {% if solution.summary %}
+              <p class="forum-key-idea">
+                <span>Key idea</span>{{ solution.summary }}
+              </p>
+            {% endif %}
+            {% include 'solutions/forum-proof-content.html' with row=solution_row %}
+          </article>
+        </section>
+        {% include 'solutions/partials/admin-review-panel.html' %}
+        <section class="card forum-discourse"
+                 aria-labelledby="forum-trainer-title"
+                 id="trainer-assessments">
+          <header class="card-header forum-section-heading">
+            <div>
+              <h2 id="forum-trainer-title">
+                Trainer assessments<span class="forum-count">{{ assessment_rows|length }}</span>
+              </h2>
+              <p>Independent feedback on this saved version.</p>
+            </div>
+            <i class="ti ti-user-check" aria-hidden="true"></i>
+          </header>
+          {% for row in assessment_rows %}
+            <article class="card-body forum-assessment">
+              <div class="forum-person-heading">
+                <span class="forum-avatar" aria-hidden="true">{{ row.assessment.reviewer.name|default:'T'|slice:':1'|upper }}</span>
+                <div class="forum-person-name">
+                  <h3>{{ row.assessment.reviewer.name|default:'Former trainer' }}</h3>
+                  <span>{{ row.assessment.created_at|date:'j M Y' }} · Assessment {{ row.assessment.sequence }}</span>
+                </div>
+                <span class="forum-verdict">{{ row.assessment.get_verdict_display }}</span>
+              </div>
+              <div class="forum-markdown">{{ row.feedback }}</div>
+              {% if row.gaps or row.next_steps %}
+                <div class="forum-feedback-details">
+                  {% if row.gaps %}
+                    <div>
+                      <h4>Gaps or errors</h4>
+                      <div class="forum-markdown">{{ row.gaps }}</div>
+                    </div>
+                  {% endif %}
+                  {% if row.next_steps %}
+                    <div>
+                      <h4>Next steps</h4>
+                      <div class="forum-markdown">{{ row.next_steps }}</div>
+                    </div>
+                  {% endif %}
+                </div>
+              {% endif %}
+            </article>
+          {% empty %}
+            <div class="card-body forum-empty">
+              <span class="forum-empty-icon"><i class="ti ti-message-check" aria-hidden="true"></i></span>
+              <div>
+                <p>No assessments yet</p>
+                <span>A trainer’s feedback will appear here after review.</span>
+              </div>
+            </div>
+          {% endfor %}
+          {% if can_assess %}
+            <details class="forum-compose-disclosure"
+                     id="assessment-composer"
+                     {% if posted_action == 'assess' %}open{% endif %}>
+              <summary>
+                <span><i class="ti ti-pencil-plus" aria-hidden="true"></i>Submit or revise your assessment</span><i class="ti ti-plus" aria-hidden="true"></i>
+              </summary>
+              <div class="forum-compose-body">
+                <p class="text-muted fs-sm">Your assessment is independent. Only an admin can mark a solution Verified.</p>
+                <form method="post"
+                      action="{% url 'solutions:forum_action' solution.pk 'assess' %}"
+                      class="forum-form">
+                  {% csrf_token %}
+                  {% include 'solutions/forum-form-fields.html' with form=assessment_form %}
+                  <button class="btn btn-primary btn-sm" type="submit">Save assessment</button>
+                </form>
+              </div>
+            </details>
+          {% endif %}
+        </section>
+        <section class="card forum-discourse"
+                 aria-labelledby="forum-discussion-title"
+                 id="discussion">
+          <header class="card-header forum-section-heading">
+            <div>
+              <h2 id="forum-discussion-title">
+                Discussion<span class="forum-count">{{ comment_page.paginator.count }}</span>
+              </h2>
+              <p>Questions, improvements, and other approaches.</p>
+            </div>
+            <i class="ti ti-messages" aria-hidden="true"></i>
+          </header>
+          {% if can_discuss %}
+            <div class="card-body forum-comment-composer">
+              <form method="post"
+                    action="{% url 'solutions:forum_action' solution.pk 'comment' %}"
+                    class="forum-form">
+                {% csrf_token %}
+                {% include 'solutions/forum-form-fields.html' with form=comment_form %}
+                <div class="forum-composer-footer">
+                  <span><i class="ti ti-math-symbols" aria-hidden="true"></i>Markdown &amp; math supported</span>
+                  <button class="btn btn-primary btn-sm" type="submit">
+                    Post comment<i class="ti ti-arrow-up-right ms-1" aria-hidden="true"></i>
+                  </button>
+                </div>
+              </form>
+            </div>
+          {% endif %}
+          {% for row in comment_rows %}
+            {% include 'solutions/forum-comment.html' %}
+          {% empty %}
+            <div class="card-body forum-empty">
+              <span class="forum-empty-icon"><i class="ti ti-messages" aria-hidden="true"></i></span>
+              <div>
+                <p>Start the conversation</p>
+                <span>Ask about a step or share a useful observation.</span>
+              </div>
+            </div>
+          {% endfor %}
+          {% include 'solutions/forum-pagination.html' with page=comment_page parameter='comments_page' %}
+        </section>
+      </main>
+      <aside class="solution-forum-aside"
+             aria-label="Solution context and review tools">
+        <section class="card forum-inspector">
+          <div class="card-body">
+            <h2 class="forum-inspector-title">Review overview</h2>
+            <dl class="forum-review-facts">
+              <div>
+                <dt>Trainer verdict</dt>
+                <dd>
+                  {{ forum_summary.assessment_label }}
+                </dd>
+              </div>
+              <div>
+                <dt>Verification</dt>
+                <dd>
+                  {% if forum_summary.verified %}
+                    <span class="text-success"><i class="ti ti-rosette-discount-check" aria-hidden="true"></i>Verified</span>
+                  {% else %}
+                    {{ forum_summary.verification_label }}
+                  {% endif %}
+                </dd>
+              </div>
+            </dl>
+            {% if forum_summary.disputed %}
+              <p class="forum-review-note">
+                <i class="ti ti-alert-circle" aria-hidden="true"></i>
+                {% if forum_summary.disagreement_resolved %}
+                  An admin has adjudicated the recorded disagreement.
+                {% else %}
+                  Trainer assessments disagree. An admin can resolve the verdict.
+                {% endif %}
+              </p>
+            {% endif %}
+            {% if forum_summary.decision %}
+              <details class="forum-decision">
+                <summary>
+                  Admin decision<i class="ti ti-chevron-down" aria-hidden="true"></i>
+                </summary>
+                <div class="forum-markdown">{{ decision_reason }}</div>
+              </details>
+            {% endif %}
+            <p class="forum-inspector-footnote">Votes reflect usefulness. Verification reflects an admin’s correctness review.</p>
+          </div>
+        </section>
+        {% if is_author and is_member_published %}
+          <section class="card forum-inspector">
+            <div class="card-body">
+              <h2 class="forum-inspector-title">
+                <i class="ti ti-user-check" aria-hidden="true"></i>Trainer review
+              </h2>
+              {% if forum_summary.request %}
+                <p class="forum-review-note">
+                  {% if forum_summary.request.status == 'pending' %}
+                    Review requested. A trainer can now assess this version.
+                  {% else %}
+                    Your review request has been answered.
+                  {% endif %}
+                </p>
+              {% else %}
+                <p class="forum-review-note">Get feedback on your reasoning and next steps.</p>
+                <form method="post"
+                      action="{% url 'solutions:forum_action' solution.pk 'request_review' %}">
+                  {% csrf_token %}
+                  <input type="hidden" name="target_key" value="{{ current_target.key }}" />
+                  <button class="btn btn-outline-primary btn-sm w-100" type="submit">Request trainer review</button>
+                </form>
+              {% endif %}
+            </div>
+          </section>
+        {% endif %}
+        {% if can_verify %}
+          <section class="card forum-inspector" id="verification-tools">
+            <div class="card-body">
+              <h2 class="forum-inspector-title">
+                <i class="ti ti-shield-check" aria-hidden="true"></i>Admin verification
+              </h2>
+              <p class="forum-review-note">Check the proof and assessments before recording a decision.</p>
+              <form method="post"
+                    action="{% url 'solutions:forum_action' solution.pk 'verify' %}"
+                    class="forum-form">
+                {% csrf_token %}
+                {% include 'solutions/forum-form-fields.html' with form=verification_form %}
+                <button class="btn btn-success w-100 mb-2" type="submit">Verify correct</button>
+                <details class="forum-admin-actions">
+                  <summary>
+                    Other decisions<i class="ti ti-chevron-down" aria-hidden="true"></i>
+                  </summary>
+                  <div>
+                    <button class="btn btn-outline-secondary btn-sm w-100 mb-2"
+                            type="submit"
+                            formaction="{% url 'solutions:forum_action' solution.pk 'adjudicate' %}">
+                      Record adjudication
+                    </button>
+                    <button class="forum-text-button text-danger"
+                            type="submit"
+                            formaction="{% url 'solutions:forum_action' solution.pk 'revoke' %}">
+                      Revoke verification
+                    </button>
+                  </div>
+                </details>
+              </form>
+            </div>
+          </section>
+        {% endif %}
+        <div class="forum-members-note">
+          <i class="ti ti-lock" aria-hidden="true"></i>
+          <p>This discussion stays within the dashboard. Only the author can share a separate public copy.</p>
+        </div>
+      </aside>
+    </div>
+  </div>
+{% endblock page_content %}
+{% block extra_javascript %}
+  {% include 'solutions/forum-math.html' %}
+  {% if ai_reviews.progress_url %}{% include 'solutions/partials/admin-review-live.html' %}{% endif %}
+{% endblock extra_javascript %}

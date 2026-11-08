@@ -1,0 +1,37 @@
+[Unit]
+Description=AsterProof bounded AI Study Help worker
+Requisite=@APP_SERVICE@
+After=@APP_SERVICE@
+PartOf=@APP_SERVICE@
+
+[Service]
+Type=oneshot
+User=@APP_USER@
+WorkingDirectory=@CURRENT@
+EnvironmentFile=@ENVIRONMENT_FILE@
+Environment=DJANGO_SETTINGS_MODULE=config.settings.production
+Environment=DJANGO_READ_DOT_ENV_FILE=False
+Environment=PYTHONDONTWRITEBYTECODE=1
+ExecStart=@CURRENT@/.venv/bin/python -B manage.py process_study_help
+TimeoutStartSec=155s
+TimeoutStopSec=10s
+KillMode=control-group
+Nice=10
+CPUWeight=20
+IOWeight=20
+MemoryHigh=256M
+MemoryMax=384M
+UMask=0077
+NoNewPrivileges=true
+PrivateTmp=true
+PrivateDevices=true
+ProtectSystem=strict
+ProtectHome=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+LockPersonality=true
+RestrictRealtime=true
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
+CapabilityBoundingSet=
+AmbientCapabilities=

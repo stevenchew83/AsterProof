@@ -110,6 +110,7 @@ def test_anonymous_page_contains_all_proofs_unique_anchors_and_no_private_contex
     response = Client().get(public_collection_path(collection))
     html = response.content.decode()
     assert response.status_code == HTTPStatus.OK
+    assert "js/shared-solution-sections.js" in html
     for text in [collection.title, "An elegant proof", "Second proof", "SHARED-PROOF", "SECOND-PROOF", "Contents"]:
         assert text in html
     assert pair[0].author.email not in html

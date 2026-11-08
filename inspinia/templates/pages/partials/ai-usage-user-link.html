@@ -1,0 +1,2 @@
+<a href="{% url 'pages:ai_user_usage' %}?user={{ account.pk }}">{{ account.name|default:account.email }}</a>
+{% if account.name %}<span class="d-block small text-body-secondary">{{ account.email }}</span>{% endif %}

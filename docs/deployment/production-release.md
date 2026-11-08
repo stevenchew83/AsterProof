@@ -134,6 +134,12 @@ The manually dispatched **Production deploy** workflow still runs the complete
 test suite against the exact release SHA, validates the production lock, builds
 the offline runtime and static files, and attests one immutable release archive.
 Subsequent disclosure and deployment stages consume that same verified artifact.
+
+The build uses a checksum-pinned Cosign release and Sigstore's published
+Rekor v2 signing configuration. GitHub Actions supplies the build identity
+and SLSA predicate. The build verifies the signature, source SHA, and workflow
+before registering the bundle with GitHub. It verifies the registered
+attestation again before uploading the archive.
 All existing tests remain available; no production packaging runs for ordinary
 PRs. Shared changes may also require the complete suite during PR verification.
 Deploy and rollback remain manual and retain their production environment gate.
@@ -164,6 +170,11 @@ Both the clean Actions runtime and the server install those wheels offline with
 hash checking and source builds disabled. The original source lock, generated
 wheel lock, and wheel bytes are all included in the attested release.
 
+The ranking achievement profile allowance is documented in
+[ranking profile release](ranking-profile-release.md). It requires the separately
+installed exact two-table data-class helper, verified recovery and its durable
+reader floor.
+
 ## Dispatch and approval
 
 For a release with no migrations:
@@ -180,6 +191,8 @@ gh workflow run production-deploy.yml \
 The normal path accepts `none`; the established compatible-schema exception is: `pages.0036_concept_assignment_reviews` at the exact hash in `scripts/deployment/concept_schema.py`. The exact catalogue bundle 0037–0039 additionally has the separately authorized data-class maintenance path described below; arbitrary schema/data migrations remain disabled. The exception requires the frozen schema disclosure JSON input, exact starting/ending state/schema/migration fingerprints, a PostgreSQL 17.9 release-build rehearsal against the pinned image, unchanged prior schema/source fixture, and a passing active-revision compatibility smoke. The rehearsal proof is included in the attested archive; the operation's OIDC audience binds the disclosure to its exact artifact/release. The trusted worker checks the complete pending plan and exact migration bytes, repeats the starting audit, executes only the four-model migration with bounded locks/statements, then checks the expected ending audit before activation. A failure after entering `migrating` remains `recovery_required`; never blindly retry or infer a database rollback.
 
 The separately approved `website.0001_initial` allowance is frozen in `scripts/deployment/website_schema.py` and `scripts/deployment/tests/fixtures/website-schema-delta.json`. It creates exactly five website tables and preserves existing application records and sequence values. Its PostgreSQL 17.9 rehearsal permits only the expected single Django migration-recorder row and counter increment, then proves the active application revision still works. The disclosure binds the exact rehearsal evidence and compatibility command; other website migrations remain disabled.
+
+The `pages.0047_study_help` allowance creates exactly nine empty tables. Follow the [Study Help schema release procedure](study-help-schema.md) for its frozen proof, separate authority installation, and disabled release.
 
 Install the separately approved frozen authority update through the bootstrap procedure before submitting either schema deployment. Application releases cannot update their own authority. Keep the assignment projection disabled while installing schema and materializing the reviewed seed. The catalog-only audit command `catalog-snapshot` returns public schema/migration metadata and the server version, never application rows or credentials; store its production evidence outside source control. Compute the expected ending fingerprint using only the approved rehearsed delta and the verified starting catalog. All existing integrity, environment, registry and postflight checks remain required when `skip_ci=true`.
 

@@ -13,6 +13,7 @@ import pytest
 from scripts.deployment import postgres_runtime as runtime
 
 SOURCE = "a" * 40
+READ_ONLY_MODE = 0o444
 
 
 def artifact(tmp_path, *, changed=None, additional=None, identity=None, member_mode=None):
@@ -163,3 +164,58 @@ def test_builder_rejects_nonfixed_container_identity_before_docker_calls(tmp_pat
     monkeypatch.setattr(runtime, "_command", forbidden)
     with pytest.raises(runtime.PostgresRuntimeError, match="producer identity"):
         runtime.build_runtime("container;unexpected", output=tmp_path / "tool.tar", source_sha=SOURCE)
+
+
+def test_runtime_rebinding_requires_explicit_root_authority(tmp_path, monkeypatch):
+    monkeypatch.setattr(runtime.os, "geteuid", lambda: 1000)
+    with pytest.raises(runtime.PostgresRuntimeError, match="root and the exact previous"):
+        runtime.rebind_identical_runtime(
+            tmp_path / "unused", expected_sha256="b" * 64,
+            expected_source_sha=SOURCE, previous_source_sha="c" * 40,
+        )
+
+
+@pytest.mark.parametrize("changed", [None, "files", "image", "install_root"])
+def test_runtime_rebinding_updates_only_provenance_after_exact_byte_verification(tmp_path, monkeypatch, changed):
+    from types import SimpleNamespace
+
+    root = tmp_path / "installed"
+    root.mkdir()
+    previous = {"source_sha": "c" * 40, "files": [{"path": "synthetic", "sha256": "b" * 64}],
+                "image": runtime.IMAGE, "install_root": str(root)}
+    proposed = {**previous, "source_sha": SOURCE}
+    if changed:
+        proposed[changed] = [] if changed == "files" else "changed"
+    metadata = root / runtime.MANIFEST
+    original = json.dumps(previous).encode()
+    metadata.write_bytes(original)
+    archive = tmp_path / "verified.tar"
+    archive.write_bytes(b"synthetic archive")
+    monkeypatch.setattr(runtime, "INSTALL_ROOT", root)
+    monkeypatch.setattr(runtime.os, "geteuid", lambda: 0)
+    monkeypatch.setattr(runtime.os, "fstat", lambda descriptor: SimpleNamespace(
+        st_mode=0o100444, st_uid=0, st_nlink=1,
+    ))
+    monkeypatch.setattr(runtime, "_validate", lambda *args, **kwargs: proposed)
+    checked = []
+
+    def verify(*, source_sha):
+        value = json.loads(metadata.read_bytes())
+        assert value["source_sha"] == source_sha
+        checked.append(source_sha)
+        return value
+
+    monkeypatch.setattr(runtime, "verify_installed_runtime", verify)
+    options = {"expected_sha256": "b" * 64, "expected_source_sha": SOURCE, "previous_source_sha": "c" * 40}
+    if changed:
+        with pytest.raises(runtime.PostgresRuntimeError, match="cannot change software"):
+            runtime.rebind_identical_runtime(archive, **options)
+        assert metadata.read_bytes() == original
+        assert checked == ["c" * 40]
+    else:
+        result = runtime.rebind_identical_runtime(archive, **options)
+        assert result["state"] == "rebound_identical"
+        assert json.loads(metadata.read_bytes()) == proposed
+        assert checked == ["c" * 40, SOURCE]
+        assert metadata.stat().st_mode & 0o777 == READ_ONLY_MODE
+        assert not (root / ".runtime-manifest.next").exists()

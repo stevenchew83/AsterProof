@@ -116,7 +116,8 @@ def test_robots_and_sitemaps_use_configured_origin_instead_of_request_host(clien
     assert "Sitemap: https://canonical.example/sitemap.xml" in robots.content.decode()
     index = locations(client.get(reverse("website:sitemap")))
     assert index == {
-        f"https://canonical.example/sitemap-{section}.xml" for section in ("pages", "areas", "concepts", "lectures")
+        f"https://canonical.example/sitemap-{section}.xml"
+        for section in ("pages", "areas", "concepts", "lectures", "notes", "pathways")
     }
     pages = locations(client.get(reverse("website:sitemap_section", kwargs={"section": "pages"})))
     assert "https://canonical.example/" in pages

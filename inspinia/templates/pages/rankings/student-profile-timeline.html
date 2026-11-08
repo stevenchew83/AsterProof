@@ -1,0 +1,14 @@
+<section class="student-timeline" data-student-timeline aria-labelledby="student-timeline-title" {% if kind != 'groups' %}hidden{% endif %}>
+  <h2 class="student-section-title" id="student-timeline-title">Group &amp; selection history</h2>
+  <p class="student-muted mt-2">{{ timeline_count }} recorded events</p>
+  {% if timeline %}
+  <div id="student-timeline-history" class="student-full-history">
+    <p class="student-muted mt-2">Records can use different group schemes. Year-only records share a bucket; their order does not establish an event sequence.</p>
+    <ol class="student-event-list">
+      {% for bucket in timeline %}<li><h3>{{ bucket.label }} <span class="student-muted">{{ bucket.precision }}</span></h3><ul>
+        {% for event in bucket.events %}<li><strong>{{ event.label }}</strong><span>{{ event.assessment }}{% if event.division %} · {{ event.division }}{% endif %}</span><span class="student-muted">{{ event.origin }} · {{ event.source|default:'Source not recorded' }}</span></li>{% endfor %}
+      </ul></li>{% endfor %}
+    </ol>
+  </div>
+  {% else %}<p class="text-muted mb-0">No group or selection events recorded.</p>{% endif %}
+</section>

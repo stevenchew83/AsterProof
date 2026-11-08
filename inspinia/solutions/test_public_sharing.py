@@ -111,7 +111,9 @@ def test_saving_or_publishing_does_not_automatically_create_a_public_link(client
 
 def test_creation_is_explicit_keeps_status_and_progress_and_snapshots_order(client, writing):
     review = client.get(share_path(writing))
-    assert "Review saved version" in review.content.decode()
+    review_html = review.content.decode()
+    assert "Review saved version" in review_html
+    assert "js/shared-solution-sections.js" in review_html
     share = create_share(client, writing)
     writing.refresh_from_db()
     assert share.is_active
@@ -133,6 +135,7 @@ def test_anonymous_reading_has_server_metadata_and_no_private_context(client, wr
     response = Client().get(public_path(share))
     html = response.content.decode()
     assert response.status_code == HTTPStatus.OK
+    assert "js/shared-solution-sections.js" in html
     for expected in ["An elegant proof", "SHARED-PROOF", "SHARING TEST", "Algebra", "Ada Learner"]:
         assert expected in html
     for hidden in ["MOHS", "Areas &amp; concepts", "Hidden training area", "Hidden training concept"]:

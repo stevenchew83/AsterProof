@@ -50,6 +50,11 @@ shell through `AccountAdapter.render_mail`, retaining their original instruction
 security details, recipients, and headers. The site's signup email-verification
 policy is unchanged.
 
+When an administrator publishes [an AI solution review](solutions/admin-ai-review.md),
+AsterProof queues a notification using the same branded shell and inline logo.
+The email includes the published score out of 7 and links to the signed-in
+review. The proof and written feedback are not included in the email.
+
 ## Optional email sign-in codes
 
 Password sign-in remains available. Users can choose **Email me a sign-in code**

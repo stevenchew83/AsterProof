@@ -1,0 +1,60 @@
+{% extends 'layouts/vertical.html' %}
+
+{% block title %}Import olympiad sheet{% endblock title %}
+
+{% block page_content %}
+<div class="container-fluid app-table-page">
+  {% include 'partials/page-title.html' with title='Import olympiad sheet' subtitle='Rankings' page_icon='ti-upload' %}
+  {% include 'pages/rankings/result-navigation.html' with current='import' only %}
+  {% include 'pages/rankings/result-messages.html' %}
+  {% if preview %}
+  <div class="card mt-0">
+    <div class="card-header border-0 pb-0">
+      <h2 class="header-title mb-1">Review {{ preview.label }}</h2>
+      <p class="text-muted fs-sm mb-0">{{ preview.student_count }} student{{ preview.student_count|pluralize }} · {{ preview.new_students }} new · {{ preview.result_count }} result{{ preview.result_count|pluralize }} · {{ preview.skipped_rows }} blank or repeated-header rows skipped</p>
+    </div>
+    <div class="card-body pt-2">
+      {% if preview.name_only_matches %}<div class="alert alert-warning" role="alert">{{ preview.name_only_matches }} students match by name only. Review these identities before applying.</div>{% endif %}
+      {% if preview.held_count %}<div class="alert alert-warning" role="status">{{ preview.held_count }} source rows conflict with approved corrections and will be held unchanged. Other source rows can apply. <a href="{% url 'rankings:correction_queue' %}" class="alert-link">Review corrections</a></div>{% endif %}
+      <details class="mb-3" open><summary class="fw-semibold">Column mapping and excluded information</summary>
+        <ul class="mt-2 mb-2">{% for exclusion in preview.exclusions %}<li>{{ exclusion }}</li>{% endfor %}</ul>
+        <ul class="text-muted fs-sm mb-0">{% for mapping in preview.mappings %}<li>{{ mapping }}</li>{% endfor %}</ul>
+      </details>
+      {% if preview.warnings %}<details class="mb-3"><summary>{{ preview.warnings|length }} source warnings</summary><ul class="mt-2">{% for warning in preview.warnings %}<li>{{ warning }}</li>{% endfor %}</ul></details>{% endif %}
+      <div class="app-table-region table-responsive" tabindex="0" role="region" aria-label="Student import preview">
+        <table class="app-table-compact table table-striped align-middle mb-0">
+          <thead><tr><th scope="col">Source row</th><th scope="col">Student</th><th scope="col">Birth year</th><th scope="col">School in list</th><th scope="col">Match</th><th scope="col">Results</th></tr></thead>
+          <tbody>{% for row in page_obj %}<tr>
+            <td>{{ row.source_row }}{% if row.protection_conflicts %}<span class="badge bg-warning-subtle text-warning-emphasis ms-1">Will be held</span>{% endif %}</td><td>{% if row.student_id %}<a href="{% url 'rankings:student_detail' row.student_id %}">{{ row.name }}</a>{% else %}{{ row.name }}{% endif %}</td>
+            <td>{{ row.birth_year|default_if_none:'—' }}</td><td>{{ row.school|default:'—' }}{% if row.existing_school and row.existing_school != row.school %}<span class="app-table-meta">Kept school: {{ row.existing_school }}</span>{% endif %}</td><td>{{ row.match }}</td>
+            <td><details class="app-table-details"><summary>{{ row.results|length }} result{{ row.results|length|pluralize }}</summary><div class="app-table-details-body"><ul class="mb-0">{% for result in row.results %}<li>{{ result.label }}: {% if result.raw_score is not None %}{{ result.raw_score }}{% endif %} {{ result.medal }} {{ result.band }} {{ result.status_text }}{% if result.remarks %} · {{ result.remarks }}{% endif %}{% if result.previous %}<span class="d-block text-muted">Existing: {{ result.previous.raw_score|default_if_none:'' }} {{ result.previous.medal }} {{ result.previous.band }} {{ result.previous.status_text }} {{ result.previous.remarks }}</span>{% endif %}</li>{% endfor %}</ul></div></details></td>
+          </tr>{% endfor %}</tbody>
+        </table>
+      </div>
+      {% include 'pages/rankings/result-pagination.html' with item_label='student' %}
+      <form method="post" class="mt-4">
+        {% csrf_token %}<input type="hidden" name="action" value="apply"><input type="hidden" name="batch_id" value="{{ batch.pk }}">
+        <div class="form-check mb-3"><input class="form-check-input" id="confirm-sheet" type="checkbox" name="confirm" value="yes" required><label class="form-check-label" for="confirm-sheet">I reviewed the column mapping, excluded information and student matches. Supplied values may replace existing results for the same student and assessment. Empty values will keep existing information.</label></div>
+        <button class="btn btn-primary" type="submit"><i class="ti ti-check me-1" aria-hidden="true"></i>Apply reviewed import</button>
+        <a href="{% url 'rankings:olympiad_sheet_import' %}" class="btn btn-outline-secondary">Start another preview</a>
+      </form>
+    </div>
+  </div>
+  {% else %}
+  <div class="card mt-0">
+    <div class="card-header border-0 pb-0"><h2 class="header-title mb-1">Preview a history sheet or IMONST2 result list</h2><p class="text-muted fs-sm mb-0">Upload UTF-8 tab-separated text or CSV, or paste directly from your sheet. Keep the original column headers and column order. Maximum 2 MB and 2,000 rows.</p></div>
+    <div class="card-body pt-2">
+      <p class="text-muted fs-sm">The preview saves no student or assessment changes. NRICs and free-form notes are excluded from the stored preview. Existing student information is kept when a source field is empty; a populated school is kept if the new list differs.</p>
+      {% if batch %}<div class="alert alert-info">This batch is {{ batch.get_status_display|lower }}. Upload a new sheet for another preview.</div>{% endif %}
+      <form method="post" enctype="multipart/form-data">
+        {% csrf_token %}
+        {% for error in form.non_field_errors %}<div class="alert alert-danger" role="alert">{{ error }}</div>{% endfor %}
+        <div class="mb-3"><label class="form-label" for="{{ form.file.id_for_label }}">{{ form.file.label }}</label>{{ form.file }}{{ form.file.errors }}</div>
+        <div class="mb-3"><label class="form-label" for="{{ form.text.id_for_label }}">{{ form.text.label }}</label>{{ form.text }}{{ form.text.errors }}</div>
+        <button class="btn btn-primary" type="submit"><i class="ti ti-eye me-1" aria-hidden="true"></i>Preview import</button>
+      </form>
+    </div>
+  </div>
+  {% endif %}
+</div>
+{% endblock page_content %}

@@ -2,24 +2,25 @@
 .completion-record-page {
     padding-bottom: 1.5rem;
 
-    .completion-record-overview { display: flex; align-items: center; justify-content: space-between; gap: 1.25rem; padding: .5rem .25rem 1.25rem; }
+    .completion-record-overview { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: .5rem 1.25rem; padding: .625rem 1rem; border-bottom: 1px solid var(--ins-border-color); }
     .completion-record-metrics {
-        display: flex;
-        gap: clamp(1.5rem, 3vw, 3rem);
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 0;
         margin: 0;
-        dt { color: var(--ins-secondary-color); font-size: .75rem; font-weight: 500; }
-        dd { display: flex; align-items: center; gap: .5rem; margin: .125rem 0 0; font-size: 1.625rem; font-weight: 600; line-height: 1.25; font-variant-numeric: tabular-nums; }
-        i { font-size: 1rem; }
+        > div { display: flex; flex-direction: column; min-width: 0; padding-inline: .75rem; }
+        > div:first-child { padding-inline-start: 0; }
+        > div + div { border-inline-start: 1px solid var(--ins-border-color); }
+        dt { color: var(--ins-secondary-color); font-size: .75rem; font-weight: 500; line-height: 1.2; }
+        dd { margin: auto 0 0; padding-top: .15rem; color: var(--ins-emphasis-color); font-size: 1.25rem; font-weight: 600; line-height: 1.15; font-variant-numeric: tabular-nums; }
+        > div:first-child dd { color: var(--ins-primary-text-emphasis); }
     }
-    .completion-record-overview-meta { display: flex; flex-direction: column; gap: .25rem; text-align: end; color: var(--ins-secondary-color); font-size: .75rem; }
+    .completion-record-overview-meta { display: flex; flex-wrap: wrap; align-items: baseline; gap: .25rem .75rem; color: var(--ins-secondary-color); font-size: .75rem; }
     .completion-record-workspace { border: 1px solid var(--ins-border-color); box-shadow: none; }
-    .completion-record-workspace-header { display: flex; justify-content: space-between; align-items: center; gap: 1rem; padding: .875rem 1.25rem; border-bottom: 1px solid var(--ins-border-color); }
-    .header-title { font-size: .9375rem; font-weight: 600; }
-    .completion-record-admin-note { display: inline-flex; align-items: center; gap: .375rem; color: var(--ins-secondary-color); font-size: .75rem; white-space: nowrap; }
-    .completion-record-filter-panel { padding: 1rem 1.25rem; background: rgba(var(--ins-tertiary-bg-rgb), .4); border-bottom: 1px solid var(--ins-border-color); }
-    .completion-record-primary-filters { display: flex; flex-wrap: wrap; align-items: end; gap: .75rem; }
-    .completion-record-primary-filters > div { flex: 1 1 10rem; min-width: 0; }
-    .completion-record-primary-filters .completion-record-search { flex: 1.5 1 14rem; }
+    .completion-record-filter-panel { padding: .625rem 1rem; background: rgba(var(--ins-tertiary-bg-rgb), .4); border-bottom: 1px solid var(--ins-border-color); }
+    .completion-record-primary-filters { display: flex; flex-wrap: wrap; align-items: end; gap: .5rem .625rem; }
+    .completion-record-primary-filters > div { flex: 1 1 8.5rem; min-width: 0; }
+    .completion-record-primary-filters .completion-record-search { flex: 1.5 1 12rem; }
     .completion-record-primary-filters .completion-record-filter-buttons { flex: 0 0 auto; }
     .completion-record-filters {
         .form-label { font-weight: 500; }
@@ -37,36 +38,57 @@
     .completion-record-filter-actions .btn { display: inline-flex; align-items: center; white-space: nowrap; }
     .completion-record-user-status { margin-bottom: 0; }
     .completion-record-advanced-fields { border-top: 1px solid var(--ins-border-color); margin-top: .875rem; padding-top: .875rem; }
-    .completion-record-filter-chips { margin-top: .875rem; }
+    .completion-record-shortcuts { display: flex; flex-wrap: wrap; align-items: center; gap: .375rem 1rem; margin-top: .5rem; }
+    .completion-record-shortcut { padding: .25rem .55rem; font-size: .75rem; }
+    .completion-record-shortcut.btn-light, .completion-record-filter-actions .btn-light, .completion-record-detail-toggle {
+        --ins-btn-color: var(--ins-emphasis-color);
+        --ins-btn-bg: var(--ins-tertiary-bg);
+        --ins-btn-border-color: var(--ins-border-color);
+        --ins-btn-hover-color: var(--ins-emphasis-color);
+        --ins-btn-hover-bg: var(--ins-secondary-bg);
+        --ins-btn-hover-border-color: var(--ins-secondary-color);
+    }
+    .completion-record-filter-chips { min-width: 0; }
     .completion-record-filter-chip { display: inline-flex; align-items: center; gap: .375rem; max-width: 100%; padding: .375rem .5rem; white-space: normal; overflow-wrap: anywhere; }
-    .completion-record-results { padding: .75rem 1.25rem .5rem; }
+    .completion-record-results { padding: .25rem 1rem .375rem; }
     .completion-record-scope-note { color: var(--ins-secondary-color); font-size: .75rem; padding-block: .5rem; }
     .table-responsive { container-type: inline-size; }
     .dt-container {
         .dt-search, .dt-length { color: var(--ins-secondary-color); font-size: .75rem; }
         .dt-search input { font-size: .8125rem; }
-        .dt-layout-start:has(.dt-length) { display: flex; flex-wrap: wrap; gap: .5rem 1rem; }
+        .dt-layout-end:has(.dt-info) { display: flex; flex-wrap: wrap; align-items: center; gap: .375rem .75rem; }
+        .dt-layout-end:has(.dt-info) > * { margin: 0; }
+        .dt-info { padding: 0; }
+        .dt-paging .pagination {
+            --ins-pagination-color: var(--ins-emphasis-color);
+            --ins-pagination-bg: var(--ins-secondary-bg);
+            --ins-pagination-hover-bg: var(--ins-tertiary-bg);
+            --ins-pagination-disabled-bg: var(--ins-tertiary-bg);
+        }
     }
 
     #completion-record-table { table-layout: fixed; min-width: 940px; }
-    #completion-record-table > thead > tr > th { padding: .75rem .625rem; font-size: .6875rem; font-weight: 600; }
-    #completion-record-table > tbody > tr > td { padding: .625rem; white-space: nowrap; vertical-align: middle; }
+    #completion-record-table > thead > tr > th { padding: .55rem .5rem; font-size: .6875rem; font-weight: 600; }
+    #completion-record-table > tbody > tr > td { padding: .4rem .5rem; white-space: nowrap; vertical-align: middle; }
     #completion-record-table tbody > tr.shown > td { background: var(--ins-primary-bg-subtle); }
-    #completion-record-table th:first-child, #completion-record-table td:first-child { text-align: center; width: 5%; }
+    #completion-record-table th:first-child, #completion-record-table td:first-child { text-align: center; width: 4%; }
     .completion-record-detail-toggle { display: inline-flex; align-items: center; justify-content: center; height: 1.625rem; width: 1.625rem; padding: .25rem; }
     .completion-record-ellipsis { display: block; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     .completion-record-problem-link { display: flex; align-items: baseline; gap: .375rem; min-width: 0; }
     .completion-record-problem-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     .completion-record-problem-code { flex: 0 0 auto; color: var(--ins-secondary-color); font-size: .75rem; }
-    .completion-record-user-cell { width: 15%; }
-    .completion-record-problem-cell { width: 22%; }
+    .completion-record-user-cell { width: 14%; }
+    .completion-record-problem-cell { width: 19%; }
     .completion-record-topic-cell { width: 9%; color: var(--ins-secondary-color); }
     .completion-record-area-cell { width: 12%; color: var(--ins-secondary-color); }
     .completion-record-mohs-cell { width: 6%; font-variant-numeric: tabular-nums; text-align: right; }
-    .completion-record-status-cell { width: 11%; }
-    .completion-record-completed-cell { width: 10%; font-variant-numeric: tabular-nums; }
-    .completion-record-solution-cell { width: 10%; }
+    .completion-record-status-cell { width: 8%; }
+    .completion-record-completed-cell { width: 9%; font-variant-numeric: tabular-nums; }
+    .completion-record-solution-cell { width: 8%; }
+    .completion-record-ai-review-cell { width: 11%; }
     .completion-record-user-identity { display: flex; align-items: center; gap: .5rem; min-width: 0; }
+    .completion-record-user-label { min-width: 0; }
+    .completion-record-mobile-status { display: block; color: var(--ins-secondary-color); font-size: .6875rem; }
     .completion-record-avatar { display: inline-flex; align-items: center; justify-content: center; flex: 0 0 1.625rem; height: 1.625rem; background: var(--ins-tertiary-bg); color: var(--ins-secondary-color); border: 1px solid var(--ins-border-color); border-radius: 50%; font-size: .625rem; font-weight: 600; }
     .completion-record-area-value { display: flex; gap: .35rem; align-items: center; min-width: 0; }
     .completion-record-area-value .badge { flex-shrink: 0; }
@@ -157,14 +179,7 @@
     @media (max-width: 1399.98px) {
         .completion-record-avatar { display: none; }
     }
-    @media (max-width: 1199.98px) {
-        .completion-record-primary-filters .completion-record-search { flex-basis: 12rem; }
-        .completion-record-primary-filters .completion-record-filter-buttons { flex: 1 1 100%; }
-    }
     @media (max-width: 991.98px) {
-        .completion-record-overview { align-items: start; flex-direction: column; gap: .75rem; }
-        .completion-record-overview-meta { flex-direction: row; flex-wrap: wrap; gap: .25rem 1rem; text-align: start; }
-        .completion-record-metrics { width: 100%; justify-content: space-between; }
         #completion-record-table { min-width: 800px; }
         .completion-record-problem-cell { width: 29%; }
         .completion-record-user-cell { width: 20%; }
@@ -175,21 +190,30 @@
         .completion-record-detail-review .completion-record-detail-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
     }
     @media (max-width: 575.98px) {
-        .completion-record-metrics { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: .625rem; }
-        .completion-record-metrics dt { font-size: .6875rem; min-height: 2.8em; }
-        .completion-record-metrics dd { font-size: 1.375rem; }
-        .completion-record-metrics i { display: none; }
-        .completion-record-admin-note { display: none; }
-        .completion-record-workspace-header, .completion-record-filter-panel { padding: .875rem; }
-        .completion-record-results { padding-inline: .875rem; }
+        .app-page-header { gap: .5rem; }
+        .app-page-header-intro { flex-basis: 0; }
+        .app-page-header-title { font-size: 1.125rem; }
+        .app-page-header-icon { display: none; }
+        .completion-record-metrics { width: 100%; }
+        .completion-record-metrics > div { padding-inline: .45rem; }
+        .completion-record-metrics dt { font-size: .6875rem; }
+        .completion-record-metrics dd { font-size: 1.125rem; }
+        .completion-record-overview, .completion-record-filter-panel, .completion-record-results { padding-inline: .625rem; }
         .completion-record-primary-filters .completion-record-search { flex-basis: 100%; }
         .completion-record-primary-filters > .completion-record-contest,
         .completion-record-primary-filters > .completion-record-user-filter { flex-basis: calc(50% - .375rem); }
         .completion-record-filter-actions { gap: .375rem !important; }
         .completion-record-filters .btn { padding-inline: .5rem; }
-        .dt-container .dt-search { flex-wrap: wrap; }
-        .dt-container .dt-search input { flex-basis: 100%; }
-        #completion-record-table { min-width: 680px; }
+        .dt-container .dt-search { display: flex; align-items: center; gap: .375rem; }
+        .dt-container .dt-search input { min-width: 0; margin: 0; }
+        .dt-container .dt-layout-end:has(.dt-info) { justify-content: space-between; }
+        .dt-container .dt-layout-end:has(.dt-info) .dt-paging { width: auto; }
+        #completion-record-table { min-width: 0; }
+        #completion-record-table th:first-child, #completion-record-table td:first-child { width: 2.5rem; }
+        .completion-record-problem-cell { width: 50%; }
+        .completion-record-user-cell { width: auto; }
+        .completion-record-problem-link { flex-direction: column; gap: 0; align-items: stretch; }
+        .completion-record-user-label .completion-record-ellipsis { white-space: normal; overflow-wrap: anywhere; }
         .completion-record-detail-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
         .completion-record-detail-review { grid-template-columns: 1fr; }
         .completion-record-detail-context { grid-template-columns: repeat(2, minmax(0, 1fr)); }
