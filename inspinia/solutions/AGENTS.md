@@ -11,7 +11,7 @@ This app owns user-authored problem solutions and their block structure.
 
 ## Invariants
 
-- V1 enforces at most one solution per `(problem, author)`.
+- A user can save multiple independent solutions for one problem. Problem-only authoring routes target the original solution. Routes for an individual saved solution must use its ID.
 - Block order is explicit through `position`; do not infer it from timestamps.
 - Block `title` is free-form display text. Do not promote transition words like `Therefore` or `Hence` into schema-only meaning.
 - `body_format` controls rendering expectations. Do not assume all stored content is valid LaTeX.

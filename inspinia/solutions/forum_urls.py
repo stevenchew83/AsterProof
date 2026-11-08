@@ -34,6 +34,10 @@ urlpatterns = [
     # Register private authoring routes through this include so the reviewed image routes stay frozen.
     path("problems/<uuid:problem_uuid>/draft/autosave/", draft_autosave_view, name="problem_solution_autosave"),
     path(
+        "problems/<uuid:problem_uuid>/entries/<int:solution_pk>/autosave/",
+        draft_autosave_view, name="problem_solution_autosave",
+    ),
+    path(
         "evaluation/snapshots/<uuid:snapshot_id>/protocols/new/",
         evaluation.evaluation_protocol_create,
         name="evaluation_protocol_create",

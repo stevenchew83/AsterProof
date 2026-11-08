@@ -28,7 +28,7 @@ def _statement_backed_problem_rows(user) -> tuple[list[dict], dict[str, bool | i
         str(row["problem__problem_uuid"]): row["status"]
         for row in ProblemSolution.objects.filter(
             author=user, problem__problem_uuid__in=[row["problem_uuid"] for row in candidates],
-        ).values("problem__problem_uuid", "status")
+        ).order_by("updated_at", "pk").values("problem__problem_uuid", "status")
     }
     texts = dict(ContestProblemStatement.objects.filter(
         statement_uuid__in=[row["statement_uuid"] for row in candidates if row["statement_uuid"]],
@@ -37,20 +37,21 @@ def _statement_backed_problem_rows(user) -> tuple[list[dict], dict[str, bool | i
     rows = []
     for row in sorted(candidates, key=lambda row: (-row["contest_year"], row["contest_name"], row["problem_code"])):
         status = statuses.get(row["problem_uuid"], "")
-        can_start = bool(row["solution_start_url"])
+        start_url = row["solution_start_url"] if not status else ""
+        problem_url = reverse("solutions:problem_solution_list", args=[row["problem_uuid"]]) if not start_url else ""
         rows.append({
             "contest_archive_url": (
                 reverse("pages:problem_statement_list") + "?" + urlencode({"q": row["problem_uuid"]})
             ),
-            "editor_button_label": "Continue solution" if status else "Start solution",
-            "editor_url": (
-                "" if can_start else reverse("solutions:problem_solution_edit", args=[row["problem_uuid"]])
+            "editor_button_label": "My solutions" if status else "Start solution",
+            "editor_url": problem_url if status else (
+                "" if start_url else reverse("solutions:problem_solution_edit", args=[row["problem_uuid"]])
             ),
-            "solution_start_url": row["solution_start_url"],
+            "solution_start_url": start_url,
             "has_solution": bool(status), "has_statement": row["has_statement"],
             "problem_label": row["contest_year_problem"],
             "problem_topic": row["linked_problem_topic"], "problem_mohs": row["linked_problem_mohs"],
-            "problem_url": "" if can_start else reverse("solutions:problem_solution_list", args=[row["problem_uuid"]]),
+            "problem_url": problem_url,
             "solution_status_badge_class": _solution_status_badge(status) if status else "text-bg-light",
             "solution_status_label": ProblemSolution.Status(status).label if status else "Not started",
             "statement_label": row["problem_code"] if row["has_statement"] else "Statement missing",

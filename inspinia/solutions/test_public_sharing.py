@@ -6,6 +6,7 @@ from http import HTTPStatus
 from io import BytesIO
 
 import pytest
+from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import Client
 from django.urls import reverse
 from PIL import Image
@@ -16,6 +17,7 @@ from inspinia.pages.models import UserProblemCompletion
 from inspinia.solutions.models import ProblemSolution
 from inspinia.solutions.models import ProblemSolutionBlock
 from inspinia.solutions.models import SolutionBlockType
+from inspinia.solutions.models import SolutionBodyImage
 from inspinia.solutions.models import SolutionPublicShare
 from inspinia.solutions.revisions import editor_context
 from inspinia.solutions.sharing import public_preview_image
@@ -438,7 +440,7 @@ def test_invalid_snapshot_never_replaces_an_active_shared_version(client, writin
 def test_editor_exposes_sharing_only_after_save(client, writing):
     editor = reverse("solutions:problem_solution_edit", args=[writing.problem.problem_uuid])
     html = client.get(editor).content.decode()
-    assert share_path(writing) in html
+    assert reverse("solutions:problem_solution_share", args=[writing.problem.problem_uuid, writing.pk]) in html
     assert "Share solution" in html
     create_share(client, writing)
     assert "Manage the public link" in client.get(editor).content.decode()
@@ -456,10 +458,112 @@ def test_my_solutions_labels_public_copy_separately_and_keeps_correct_block_coun
     assert row["block_count"] == writing.blocks.count()
     assert row["status_label"] == "Draft"
     assert "Public link active" in response.content.decode()
-    assert share_path(writing) in response.content.decode()
+    assert row["share_manage_url"] == reverse(
+        "solutions:problem_solution_share", args=[writing.problem.problem_uuid, writing.pk],
+    )
+    assert row["share_manage_url"] in response.content.decode()
     client.post(share_path(writing), sharing_data(client, writing, "stop"))
     response = client.get(path)
     assert "Public link active" not in response.content.decode()
     assert "Manage link" not in response.content.decode()
     share.refresh_from_db()
     assert not share.is_active
+
+
+def test_additional_solution_is_private_and_can_be_shared_independently(client, writing):
+    original_share = create_share(client, writing)
+    problem_uuid = writing.problem.problem_uuid
+    listing = reverse("solutions:problem_solution_list", args=[problem_uuid])
+    add = reverse("solutions:problem_solution_add", args=[problem_uuid])
+    page = client.get(listing)
+    data = {"draft_key": page.context["additional_draft_key"]}
+    response = client.post(add, data)
+    additional = ProblemSolution.objects.exclude(pk=writing.pk).get(problem=writing.problem, author=writing.author)
+    editor = reverse("solutions:problem_solution_edit", args=[problem_uuid, additional.pk])
+    assert response.url == editor
+    assert client.post(add, data).url == editor
+    assert ProblemSolution.objects.filter(problem=writing.problem, author=writing.author).count() == 2  # noqa: PLR2004
+    assert additional.status == ProblemSolution.Status.DRAFT
+    assert not UserProblemCompletion.objects.exists()
+
+    original_edit = reverse("solutions:problem_solution_edit", args=[problem_uuid])
+    assert client.get(original_edit).context["form"].instance.pk == writing.pk
+    assert client.get(editor).context["form"].instance.pk == additional.pk
+    assert "Save private draft" in client.get(editor).content.decode()
+    old_first_form = saved_editor_data(writing)
+    unsaved_first = ProblemSolution(problem=writing.problem, author=writing.author)
+    blank_first_form = {
+        **old_first_form, "solution-base_version": "0",
+        "solution-editor_context": editor_context(writing.author, problem_uuid, solution=unsaved_first),
+    }
+    for wrong_editor_form in (old_first_form, blank_first_form):
+        rejected = client.post(editor, wrong_editor_form, HTTP_X_REQUESTED_WITH="XMLHttpRequest")
+        assert rejected.status_code == HTTPStatus.CONFLICT
+    assert client.post(editor, saved_editor_data(additional, title="Coordinate proof")).url == editor
+
+    page = client.get(listing)
+    assert {row["title"] for row in page.context["my_solution_rows"]} == {"An elegant proof", "Coordinate proof"}
+    member = Client()
+    member.force_login(UserFactory())
+    assert b"Coordinate proof" not in member.get(listing).content
+    assert member.get(editor).status_code == HTTPStatus.NOT_FOUND
+    detail = reverse("solutions:solution_detail", args=[additional.pk])
+    assert member.get(detail).status_code == HTTPStatus.NOT_FOUND
+    assert SolutionPublicShare.objects.count() == 1
+
+    additional_share_url = reverse("solutions:problem_solution_share", args=[problem_uuid, additional.pk])
+    review = client.get(additional_share_url)
+    additional.refresh_from_db()
+    assert review.context["snapshot"]["title"] == "Coordinate proof"
+    assert client.post(additional_share_url, {
+        "action": "create", "source_version": additional.updated_at.isoformat(),
+        "share_revision": "", "review_digest": review.context["review_digest"],
+    }).url == additional_share_url
+
+    additional_share = SolutionPublicShare.objects.get(solution=additional)
+    assert additional_share.token != original_share.token
+    assert b"An elegant proof" in Client().get(public_path(original_share)).content
+    assert b"Coordinate proof" in Client().get(public_path(additional_share)).content
+    assert b"Coordinate proof" not in Client().get(public_path(original_share)).content
+
+    assert not UserProblemCompletion.objects.exists()
+    for route in (original_edit, editor):
+        page = client.get(route)
+        assert client.post(reverse("pages:completion_board_toggle"), {
+            "action": "mark_solved", "problem_uuid": page.context["problem_data"]["problem"].problem_uuid,
+        }).json()["is_solved"]
+        assert client.get(route).context["completion_state"]["is_solved"]
+    completion = UserProblemCompletion.objects.get(user=writing.author)
+    assert completion.statement.linked_problem_id == writing.problem_id
+
+
+def test_additional_solution_image_and_pdf_target_the_selected_draft(client, writing, settings, tmp_path, monkeypatch):
+    settings.MEDIA_ROOT = tmp_path
+    additional = ProblemSolution.objects.create(
+        problem=writing.problem, author=writing.author, additional_draft_key=uuid.uuid4(), title="Coordinate proof",
+    )
+    problem_uuid = writing.problem.problem_uuid
+    args = [problem_uuid, additional.pk]
+    png = BytesIO()
+    Image.new("RGB", (2, 2)).save(png, format="PNG")
+    uploaded = client.post(reverse("solutions:solution_body_image_upload", args=args), {
+        "image": SimpleUploadedFile("diagram.png", png.getvalue(), content_type="image/png"),
+    })
+    assert uploaded.status_code == HTTPStatus.OK
+    image = SolutionBodyImage.objects.get()
+    assert image.solution_id == additional.pk
+    assert client.get(reverse("solutions:solution_image", args=[additional.pk, image.file.name])).status_code == (
+        HTTPStatus.OK
+    )
+    assert client.get(reverse("solutions:solution_image", args=[writing.pk, image.file.name])).status_code == (
+        HTTPStatus.NOT_FOUND
+    )
+
+    def compile_selected(solution, _blocks, _params):
+        assert solution.pk == additional.pk
+        return b"%PDF-1.4"
+
+    monkeypatch.setattr("inspinia.solutions.views.compile_solution_to_pdf", compile_selected)
+    response = client.get(reverse("solutions:problem_solution_pdf", args=args))
+    assert response.status_code == HTTPStatus.OK
+    assert b"".join(response.streaming_content) == b"%PDF-1.4"

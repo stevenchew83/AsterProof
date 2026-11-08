@@ -37,11 +37,31 @@ IMAGE_COMPATIBILITY_SOURCES = {
 }
 
 
+MULTIPLE_SOLUTION_READER_SOURCES = {
+    **READER_SOURCES,
+    "inspinia/solutions/draft_autosave.py": "f8606e12261448065bd566adf528df71e8b3d14b810c8c1bd5489d48002153bb",
+    "inspinia/solutions/revisions.py": "357f3e90c99f47c96f097fa346bbf26fe8a3616063853fdadb8f17cc53551aed",
+    "inspinia/solutions/views.py": "bee9fdc1949600739775d412e28a5131c9f8338f16199e59d06ca399418b3905",
+    "inspinia/templates/solutions/partials/solution-editor-workspace.html": (
+        "aaba9a1ce17c5fcfa23d21c13e3f3f00c5e291f914afaa7cfac6045cc92a2df2"
+    ),
+}
+
+
+def _reader_profiles():
+    return (
+        READER_SOURCES,
+        LEGACY_READER_SOURCES,
+        IMAGE_COMPATIBILITY_SOURCES,
+        MULTIPLE_SOLUTION_READER_SOURCES,
+    )
+
+
 def reader_sources_match(files):
     entries = {item["path"]: item["sha256"] for item in files}
     return any(
         sources and all(entries.get(path) == digest for path, digest in sources.items())
-        for sources in (READER_SOURCES, LEGACY_READER_SOURCES, IMAGE_COMPATIBILITY_SOURCES)
+        for sources in _reader_profiles()
     )
 
 
@@ -60,7 +80,7 @@ def verified_reader_release(release: Path):
         sources = next(
             (
                 sources
-                for sources in (READER_SOURCES, LEGACY_READER_SOURCES, IMAGE_COMPATIBILITY_SOURCES)
+                for sources in _reader_profiles()
                 if sources and all(entries.get(path) == digest for path, digest in sources.items())
             ),
             None,

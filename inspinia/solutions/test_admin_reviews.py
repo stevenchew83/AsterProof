@@ -440,10 +440,9 @@ def test_postgresql_takedown_migration_preserves_an_existing_published_review(cl
             old_constraints = connection.introspection.get_constraints(cursor, table)
 
         executor = MigrationExecutor(connection)
-        assert [(node.app_label, node.name, backwards) for node, backwards in executor.migration_plan(leaves)] == [
-            (*migration, False),
-        ]
-        executor.migrate(leaves)
+        plan = executor.migration_plan([migration])
+        assert [(node.app_label, node.name, backwards) for node, backwards in plan] == [(*migration, False)]
+        executor.migrate([migration])
 
         assert AdminSolutionReview.objects.values().get(pk=review.pk) == {
             **before, "taken_down_at": None, "taken_down_by_id": None,

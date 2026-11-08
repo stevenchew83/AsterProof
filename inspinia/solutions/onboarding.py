@@ -26,10 +26,12 @@ def _starter_problem_url():
 
 
 def needs_private_first_save(user, solution, saved_source):
+    if solution.status != ProblemSolution.Status.DRAFT or saved_source.strip():
+        return False
+    if solution.additional_draft_key:
+        return True
     return (
         user.solution_guide_status == User.SolutionGuideStatus.ACTIVE
-        and solution.status == ProblemSolution.Status.DRAFT
-        and not saved_source.strip()
         and not ProblemSolution.objects.filter(author=user).filter(
             Q(current_revision__body_source__regex=r"\S")
             | Q(current_revision__isnull=True, blocks__isnull=False)
@@ -55,8 +57,9 @@ def solution_guide_context(user, solutions, *, writer_draft):
         from inspinia.solutions.writer_drafts import writer_handoff_url
 
         create_url = writer_handoff_url()
-    editor_url = reverse("solutions:problem_solution_edit", args=[current.problem.problem_uuid]) if current else ""
-    share_url = reverse("solutions:problem_solution_share", args=[current.problem.problem_uuid]) if current else ""
+    editor_args = [current.problem.problem_uuid, current.pk] if current else []
+    editor_url = reverse("solutions:problem_solution_edit", args=editor_args) if current else ""
+    share_url = reverse("solutions:problem_solution_share", args=editor_args) if current else ""
     problem_label = (
         current.problem.contest_year_problem
         or f"{current.problem.contest} {current.problem.year} {current.problem.problem}"

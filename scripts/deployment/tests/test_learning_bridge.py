@@ -40,6 +40,7 @@ def write_bridge(release):
                 ROOT / "inspinia/solutions/migrations/0015_self_solution_review_usage.py",
                 ROOT / "inspinia/solutions/migrations/0016_admin_review_takedown.py",
                 ROOT / "inspinia/users/migrations/0010_public_registration.py",
+                ROOT / "inspinia/solutions/migrations/0017_multiple_problem_solutions.py",
                 ROOT / "inspinia/pages/migrations/0047_study_help.py",
                 ROOT / "inspinia/rankings/migrations/0005_ranking_analysis_review.py",
                 ROOT / "inspinia/rankings/migrations/0006_student_achievement_profiles.py",

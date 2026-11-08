@@ -52,14 +52,13 @@
   .solution-problem-page .solution-empty-draft { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 1rem; }
   .solution-empty-draft .solution-empty-copy { flex: 1 1 14rem; }
   .solution-draft-icon { display: grid; place-items: center; width: 2.5rem; height: 2.5rem; flex-shrink: 0; border-radius: var(--ins-border-radius); background: var(--ins-primary-bg-subtle); color: var(--ins-primary-text-emphasis); font-size: 1.25rem; }
-  .solution-reference-card { padding: 1rem var(--solution-space); scroll-margin-top: calc(var(--ins-topbar-height, 64px) + 1rem); }
+  .solution-reference-card { padding: 1rem var(--solution-space); }
+  .solution-reference-card, .solution-personal-card { scroll-margin-top: calc(var(--ins-topbar-height, 64px) + 1rem); }
   .solution-reference-card + .solution-reference-card { border-top: 1px solid var(--ins-border-color); }
   .solution-reference-heading { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: .75rem; }
   .solution-reference-identity { flex: 1 1 12rem; min-width: 0; overflow-wrap: anywhere; }
   .solution-reference-actions { display: flex; flex-wrap: wrap; align-items: center; gap: .625rem; }
   .solution-personal-card .solution-reference-card { padding: 0; }
-  .solution-card-selected { background: var(--ins-primary-bg-subtle); box-shadow: inset 3px 0 var(--ins-primary); }
-  .solution-personal-card .solution-card-selected { padding: 1rem; border-radius: var(--ins-border-radius); }
   .solution-block-body { white-space: pre-wrap; line-height: 1.8; overflow-wrap: anywhere; }
   .solution-block-card + .solution-block-card { margin-top: .75rem; }
   .solution-inline-draft { margin-top: 1rem; scroll-margin-top: calc(var(--ins-topbar-height, 64px) + 1rem); }
@@ -101,8 +100,8 @@
   <header class="page-title-head app-page-header">
     {% include 'partials/page-header-intro.html' with title=problem_data.problem_label subtitle='Problem workspace' page_icon='ti-notebook' back_url=problem_library_url back_label='Problem library' only %}
     <div class="app-page-header-actions">
-      {% if my_solution_row %}
-      <a href="{{ problem_data.solutions_url }}?edit=1#inline-draft-editor" class="btn btn-primary btn-sm solution-primary-action"><i class="ti ti-pencil me-1" aria-hidden="true"></i>Edit my solution</a>
+      {% if my_solution_rows %}
+      <a href="#my-solutions" class="btn btn-primary btn-sm solution-primary-action"><i class="ti ti-pencil me-1" aria-hidden="true"></i>My solutions</a>
       {% else %}
       <button type="button" class="btn btn-primary btn-sm solution-primary-action js-show-inline-draft" data-focus-inline-draft="true" aria-controls="inline-draft-editor" aria-expanded="{% if show_inline_draft_editor %}true{% else %}false{% endif %}"><i class="ti ti-pencil-plus me-1" aria-hidden="true"></i>Start my draft</button>
       {% endif %}
@@ -411,14 +410,22 @@
 
     </aside>
 
-    <section class="card solution-personal-card" aria-labelledby="solution-personal-title">
+    <section class="card solution-personal-card" id="my-solutions" aria-labelledby="solution-personal-title">
       <div class="card-header border-bottom d-flex flex-wrap align-items-center justify-content-between gap-2">
-        <h2 id="solution-personal-title" class="solution-section-title"><i class="ti ti-pencil" aria-hidden="true"></i>Your solution</h2>
-        {% if not my_solution_row %}<span class="text-muted fs-xs"><i class="ti ti-lock me-1" aria-hidden="true"></i>Drafts are private</span>{% endif %}
+        <h2 id="solution-personal-title" class="solution-section-title"><i class="ti ti-pencil" aria-hidden="true"></i>My solutions</h2>
+        {% if additional_draft_key %}
+        <form method="post" action="{% url 'solutions:problem_solution_add' problem_data.problem.problem_uuid %}">
+          {% csrf_token %}
+          <input type="hidden" name="draft_key" value="{{ additional_draft_key }}">
+          <button type="submit" class="btn btn-outline-primary btn-sm"><i class="ti ti-pencil-plus me-1" aria-hidden="true"></i>Add another solution</button>
+        </form>
+        {% else %}
+        <span class="text-muted fs-xs"><i class="ti ti-lock me-1" aria-hidden="true"></i>Drafts are private</span>
+        {% endif %}
       </div>
       <div class="card-body">
-        {% if my_solution_row %}
-        <article data-solution-image-base-url="{{ my_solution_row.image_base_url }}" id="solution-{{ my_solution_row.id }}" class="solution-reference-card{% if selected_solution_id == my_solution_row.id %} solution-card-selected{% endif %}">
+        {% for my_solution_row in my_solution_rows %}
+        <article data-solution-image-base-url="{{ my_solution_row.image_base_url }}" id="solution-{{ my_solution_row.id }}" class="solution-reference-card{% if not forloop.first %} mt-2 pt-2{% endif %}">
           <div class="solution-reference-heading">
             <div class="solution-reference-identity">
               <h3 class="fs-sm fw-semibold mb-1">{{ my_solution_row.title }}</h3>
@@ -426,16 +433,13 @@
             </div>
             <div class="solution-reference-actions">
               <span class="badge {{ my_solution_row.status_badge_class }}">{{ my_solution_row.status_label }}</span>
-              <a href="{{ my_solution_row.view_url }}" class="btn btn-outline-secondary btn-sm" target="_blank" rel="noopener noreferrer"><i class="ti ti-external-link me-1" aria-hidden="true"></i>Open my solution<span class="visually-hidden"> (new tab)</span></a>
-              <a href="{{ problem_data.solutions_url }}?edit=1#inline-draft-editor" class="btn btn-primary btn-sm"><i class="ti ti-pencil me-1" aria-hidden="true"></i>Edit my solution</a>
+              <a href="{{ my_solution_row.view_url }}" class="btn btn-outline-secondary btn-sm" target="_blank" rel="noopener noreferrer"><i class="ti ti-external-link me-1" aria-hidden="true"></i>Open<span class="visually-hidden"> {{ my_solution_row.title }} (new tab)</span></a>
+              <a href="{{ my_solution_row.edit_url }}" class="btn btn-primary btn-sm"><i class="ti ti-pencil me-1" aria-hidden="true"></i>Edit<span class="visually-hidden"> {{ my_solution_row.title }}</span></a>
             </div>
           </div>
           {% if my_solution_row.summary %}<p class="text-muted fs-sm mt-2 mb-0">{{ my_solution_row.summary }}</p>{% endif %}
-          {% if selected_solution_id == my_solution_row.id %}
-          <div class="mt-3">{% include 'solutions/partials/solution-block-list.html' with row=my_solution_row %}</div>
-          {% endif %}
         </article>
-        {% else %}
+        {% empty %}
         <div class="solution-empty-draft">
           <div class="d-flex align-items-center gap-3 solution-empty-copy">
             <span class="solution-draft-icon" aria-hidden="true"><i class="ti ti-file-pencil" aria-hidden="true"></i></span>
@@ -443,7 +447,7 @@
           </div>
           <button type="button" id="solution-start-inline-draft" class="btn btn-outline-primary btn-sm js-show-inline-draft" aria-expanded="{% if show_inline_draft_editor %}true{% else %}false{% endif %}" aria-controls="inline-draft-editor" data-focus-inline-draft="true">Start my draft<i class="ti ti-arrow-right ms-1" aria-hidden="true"></i></button>
         </div>
-        {% endif %}
+        {% endfor %}
         {% if inline_draft_form %}
         <div id="inline-draft-editor" class="solution-workspace-page solution-inline-draft {% if not show_inline_draft_editor %}d-none{% endif %}" tabindex="-1">
           {% with form=inline_draft_form editor_embedded=True %}
@@ -462,7 +466,7 @@
         <form method="get" class="d-flex gap-2 align-items-center"><label for="solution-sort" class="visually-hidden">Solution order</label><select id="solution-sort" name="sort" class="form-select form-select-sm"><option value="top" {% if solution_sort == 'top' %}selected{% endif %}>Top voted</option><option value="newest" {% if solution_sort == 'newest' %}selected{% endif %}>Newest</option></select><button class="btn btn-outline-secondary btn-sm">Sort</button></form>
       </div>
       {% for row in visible_solution_rows %}
-      <article data-solution-image-base-url="{{ row.image_base_url }}" {% if row.id != my_solution_row.id %}id="solution-{{ row.id }}"{% endif %} class="solution-reference-card{% if selected_solution_id == row.id and row.id != my_solution_row.id %} solution-card-selected{% endif %}">
+      <article data-solution-image-base-url="{{ row.image_base_url }}" id="solution-{{ row.id }}" class="solution-reference-card">
         <div class="solution-reference-heading">
           <div class="solution-reference-identity">
             <h3 class="fs-sm fw-semibold mb-1">{{ row.title }}</h3>
@@ -474,9 +478,6 @@
           </div>
         </div>
         {% if row.summary %}<p class="text-muted fs-sm mt-2 mb-0">{{ row.summary }}</p>{% endif %}
-        {% if selected_solution_id == row.id and row.id != my_solution_row.id %}
-        <div class="mt-3">{% include 'solutions/partials/solution-block-list.html' with row=row %}</div>
-        {% endif %}
       </article>
       {% empty %}
       <div class="card-body"><p class="text-muted fs-sm mb-0">{{ visible_solution_empty_message }}</p></div>

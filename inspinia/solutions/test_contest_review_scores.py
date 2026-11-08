@@ -29,7 +29,7 @@ def _proof(author, number, *, day="Day 1"):
         problem_number=number, day_label=day, statement_latex="Prove that a square is nonnegative.",
     )
     solution = ProblemSolution.objects.create(
-        problem=problem, author=author, status=ProblemSolution.Status.SUBMITTED,
+        problem=problem, author=author, status=ProblemSolution.Status.SUBMITTED, title="Nonnegative squares",
     )
     solution.blocks.create(position=1, body_source="A square is nonnegative.")
     return statement, solution
@@ -56,6 +56,10 @@ def _review(solution, score, *, published=True, solver=None, self_requester=None
             user=self_requester, review=review, problem_uuid=solution.problem.problem_uuid, batch_id=review.batch_id,
         )
     return review
+
+
+def _scored(score, title="Nonnegative squares"):
+    return {"score": score, "state": "scored", "solution_title": title}
 
 
 def _rows(*statements):
@@ -88,8 +92,8 @@ def test_scores_are_scoped_to_learner_and_exact_statement_even_without_a_complet
     _review(draft_solution, 7, published=False)
 
     statements = _rows(first, other_day, wrong_solver, wrong_requester, only_draft)
-    assert published_contest_scores(subject, statements) == {first.pk: {"score": 0, "state": "scored"}}
-    assert published_contest_scores(other, statements) == {other_day.pk: {"score": 6, "state": "scored"}}
+    assert published_contest_scores(subject, statements) == {first.pk: _scored(0)}
+    assert published_contest_scores(other, statements) == {other_day.pk: _scored(6)}
 
 
 @pytest.mark.parametrize("changed", ["statement", "legacy_block", "revision"])
@@ -109,7 +113,7 @@ def test_prior_publication_only_marks_earlier_after_the_proof_or_statement_chang
     assert published_contest_scores(subject, _rows(statement)) == {statement.pk: {"score": None, "state": "earlier"}}
 
     _review(solution, 3)
-    assert published_contest_scores(subject, _rows(statement)) == {statement.pk: {"score": 3, "state": "scored"}}
+    assert published_contest_scores(subject, _rows(statement)) == {statement.pk: _scored(3)}
 
 
 def _save_revision(solution, sequence):
@@ -129,7 +133,7 @@ def test_scores_preserve_assistance_restrictions_for_published_self_reviews(scop
     _review(self_solution, 6, self_requester=subject)
     _review(admin_solution, 7)
     rows = _rows(statement, admin_statement)
-    expected = {admin_statement.pk: {"score": 7, "state": "scored"}}
+    expected = {admin_statement.pk: _scored(7)}
     now = timezone.now()
     old_uuid = uuid.uuid4()
     scope_uuid = {"problem": statement.problem_uuid, "statement": old_uuid, "global": None}[scope]
@@ -141,7 +145,7 @@ def test_scores_preserve_assistance_restrictions_for_published_self_reviews(scop
             starts_at=now - timedelta(minutes=2), ends_at=ends,
         )
     assert published_contest_scores(subject, rows) == {
-        statement.pk: {"score": 6, "state": "scored"},
+        statement.pk: _scored(6),
         **expected,
     }
 
@@ -190,7 +194,7 @@ def test_newer_publication_for_another_target_cannot_replace_the_current_score()
     _review(solution, 7)
     solution.blocks.update(body_source=source)
 
-    assert published_contest_scores(subject, _rows(statement)) == {statement.pk: {"score": 5, "state": "scored"}}
+    assert published_contest_scores(subject, _rows(statement)) == {statement.pk: _scored(5)}
 
 
 def test_target_matching_batches_legacy_sources_and_revisions(django_assert_num_queries):
@@ -211,8 +215,26 @@ def test_target_matching_batches_legacy_sources_and_revisions(django_assert_num_
 
     with django_assert_num_queries(3):
         single = published_contest_scores(subject, _rows(statements[0]))
-    assert single == {statements[0].pk: {"score": 4, "state": "scored"}}
+    assert single == {statements[0].pk: _scored(4)}
 
     with django_assert_num_queries(3):
         summaries = published_contest_scores(subject, _rows(*statements))
-    assert summaries == {row.pk: {"score": 4, "state": "scored"} for row in statements}
+    assert summaries == {row.pk: _scored(4) for row in statements}
+
+
+def test_contest_progress_uses_latest_current_review_across_solutions():
+    subject = UserFactory()
+    statement, original = _proof(subject, 1)
+    alternate = ProblemSolution.objects.create(
+        problem=original.problem, author=subject, additional_draft_key=uuid.uuid4(), title="Coordinate proof",
+    )
+    _save_revision(alternate, 1)
+    _review(original, 7)
+    _review(alternate, 3)
+    rows = _rows(statement)
+    assert published_contest_scores(subject, rows) == {statement.pk: _scored(3, "Coordinate proof")}
+
+    _save_revision(alternate, 2)
+    assert published_contest_scores(subject, rows) == {statement.pk: _scored(7)}
+    original.blocks.update(body_source="The original was edited too.")
+    assert published_contest_scores(subject, rows) == {statement.pk: {"score": None, "state": "earlier"}}

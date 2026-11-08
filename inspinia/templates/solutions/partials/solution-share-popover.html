@@ -1,4 +1,4 @@
-<dialog id="solution-share-dialog" class="solution-share-dialog" aria-labelledby="solution-share-heading" aria-describedby="solution-share-description"{% if form.instance.pk %} data-share-url="{% url 'solutions:problem_solution_share' problem_data.problem.problem_uuid %}"{% endif %}>
+<dialog id="solution-share-dialog" class="solution-share-dialog" aria-labelledby="solution-share-heading" aria-describedby="solution-share-description"{% if form.instance.pk %} data-share-url="{{ solution_share_url }}"{% endif %}>
   <div class="solution-share-handle" aria-hidden="true"></div>
   <header class="solution-share-header">
     <h2 id="solution-share-heading">Share solution</h2>
@@ -7,7 +7,7 @@
   <div class="solution-share-body">
     <p class="solution-share-feedback" data-share-feedback role="status" aria-live="polite">Loading sharing settings…</p>
     <button type="button" class="btn btn-outline-secondary btn-sm mb-3" data-share-retry hidden>Retry loading</button>
-    <a href="{% url 'solutions:problem_solution_share' problem_data.problem.problem_uuid %}" target="_blank" rel="noopener noreferrer" class="fs-sm d-block mb-3" data-share-recovery hidden>Open sharing settings ↗</a>
+    <a href="{{ solution_share_url }}" target="_blank" rel="noopener noreferrer" class="fs-sm d-block mb-3" data-share-recovery hidden>Open sharing settings ↗</a>
     <div data-share-content hidden>
       <div class="solution-share-access">
         <div class="visually-hidden">General access</div>
@@ -24,7 +24,7 @@
       </div>
       <p class="solution-share-dirty" data-share-dirty hidden>Unsaved editor changes are excluded. Save first to share them.</p>
       <div class="solution-share-links">
-        <a href="{% url 'solutions:problem_solution_share' problem_data.problem.problem_uuid %}" target="_blank" rel="noopener noreferrer" data-share-preview>Review saved version ↗</a>
+        <a href="{{ solution_share_url }}" target="_blank" rel="noopener noreferrer" data-share-preview>Review saved version ↗</a>
         <details class="solution-share-more" data-share-options>
           <summary>More options</summary>
           <div class="solution-share-more-body">

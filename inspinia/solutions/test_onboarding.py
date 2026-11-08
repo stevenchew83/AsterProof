@@ -108,7 +108,9 @@ def test_empty_upload_placeholder_does_not_count_as_saved_proof(client, solution
     assert not progress["saved"]
     assert not progress["shared"]
     assert progress["completed_steps"] == 1
-    assert progress["editor_url"] == reverse("solutions:problem_solution_edit", args=[solution.problem.problem_uuid])
+    assert progress["editor_url"] == reverse(
+        "solutions:problem_solution_edit", args=[solution.problem.problem_uuid, solution.pk],
+    )
 
 
 def test_save_completes_getting_started_and_sharing_remains_optional(client, solution):
@@ -264,7 +266,9 @@ def test_guide_uses_owners_saved_solution_even_with_newer_empty_draft(client, so
     create_share(client_with_user(foreign.author), foreign)
     progress = guide(client)
     assert progress["completed_steps"] == SAVED_STEPS
-    assert progress["share_url"] == reverse("solutions:problem_solution_share", args=[solution.problem.problem_uuid])
+    assert progress["share_url"] == reverse(
+        "solutions:problem_solution_share", args=[solution.problem.problem_uuid, solution.pk],
+    )
 
 
 def test_guide_prioritizes_private_draft_over_newer_shared_work(client, solution):
@@ -276,7 +280,9 @@ def test_guide_prioritizes_private_draft_over_newer_shared_work(client, solution
     progress = guide(client)
     assert progress["private_draft"]
     assert not progress["shared"]
-    assert progress["editor_url"] == reverse("solutions:problem_solution_edit", args=[solution.problem.problem_uuid])
+    assert progress["editor_url"] == reverse(
+        "solutions:problem_solution_edit", args=[solution.problem.problem_uuid, solution.pk],
+    )
 
 
 def client_with_user(user):

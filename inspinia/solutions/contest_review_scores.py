@@ -39,7 +39,7 @@ def _published_reviews(subject, problem_ids, statement_ids):
         .values(
             "target__solution_id", "target__key", "target__statement_id_value",
             "target__solution_version", "target__solution_updated_at",
-            "self_request__pk", "problem_label", "score",
+            "self_request__pk", "problem_label", "score", "published_at", "pk",
         )
     )
 
@@ -125,7 +125,10 @@ def _review_summary(solution, reviews, blocks):
                 # An invalid current revision must never make an old score current.
                 break
         if review["target__key"] == key:
-            return {"score": review["score"], "state": "scored"}
+            return {
+                "score": review["score"], "state": "scored", "solution_title": solution.display_title,
+                "publication_order": (review["published_at"], review["pk"]),
+            }
     return {"score": None, "state": "earlier"} if has_visible_review else None
 
 
@@ -153,8 +156,16 @@ def published_contest_scores(subject, statements):
     ]
     blocks = _legacy_blocks(solutions)
     scores = {}
+    publication_orders = {}
     for solution in solutions:
         summary = _review_summary(solution, reviews[solution.pk], blocks[solution.pk])
-        if summary is not None:
-            scores[solution.review_statement_id] = summary
+        if summary is None:
+            continue
+        statement_id = solution.review_statement_id
+        order = summary.pop("publication_order", None)
+        if order is None:
+            scores.setdefault(statement_id, summary)
+        elif statement_id not in publication_orders or order > publication_orders[statement_id]:
+            publication_orders[statement_id] = order
+            scores[statement_id] = summary
     return scores

@@ -637,3 +637,33 @@ def test_postgres_competing_workers_dispatch_once(coach):
         assert first.result(timeout=5)["state"] == "completed"
     assert second["state"] == "idle"
     assert len(calls) == 1
+
+
+def test_review_route_and_editor_history_are_scoped_to_each_solution(client, coach):
+    alternate = ProblemSolution.objects.create(
+        problem=coach.problem, author=coach.user, additional_draft_key=uuid.uuid4(), title="Coordinate proof",
+    )
+    revision = SolutionRevision.objects.create(
+        solution=alternate, sequence=1, body_source=coach.revision.body_source,
+        source_digest=coach.revision.source_digest,
+    )
+    alternate.current_revision = revision
+    alternate.save(update_fields=["current_revision"])
+    client.force_login(coach.user)
+    problem_uuid = coach.problem.problem_uuid
+    args = [problem_uuid, alternate.pk]
+    create = reverse("solutions:solution_review_create", args=args)
+    data = {"revision_id": str(coach.revision.pk), "idempotency_key": str(uuid.uuid4()), "acknowledged": True}
+    assert client.post(create, data, content_type="application/json").status_code == 404
+    response = client.post(create, {**data, "revision_id": str(revision.pk)}, content_type="application/json")
+    assert response.status_code == 202, response.json()
+    review = SolutionReview.objects.get()
+    assert review.revision.solution_id == alternate.pk
+    assert client.get(response.json()["status_url"]).status_code == 200
+    assert client.get(reverse(
+        "solutions:solution_review_status", args=[problem_uuid, coach.solution.pk, review.pk],
+    )).status_code == 404
+    original_editor = client.get(reverse("solutions:problem_solution_edit", args=[problem_uuid]))
+    alternate_editor = client.get(reverse("solutions:problem_solution_edit", args=args))
+    assert original_editor.context["solution_review_config"]["latestStatusUrl"] == ""
+    assert alternate_editor.context["solution_review_config"]["latestStatusUrl"] == response.json()["status_url"]

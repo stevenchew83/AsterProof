@@ -14,6 +14,10 @@ def _solution_body_image_upload_to(_instance, filename: str) -> str:
     return f"solution_body_images/{uuid.uuid4().hex}.{ext}"
 
 
+def solution_slot_filter(solution_pk):
+    return {"pk": solution_pk} if solution_pk is not None else {"additional_draft_key__isnull": True}
+
+
 class ProblemSolution(models.Model):
     class Status(TextChoices):
         DRAFT = "draft", "Draft"
@@ -31,6 +35,9 @@ class ProblemSolution(models.Model):
         on_delete=models.CASCADE,
         related_name="problem_solutions",
     )
+    # The first solution keeps the problem-only routes. Additional drafts use
+    # a client submission key so retrying their creation returns the same draft.
+    additional_draft_key = models.UUIDField(null=True, editable=False)
     title = models.CharField(max_length=160, blank=True)
     status = models.CharField(max_length=16, choices=Status.choices, default=Status.DRAFT, db_index=True)
     summary = models.TextField(blank=True)
@@ -52,7 +59,13 @@ class ProblemSolution(models.Model):
         constraints = [
             models.UniqueConstraint(
                 fields=["problem", "author"],
-                name="solutions_problemsolution_unique_problem_author",
+                condition=models.Q(additional_draft_key__isnull=True),
+                name="solutions_unique_first_draft",
+            ),
+            models.UniqueConstraint(
+                fields=["problem", "author", "additional_draft_key"],
+                condition=models.Q(additional_draft_key__isnull=False),
+                name="solutions_unique_additional_draft",
             ),
         ]
         indexes = [
@@ -65,6 +78,10 @@ class ProblemSolution(models.Model):
         if title:
             return title
         return f"{self.author.email} - {self.problem.contest_year_problem or self.problem}"
+
+    @property
+    def display_title(self):
+        return self.title.strip() or f"Untitled solution #{self.pk}"
 
     def clean(self):
         super().clean()
