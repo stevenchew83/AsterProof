@@ -140,6 +140,19 @@ def response(score=6, feedback=FEEDBACK):
     }))
 
 
+def assert_review_notice(notice, proof, review, other_score):
+    assert notice.to == [proof.author.email]
+    assert f"{proof.url}?ai_review={review.pk}#ai-review-{review.pk}" in notice.body
+    html = notice.alternatives[0][0]
+    for body in (notice.body, html):
+        assert f"Your score: {review.score}/7" in body
+        assert f"{other_score}/7" not in body
+        assert "Check the equality case." not in body
+        assert proof.block.body_source not in body
+    assert "Read your review" in html
+    assert notice.attachments[0]["Content-ID"] == "<asterproof-logo>"
+
+
 def test_admin_key_is_write_only_and_rotation_invalidates_queued_work(client, proof, config, monkeypatch):
     assert KEY.encode() not in bytes(config.encrypted_key)
     assert read_credential(config) == KEY
@@ -202,7 +215,8 @@ def test_feedback_style_round_trips_and_is_snapshotted_for_new_reviews(client, p
     assert config.prompt == PROMPT
 
 
-def test_admin_can_compare_drafts_then_publish_once_to_solver(client, proof, config, monkeypatch):
+@pytest.mark.parametrize("scores", [(0, 6), (6, 0)])
+def test_admin_can_compare_drafts_then_publish_once_to_solver(client, proof, config, monkeypatch, scores):
     client.force_login(proof.admin)
     assert b"Generate AI review" in client.get(proof.url).content
     batch = str(uuid.uuid4())
@@ -210,11 +224,12 @@ def test_admin_can_compare_drafts_then_publish_once_to_solver(client, proof, con
     assert queue(client, proof, config, batch_id=batch).status_code == HTTPStatus.FOUND
     assert AdminSolutionReview.objects.count() == len(MODELS)
 
-    provider = Mock(side_effect=[response(), response(0, "No justified progress.")])
+    published_score, other_score = scores
+    provider = Mock(side_effect=[response(published_score), response(other_score, "Unpublished feedback.")])
     monkeypatch.setattr(worker, "request_review", provider)
     assert worker.process_next()["status"] == "completed"
     assert worker.process_next()["status"] == "completed"
-    review = AdminSolutionReview.objects.get(score=6)
+    review = AdminSolutionReview.objects.get(score=published_score)
     assert review.response_text
     assert review.provider_response_id == "resp_fixture"
     assert review.effort == "high"
@@ -232,24 +247,21 @@ def test_admin_can_compare_drafts_then_publish_once_to_solver(client, proof, con
     client.force_login(proof.admin)
     assert client.post(publisher(proof, review)).status_code == HTTPStatus.FOUND
     assert client.post(publisher(proof, review)).status_code == HTTPStatus.FOUND
-    assert client.post(publisher(proof, AdminSolutionReview.objects.get(score=0))).status_code == HTTPStatus.FOUND
+    other_review = AdminSolutionReview.objects.get(score=other_score)
+    assert client.post(publisher(proof, other_review)).status_code == HTTPStatus.FOUND
     assert AdminSolutionReview.objects.filter(published_at__isnull=False).count() == 1
     review.refresh_from_db()
     assert review.notification == AdminSolutionReview.Notification.PENDING
     assert worker.process_next()["notification"] == AdminSolutionReview.Notification.SENT
     assert worker.process_next()["status"] == "idle"
     notice, = mail.outbox
-    assert notice.to == [proof.author.email]
-    assert f"{proof.url}?ai_review={review.pk}#ai-review-{review.pk}" in notice.body
-    assert FEEDBACK not in notice.body
-    assert "Read your review" in notice.alternatives[0][0]
-    assert notice.attachments[0]["Content-ID"] == "<asterproof-logo>"
+    assert_review_notice(notice, proof, review, other_score)
 
     client.force_login(proof.author)
     author_page = client.get(proof.url)
-    assert b"6 / 7" in author_page.content
+    assert f"{published_score} / 7".encode() in author_page.content
     assert b"&lt;script&gt;" in author_page.content
-    assert b"No justified progress." not in author_page.content
+    assert b"Unpublished feedback." not in author_page.content
     assert b"Publish and notify solver" not in author_page.content
     for user in (proof.trainer, proof.member):
         client.force_login(user)

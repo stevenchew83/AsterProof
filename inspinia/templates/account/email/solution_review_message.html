@@ -1,10 +1,10 @@
 {% extends "account/email/base_message.html" %}
 {% block email_title %}Your solution review is ready | AsterProof{% endblock email_title %}
-{% block preheader %}Sign in to see your score and feedback on your solution.{% endblock preheader %}
+{% block preheader %}Your score is ready. Sign in to read the feedback on your proof.{% endblock preheader %}
 {% block email_heading %}Your solution review is ready.{% endblock email_heading %}
 {% block email_content %}
-  <p style="margin: 0 0 18px;">An AsterProof administrator has published AI feedback on your solution. See what earned credit, where the argument could be stronger, and what to try next.</p>
-  <p style="margin: 0 0 20px; padding: 12px 15px; border-left: 3px solid #149e92; background-color: #edf7f5; color: #192d3d;"><strong>Inside your review</strong><br>Score out of 7 and feedback on your proof</p>
+  <p style="margin: 0 0 18px;">An AsterProof administrator has published AI feedback on your solution.</p>
+  <p style="margin: 0 0 20px; padding: 12px 15px; border-left: 3px solid #149e92; background-color: #edf7f5; color: #192d3d;"><strong>Your score: {{ review_score }}/7</strong><br>Read the review to see what earned credit and what to try next.</p>
   {% include "account/email/_action.html" with action_label="Read your review" action_url=review_url only %}
 {% endblock email_content %}
 {% block email_note %}

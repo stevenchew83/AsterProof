@@ -28,10 +28,11 @@ that score. The worker reads OpenAI's stream and the review panel polls for
 status and partial feedback. Admin-generated drafts are private to admins until
 they choose a completed draft to publish. Only one review can be published per
 saved version, and partial feedback is never published as the result.
-Only the solver and admins can read a published review; an email links to the
-signed-in entry. Publishing does not change trainer assessments, verification,
-or completion records. If a proof or statement changes, regenerate before
-publishing. Already-published feedback remains marked as an earlier version.
+The solver's email includes the score and links to the signed-in entry. Only the
+solver and admins can read the written feedback. Publishing does not change
+trainer assessments, verification, or completion records. If a proof or statement
+changes, regenerate before publishing. Already-published feedback remains marked
+as an earlier version.
 
 When `SELF_SOLUTION_REVIEW_ENABLED=True`, approved accounts can also request a
 review of their own submitted or member-published proof. Authors choose one
