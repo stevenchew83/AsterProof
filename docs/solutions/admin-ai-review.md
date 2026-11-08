@@ -44,6 +44,10 @@ cancels an email that is still queued. An email already sending or sent may
 still reach the solver with the score. Its review link stops showing the
 feedback while the review is taken down. The queue requires migration
 `solutions.0016_admin_review_takedown`, which adds nullable take-down metadata.
+The protected release admits only the frozen migration, its actor foreign key
+and index, and the PostgreSQL 17.9 preservation proof. Install the reviewed
+allowance using the [production bootstrap](../deployment/production-bootstrap.md)
+before dispatching the protected schema release.
 
 When `SELF_SOLUTION_REVIEW_ENABLED=True`, approved accounts can also request a
 review of their own submitted or member-published proof. Authors choose one
