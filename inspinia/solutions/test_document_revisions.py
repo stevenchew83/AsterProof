@@ -135,6 +135,19 @@ def test_unchanged_save_reuses_revision_and_timestamp(document):
     assert SolutionRevision.objects.count() == 1
 
 
+def test_unchanged_legacy_draft_autosave_does_not_create_a_revision(document):
+    user, _problem, solution = document
+    solution.save()
+    solution.blocks.create(position=1, body_source="Original legacy content.")
+    result = save(
+        solution, user, action="autosave", source=solution_source(solution),
+        title=solution.title, summary=solution.summary, pdf_options={**OPTIONS, "pdf_show_footer": True},
+    )
+    assert not result.changed
+    assert result.solution.edit_version == 0
+    assert not solution.revisions.exists()
+
+
 def test_changed_document_creates_new_revision_and_status_only_save_reuses_it(document):
     user, _problem, solution = document
     first = save(solution, user)

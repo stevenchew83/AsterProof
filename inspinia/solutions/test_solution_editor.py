@@ -182,6 +182,60 @@ def test_problem_page_edits_only_the_current_users_solution(editor):
 
 
 @pytest.mark.parametrize("route", ["problem_solution_list", "problem_solution_edit"])
+def test_autosave_creates_and_updates_only_private_drafts(editor, route):
+    client, problem, _url = editor
+    url = reverse(f"solutions:{route}", args=[problem.problem_uuid])
+    assert "data-draft-autosave" in client.get(url).content.decode()
+    payload = solution_payload(client, url, action="autosave")
+    first = client.post(url, payload)
+    assert first.status_code == HTTPStatus.OK
+    draft = ProblemSolution.objects.get(problem=problem)
+    assert draft.status == ProblemSolution.Status.DRAFT
+    assert draft.published_at is draft.submitted_at is None
+    assert not problem.user_completions.exists()
+
+    payload["solution-base_version"] = first.json()["edit_version"]
+    payload["solution-editor_context"] = first.json()["editor_context"]
+    duplicate = client.post(url, payload)
+    assert duplicate.status_code == HTTPStatus.OK
+    assert duplicate.json()["edit_version"] == first.json()["edit_version"]
+    assert draft.revisions.count() == 1
+
+    payload["solution-body_source"] = "An updated proof."
+    updated = client.post(url, payload)
+    assert updated.status_code == HTTPStatus.OK
+    assert client.post(url, payload).status_code == HTTPStatus.CONFLICT
+    draft.refresh_from_db()
+    assert draft.current_revision.body_source == "An updated proof."
+    assert draft.status == ProblemSolution.Status.DRAFT
+
+    payload["solution-base_version"] = updated.json()["edit_version"]
+    payload["solution-editor_context"] = updated.json()["editor_context"]
+    published = client.post(url, {**payload, "action": "publish"}, HTTP_X_REQUESTED_WITH="XMLHttpRequest")
+    assert published.status_code == HTTPStatus.OK
+    assert "data-draft-autosave" not in client.get(url, {"edit": "1"}).content.decode()
+    refused = client.post(url, {
+        **payload,
+        "solution-base_version": published.json()["edit_version"],
+        "solution-editor_context": published.json()["editor_context"],
+        "solution-body_source": "This background edit must stay private.",
+    })
+    assert refused.status_code == HTTPStatus.UNPROCESSABLE_ENTITY
+    draft.refresh_from_db()
+    assert draft.status == ProblemSolution.Status.PUBLISHED
+    assert draft.current_revision.body_source == "An updated proof."
+    assert draft.revisions.count() == updated.json()["edit_version"]
+
+
+def test_autosave_invalid_body_returns_json_without_creating_a_draft(editor):
+    client, _problem, url = editor
+    response = client.post(url, solution_payload(client, url, source=" ", action="autosave"))
+    assert response.status_code == HTTPStatus.UNPROCESSABLE_ENTITY
+    assert response.json()["error"] == "Write your solution before saving."
+    assert not ProblemSolution.objects.exists()
+
+
+@pytest.mark.parametrize("route", ["problem_solution_list", "problem_solution_edit"])
 def test_shared_editor_saves_continuous_document_after_clipboard_upload(editor, route):
     client, problem, _url = editor
     url = reverse(f"solutions:{route}", args=[problem.problem_uuid])

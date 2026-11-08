@@ -45,7 +45,8 @@ function harness({enabled = true, acknowledged = false, checked = true, sourceTe
   version.value = '1'; version.name = 'solution-base_version'; editorContext.value = 'signed-old'; editorContext.name = 'solution-editor_context';
   title.name = 'solution-title'; title.value = 'My proof';
   form.elements = [source, csrf, version, editorContext, title];
-  form.action = '/solutions/problems/problem/draft/';
+  form.action = [new Element('button'), new Element('button')];
+  form.getAttribute = name => name === 'action' ? '/solutions/problems/problem/draft/' : null;
   form.querySelector = selector => {
     if (selector === '[data-solution-source]') return source;
     if (selector.includes('csrfmiddlewaretoken')) return csrf;
@@ -139,6 +140,7 @@ test('previous acknowledgement is honored and pending image uploads block review
 test('Save and review keeps the dispatched snapshot dirty when writing changes during save', async () => {
   const app = harness();
   const click = app.click();
+  assert.equal(app.calls[0].url, '/solutions/problems/problem/draft/');
   assert.equal(app.calls[0].options.body.get('solution-body_source'), 'First proof');
   await app.input('Later unsaved proof');
   await app.respond(0, saved());
@@ -155,6 +157,21 @@ test('Save and review keeps the dispatched snapshot dirty when writing changes d
   await click;
   assert.equal(app.source.value, 'Later unsaved proof');
   assert.match(app.controls.status.textContent, /earlier version/);
+});
+
+test('Save and review uses the editor save queue before sending a request', async () => {
+  const app = harness();
+  let release;
+  app.api.runExplicitSave = save => new Promise(resolve => { release = resolve; }).then(save);
+  const click = app.click();
+  assert.equal(app.calls.length, 0);
+  release();
+  await tick();
+  assert.equal(app.calls.length, 1);
+  await app.respond(0, saved());
+  await app.respond(1, created());
+  await app.respond(2, completed());
+  await click;
 });
 
 test('authentication failure during save preserves the buffer and never enqueues review', async () => {

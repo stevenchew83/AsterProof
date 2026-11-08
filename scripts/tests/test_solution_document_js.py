@@ -14,7 +14,7 @@ def test_solution_document_javascript_contracts():
     directory = Path(__file__).resolve().parent
     suites = (
         "solution_document_core.test.cjs", "solution_document_preview.test.cjs",
-        "solution_document_recovery.test.cjs", "solution_ai_review.test.cjs",
+        "solution_document_recovery.test.cjs", "solution_document_autosave.test.cjs", "solution_ai_review.test.cjs",
     )
     result = subprocess.run(  # noqa: S603 - Fixed repository suites and discovered Node executable.
         [node, "--test", *(str(directory / suite) for suite in suites)],

@@ -27,13 +27,13 @@
       {% if not form.first_private_save %}
       {% if form.instance.pk %}<a href="{% url 'solutions:problem_solution_share' problem_data.problem.problem_uuid %}" class="btn btn-outline-secondary btn-sm" data-share-fallback><i class="ti ti-share me-1" aria-hidden="true"></i>Share solution</a>{% endif %}
       <button type="button" id="solution-share-trigger" class="btn btn-outline-secondary btn-sm" aria-label="Share solution" aria-haspopup="dialog" aria-controls="solution-share-dialog" aria-expanded="false" data-share-open hidden><i class="ti ti-share me-1" aria-hidden="true"></i>Share<span class="solution-share-active-dot ms-2" data-share-indicator{% if not public_share %} hidden{% endif %} aria-hidden="true"></span></button>
-      {% if solution_status_label != 'Published' and not writer_import %}<button type="submit" form="solution-editor-form" name="action" value="publish" class="btn btn-outline-primary btn-sm d-none d-sm-inline-block">Publish solution</button>{% endif %}
       {% endif %}
+      {% if solution_status_label != 'Published' and not writer_import %}<button type="submit" form="solution-editor-form" name="action" value="publish" class="btn btn-outline-primary btn-sm d-none{% if not form.first_private_save %} d-sm-inline-block{% endif %}"{% if form.first_private_save %} data-publish-after-save="desktop"{% endif %}>Publish solution</button>{% endif %}
       <details class="solution-actions-menu">
         <summary class="btn btn-outline-secondary btn-sm" aria-label="More solution actions"><i class="ti ti-dots" aria-hidden="true"></i></summary>
         <div class="solution-actions-dropdown">
+          {% if solution_status_label != 'Published' and not writer_import %}<button type="submit" form="solution-editor-form" name="action" value="publish" class="d-sm-none{% if form.first_private_save %} d-none{% endif %}"{% if form.first_private_save %} data-publish-after-save="mobile"{% endif %}>Publish solution</button>{% endif %}
           {% if not form.first_private_save %}
-          {% if solution_status_label != 'Published' and not writer_import %}<button type="submit" form="solution-editor-form" name="action" value="publish" class="d-sm-none">Publish solution</button>{% endif %}
           <button type="submit" form="solution-editor-form" name="action" value="save_draft">{% if solution_status_label == 'Published' %}Move to draft{% else %}Save as draft{% endif %}</button>
           {% if form.instance.pk %}<a href="{% url 'solutions:problem_solution_pdf' problem_data.problem.problem_uuid %}" target="_blank" rel="noopener noreferrer"><i class="ti ti-file-type-pdf me-1" aria-hidden="true"></i>PDF · saved version</a>{% endif %}
           {% endif %}

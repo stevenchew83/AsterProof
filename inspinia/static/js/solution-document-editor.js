@@ -10,6 +10,7 @@ const {searchKeymap, highlightSelectionMatches} = require("@codemirror/search");
 const {ENVIRONMENTS, COMMANDS, unclosedEnvironment, imageSnippet, mapOffset, mapUploadBookmark, uploadReplacementRange} = require("./solution-document-core.js");
 const {renderDocument} = require("./solution-document-preview.js");
 const {createRecovery} = require("./solution-document-recovery.js");
+const {createDraftAutosave} = require("./solution-document-autosave.js");
 
 const FIELDS = ["title", "summary", "problem_statement", "author_name", "pdf_show_author", "pdf_show_date", "pdf_show_footer"];
 const instances = new WeakMap();
@@ -58,7 +59,9 @@ function setup(root) {
   const uploadUrl = root.dataset.uploadUrl || config.uploadUrl;
   const pending = new Map();
   let view = null, previous = textarea.value, previewTimer, recovery, previewGeneration = 0;
-  let submitting = false, initial = "", boundDirty = form.dataset.bound === "true";
+  let submitting = false, initial = "", observed = "", boundDirty = form.dataset.bound === "true";
+  let autosave, autosaveError = "", failedSnapshot, conflict = false;
+  let queuedSubmit = false, explicitSave = null;
   const submitted = () => Array.from(document.querySelectorAll('button[type="submit"]')).filter(button => button.form === form);
   function snapshot() {
     const fields = {};
@@ -70,16 +73,62 @@ function setup(root) {
   }
   const dirty = () => boundDirty || JSON.stringify(snapshot()) !== initial;
   function updateState() {
-    if (saveStatus) { saveStatus.textContent = pending.size ? "Uploading image…" : dirty() ? "Unsaved changes" : form.dataset.saved === "true" ? "Saved" : "Not saved yet"; saveStatus.dataset.dirty = String(dirty()); }
+    if (saveStatus) {
+      saveStatus.textContent = pending.size ? "Uploading image…" : autosave?.pending ? "Saving draft…" :
+        autosaveError || (dirty() ? "Unsaved changes" : form.dataset.saved === "true" ? "Saved" : "Not saved yet");
+      saveStatus.dataset.dirty = String(dirty());
+    }
     if (stats) { const text = textarea.value.trim(); stats.textContent = (text ? text.split(/\s+/).length : 0) + " words · " + textarea.value.length.toLocaleString() + " characters"; }
     submitted().forEach(button => { button.disabled = pending.size > 0; });
     form.dispatchEvent(new CustomEvent("asterproof:editor-state", {bubbles: true}));
   }
   function schedule() {
+    if (autosave) {
+      const current = JSON.stringify(snapshot());
+      if (current !== observed) {
+        observed = current;
+        if (!conflict && current !== failedSnapshot) autosaveError = "";
+        if (current === initial && !autosave.pending && !explicitSave) autosave.reset();
+        else autosave.changed();
+      }
+    }
     updateState();
     clearTimeout(previewTimer);
     previewTimer = setTimeout(render, 180);
     if (recovery) recovery.changed();
+  }
+  async function saveDraft() {
+    const savedSnapshot = snapshot();
+    const data = new FormData(form);
+    data.set("action", "autosave");
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 10000);
+    updateState();
+    try {
+      const response = await fetch(form.getAttribute("action") || window.location.href, {
+        method: "POST", body: data, credentials: "same-origin", signal: controller.signal,
+        headers: {"X-Requested-With": "XMLHttpRequest"},
+      });
+      if (response.redirected) throw new Error("Sign in again to save.");
+      conflict = response.status === 409;
+      const result = await response.json();
+      if (!response.ok || result.saved !== true) throw new Error(result.error || "Use Save to try again.");
+      field(form, "base_version").value = result.edit_version;
+      field(form, "editor_context").value = result.editor_context;
+      form.dispatchEvent(new CustomEvent("asterproof:solution-saved", {bubbles: true, detail: {...result, savedSnapshot}}));
+    } catch (error) {
+      failedSnapshot = JSON.stringify(savedSnapshot);
+      autosaveError = "Autosave failed. " + (conflict ? "Copy your changes and reload the latest draft." :
+        error instanceof SyntaxError || controller.signal.aborted ? "Use Save to try again." : error.message);
+    } finally {
+      clearTimeout(timeout);
+    }
+  }
+  async function runExplicitSave(save) {
+    autosave?.reset();
+    explicitSave = Promise.resolve(autosave?.pending).then(save);
+    try { return await explicitSave; }
+    finally { explicitSave = null; autosave?.schedule(); }
   }
   function sync() {
     if (!view) return;
@@ -221,7 +270,7 @@ function setup(root) {
         if (view) view.dispatch({changes: {...replacement, insert: text}, userEvent: "input.paste"});
         else { textarea.value = current.slice(0, replacement.from) + text + current.slice(replacement.to); textarea.dispatchEvent(new Event("input", {bubbles: true})); }
       }).catch(error => showUploadError(error.message || "The image could not be uploaded. Your writing is still here."))
-      .finally(() => { pending.delete(id); updateState(); });
+      .finally(() => { pending.delete(id); updateState(); autosave?.schedule(); });
     return true;
   }
   textarea.addEventListener("input", () => {
@@ -237,9 +286,20 @@ function setup(root) {
   form.addEventListener("change", schedule);
   form.addEventListener("submit", event => {
     if (pending.size) { event.preventDefault(); showUploadError("Wait for the image upload to finish before saving."); return; }
+    const backgroundSave = explicitSave || autosave?.pending;
+    if (backgroundSave) {
+      event.preventDefault();
+      if (queuedSubmit) return;
+      queuedSubmit = true;
+      const submitter = event.submitter || undefined;
+      const submit = () => { queuedSubmit = false; form.requestSubmit(submitter); };
+      backgroundSave.then(submit, submit);
+      return;
+    }
     sync();
     if (recovery) recovery.flush();
     submitting = true;
+    autosave?.reset();
     // PDF downloads leave this page open, so continue guarding unsaved writing.
     if (event.submitter?.value === "download_pdf") submitting = false;
   });
@@ -268,14 +328,35 @@ function setup(root) {
     for (const [name, value] of Object.entries(saved.fields)) { const input = field(form, name); if (input) { if (input.type === "checkbox") input.checked = Boolean(value); else input.value = String(value); } }
     setSource(saved.body_source); schedule(); form.dispatchEvent(new Event("change", {bubbles: true}));
   }});
-  initial = JSON.stringify(snapshot());
+  initial = observed = JSON.stringify(snapshot());
+  if (form.hasAttribute("data-draft-autosave")) {
+    autosave = createDraftAutosave({
+      canSave: () => !submitting && !queuedSubmit && !explicitSave && !conflict && !pending.size &&
+        observed !== initial && observed !== failedSnapshot && Boolean(textarea.value.trim()),
+      save: saveDraft,
+      settled: updateState,
+    });
+  }
   updateState(); render();
   window.addEventListener("asterproof:mathjax-ready", () => { clearTimeout(previewTimer); render(); });
   document.addEventListener("asterproof:math-ready", () => { clearTimeout(previewTimer); render(); });
   scope.querySelectorAll("[data-document-views], .solution-source-tools").forEach(element => { element.hidden = false; });
-  function setSaved(savedSnapshot) { boundDirty = false; initial = JSON.stringify(savedSnapshot || snapshot()); form.dataset.saved = "true"; updateState(); }
+  function setSaved(savedSnapshot) {
+    boundDirty = false;
+    initial = JSON.stringify(savedSnapshot || snapshot());
+    form.dataset.saved = "true";
+    conflict = false;
+    autosaveError = "";
+    failedSnapshot = undefined;
+    scope.querySelectorAll("[data-publish-after-save]").forEach(button => {
+      if (button.dataset.publishAfterSave === "desktop") button.classList.add("d-sm-inline-block");
+      else button.classList.remove("d-none");
+      delete button.dataset.publishAfterSave;
+    });
+    updateState();
+  }
   form.addEventListener("asterproof:solution-saved", event => setSaved(event.detail?.savedSnapshot));
-  const api = {source, setSource, snapshot, dirty, focusRange, preview: render, setPane, setSaved, pendingUploads: () => pending.size, form, root};
+  const api = {source, setSource, snapshot, dirty, focusRange, preview: render, setPane, setSaved, runExplicitSave, pendingUploads: () => pending.size, form, root};
   instances.set(root, api); instances.set(form, api); instances.set(textarea, api);
   root.dispatchEvent(new CustomEvent("asterproof:editor-ready", {bubbles: true, detail: api}));
   return api;
