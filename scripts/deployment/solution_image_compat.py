@@ -9,6 +9,8 @@ import os
 import stat
 from pathlib import Path  # noqa: TC003
 
+from scripts.deployment import solution_document_compat
+
 READER_VERSION = 1
 MARKER_NAME = "solution-image-reader-required.json"
 ROOT_UID = 0
@@ -108,11 +110,41 @@ SELF_REVIEW_READER_SOURCES = {
 }
 
 
+MULTIPLE_SOLUTION_READER_SOURCES = {
+    **SELF_REVIEW_READER_SOURCES,
+    **solution_document_compat.MULTIPLE_SOLUTION_READER_SOURCES,
+    "inspinia/solutions/collection_views.py": "5f69411ccc925423af57fbd52c4f8bf4f5505c549c39db4ea1a12ebf88cd705d",
+    "inspinia/solutions/forum_urls.py": "739b2217be2287ec82cbd93fd576d053f5617b64564c05e6720797d16c06e524",
+    "inspinia/solutions/image_access.py": "6a542d9fb536743393f2f04c1ab9158eafa576dbf531b90c9382829c008d2249",
+    "inspinia/solutions/models.py": "3faaf3cbf3fd2553a3484a7f308305fd1b12a86ab7b51579b14fc809e69defa5",
+    "inspinia/solutions/urls.py": "bbcf8352d0443e241038b5cd5e9cf593dc8abccea32a080ae109b9931ebc918e",
+    "inspinia/templates/solutions/partials/solution-editor-toolbar.html": (
+        "a69120f728a20cfce8e81cb73092922f073f14140e440311e0675046bfaa921b"
+    ),
+    "inspinia/templates/solutions/partials/solution-share-popover.html": (
+        "8c35e7927ad38e154c5edb5159a805e439494adf81c32043afd47ac078e2c52c"
+    ),
+    "inspinia/templates/solutions/problem-solution-list.html": (
+        "3de6de6d4adc9a96ef9dfce330c4b1c977508f98ed27b8d56b7d09a37a2fb17b"
+    ),
+}
+
+
+def _reader_profiles():
+    return (
+        READER_SOURCES,
+        COMPATIBILITY_SOURCES,
+        ADMIN_REVIEW_READER_SOURCES,
+        SELF_REVIEW_READER_SOURCES,
+        MULTIPLE_SOLUTION_READER_SOURCES,
+    )
+
+
 def reader_sources_match(files):
     entries = {item["path"]: item["sha256"] for item in files}
     return any(
         sources and all(entries.get(path) == digest for path, digest in sources.items())
-        for sources in (READER_SOURCES, COMPATIBILITY_SOURCES, ADMIN_REVIEW_READER_SOURCES, SELF_REVIEW_READER_SOURCES)
+        for sources in _reader_profiles()
     )
 
 
@@ -162,9 +194,7 @@ def verified_reader_release(release: Path) -> bool:
         sources = next(
             (
                 sources
-                for sources in (
-                    READER_SOURCES, COMPATIBILITY_SOURCES, ADMIN_REVIEW_READER_SOURCES, SELF_REVIEW_READER_SOURCES,
-                )
+                for sources in _reader_profiles()
                 if sources and all(entries.get(path) == digest for path, digest in sources.items())
             ),
             None,

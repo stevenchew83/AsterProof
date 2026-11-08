@@ -345,8 +345,8 @@ def test_saved_solution_links_describe_drafts_and_published_work(workspace, stat
 
     assert response.status_code == HTTPStatus.OK
     html = response.content.decode()
-    assert "Edit my solution" in html
-    assert "Open my solution" in html
-    assert "Edit my draft" not in html
-    assert "Open my draft" not in html
+    assert "My solutions" in html
+    assert "Add another solution" in html
+    assert 'Edit<span class="visually-hidden"> My saved proof</span>' in html
+    assert 'Open<span class="visually-hidden"> My saved proof (new tab)</span>' in html
     assert ProblemSolution.Status(status).label in html

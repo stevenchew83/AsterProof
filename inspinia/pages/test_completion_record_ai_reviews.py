@@ -235,3 +235,26 @@ def test_user_solution_record_list_shows_latest_review_for_current_proof(client,
     rows = client.get(url, {"user": author.email}).context["user_solution_record_rows"]
     assert rows[0]["ai_review"]["label"] == "Earlier version"
     assert rows[0]["ai_review"]["score"] is None
+
+
+def test_inventory_links_published_review_and_draft_to_their_respective_solutions(client, inventory, author):
+    original, completion = _proof(author, 1)
+    published = _review(original, 7)
+    published.published_at = timezone.now()
+    published.save(update_fields=["published_at"])
+    alternate = ProblemSolution.objects.create(
+        problem=original.problem, author=author, additional_draft_key=uuid.uuid4(), title="Coordinate proof",
+    )
+    alternate.blocks.create(position=1, body_source="The square of an absolute value is nonnegative.")
+    draft = _review(alternate, 4)
+
+    cells = _review_cells(client.get(inventory))
+    assert cells == {completion.pk: {
+        "label": "Published", "score": published.score,
+        "url": reverse("solutions:solution_detail", args=[original.pk]) + "#ai-review",
+    }}
+    cells = _review_cells(client.get(inventory, {"ai_review": "draft_ready"}))
+    assert cells == {completion.pk: {
+        "label": "Draft ready", "score": draft.score,
+        "url": reverse("solutions:solution_detail", args=[alternate.pk]) + "#ai-review",
+    }}

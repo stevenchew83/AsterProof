@@ -15,6 +15,7 @@ from inspinia.solutions.document_source import solution_source
 from inspinia.solutions.document_source import source_digest
 from inspinia.solutions.models import ProblemSolution
 from inspinia.solutions.models import SolutionRevision
+from inspinia.solutions.models import solution_slot_filter
 from inspinia.solutions.onboarding import needs_private_first_save
 
 DOCUMENT_SOURCE_LIMIT = 64_000
@@ -51,7 +52,7 @@ def editor_context(user, problem_uuid, *, solution=None):
     existing = (
         {"pk": solution.pk, "edit_version": solution.edit_version} if solution is not None
         else ProblemSolution.objects.filter(
-            author_id=user.pk, problem__problem_uuid=problem_uuid,
+            author_id=user.pk, problem__problem_uuid=problem_uuid, additional_draft_key__isnull=True,
         ).values("pk", "edit_version").first()
     )
     return signing.dumps({
@@ -110,17 +111,22 @@ def _locked_solution(solution, user, context, base_version):
     if type(base_version) is not int or payload["edit_version"] != base_version:
         message = "This solution has changed. Reload the latest version before saving."
         raise StaleSolutionVersion(message)
-    current = ProblemSolution.objects.select_for_update().filter(problem=problem, author=user).first()
+    current = ProblemSolution.objects.select_for_update().filter(
+        problem=problem, author=user, **solution_slot_filter(solution.pk),
+    ).first()
     if current is not None:
         placeholder = (
-            payload.get("solution") is None and current.edit_version == 0
-            and current.current_revision_id is None and not current.blocks.exists()
+            payload.get("solution") is None
+            and current.additional_draft_key is None
+            and current.edit_version == 0
+            and current.current_revision_id is None
+            and not current.blocks.exists()
         )
         if current.edit_version != base_version or (payload.get("solution") != current.pk and not placeholder):
             message = "This solution has changed. Reload the latest version before saving."
             raise StaleSolutionVersion(message)
         return current
-    if base_version != 0 or payload.get("solution") is not None:
+    if solution.pk is not None or base_version != 0 or payload.get("solution") is not None:
         message = "This solution is no longer available. Reload before saving."
         raise StaleSolutionVersion(message)
     return ProblemSolution(problem=problem, author=user)
@@ -163,7 +169,7 @@ def save_document(  # noqa: PLR0913
             message = "Write a solution before publishing it."
             raise InvalidDocument(message)
         if needs_private_first_save(user, current, previous_source):
-            message = "Save a private draft before publishing your first solution."
+            message = "Save a private draft before publishing this solution."
             raise InvalidDocument(message)
     action_changed = _apply_action(current, action)
     digest = source_digest(source, title, summary, pdf_options)

@@ -10,6 +10,7 @@ from inspinia.pages.models import ProblemSolveRecord
 from inspinia.solutions.forms import PDF_DISPLAY_FIELDS
 from inspinia.solutions.forms import ProblemSolutionForm
 from inspinia.solutions.models import ProblemSolution
+from inspinia.solutions.models import solution_slot_filter
 from inspinia.solutions.revisions import InvalidDocument
 from inspinia.solutions.revisions import InvalidEditorContext
 from inspinia.solutions.revisions import StaleSolutionVersion
@@ -21,9 +22,10 @@ from inspinia.solutions.views import _document_error_json
 @login_required
 @require_POST
 @never_cache
-def draft_autosave_view(request, problem_uuid):
+def draft_autosave_view(request, problem_uuid, solution_pk=None):
     problem = get_object_or_404(ProblemSolveRecord, problem_uuid=problem_uuid)
-    solution = ProblemSolution.objects.filter(problem=problem, author=request.user).first()
+    owned = ProblemSolution.objects.filter(problem=problem, author=request.user, **solution_slot_filter(solution_pk))
+    solution = get_object_or_404(owned) if solution_pk is not None else owned.first()
     if solution is None:
         solution = ProblemSolution(problem=problem, author=request.user)
     if "writer_draft_token" in request.POST:

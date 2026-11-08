@@ -151,6 +151,7 @@ def _entry(record, solved_ids, reviews, *, read_only):
         "day_label": record["day_label"],
         "completed": record["id"] in solved_ids,
         "score": score,
+        "review_solution_title": "" if read_only else review.get("solution_title", ""),
         "review_label": (
             f"{score}/7" if score is not None else
             ("Earlier version" if review.get("state") == "earlier" else "No published score")

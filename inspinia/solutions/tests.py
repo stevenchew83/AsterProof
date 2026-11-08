@@ -354,12 +354,12 @@ def test_problem_solution_create_view_lists_the_shared_library(client):
         "BMO 2024 P3",
     ]
     first_row, second_row, unlinked_row, missing_statement_row = response.context["statement_problem_rows"]
-    assert first_row["editor_button_label"] == "Continue solution"
+    assert first_row["editor_button_label"] == "My solutions"
     assert first_row["solution_status_label"] == "Draft"
     assert second_row["editor_button_label"] == "Start solution"
     assert second_row["solution_status_label"] == "Not started"
     response_html = response.content.decode("utf-8")
-    first_editor_url = reverse("solutions:problem_solution_edit", args=[linked_problem_with_solution.problem_uuid])
+    first_editor_url = reverse("solutions:problem_solution_list", args=[linked_problem_with_solution.problem_uuid])
     second_editor_url = reverse("solutions:problem_solution_edit", args=[linked_problem_without_solution.problem_uuid])
     assert first_editor_url in response_html
     assert second_editor_url in response_html
@@ -450,7 +450,7 @@ def test_problem_solution_list_shows_my_solution_and_only_other_published_soluti
 
     assert response.status_code == HTTPStatus.OK
     assert response.context["admin_view"] is False
-    assert response.context["my_solution_row"]["title"] == "My working draft"
+    assert [row["title"] for row in response.context["my_solution_rows"]] == ["My working draft"]
     assert [row["title"] for row in response.context["visible_solution_rows"]] == ["Published proof"]
     assert response.context["visible_solution_title"] == "Published solutions"
     assert response.context["solution_stats"]["published_total"] == 1

@@ -89,7 +89,9 @@ def _review(solutions):
                 "image_base_url": public_image_base_url(share) if active else internal_image_base_url(solution.pk),
                 "is_shared": active,
                 "anchor": f"review-{solution.pk}",
-                "share_manage_url": reverse("solutions:problem_solution_share", args=[solution.problem.problem_uuid]),
+                "share_manage_url": reverse(
+                    "solutions:problem_solution_share", args=[solution.problem.problem_uuid, solution.pk],
+                ),
             },
         )
     return rows, states

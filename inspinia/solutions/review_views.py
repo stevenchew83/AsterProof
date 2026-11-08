@@ -34,7 +34,7 @@ def _request_too_large(request):
 
 @require_POST
 @never_cache
-def solution_review_create_view(request, problem_uuid):
+def solution_review_create_view(request, problem_uuid, solution_pk=None):
     if not request.user.is_authenticated:
         return _error("Sign in to request AI review.", "authentication_required", 401)
     if _request_too_large(request):
@@ -53,18 +53,20 @@ def solution_review_create_view(request, problem_uuid):
             acknowledged=acknowledged,
             statement_text=data.get("statement_text", ""),
             statement_confirmed=statement_confirmed,
+            solution_pk=solution_pk,
         )
     except (ValueError, UnicodeDecodeError) as error:
         if isinstance(error, (ReviewError, EvaluationError)):
             return _error(str(error), error.code, error.status)
         return _error("Submit a valid review request.", "invalid_request", 422)
+    status_args = [problem_uuid, solution_pk, review.pk] if solution_pk is not None else [problem_uuid, review.pk]
     return JsonResponse(
         {
             "id": str(review.pk),
             "status": review.status,
             "created": created,
             "revision_id": str(review.revision_id),
-            "status_url": reverse("solutions:solution_review_status", args=[problem_uuid, review.pk]),
+            "status_url": reverse("solutions:solution_review_status", args=status_args),
         },
         status=202 if created else 200,
     )
@@ -72,9 +74,10 @@ def solution_review_create_view(request, problem_uuid):
 
 @require_GET
 @never_cache
-def solution_review_status_view(request, problem_uuid, review_id):
+def solution_review_status_view(request, problem_uuid, review_id, solution_pk=None):
     if not request.user.is_authenticated:
         return _error("Sign in to view AI feedback.", "authentication_required", 401)
+    solution_filter = {"revision__solution_id": solution_pk} if solution_pk is not None else {}
     review = (
         SolutionReview.objects.select_related("revision__solution")
         .filter(
@@ -82,6 +85,7 @@ def solution_review_status_view(request, problem_uuid, review_id):
             author=request.user,
             revision__solution__author=request.user,
             revision__solution__problem__problem_uuid=problem_uuid,
+            **solution_filter,
         )
         .first()
     )

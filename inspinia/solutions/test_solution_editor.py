@@ -2,6 +2,7 @@
 
 from http import HTTPStatus
 from io import BytesIO
+from uuid import uuid4
 
 import pytest
 from django.contrib.auth import get_user_model
@@ -410,3 +411,27 @@ def test_concurrent_first_document_saves_have_one_winner(editor):
     assert solution.revisions.count() == 1
     assert solution.edit_version == 1
     assert solution.current_revision.body_source in {"First tab proof", "Second tab proof"}
+
+
+def test_autosave_keeps_two_drafts_of_the_same_problem_separate(editor):
+    client, problem, first_editor = editor
+    first_autosave = reverse("solutions:problem_solution_autosave", args=[problem.problem_uuid])
+    first_response = client.post(first_autosave, solution_payload(client, first_editor, source="First proof."))
+    assert first_response.status_code == HTTPStatus.OK
+    first = ProblemSolution.objects.get(problem=problem)
+    alternate = ProblemSolution.objects.create(
+        problem=problem, author=first.author, additional_draft_key=uuid4(),
+    )
+    args = [problem.problem_uuid, alternate.pk]
+    alternate_editor = reverse("solutions:problem_solution_edit", args=args)
+    alternate_autosave = reverse("solutions:problem_solution_autosave", args=args)
+    assert f'data-draft-autosave="{alternate_autosave}"' in client.get(alternate_editor).content.decode()
+
+    payload = solution_payload(client, alternate_editor, source="Independent second proof.")
+    assert client.post(first_autosave, payload).status_code == HTTPStatus.CONFLICT
+    assert client.post(alternate_autosave, payload).status_code == HTTPStatus.OK
+    first.refresh_from_db()
+    alternate.refresh_from_db()
+    assert first.current_revision.body_source == "First proof."
+    assert alternate.current_revision.body_source == "Independent second proof."
+    assert alternate.status == ProblemSolution.Status.DRAFT

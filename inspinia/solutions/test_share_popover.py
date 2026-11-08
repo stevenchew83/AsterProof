@@ -41,7 +41,9 @@ def test_opening_popover_never_enables_sharing_or_returns_proof_text(client, wri
     assert settings["saved_title"] == writing.title
     assert settings["share_url"] == ""
     assert settings["whatsapp_url"] == ""
-    assert settings["preview_url"] == share_path(writing)
+    assert settings["preview_url"] == reverse(
+        "solutions:problem_solution_share", args=[writing.problem.problem_uuid, writing.pk],
+    )
     assert settings["review_digest"]
     assert "SHARED-PROOF" not in str(settings)
     assert writing.author.email not in str(settings)

@@ -2,6 +2,18 @@
   "format_version": 1,
   "baseline_sha": null,
   "migrations": {
+    "solutions.0017_multiple_problem_solutions": {
+      "classification": "data-or-non-compatible",
+      "recovery_required": true,
+      "code_rollback_permitted": false,
+      "data_preconditions": [
+        "existing_solution_content_preserved",
+        "share_tokens_and_completion_records_preserved",
+        "existing_solutions_keep_the_original_draft_slot",
+        "multi_solution_reader_required_for_activation_and_recovery"
+      ],
+      "rationale": "Replaces the one-solution-per-author constraint with an original slot and idempotent keys for additional drafts. Existing IDs and share tokens are retained. The prior application assumes one row per author and problem and is incompatible once additional drafts exist. Production requires a separately reviewed frozen migration and preservation proof."
+    },
     "pages.0047_study_help": {
       "classification": "backward-compatible-schema",
       "recovery_required": false,

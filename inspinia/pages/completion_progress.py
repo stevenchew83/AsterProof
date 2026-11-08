@@ -816,7 +816,7 @@ def _solution_cells(
         return {}
     solution_ids = dict(visible_solutions(viewer).filter(
         author=learner, problem_id__in=problem_ids, status=ProblemSolution.Status.PUBLISHED,
-    ).values_list("problem_id", "pk"))
+    ).order_by("updated_at", "pk").values_list("problem_id", "pk"))
     # A member-published proof does not make its solver's AI review public.
     reviews = (
         author_review_summaries(learner, solution_ids.values())
@@ -1000,7 +1000,8 @@ def _solution_status_lookup(completions: list[UserProblemCompletion]) -> dict[tu
         return {}
     return {
         (row["author_id"], row["problem_id"]): row["status"]
-        for row in ProblemSolution.objects.filter(author_id__in=user_ids, problem_id__in=problem_ids).values(
+        for row in ProblemSolution.objects.filter(author_id__in=user_ids, problem_id__in=problem_ids)
+        .order_by("updated_at", "pk").values(
             "author_id",
             "problem_id",
             "status",

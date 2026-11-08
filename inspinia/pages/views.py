@@ -2906,7 +2906,7 @@ def _admin_completion_listing_rows(
     solution_rows = ProblemSolution.objects.filter(
         author_id__in=completion_user_ids,
         problem_id__in=completion_problem_ids,
-    ).only("id", "author", "problem", "status")
+    ).only("id", "author", "problem", "status").order_by("updated_at", "pk")
     solutions_by_key = {
         (solution.author_id, solution.problem_id): solution
         for solution in solution_rows
@@ -2991,10 +2991,14 @@ def _admin_completion_listing_rows(
         )
         if ai_reviews is not None and solution_url:
             review = ai_reviews.get(completion.pk, {})
+            review_solution_id = review.get("solution_id")
+            review_url = (
+                reverse("solutions:solution_detail", args=[review_solution_id]) if review_solution_id else solution_url
+            )
             table_rows[-1]["ai_review"] = {
                 "label": review.get("label", "Not reviewed"),
                 "score": review.get("score"),
-                "url": solution_url + "#ai-review",
+                "url": review_url + "#ai-review",
             }
 
     table_rows = _completion_progress_apply_difficulty_payloads(table_rows, user=None)
@@ -7483,6 +7487,7 @@ def _build_dashboard_contest_statement_listing_context(
         for row in ProblemSolution.objects.filter(
             author=request.user,
             problem_id__in=linked_problem_ids,
+            additional_draft_key__isnull=True,
         ).values("problem_id", "status")
     }
 

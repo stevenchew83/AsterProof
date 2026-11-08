@@ -96,7 +96,7 @@
           {% for entry in cell.entries %}
           <li class="contest-progress-detail-entry">
             <p class="fw-semibold mb-1">{% if entry.day_label %}{{ entry.day_label }}{% else %}{{ cell.problem_code }}{% endif %}</p>
-            <p class="text-muted fs-xs mb-2">{% if entry.completed %}Completed{% else %}Incomplete{% endif %} · {% if entry.score is not None %}AI score {{ entry.score }}/7{% else %}{{ entry.review_label }}{% endif %}</p>
+            <p class="text-muted fs-xs mb-2">{% if entry.completed %}Completed{% else %}Incomplete{% endif %} · {% if entry.score is not None %}AI score {{ entry.score }}/7{% if entry.review_solution_title %} · {{ entry.review_solution_title }}{% endif %}{% else %}{{ entry.review_label }}{% endif %}</p>
             <div class="d-flex flex-wrap gap-2">
               <a href="{{ entry.statement_url }}" class="btn btn-sm btn-outline-secondary">Open statement</a>
               {% if entry.workspace_url and not is_other_learner %}<a href="{{ entry.workspace_url }}" class="btn btn-sm btn-outline-primary">Open solution workspace</a>{% endif %}

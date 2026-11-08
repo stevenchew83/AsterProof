@@ -125,7 +125,7 @@ def test_library_reads_preserve_uuids_completion_history_and_solution_revisions(
     library(client, q=str(standalone.problem_uuid))
     picker = client.get(reverse("solutions:problem_solution_create"))
     assert picker.status_code == HTTPStatus.OK
-    assert any(row["editor_button_label"] == "Continue solution" for row in picker.context["statement_problem_rows"])
+    assert any(row["editor_button_label"] == "My solutions" for row in picker.context["statement_problem_rows"])
     assert history_snapshot() == before
 
 

@@ -19,6 +19,7 @@ def test_study_help_schema_bytes_and_frozen_delta_agree(tmp_path):
         self_solution_review_schema.MIGRATION_PATH,
         Path("inspinia/solutions/migrations/0016_admin_review_takedown.py"),
         Path("inspinia/users/migrations/0010_public_registration.py"),
+        Path("inspinia/solutions/migrations/0017_multiple_problem_solutions.py"),
     }
     for migration in root.glob("inspinia/*/migrations/*"):
         relative = migration.relative_to(root)

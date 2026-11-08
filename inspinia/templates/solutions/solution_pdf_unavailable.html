@@ -12,7 +12,7 @@
   <p class="text-muted">{{ detail }}</p>
   {% endif %}
   <p class="mb-0">
-    <a href="{% url 'solutions:problem_solution_edit' problem_data.problem.problem_uuid %}">Back to solution editor</a>
+    <a href="{{ problem_data.editor_url }}">Back to solution editor</a>
   </p>
 </div>
 {% endblock page_content %}

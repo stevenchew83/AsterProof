@@ -40,22 +40,30 @@ def _current_reviews(solution, reviews):
 def _review_summary(current):
     if not current:
         return {"label": "Earlier version"}
-    published = next((row for row in current if row["published_at"] is not None), None)
+    published = max(
+        (row for row in current if row["published_at"] is not None),
+        key=lambda row: (row["published_at"], row["pk"]), default=None,
+    )
     if published is not None:
-        return {"label": "Published", "score": published["score"]}
+        return {"label": "Published", "score": published["score"], "solution_id": published["target__solution_id"]}
     drafts = [row for row in current if row["status"] == Status.COMPLETED]
     if drafts:
         return {
             "state": DRAFT_READY,
             "label": f"{len(drafts)} drafts ready" if len(drafts) > 1 else "Draft ready",
             "score": drafts[0]["score"] if len(drafts) == 1 else None,
+            "solution_id": drafts[0]["target__solution_id"],
         }
     statuses = {row["status"] for row in current}
     status = next(
         (state for state in (Status.RUNNING, Status.QUEUED) if state in statuses),
         Status(current[0]["status"]),
     )
-    return {"label": "Failed" if status == Status.FAILED else status.label}
+    review = next(row for row in current if row["status"] == status)
+    return {
+        "label": "Failed" if status == Status.FAILED else status.label,
+        "solution_id": review["target__solution_id"],
+    }
 
 
 def latest_solution_review_summaries(solutions):
@@ -92,7 +100,7 @@ def latest_solution_review_summaries(solutions):
     return summaries
 
 
-def completion_review_summaries(completions):
+def completion_review_summaries(completions, *, draft_ready_only=False):
     completion_ids = defaultdict(list)
     for completion in completions:
         if completion.effective_problem_id is not None:
@@ -107,6 +115,8 @@ def completion_review_summaries(completions):
     ).values(
         "solver_id",
         "target__solution__problem_id",
+        "created_at",
+        "pk",
         *REVIEW_SUMMARY_FIELDS,
     )
     by_solution = defaultdict(list)
@@ -114,11 +124,19 @@ def completion_review_summaries(completions):
         if (review["solver_id"], review["target__solution__problem_id"]) in completion_ids:
             by_solution[review["target__solution_id"]].append(review)
 
-    summaries = {}
+    current_by_problem = defaultdict(list)
     solutions = ProblemSolution.objects.filter(pk__in=by_solution).select_related("problem", "current_revision")
     for solution in solutions:
-        summary = _review_summary(_current_reviews(solution, by_solution[solution.pk]))
-        for completion_id in completion_ids[solution.author_id, solution.problem_id]:
+        current = _current_reviews(solution, by_solution[solution.pk])
+        if draft_ready_only:
+            has_published = any(row["published_at"] for row in current)
+            current = [row for row in current if not has_published and row["status"] == Status.COMPLETED]
+        current_by_problem[solution.author_id, solution.problem_id].extend(current)
+    summaries = {}
+    for key, current in current_by_problem.items():
+        current.sort(key=lambda row: (row["created_at"], row["pk"]), reverse=True)
+        summary = _review_summary(current)
+        for completion_id in completion_ids[key]:
             summaries[completion_id] = summary
     return summaries
 
@@ -143,7 +161,7 @@ def draft_ready_completions(queryset, limit):
     matches, summaries = [], {}
     with closing(queryset.filter(Exists(drafts)).iterator(chunk_size=limit)) as candidates:
         for batch in batched(candidates, limit):
-            batch_summaries = completion_review_summaries(batch)
+            batch_summaries = completion_review_summaries(batch, draft_ready_only=True)
             for completion in batch:
                 summary = batch_summaries.get(completion.pk, {})
                 if summary.get("state") == DRAFT_READY:

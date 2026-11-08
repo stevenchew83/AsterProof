@@ -306,6 +306,7 @@ def enqueue_review(  # noqa: PLR0913 - explicit immutable inputs form the public
     acknowledged=False,
     statement_text="",
     statement_confirmed=False,
+    solution_pk=None,
 ):
     if not user.is_authenticated:
         raise ReviewError(code="authentication_required", status=401)
@@ -314,13 +315,19 @@ def enqueue_review(  # noqa: PLR0913 - explicit immutable inputs form the public
         revision_key = uuid.UUID(str(revision_id))
     except (ValueError, TypeError, AttributeError) as error:
         raise ReviewError(code="invalid_identifier") from error
-    with transaction.atomic():
+    def existing_request():
         existing = SolutionReview.objects.filter(author=user, idempotency_key=key).first()
+        if existing and (
+            existing.revision_id != revision_key
+            or str(existing.revision.solution.problem.problem_uuid) != str(problem_uuid)
+            or (solution_pk is not None and existing.revision.solution_id != solution_pk)
+        ):
+            raise ReviewError(code="idempotency_conflict", status=409)
+        return existing
+
+    with transaction.atomic():
+        existing = existing_request()
         if existing:
-            if existing.revision_id != revision_key or str(existing.revision.solution.problem.problem_uuid) != str(
-                problem_uuid,
-            ):
-                raise ReviewError(code="idempotency_conflict", status=409)
             return existing, False
         policy = _require_policy(user)
         from .evaluation_execution import assert_assistance
@@ -328,19 +335,17 @@ def enqueue_review(  # noqa: PLR0913 - explicit immutable inputs form the public
         assert_assistance(user, problem_uuid)
         # The policy lock serializes competing enqueues, including duplicate
         # requests which were not visible before waiting for that lock.
-        existing = SolutionReview.objects.filter(author=user, idempotency_key=key).first()
+        existing = existing_request()
         if existing:
-            if existing.revision_id != revision_key or str(existing.revision.solution.problem.problem_uuid) != str(
-                problem_uuid,
-            ):
-                raise ReviewError(code="idempotency_conflict", status=409)
             return existing, False
+        solution_filter = {"solution_id": solution_pk} if solution_pk is not None else {}
         revision = (
             SolutionRevision.objects.select_related("solution__problem")
             .filter(
                 pk=revision_key,
                 solution__author=user,
                 solution__problem__problem_uuid=problem_uuid,
+                **solution_filter,
             )
             .first()
         )

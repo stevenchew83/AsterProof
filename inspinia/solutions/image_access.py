@@ -156,7 +156,9 @@ def solution_image_view(request, solution_pk, image_path):
 def solution_editor_image_view(request, problem_uuid, image_path):
     if not user_can_access_app_features(request.user):
         return _unavailable()
-    solution = get_object_or_404(ProblemSolution, author=request.user, problem__problem_uuid=problem_uuid)
+    solution = get_object_or_404(
+        ProblemSolution, author=request.user, problem__problem_uuid=problem_uuid, additional_draft_key__isnull=True,
+    )
     return _serve_image(solution, image_path)
 
 

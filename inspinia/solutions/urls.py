@@ -18,6 +18,7 @@ from inspinia.solutions.solution_picker import problem_solution_create_view
 from inspinia.solutions.statement_authoring import statement_solution_start_view
 from inspinia.solutions.views import admin_problem_solution_pdf_view
 from inspinia.solutions.views import my_solution_list_view
+from inspinia.solutions.views import problem_solution_add_view
 from inspinia.solutions.views import problem_solution_edit_view
 from inspinia.solutions.views import problem_solution_list_view
 from inspinia.solutions.views import problem_solution_pdf_view
@@ -101,6 +102,31 @@ urlpatterns = [
     path("collections/new/", collection_edit_view, name="collection_create"),
     path("collections/<int:collection_pk>/", collection_edit_view, name="collection_edit"),
     path("problems/<uuid:problem_uuid>/", problem_solution_list_view, name="problem_solution_list"),
+    path("problems/<uuid:problem_uuid>/drafts/new/", problem_solution_add_view, name="problem_solution_add"),
+    path(
+        "problems/<uuid:problem_uuid>/entries/<int:solution_pk>/edit/",
+        problem_solution_edit_view, name="problem_solution_edit",
+    ),
+    path(
+        "problems/<uuid:problem_uuid>/entries/<int:solution_pk>/body-images/",
+        solution_body_image_upload_view, name="solution_body_image_upload",
+    ),
+    path(
+        "problems/<uuid:problem_uuid>/entries/<int:solution_pk>/share/",
+        problem_solution_share_view, name="problem_solution_share",
+    ),
+    path(
+        "problems/<uuid:problem_uuid>/entries/<int:solution_pk>/pdf/",
+        problem_solution_pdf_view, name="problem_solution_pdf",
+    ),
+    path(
+        "problems/<uuid:problem_uuid>/entries/<int:solution_pk>/reviews/",
+        solution_review_create_view, name="solution_review_create",
+    ),
+    path(
+        "problems/<uuid:problem_uuid>/entries/<int:solution_pk>/reviews/<uuid:review_id>/",
+        solution_review_status_view, name="solution_review_status",
+    ),
     path(
         "problems/<uuid:problem_uuid>/body-images/",
         solution_body_image_upload_view,

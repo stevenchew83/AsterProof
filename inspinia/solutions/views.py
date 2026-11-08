@@ -30,6 +30,7 @@ from django.db.models import Value
 from django.db.models import When
 from django.http import FileResponse
 from django.http import Http404
+from django.http import HttpResponse
 from django.http import HttpResponseBadRequest
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404
@@ -78,6 +79,7 @@ from inspinia.solutions.models import SolutionCollection
 from inspinia.solutions.models import SolutionPublicShare
 from inspinia.solutions.models import SolutionReview
 from inspinia.solutions.models import SolutionSourceArtifact
+from inspinia.solutions.models import solution_slot_filter
 from inspinia.solutions.onboarding import solution_guide_context
 from inspinia.solutions.pdf_latex import SolutionPdfCompileError
 from inspinia.solutions.pdf_latex import SolutionPdfCompileParams
@@ -206,6 +208,10 @@ def _solution_pdf_http_response(request, solution: ProblemSolution):
     """Return PDF file response or render an error/unavailable template (blocks should be prefetched)."""
     problem = solution.problem
     problem_data = _problem_context(problem)
+    if request.user.pk == solution.author_id:
+        problem_data["editor_url"] = reverse(
+            "solutions:problem_solution_edit", args=[problem.problem_uuid, solution.pk],
+        )
     problem_label = problem.contest_year_problem or f"{problem.contest} {problem.year} {problem.problem}"
     blocks = solution_blocks(solution)
     statement_row = (
@@ -349,13 +355,17 @@ def _solution_card_rows(solutions: list[ProblemSolution]) -> list[dict]:
                     else None
                 ),
                 "block_count": solution.block_count if hasattr(solution, "block_count") else len(blocks),
-                "edit_url": reverse("solutions:problem_solution_edit", args=[solution.problem.problem_uuid]),
+                "edit_url": reverse(
+                    "solutions:problem_solution_edit", args=[solution.problem.problem_uuid, solution.pk],
+                ),
                 "id": solution.id,
                 "image_base_url": internal_image_base_url(solution.pk),
                 "upvote_count": getattr(solution, "upvote_count", 0),
                 "is_published": solution.status == ProblemSolution.Status.PUBLISHED,
                 "has_public_link": bool(getattr(solution, "public_share_count", 0)),
-                "share_manage_url": reverse("solutions:problem_solution_share", args=[solution.problem.problem_uuid]),
+                "share_manage_url": reverse(
+                    "solutions:problem_solution_share", args=[solution.problem.problem_uuid, solution.pk],
+                ),
                 "problem_label": (
                     solution.problem.contest_year_problem
                     or f"{solution.problem.contest} {solution.problem.year} {solution.problem.problem}"
@@ -368,7 +378,7 @@ def _solution_card_rows(solutions: list[ProblemSolution]) -> list[dict]:
                     if solution.status == ProblemSolution.Status.PUBLISHED else solution.get_status_display()
                 ),
                 "summary": solution.summary,
-                "title": solution.title or "Untitled solution",
+                "title": solution.display_title,
                 "updated_at_label": timezone.localtime(solution.updated_at).strftime("%Y-%m-%d %H:%M"),
                 "view_url": _solution_reference_url(solution),
             },
@@ -500,21 +510,24 @@ def _review_context(request, problem, solution):
     available = review_available(request.user)
     latest = None
     acknowledged = False
-    if settings.SOLUTION_AI_REVIEW_ENABLED or solution.current_revision_id:
+    if solution.current_revision_id or (settings.SOLUTION_AI_REVIEW_ENABLED and solution.pk):
         latest = SolutionReview.objects.filter(
-            author=request.user, revision__solution__author=request.user, revision__solution__problem=problem,
+            author=request.user, revision__solution=solution,
         ).order_by("-created_at").only("pk", "created_at").first()
-        acknowledged = bool(latest) or (available and SolutionReview.objects.filter(author=request.user).exists())
+    if available:
+        acknowledged = bool(latest) or SolutionReview.objects.filter(author=request.user).exists()
+    # The first editor keeps its recovery URL across the initial save.
+    review_args = [problem.problem_uuid, solution.pk] if solution.additional_draft_key else [problem.problem_uuid]
     statement = ContestProblemStatement.objects.filter(linked_problem=problem, is_active=True).order_by(
         "-updated_at", "-pk",
     ).values_list("statement_latex", flat=True).first()
     return {"solution_review_config": {
         "enabled": available, "visible": available or latest is not None,
-        "createUrl": reverse("solutions:solution_review_create", args=[problem.problem_uuid]),
+        "createUrl": reverse("solutions:solution_review_create", args=review_args),
         "revisionId": str(solution.current_revision_id or ""), "editVersion": solution.edit_version or 0,
         "hasStatement": bool((statement or "").strip()), "acknowledged": acknowledged,
         "latestStatusUrl": (
-            reverse("solutions:solution_review_status", args=[problem.problem_uuid, latest.pk]) if latest else ""
+            reverse("solutions:solution_review_status", args=[*review_args, latest.pk]) if latest else ""
         ),
     }}
 
@@ -573,6 +586,21 @@ def _inline_draft_block_form(formset):
     return formset.forms[0] if formset is not None and formset.forms else None
 
 
+def _editor_action_context(solution):
+    problem_uuid = solution.problem.problem_uuid
+    args = [problem_uuid, solution.pk] if solution.pk else [problem_uuid]
+    return {
+        "solution_editor_url": reverse("solutions:problem_solution_edit", args=args),
+        "solution_share_url": reverse("solutions:problem_solution_share", args=args),
+        "solution_pdf_url": reverse("solutions:problem_solution_pdf", args=args),
+        "solution_autosave_url": reverse("solutions:problem_solution_autosave", args=args),
+        "solution_body_image_upload_url": reverse("solutions:solution_body_image_upload", args=args),
+        "solution_media_base_url": (
+            internal_image_base_url(solution.pk) if solution.pk else editor_image_base_url(problem_uuid)
+        ),
+    }
+
+
 def _problem_solution_list_inline_form_context(
     *,
     request,
@@ -600,10 +628,7 @@ def _problem_solution_list_inline_form_context(
         "inline_draft_formset": formset,
         **_review_context(request, problem, solution),
         "plain_block_type_id": str(plain_block_type.pk) if plain_block_type else "",
-        "solution_body_image_upload_url": reverse(
-            "solutions:solution_body_image_upload",
-            args=[problem.problem_uuid],
-        ),
+        **_editor_action_context(solution),
         "solution_status_label": ProblemSolution.Status(solution.status).label,
         "public_share": (
             SolutionPublicShare.objects.filter(solution=solution, is_active=True).first() if solution.pk else None
@@ -619,12 +644,12 @@ def _solution_list_context(  # noqa: PLR0913
     problem: ProblemSolveRecord,
     problem_data: dict,
     solution_queryset,
-    selected_solution_id: int | None,
     inline_form_context: dict[str, object] | None = None,
     show_inline_draft_editor: bool = False,
 ) -> dict:
     admin_view = user_has_admin_role(request.user)
-    my_solution = solution_queryset.filter(author=request.user).first()
+    my_solutions = list(solution_queryset.filter(author=request.user))
+    first_solution = next((row for row in my_solutions if row.additional_draft_key is None), None)
     visible_queryset = solution_queryset.exclude(author=request.user)
     if not admin_view:
         visible_queryset = visible_queryset.filter(status=ProblemSolution.Status.PUBLISHED)
@@ -641,7 +666,7 @@ def _solution_list_context(  # noqa: PLR0913
     inline_form_context = inline_form_context or _problem_solution_list_inline_form_context(
         request=request,
         problem=problem,
-        existing_solution=my_solution,
+        existing_solution=first_solution,
     )
     return {
         "admin_view": admin_view,
@@ -660,13 +685,12 @@ def _solution_list_context(  # noqa: PLR0913
         "difficulty_rating_save_url": reverse("pages:problem_statement_difficulty_rating_save"),
         "difficulty_rating_statement_uuid": str(statement_entry.statement_uuid) if statement_entry else "",
         **inline_form_context,
-        "my_solution_row": _solution_card_rows([my_solution])[0] if my_solution is not None else None,
+        "my_solution_rows": _solution_card_rows(my_solutions),
+        "additional_draft_key": uuid.uuid4() if my_solutions else None,
         "problem_data": problem_data,
         "problem_list_add_targets": problem_list_add_target_rows(request.user),
         "problem_list_next_url": request.get_full_path(),
-        "selected_solution_id": selected_solution_id,
         "show_inline_draft_editor": show_inline_draft_editor or request.GET.get("edit") == "1",
-        "solution_media_base_url": editor_image_base_url(problem.problem_uuid),
         "visible_solution_empty_message": visible_solution_empty_message,
         "visible_solution_rows": visible_solution_rows,
         "solution_page": solution_page,
@@ -674,7 +698,7 @@ def _solution_list_context(  # noqa: PLR0913
         "visible_solution_title": visible_solution_title,
         "solution_stats": {
             "published_total": published_total,
-            "visible_total": solution_page.paginator.count + (1 if my_solution is not None else 0),
+            "visible_total": solution_page.paginator.count + len(my_solutions),
         },
     }
 
@@ -700,7 +724,6 @@ def _solution_list_response(  # noqa: PLR0913
     problem: ProblemSolveRecord,
     problem_data: dict,
     solution_queryset,
-    selected_solution_id: int | None,
     inline_form_context: dict[str, object] | None = None,
     show_inline_draft_editor: bool = False,
 ):
@@ -709,7 +732,6 @@ def _solution_list_response(  # noqa: PLR0913
         problem=problem,
         problem_data=problem_data,
         solution_queryset=solution_queryset,
-        selected_solution_id=selected_solution_id,
         inline_form_context=inline_form_context,
         show_inline_draft_editor=show_inline_draft_editor,
     )
@@ -970,8 +992,8 @@ def problem_solution_list_view(request, problem_uuid):
             raise Http404
         return redirect(_solution_reference_url(selected))
 
-    my_solution = solution_queryset.filter(author=request.user).first()
     if request.method == "POST":
+        my_solution = solution_queryset.filter(author=request.user, additional_draft_key__isnull=True).first()
         inline_form_context = _problem_solution_list_inline_form_context(
             request=request,
             problem=problem,
@@ -1001,7 +1023,6 @@ def problem_solution_list_view(request, problem_uuid):
             problem=problem,
             problem_data=problem_data,
             solution_queryset=solution_queryset,
-            selected_solution_id=selected_solution_id,
             inline_form_context=inline_form_context,
             show_inline_draft_editor=True,
         )
@@ -1011,7 +1032,6 @@ def problem_solution_list_view(request, problem_uuid):
         problem=problem,
         problem_data=problem_data,
         solution_queryset=solution_queryset,
-        selected_solution_id=selected_solution_id,
     )
 
 
@@ -1052,14 +1072,33 @@ def _save_editor_submission(request, form, writer_import):
     if request.headers.get("X-Requested-With") == "XMLHttpRequest":
         return _saved_document_json(solution)
     getattr(messages, message_level)(request, message_text)
-    return redirect("solutions:problem_solution_edit", solution.problem.problem_uuid)
+    return redirect("solutions:problem_solution_edit", **request.resolver_match.kwargs)
+
+
+@login_required
+@require_POST
+def problem_solution_add_view(request, problem_uuid):
+    if not settings.SOLUTION_DOCUMENT_WRITES_ENABLED:
+        return HttpResponse("Saving is temporarily unavailable.", status=HTTPStatus.SERVICE_UNAVAILABLE)
+    try:
+        key = uuid.UUID(request.POST.get("draft_key", ""))
+    except ValueError:
+        return HttpResponseBadRequest("Reload the problem page to add another solution.")
+    problem = get_object_or_404(
+        ProblemSolveRecord.objects.filter(solutions__author=request.user).distinct(), problem_uuid=problem_uuid,
+    )
+    solution, _created = ProblemSolution.objects.get_or_create(
+        problem=problem, author=request.user, additional_draft_key=key,
+    )
+    return redirect("solutions:problem_solution_edit", problem_uuid, solution.pk)
 
 
 @login_required
 @never_cache
-def problem_solution_edit_view(request, problem_uuid):
+def problem_solution_edit_view(request, problem_uuid, solution_pk=None):
     problem = get_object_or_404(ProblemSolveRecord, problem_uuid=problem_uuid)
-    solution = ProblemSolution.objects.filter(problem=problem, author=request.user).first()
+    owned = ProblemSolution.objects.filter(problem=problem, author=request.user, **solution_slot_filter(solution_pk))
+    solution = get_object_or_404(owned) if solution_pk is not None else owned.first()
     draft = get_writer_draft(request)
     writer_token = request.POST.get("writer_draft_token") or request.GET.get("from_writer")
     writer_import = draft if draft and writer_token == draft["token"] else None
@@ -1135,11 +1174,7 @@ def problem_solution_edit_view(request, problem_uuid):
             statement=problem_data["statement_entry"],
             user=request.user,
         ),
-        "solution_body_image_upload_url": reverse(
-            "solutions:solution_body_image_upload",
-            args=[problem.problem_uuid],
-        ),
-        "solution_media_base_url": editor_image_base_url(problem.problem_uuid),
+        **_editor_action_context(solution),
         "editor_coverage": editor_coverage,
         "solution_status_badge_class": _solution_status_badge(current_status),
         "solution_status_label": ProblemSolution.Status(current_status).label,
@@ -1156,12 +1191,14 @@ def problem_solution_edit_view(request, problem_uuid):
 @login_required
 @never_cache
 @transaction.atomic
-def problem_solution_share_view(request, problem_uuid):
+def problem_solution_share_view(request, problem_uuid, solution_pk=None):
     queryset = ProblemSolution.objects.select_related("author", "problem", "current_revision")
     if request.method == "POST":
         # All share mutations lock the same owner row, including first creation.
         queryset = queryset.select_for_update(of=("self",))
-    solution = get_object_or_404(queryset, problem__problem_uuid=problem_uuid, author=request.user)
+    solution = get_object_or_404(
+        queryset, problem__problem_uuid=problem_uuid, author=request.user, **solution_slot_filter(solution_pk),
+    )
     share = SolutionPublicShare.objects.filter(solution=solution).first()
     if request.method == "POST":
         return _change_solution_sharing(request, solution, share)
@@ -1176,6 +1213,7 @@ def problem_solution_share_view(request, problem_uuid):
         if not _sharing_json_request(request):
             messages.error(request, review_error)
     share_url = public_share_url(share) if share and share.is_active else ""
+    review_url = reverse("solutions:problem_solution_share", args=[problem_uuid, solution.pk])
     context = {
         "solution": solution,
         "snapshot": snapshot,
@@ -1203,8 +1241,8 @@ def problem_solution_share_view(request, problem_uuid):
                 "can_share": snapshot is not None,
                 "share_url": share_url,
                 "whatsapp_url": context["whatsapp_url"] if share_url else "",
-                "preview_url": share_url or reverse("solutions:problem_solution_share", args=[problem_uuid]),
-                "review_url": reverse("solutions:problem_solution_share", args=[problem_uuid]),
+                "preview_url": share_url or review_url,
+                "review_url": review_url,
                 "source_version": solution.updated_at.isoformat(),
                 "share_revision": str(share.revision) if share else "",
                 "review_digest": context["review_digest"],
@@ -1228,7 +1266,7 @@ def _sharing_result(request, solution, message, *, status=HTTPStatus.OK):
         return JsonResponse({"ok": status == HTTPStatus.OK, "message": message}, status=status)
     level = "success" if status == HTTPStatus.OK else "warning"
     getattr(messages, level)(request, message)
-    return redirect("solutions:problem_solution_share", solution.problem.problem_uuid)
+    return redirect("solutions:problem_solution_share", **request.resolver_match.kwargs)
 
 
 def _sharing_action_error(request, solution, share):
@@ -1299,16 +1337,18 @@ def _public_snapshot(solution):
 
 
 @login_required
-def problem_solution_pdf_view(request, problem_uuid):
+def problem_solution_pdf_view(request, problem_uuid, solution_pk=None):
     problem = get_object_or_404(ProblemSolveRecord, problem_uuid=problem_uuid)
     solution = (
-        ProblemSolution.objects.filter(problem=problem, author=request.user)
+        ProblemSolution.objects.filter(problem=problem, author=request.user, **solution_slot_filter(solution_pk))
         .select_related("author")
         .prefetch_related(_problem_solution_prefetch())
         .first()
     )
     problem_data = _problem_context(problem)
     if solution is None:
+        if solution_pk is not None:
+            raise Http404
         return render(
             request,
             "solutions/solution_pdf_unavailable.html",
@@ -1336,8 +1376,12 @@ def admin_problem_solution_pdf_view(request, solution_pk: int):
 
 @login_required
 @require_POST
-def solution_body_image_upload_view(request, problem_uuid):  # noqa: C901, PLR0911
+def solution_body_image_upload_view(request, problem_uuid, solution_pk=None):  # noqa: C901, PLR0911
     problem = get_object_or_404(ProblemSolveRecord, problem_uuid=problem_uuid)
+    solution = (
+        get_object_or_404(ProblemSolution, pk=solution_pk, problem=problem, author=request.user)
+        if solution_pk is not None else None
+    )
     upload = request.FILES.get("image")
     if upload is None:
         return JsonResponse({"error": "Missing image file."}, status=400)
@@ -1363,11 +1407,12 @@ def solution_body_image_upload_view(request, problem_uuid):  # noqa: C901, PLR09
     image_file = ContentFile(data, name="paste.png")
     try:
         with transaction.atomic():
-            solution, _created = ProblemSolution.objects.get_or_create(
-                problem=problem,
-                author=request.user,
-                defaults={"status": ProblemSolution.Status.DRAFT},
-            )
+            if solution is None:
+                # Match the first editor's lock order during a concurrent initial save.
+                ProblemSolveRecord.objects.select_for_update().get(pk=problem.pk)
+                solution, _created = ProblemSolution.objects.get_or_create(
+                    problem=problem, author=request.user, additional_draft_key=None,
+                )
             row = SolutionBodyImage(
                 solution=solution,
                 uploaded_by=request.user,

@@ -5,7 +5,7 @@
 {% block extra_css %}<link href="{% static 'css/public-site.min.css' %}" rel="stylesheet" />{% endblock extra_css %}
 {% block page_content %}
 <div class="container-fluid">
-  {% url 'solutions:problem_solution_edit' solution.problem.problem_uuid as editor_url %}
+  {% url 'solutions:problem_solution_edit' solution.problem.problem_uuid solution.pk as editor_url %}
   {% include 'partials/page-title.html' with title='Share solution' subtitle='A public copy of your saved work' page_icon='ti-share' %}
   <p><a href="{{ editor_url }}" class="btn btn-outline-secondary btn-sm"><i class="ti ti-arrow-left me-1" aria-hidden="true"></i>Back to editor</a></p>
   {% for message in messages %}<div class="alert alert-{% if message.tags == 'error' %}danger{% else %}{{ message.tags|default:'info' }}{% endif %}" role="status">{{ message }}</div>{% endfor %}

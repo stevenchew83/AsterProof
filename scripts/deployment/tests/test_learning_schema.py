@@ -9,6 +9,8 @@ import shutil
 import sqlite3
 import subprocess
 import sys
+import tarfile
+from io import BytesIO
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -86,6 +88,7 @@ def copy_candidate(destination):
                 ROOT / "inspinia/solutions/migrations/0015_self_solution_review_usage.py",
                 ROOT / "inspinia/solutions/migrations/0016_admin_review_takedown.py",
                 ROOT / "inspinia/users/migrations/0010_public_registration.py",
+                ROOT / "inspinia/solutions/migrations/0017_multiple_problem_solutions.py",
                 ROOT / "inspinia/pages/migrations/0047_study_help.py",
                 ROOT / "inspinia/rankings/migrations/0005_ranking_analysis_review.py",
                 ROOT / "inspinia/rankings/migrations/0006_student_achievement_profiles.py",
@@ -125,6 +128,7 @@ def test_actual_learning_migration_bundle_and_entire_history_are_hash_bound(tmp_
     ("solutions", "0014_admin_solution_review"),
     ("solutions", "0016_admin_review_takedown"),
     ("users", "0010_public_registration"),
+    ("solutions", "0017_multiple_problem_solutions"),
     ("pages", "0047_study_help"),
 ])
 def test_successors_are_not_part_of_the_historical_learning_allowance(tmp_path, app, migration):
@@ -394,18 +398,20 @@ def test_classification_explicitly_limits_recovery_to_verified_learning_readers(
 
 def test_sqlite_upgrade_preserves_sources_progress_solutions_and_subscribers(tmp_path):
     database, report = tmp_path / "learning.sqlite3", tmp_path / "report.json"
-    # Exercise the current rehearsal against its historical source boundary.
-    # Keep the trusted validator exact; later migrations are out of scope.
+    # Exercise the exact Learning reader and migration tree together.
     source = tmp_path / "historical-source"
-    for package in ("config", "inspinia", "scripts"):
-        shutil.copytree(
-            ROOT / package, source / package,
-            ignore=shutil.ignore_patterns(
-                "__pycache__", "static", "0013_solution_forum.py", "0005_ranking_analysis_review.py",
-                "0006_student_achievement_profiles.py", "0014_admin_solution_review.py", "0047_study_help.py",
-                "0015_self_solution_review_usage.py", "0016_admin_review_takedown.py",
-                "0010_public_registration.py",
-            ),
+    historical_sha = "6b20560d15346677256a9df559917109d85d0cfe"
+    git = shutil.which("git")
+    assert git, "Git is required to extract the frozen Learning source"
+    result = subprocess.run(
+        [git, "archive", historical_sha, "config", "inspinia", "scripts"],
+        cwd=ROOT, check=True, capture_output=True, timeout=30,
+    )
+    with tarfile.open(fileobj=BytesIO(result.stdout)) as archive:
+        archive.extractall(
+            source,
+            members=(member for member in archive if not member.name.startswith("inspinia/static/")),
+            filter="data",
         )
     result = subprocess.run(
         [

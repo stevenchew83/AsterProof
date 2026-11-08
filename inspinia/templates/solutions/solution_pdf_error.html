@@ -9,7 +9,7 @@
     LaTeX did not produce a PDF. Fix any errors in your block bodies and try again.
   </div>
   <p class="text-muted">
-    <a href="{% url 'solutions:problem_solution_edit' problem_data.problem.problem_uuid %}">Back to solution editor</a>
+    <a href="{{ problem_data.editor_url }}">Back to solution editor</a>
   </p>
   {% if log_tail %}
   <h5 class="mt-4">Compiler log</h5>

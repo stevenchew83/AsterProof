@@ -19,14 +19,18 @@ FIXTURES = Path(__file__).parent / "fixtures"
 
 def test_frozen_candidate_and_rehearsal_delta(tmp_path):
     root = Path.cwd()
-    successor = Path("inspinia/users/migrations/0010_public_registration.py")
-    for migration in root.glob("inspinia/**/migrations/*"):
-        relative = migration.relative_to(root)
-        if migration.suffix in {".py", ".json"} and relative != successor:
+    successor = Path("inspinia/solutions/migrations/0017_multiple_problem_solutions.py")
+    registration = Path("inspinia/users/migrations/0010_public_registration.py")
+    for source in root.glob("inspinia/**/migrations/*"):
+        relative = source.relative_to(root)
+        if source.suffix in {".py", ".json"} and relative not in {successor, registration}:
             staged = tmp_path / relative
             staged.parent.mkdir(parents=True, exist_ok=True)
-            staged.write_bytes(migration.read_bytes())
+            staged.write_bytes(source.read_bytes())
     schema.validate_candidate(tmp_path)
+    (tmp_path / successor).write_bytes((root / successor).read_bytes())
+    with pytest.raises(ConceptSchemaError, match="Prior migration sources"):
+        schema.validate_candidate(tmp_path)
     delta = json.loads((FIXTURES / "admin-review-takedown-schema-delta.json").read_bytes())
     assert schema_state(delta)["fingerprint"] == schema.DELTA_SHA256
     assert {row["column"] for row in delta["columns"]} == schema.COLUMNS
