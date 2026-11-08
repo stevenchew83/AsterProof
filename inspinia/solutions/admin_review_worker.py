@@ -174,7 +174,7 @@ def _notify(review):
         try:
             message = get_adapter().render_mail(
                 "account/email/solution_review", author.email,
-                {"review_url": url},
+                {"review_url": url, "review_score": review.score},
             )
             state = Notice.SENT if message.send() == 1 else Notice.FAILED
         except Exception:  # noqa: BLE001 - mail errors may contain addresses or credentials

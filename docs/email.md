@@ -52,7 +52,8 @@ policy is unchanged.
 
 When an administrator publishes [an AI solution review](solutions/admin-ai-review.md),
 AsterProof queues a notification using the same branded shell and inline logo.
-The email links to the signed-in review and does not contain the score or proof.
+The email includes the published score out of 7 and links to the signed-in
+review. The proof and written feedback are not included in the email.
 
 ## Optional email sign-in codes
 
