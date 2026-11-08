@@ -3,6 +3,7 @@
 <div class="row g-3"><div class="col-xl-9">
   <div class="card"><div class="card-body">
     {% if introduction %}<p class="text-muted">{{ introduction }}</p>{% endif %}
+    {% if registered_protocols %}<section class="mb-3"><h2 class="h5">Existing preregistrations</h2><ul>{% for item in registered_protocols %}<li><a href="{% url 'solutions:evaluation_protocol_detail' item.pk %}">{{ item.metadata.body.spec.partition }} · {{ item.metadata.digest|slice:':16' }}</a></li>{% endfor %}</ul></section>{% endif %}
     {% if frozen_input %}{% include 'solutions/evaluation/input.html' with bundle=frozen_input assets=assets only %}{% endif %}
     {% include 'solutions/evaluation/judgments.html' %}
     {% if inspected_report %}{% include 'solutions/evaluation/report.html' with report=inspected_report only %}{% endif %}
