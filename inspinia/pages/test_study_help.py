@@ -6,6 +6,7 @@ from concurrent.futures import ThreadPoolExecutor
 from datetime import UTC
 from datetime import datetime
 from datetime import timedelta
+from hashlib import sha256
 from io import StringIO
 from threading import Barrier
 from types import SimpleNamespace
@@ -975,3 +976,61 @@ def test_paid_sample_claim_is_separate_funded_and_never_replayed(settings, polic
     with pytest.raises(CommandError, match="already exists"):
         _claim(policy.active_prompt, archive, StudyHelpAction.HINT, None, manifest)
     assert StudyHelpSpend.objects.count() == 1
+
+
+def test_single_hint_pair_passes_the_first_hint_and_keeps_learner_generation_off(
+    settings, policy, archive, tmp_path, monkeypatch,
+):
+    from django.core.management.base import CommandError
+
+    from inspinia.pages.management.commands import evaluate_study_help
+
+    settings.STUDY_HELP_EVALUATION_ENABLED = True
+    policy.generation_enabled = False
+    policy.save(update_fields=["generation_enabled"])
+    actor = UserFactory(role=User.Role.ADMIN, is_approved=True)
+    first_hint = "Compare the sum for n with the sum for n minus one."
+    second_hint = "Try arranging successive odd numbers as borders of square arrays."
+    answers = {StudyHelpAction.HINT: first_hint, StudyHelpAction.STRONGER_HINT: second_hint}
+    calls = []
+
+    def provider(_model, action, messages, *, evaluation):
+        assert evaluation
+        calls.append((action, messages))
+        return result(answers[action])
+
+    monkeypatch.setattr(evaluate_study_help, "call_provider", provider)
+    manifest = {
+        "mode": "hint_pair",
+        "prompt": str(policy.active_prompt_id),
+        "profile_digest": profile_digest(policy.active_prompt, policy.model),
+        "expires": (timezone.now() + timedelta(minutes=2)).isoformat(),
+        "budget_micros": 2 * policy.request_cap,
+        "pricing": {"input_price": policy.input_price, "output_price": policy.output_price},
+        "fixtures": [{
+            "statement_uuid": str(archive.statement_uuid), "revision": statement_revision(archive),
+            "domain": "algebra", "alternative": False,
+        }],
+    }
+    path = tmp_path / "hint-pair.json"
+    raw = json.dumps(manifest).encode()
+    path.write_bytes(raw)
+    stdout = StringIO()
+    arguments = (
+        "--manifest", str(path), "--manifest-sha256", sha256(raw).hexdigest(),
+        "--approval-ref", "synthetic-hint-pair", "--operator-id", str(actor.pk),
+    )
+
+    with pytest.raises(CommandError, match="configuration"):
+        call_command("evaluate_study_help", *arguments, stdout=stdout)
+    assert not calls
+    settings.STUDY_HELP_ENABLED = False
+    call_command("evaluate_study_help", *arguments, stdout=stdout)
+    assert [action for action, _ in calls] == [StudyHelpAction.HINT, StudyHelpAction.STRONGER_HINT]
+    assert json.loads(calls[1][1][1]["content"])["prior_body"] == first_hint
+    assert [json.loads(line)["body"] for line in stdout.getvalue().splitlines()] == [first_hint, second_hint]
+    assert StudyHelpSpend.objects.filter(state=StudyHelpSpend.State.SETTLED).count() == 2
+    assert not StudyHelpRequest.objects.exists()
+    with pytest.raises(CommandError, match="already exists"):
+        call_command("evaluate_study_help", *arguments, stdout=stdout)
+    assert len(calls) == 2
