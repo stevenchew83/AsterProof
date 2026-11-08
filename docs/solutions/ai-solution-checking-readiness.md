@@ -1,8 +1,9 @@
 # Offline solution-checking readiness evidence
 
-Date: 2026-11-01. Scope: architecture contract v1 and repository-only release
-preparation. This record supersedes the initial local-only assessment. No
-production operation, provider execution or activation is authorized by it.
+Date: 2026-11-01. Scope: architecture contract v1 and the completed offline
+foundation release. This records historical evidence; it is not a claim about
+the latest production revision or authority for another deployment, provider
+execution or student activation.
 
 ## Source-bound CI evidence
 
@@ -57,17 +58,54 @@ preservation, empty evidence tables and disabled/unfunded AI were explicit true.
 
 The application totals above do not count the full deployment-script suite. An
 existing overlapping directory/file pytest target selected only the explicit
-JavaScript file under `scripts/`. The selector is corrected in this PR so the
-whole directory, including all deployment regressions, is collected in subsequent
-CI runs. Local deployment regressions were independently executed. No omitted
+JavaScript file under `scripts/`. The selector was corrected before the final
+released checks so the whole directory, including all deployment regressions,
+is collected. Local deployment regressions were independently executed. No omitted
 test is represented as a pass.
 
 Main subsequently advanced to `2fae98fcdb74d3eb6e4141598c02f00c5f59d9e7`
 (learning-activity tracking). Both exact allowances are retained separately.
-The final head requires a new green PR run against that base, including the full
-script suite and active-code rehearsal. The required check remains `verify`.
-These are engineering artifacts, not model executions, final merged production
-proofs or deployment authority. No merge or deployment is performed here.
+The subsequent merged release completed those checks, including the full script
+suite and active-code rehearsal. The required check remains `verify`. The earlier
+artifacts above remain historical engineering evidence, not model executions.
+
+## Completed production release
+
+[PR 391](https://github.com/stevenchew83/AsterProof/pull/391) merged as
+`8b09bf548aa96c857b2b74a24ac06633d929c585`. Its first deployment
+[41293526704](https://github.com/stevenchew83/AsterProof/actions/runs/41293526704)
+failed before activation: an old navigation smoke expected an unassigned
+administrator to have workspace access. The server correctly denied that access.
+
+The separately authorized test/CI correction in
+[PR 393](https://github.com/stevenchew83/AsterProof/pull/393) merged as
+`c0c7ff57829a32a33bb4a4351ff151c70055ff94`. It tests rendered visible navigation,
+explicitly checks unassigned-administrator denial and includes navigation smoke
+coverage in shared CI. Authorization was not weakened.
+
+[Deployment 41295842073](https://github.com/stevenchew83/AsterProof/actions/runs/41295842073)
+successfully activated that exact release on 2026-11-01 at 10:17 UTC. Its full
+quality suite reported **3796 passed, 16 environment-specific skips**. Skips are
+not represented as passes. Final merged-release PostgreSQL 17.9 evidence verified
+active-code compatibility against `2fae98fcdb74d3eb6e4141598c02f00c5f59d9e7`,
+preserved existing rows/schema/sequences/triggers and empty new evidence tables.
+
+- Merged schema evidence file SHA-256: `450a7b69f58054f5ec25df7433e2f8d118ef9d039d9d20224422a61178ab5160`.
+- Compatibility smoke SHA-256: `6237ce7efca875836854ef3017611fce28535d062f8007c768dbdad1933e3bea`.
+- Deployed archive SHA-256: `7f65c74c02b9632c2fe77bdda7f5e52bcdf3c71b76bc518c38daa0d30b3ea4a4`.
+
+The reviewed migration allowance was installed under separate human approval,
+without changing the six preserved production configuration/transport files or
+restarting the application during installation. Deployment applied exactly
+`solutions.0010_offline_evaluation_contract` and its 19 new tables. Immediate
+health, release/archive, schema, cgroup, static-asset and short stabilization
+checks passed. There was no automatic retry, rollback or delayed monitoring.
+
+Read-only postflight found both AI flags false, execution mode `offline`, document
+writes enabled, no funded/enabled policy, no activation authorizations and no
+evaluation cases, snapshots or runs. The provider boundary remained hard-disabled.
+This deployment authorization is completed; it supplies no future activation or
+deployment grant. Later unrelated releases have their own evidence.
 
 ## Earlier local evidence
 
@@ -85,7 +123,7 @@ than a substitute for the source-bound CI runs above.
 
 | Gate | Conclusion |
 |---|---|
-| E — Engineering | Offline implementation acceptance passed for the source-bound CI runs above; the new production allowance must also pass its final PR checks before merge |
+| E — Engineering | Passed for the exact released offline foundation above; subsequent source changes require their own verification |
 | D — Dataset | Provisional: genuine source/rights evidence, coach judgments, sampling and frozen holdouts remain outstanding |
 | M — Model | Untested; fixture/import scores cannot qualify |
 | P — Pedagogy | Untested; no independent-learning study performed |
@@ -95,12 +133,11 @@ No qualified coach judgment, lawful reuse permission or representative learner
 corpus was fabricated. Human data-quality checks remain mandatory. The newer
 statement/community systems retain their own scope and approvals.
 
-The [release allowance](../deployment/offline-evaluation-release.md) is prepared
-only in source. It does not widen the completed editor allowance or install
-production authority. Final merged-release disclosure needs verified production
-starting fingerprints and a release-bound PostgreSQL/active-code rehearsal;
-these are not invented from synthetic CI data. No production schema, service,
-configuration, credential, worker or authority was changed.
+The [release record](../deployment/offline-evaluation-release.md) distinguishes
+the completed allowance installation and deployment from future operations.
+Production schema changed only through the reviewed additive migration. No
+provider credential, AI worker, funded policy, coach appointment, dataset or
+student activation was created by that release.
 
 ## Operating result
 
@@ -117,3 +154,38 @@ image handling, preview, sharing and completion remain regression-covered.
 See [the architecture contract](ai-solution-checking-architecture.md) and
 [the isolation procedure](offline-evaluation-isolation.md) for requirements and
 future approval boundaries.
+
+The next offline milestone is [benchmark staffing, intake and protocol
+preregistration](ai-solution-checking-benchmark-intake.md). That work cannot
+retroactively inherit the released foundation's engineering evidence.
+
+## Unreleased milestone preparation — 2026-11-01
+
+Local implementation adds authenticated offline protocol preregistration using
+existing immutable audit records. It creates no schema migration, appointment,
+benchmark case, provider request or activation. The intake runbook and intentionally
+incomplete templates prepare real staffing/source collection without inventing
+qualifications, mathematical judgments or reuse permission.
+
+Verification of the local changes:
+
+- Broader solution/problemset/core/user/navigation/script regressions: 1877 passed,
+  15 environment-specific skips. Four additional protocol edge-case checks added
+  after that run were included in the final PostgreSQL check below.
+- Final protocol and row-lock race suites on a disposable local PostgreSQL 15
+  cluster: 51 passed, no skips. TCP was disabled; the private Unix socket and
+  temporary cluster were removed after the run. This does not claim container
+  isolation or deployment-version equivalence.
+- Ruff, Django system checks, migration consistency and whitespace checks passed.
+  The frozen migration 0010 SHA-256 is unchanged.
+- CI selects the new protocol module and requires the new concurrency test to pass
+  without skipping in the existing pinned PostgreSQL 17.9 isolation job. Those
+  container checks have not been rerun for these local changes; Docker is absent
+  from this workstation. Historical green CI is not reused as new evidence.
+
+This preparation does not authorize deployment or activation. Genuine appointments,
+source rights, independent mathematical annotation, population/sampling decisions
+and an actual human-reviewed experimental protocol remain pending. D is provisional;
+M/P are untested. Both AI flags and the provider block are preserved. Paid API
+calls and production changes for this preparation: zero. The accompanying PR records
+fresh source-bound CI evidence when available; the local counts above remain historical.
