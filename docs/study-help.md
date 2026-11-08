@@ -39,6 +39,16 @@ Production makes the pilot available for authorization while the general Study H
 
 Use `process_study_help` as a one-shot worker to refresh readiness and handle each explicit click. Verify both hints, the shared credit debits, free reopening, and the two-hint cap on the draft page. Run `study_help_control pause` when verification ends. After expiry, the original enrolled administrator can reopen saved hints on the pinned draft without using credits. New generation still requires the unexpired authorization. The AI Review key is decrypted only inside the authorized app account.
 
+## BMO 2023 P1 learner rollout
+
+After the original administrator pilot expires, the learner rollout can be authorized with
+`study_help_control arm_bmo_learner_hints --operator-id … --approval-ref … --budget-micros …`.
+It requires two revealed Level 1 results from the pinned pilot, the existing AI Review key and model,
+fresh reviewed pricing, and a recent worker heartbeat. The total budget is required and does not
+reset by date or account deletion. Only approved accounts on the pinned BMO 2023 P1 draft can request
+the two Level 1 hints. They use the shared AI Review credits. Full proofs and the general archive
+remain off. Use `study_help_control pause` to stop new requests while preserving saved hints.
+
 ## Release and operations
 
 1. Freeze the release SHA and exact additive migration bytes. Follow the [protected production release procedure](deployment/production-release.md), including the release-specific schema allowance, pinned PostgreSQL rehearsal, old application smoke, and separate trusted authority installation. Deploy with both flags off.
