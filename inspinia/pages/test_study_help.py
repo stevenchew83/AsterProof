@@ -8,6 +8,7 @@ from datetime import datetime
 from datetime import timedelta
 from io import StringIO
 from threading import Barrier
+from types import SimpleNamespace
 from uuid import uuid4
 
 import pytest
@@ -243,12 +244,14 @@ def draft_pilot(settings, monkeypatch, policy, archive):
     archive.linked_problem = problem
     archive.save()
     monkeypatch.setattr(study_help_access, "PILOT_REVISION", statement_revision(archive))
+    reviewed_hint = "One Level 1 hint.\n\nLeave the choice of inputs to the student."
     prompt = StudyHelpPrompt.objects.create(
         pk=PILOT_PROMPT,
-        hint="One Level 1 hint.",
+        hint=reviewed_hint.replace("\n", "\r\n"),
         solution="Proof.",
     )
-    monkeypatch.setattr(study_help, "PILOT_DIGEST", profile_digest(prompt, PILOT_MODEL))
+    reviewed = SimpleNamespace(hint=reviewed_hint, solution=prompt.solution)
+    monkeypatch.setattr(study_help, "PILOT_DIGEST", profile_digest(reviewed, PILOT_MODEL))
     encryption_key = Fernet.generate_key()
     settings.ADMIN_SOLUTION_REVIEW_ENCRYPTION_KEY = encryption_key.decode()
     AdminSolutionReviewSettings.objects.create(
@@ -318,7 +321,16 @@ def test_draft_pilot_uses_saved_prompt_and_shared_credits(client, archive, draft
     assert submit(client, archive, request).status_code == 202
     job = StudyHelpRequest.objects.get(request_key=request.request_key)
     assert job.prompt == prompt
-    assert process_next(provider_for(first)) == "ready"
+    assert job.profile_digest == study_help.PILOT_DIGEST
+
+    def first_provider(model, action, messages):
+        assert model == PILOT_MODEL
+        assert action == StudyHelpAction.HINT
+        assert "One Level 1 hint.\n\nLeave the choice of inputs to the student." in messages[0]["content"]
+        assert "\r" not in messages[0]["content"]
+        return result(first)
+
+    assert process_next(first_provider) == "ready"
     assert self_review_allowance(admin, archive.problem_uuid)["account_remaining"] == 48
     assert not client.get(status_url).json()["actions"]
     assert saved(client, archive, job).json()["response"]["body"] == first
@@ -329,6 +341,7 @@ def test_draft_pilot_uses_saved_prompt_and_shared_credits(client, archive, draft
         assert model == PILOT_MODEL
         assert action == StudyHelpAction.STRONGER_HINT
         assert "substantively different" in messages[0]["content"]
+        assert "\r" not in messages[0]["content"]
         assert json.loads(messages[1]["content"])["prior_body"] == first
         return result(second)
 
@@ -340,6 +353,8 @@ def test_draft_pilot_uses_saved_prompt_and_shared_credits(client, archive, draft
     assert client.get(status_url).json()["actions"] == {}
     assert submit(client, archive, spec(archive, "hint")).json()["code"] == "hint_statement_limit"
     assert StudyHelpSpend.objects.count() == 2
+    prompt.refresh_from_db()
+    assert "\r\n" in prompt.hint
 
 
 @pytest.mark.parametrize("change", ["statement", "prompt", "proof"])
