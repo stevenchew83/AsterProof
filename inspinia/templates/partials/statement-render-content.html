@@ -1,3 +1,4 @@
+{% load study_help %}
 <div class="statement-render-content d-flex flex-column gap-3{% if render_style != 'classic' %} statement-evan-box{% endif %}">
   {% for segment in segments %}
     {% if segment.kind == "text" %}
@@ -31,3 +32,6 @@
     {% endif %}
   {% endfor %}
 </div>
+{% if request.resolver_match.view_name == 'solutions:problem_solution_edit' and problem_data.statement_entry %}
+  {% draft_study_help problem_data.statement_entry %}
+{% endif %}

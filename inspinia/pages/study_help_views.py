@@ -45,6 +45,7 @@ from inspinia.pages.study_help_models import StudyHelpQualification
 from inspinia.pages.study_help_models import StudyHelpRequest
 from inspinia.pages.study_help_provider import HINT_PROMPT
 from inspinia.pages.study_help_provider import MAX_PROMPT_CHARS
+from inspinia.pages.study_help_provider import SECOND_HINT_RULE
 from inspinia.pages.study_help_provider import SOLUTION_PROMPT
 from inspinia.pages.study_help_provider import input_messages
 from inspinia.pages.study_help_provider import profile_digest
@@ -63,7 +64,9 @@ def _json_action(view):
             return view(request, statement_uuid)
         except StudyHelpError as error:
             payload = {"code": error.code, "message": str(error)}
-            if error.code in {"stale_action", "hints_exhausted", "solutions_exhausted", "statement_limit"}:
+            if error.code in {
+                "stale_action", "hints_exhausted", "hint_statement_limit", "solutions_exhausted", "statement_limit",
+            }:
                 payload["status"] = status(request.user, statement_uuid)
             return JsonResponse(payload, status=error.status)
         except (ValueError, TypeError, KeyError, RecursionError):
@@ -189,10 +192,14 @@ def _analytics(start, end):
 
 
 @transaction.atomic
-def _admin_submit(request):
+def update_study_help_prompt(request):
     lock_study_help()
-    if request.POST.get("operation") == "draft":
+    operation = request.POST.get("operation")
+    if operation in {"draft", "hint_draft"}:
         hint, solution = (request.POST.get(name, "").strip() for name in ("hint", "solution"))
+        if operation == "hint_draft":
+            original = _selected_prompt(request.POST.get("prompt", ""))
+            solution = original.solution if original else SOLUTION_PROMPT
         if not all(0 < len(value) <= MAX_PROMPT_CHARS for value in (hint, solution)):
             messages.error(request, f"Enter both prompts, up to {MAX_PROMPT_CHARS} characters each.")
             return ""
@@ -200,7 +207,7 @@ def _admin_submit(request):
         StudyHelpAdminEvent.objects.create(actor=request.user, action="draft", prompt=prompt)
         messages.success(request, "Prompt draft saved.")
         return str(prompt.pk)
-    if request.POST.get("operation") != "publish":
+    if operation != "publish":
         raise PermissionDenied
     try:
         prompt = StudyHelpPrompt.objects.get(pk=UUID(request.POST["prompt"]))
@@ -229,28 +236,19 @@ def _admin_submit(request):
     return str(prompt.pk)
 
 
-@login_required
-@require_http_methods(["GET", "POST"])
-@never_cache
-def study_help_admin(request):
-    if not user_has_admin_role(request.user):
-        raise PermissionDenied
-    if request.method == "POST":
-        target = _admin_submit(request)
-        url = redirect("pages:study_help_admin")
-        if target:
-            url["Location"] += "?prompt=" + target
-        return url
+def _selected_prompt(value):
+    try:
+        return StudyHelpPrompt.objects.filter(pk=UUID(value)).first()
+    except ValueError:
+        return None
 
+
+def study_help_prompt_context(request):
     policy = StudyHelpPolicy.objects.filter(pk=1).first()
     versions = Paginator(StudyHelpPrompt.objects.select_related("editor").order_by("-created_at"), 15).get_page(
         request.GET.get("page"),
     )
-    try:
-        selected = StudyHelpPrompt.objects.filter(pk=UUID(request.GET.get("prompt", ""))).first()
-    except ValueError:
-        selected = None
-    selected = selected or next(iter(versions), None)
+    selected = _selected_prompt(request.GET.get("prompt", "")) or next(iter(versions), None)
     if selected:
         preview = [
             input_messages(action, PREVIEW_STATEMENT, selected)[0]["content"]
@@ -266,20 +264,39 @@ def study_help_admin(request):
             profile_digest=profile_digest(selected, policy.model),
         ).exists(),
     )
+    return {
+        "policy": policy,
+        "versions": versions,
+        "selected": selected,
+        "preview": preview,
+        "qualified": qualified,
+        "hint_prompt": selected.hint if selected else HINT_PROMPT,
+        "solution_prompt": selected.solution if selected else SOLUTION_PROMPT,
+        "max_prompt_chars": MAX_PROMPT_CHARS,
+        "preview_statement": PREVIEW_STATEMENT,
+        "second_hint_rule": SECOND_HINT_RULE,
+    }
+
+
+@login_required
+@require_http_methods(["GET", "POST"])
+@never_cache
+def study_help_admin(request):
+    if not user_has_admin_role(request.user):
+        raise PermissionDenied
+    if request.method == "POST":
+        target = update_study_help_prompt(request)
+        url = redirect("pages:study_help_admin")
+        if target:
+            url["Location"] += "?prompt=" + target
+        return url
+
     start, end = _date_range(request)
     return render(
         request,
         "pages/study-help-admin.html",
         {
-            "policy": policy,
-            "versions": versions,
-            "selected": selected,
-            "preview": preview,
-            "qualified": qualified,
-            "hint_prompt": selected.hint if selected else HINT_PROMPT,
-            "solution_prompt": selected.solution if selected else SOLUTION_PROMPT,
-            "max_prompt_chars": MAX_PROMPT_CHARS,
-            "preview_statement": PREVIEW_STATEMENT,
+            **study_help_prompt_context(request),
             "start": start,
             "end": end,
             "analytics": _analytics(start, end),

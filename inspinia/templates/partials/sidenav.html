@@ -146,9 +146,6 @@
             {% include 'partials/sidenav-link.html' with route_name='pages:topic_tag_dashboard' label='Mathematics catalogue' only %}
             {% include 'partials/sidenav-link.html' with route_name='pages:problem_statement_dashboard' label='Statement analytics' only %}
             {% include 'partials/sidenav-link.html' with route_name='pages:page_view_analytics' label='View analytics' only %}
-            {% if request.user.is_superuser or request.user.role == 'admin' %}
-            {% include 'partials/sidenav-link.html' with route_name='pages:study_help_admin' label='AI study help' only %}
-            {% endif %}
             {% if not is_app_admin %}
             {% include 'partials/sidenav-link.html' with route_name='pages:completion_record_list' label='Completion records' only %}
             {% endif %}
@@ -218,8 +215,6 @@
                 </a>
             </li>
             {% include 'partials/sidenav-link.html' with route_name='solutions:forum_admin_queue' label='Solution verification' icon='rosette-discount-check' only %}
-            {% include 'partials/sidenav-link.html' with route_name='solutions:admin_ai_review_queue' label='AI review queue' icon='list-details' only %}
-            {% include 'partials/sidenav-link.html' with route_name='solutions:admin_ai_review_settings' label='AI review settings' icon='sparkles' only %}
             {% include 'partials/sidenav-link.html' with route_name='solutions:admin_public_shares' label='Public solutions' icon='world' only %}
             {% include 'partials/sidenav-link.html' with route_name='solutions:admin_collections' label='Curated collections' icon='stack-2' only %}
             {% include 'partials/sidenav-link.html' with route_name='website:newsletter_dashboard' label='Newsletter' icon='mail' only %}
@@ -232,6 +227,13 @@
             {% if show_event_log_link %}
             {% include 'partials/sidenav-link.html' with route_name='users:event_log' label='Event log' only %}
             {% endif %}
+            <li class="side-nav-title">AI tools</li>
+            {% include 'partials/sidenav-link.html' with route_name='solutions:admin_ai_review_settings' label='AI settings' icon='sparkles' only %}
+            {% include 'partials/sidenav-link.html' with route_name='pages:ai_hint_history' label='Hint history' icon='bulb' only %}
+            {% include 'partials/sidenav-link.html' with route_name='pages:ai_review_history' label='Review history' icon='message-check' only %}
+            {% include 'partials/sidenav-link.html' with route_name='solutions:admin_ai_review_queue' label='AI review queue' icon='list-details' only %}
+            {% include 'partials/sidenav-link.html' with route_name='pages:ai_user_usage' label='User AI usage' icon='chart-bar' only %}
+            {% include 'partials/sidenav-link.html' with route_name='pages:study_help_admin' label='Hint analytics' icon='chart-line' only %}
             {% endif %}
                 </ul></div>
             </li>

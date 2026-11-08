@@ -19,6 +19,7 @@ from django.urls import reverse
 from django.utils import timezone
 
 from inspinia.pages.models import ContestProblemStatement
+from inspinia.pages.models import ProblemSolveRecord
 from inspinia.pages.study_help import ProblemUsage
 from inspinia.pages.study_help import RequestSpec
 from inspinia.pages.study_help import StudyHelpError
@@ -39,6 +40,8 @@ from inspinia.pages.study_help_worker import claim_next
 from inspinia.pages.study_help_worker import finish
 from inspinia.pages.study_help_worker import process_next
 from inspinia.pages.study_help_worker import reconcile
+from inspinia.solutions.admin_review_models import SelfSolutionReviewUsage
+from inspinia.solutions.admin_reviews import self_review_allowance
 from inspinia.solutions.evaluation_models import AssistancePolicy
 from inspinia.users.models import User
 from inspinia.users.tests.factories import UserFactory
@@ -158,7 +161,7 @@ def test_progressive_hints_are_private_and_follow_an_explicit_reveal(client, lea
     read = client.get(reverse("pages:study_help_status", args=[archive.statement_uuid]))
     assert b"Try comparing" not in page.content + read.content
     assert "no-store" in read["Cache-Control"]
-    assert read.json()["hints_left"] == 4
+    assert read.json()["account_remaining"] == 49
     assert "stronger_hint" not in read.json()["actions"]
     client.force_login(UserFactory(is_approved=True))
     assert saved(client, archive, job).status_code == 404
@@ -168,10 +171,56 @@ def test_progressive_hints_are_private_and_follow_an_explicit_reveal(client, lea
     assert saved(client, archive, job, same_click).status_code == 200
     assert StudyHelpEvent.objects.filter(kind="first_reveal").count() == 1
     assert StudyHelpEvent.objects.filter(kind="view_click").count() == 1
-    stronger = spec(archive, "stronger_hint", 2, job.pk)
-    assert submit(client, archive, stronger).status_code == 202
+    assert submit(client, archive, spec(archive, "stronger_hint", 2, job.pk)).status_code == 202
+    claim = claim_next()
+    assert "substantively different" in claim.messages[0]["content"]
+    assert json.loads(claim.messages[1]["content"])["prior_body"] == r"Try comparing \((n+1)^2\) and \(n^2\)."
+    assert finish(claim.spend_id, result(r"TRY comparing \((n+1)^2\) and \(n^2\)!")) == "failed"
+    assert status(learner, archive.statement_uuid)["account_remaining"] == 49
+
+    archive.statement_latex += " Use any valid argument."
+    archive.save()
+    assert submit(client, archive, spec(archive, "stronger_hint", 2, job.pk)).status_code == 202
     assert process_next(provider_for("Use the difference of two consecutive squares as an induction step.")) == "ready"
-    assert status(learner, archive.statement_uuid)["hints_left"] == 3
+    final = status(learner, archive.statement_uuid)
+    assert final["account_remaining"] == 48
+    assert final["statement_hints_used"] == 2
+    assert not (set(final["actions"]) & {"hint", "stronger_hint"})
+    assert submit(client, archive, spec(archive, "hint")).json()["code"] == "hint_statement_limit"
+
+
+def test_draft_study_help_shares_archive_identity_and_access(client, settings, learner, policy, archive):
+    problem = ProblemSolveRecord.objects.create(contest=archive.contest_name, year=archive.contest_year, problem="P1")
+    archive.linked_problem = problem
+    archive.save()
+    client.force_login(learner)
+    draft_url = reverse("solutions:problem_solution_edit", args=[problem.problem_uuid])
+    status_url = reverse("pages:study_help_status", args=[archive.statement_uuid])
+    archive_url = reverse("pages:problem_statement_detail", args=[archive.statement_uuid])
+    draft = client.get(draft_url).content.decode()
+    archive_page = client.get(archive_url).content.decode()
+
+    for page in (draft, archive_page):
+        status_attribute = f'data-status-url="{status_url}"'
+        assert page.count(status_attribute) == 1
+        panel = page.split(status_attribute, 1)[1].split("</section>", 1)[0]
+        assert 'name="csrfmiddlewaretoken"' in panel
+    assert "data-study-help-draft" in draft
+    assert "data-study-help-draft" not in archive_page
+    assert draft.index("study-help.js") < draft.index("tex-mml-chtml.js")
+
+    policy.audience = StudyHelpPolicy.Audience.COHORT
+    policy.save(update_fields=["audience"])
+    assert client.get(status_url).status_code == 404
+    StudyHelpEnrollment.objects.create(user=learner)
+    assert "hint" in client.get(status_url).json()["actions"]
+
+    settings.STUDY_HELP_ENABLED = False
+    assert b"study-help.js" not in client.get(draft_url).content
+    settings.STUDY_HELP_ENABLED = True
+    archive.is_active = False
+    archive.save(update_fields=["is_active"])
+    assert b"study-help.js" not in client.get(draft_url).content
 
 
 def test_proof_confirmations_clicks_and_stale_actions(client, learner, policy, archive):
@@ -273,25 +322,33 @@ def test_diagram_sources_cannot_enter_queue(client, learner, policy, source):
     assert not StudyHelpSpend.objects.exists()
 
 
-def test_credit_reset_uses_acceptance_day(monkeypatch, learner, policy, archive):
+def test_hints_share_the_last_review_credit_and_do_not_reset_daily(monkeypatch, learner, policy, archive):
     from inspinia.pages import study_help
 
     now = datetime(2026, 11, 7, 15, 59, tzinfo=UTC)
     monkeypatch.setattr(study_help.timezone, "now", lambda: now)
     policy.worker_checked_at = policy.pricing_verified_at = now
     policy.save(update_fields=["worker_checked_at", "pricing_verified_at"])
-    for number in range(1, 5):
-        row = archive_statement(number + 1)
-        enqueue(learner, row.statement_uuid, spec(row, "hint"))
-        assert process_next(provider_for("Try a new viewpoint.")) == "ready"
+    SelfSolutionReviewUsage.objects.bulk_create([
+        SelfSolutionReviewUsage(user=learner, problem_uuid=uuid4(), batch_id=uuid4(), succeeded=True)
+        for _ in range(49)
+    ])
+    assert status(learner, archive.statement_uuid)["account_remaining"] == 1
     enqueue(learner, archive.statement_uuid, spec(archive, "hint"))
+    assert self_review_allowance(learner, archive.problem_uuid) == {
+        "active": True, "account_remaining": 1, "problem_remaining": 2,
+    }
     assert claim_next()
-    assert status(learner, archive.statement_uuid)["hints_left"] == 0
     now += timedelta(minutes=1)
     running = StudyHelpRequest.objects.get(state="running")
     assert finish(running.spend_id, result("Try an identity.")) == "ready"
     assert running.hint_day.isoformat() == "2026-11-07"
-    assert status(learner, archive.statement_uuid)["hints_left"] == 5
+    assert status(learner, archive.statement_uuid)["account_remaining"] == 0
+    assert self_review_allowance(learner, archive.problem_uuid) == {
+        "active": False, "account_remaining": 0, "problem_remaining": 2,
+    }
+    with pytest.raises(StudyHelpError, match="used all your AI credits"):
+        enqueue(learner, archive.statement_uuid, spec(archive, "hint"))
 
 
 def test_uncertain_dispatch_expiry_and_manual_reconciliation(learner, policy, archive):
@@ -378,6 +435,23 @@ def test_launch_flag_roles_csrf_and_admin_drafts(client, settings, learner, poli
     report = StringIO()
     call_command("study_help_control", "readiness", stdout=report)
     assert json.loads(report.getvalue())["generation_ready"] is True
+
+
+def test_ai_settings_saves_hint_draft_without_publishing(client, learner, policy):
+    settings_url = reverse("solutions:admin_ai_review_settings")
+    original = policy.active_prompt
+    data = {"operation": "hint_draft", "hint": "Give a small starting example.", "prompt": str(original.pk)}
+    client.force_login(learner)
+    assert client.post(settings_url, data).status_code == 403
+    client.force_login(UserFactory(role=User.Role.ADMIN))
+    page = client.post(settings_url, data, follow=True)
+    assert page.status_code == 200
+    assert b"Give a small starting example." in page.content
+    draft = StudyHelpPrompt.objects.get(hint=data["hint"])
+    assert draft.solution == original.solution
+    client.post(settings_url, {"operation": "publish", "prompt": str(draft.pk)})
+    policy.refresh_from_db()
+    assert policy.active_prompt == original
 
 
 def _ready_proof(owner, statement, policy):

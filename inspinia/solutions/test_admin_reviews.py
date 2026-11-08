@@ -31,6 +31,10 @@ from PIL import Image
 
 from inspinia.pages.models import ContestProblemStatement
 from inspinia.pages.models import ProblemSolveRecord
+from inspinia.pages.study_help_access import statement_revision
+from inspinia.pages.study_help_models import StudyHelpPrompt
+from inspinia.pages.study_help_models import StudyHelpRequest
+from inspinia.pages.study_help_models import StudyHelpSpend
 from inspinia.solutions import admin_review_worker as worker
 from inspinia.solutions import admin_reviews
 from inspinia.solutions import forum
@@ -479,7 +483,7 @@ def test_solver_sees_streamed_feedback_and_receives_completed_review_automatical
     client.force_login(proof.author)
     page = client.get(proof.url)
     assert b"Generate AI review" in page.content
-    assert b"50</span> left on your account" in page.content
+    assert b"50</span> AI credits left" in page.content
     assert queue(client, proof, config).status_code == HTTPStatus.FOUND
     assert not AdminSolutionReview.objects.exists()  # One model per author request.
 
@@ -525,7 +529,7 @@ def test_solver_sees_streamed_feedback_and_receives_completed_review_automatical
     assert review.notification == AdminSolutionReview.Notification.PENDING
     assert not client.get(progress_url).json()["reviews"][0]["active"]
     page = client.get(proof.url)
-    assert b"49</span> left on your account" in page.content
+    assert b"49</span> AI credits left" in page.content
     assert b"6 / 7" in page.content
     assert b"Check the equality case." in page.content
     assert not getattr(mail, "outbox", [])
@@ -557,6 +561,44 @@ def test_autoshare_does_not_replace_an_admin_review_published_during_generation(
     assert worker.process_next()["notification"] == "sent"
     assert worker.process_next()["status"] == "idle"
     assert len(mail.outbox) == 1
+
+
+@pytest.mark.usefixtures("self_review_enabled")
+def test_ai_history_and_account_usage_are_admin_only(client, proof, config, monkeypatch):
+    monkeypatch.setattr(worker, "request_review", Mock(return_value=response()))
+    queue(client, proof, config, models=MODELS[:1])
+    assert worker.process_next()["status"] == "completed"
+    client.force_login(proof.author)
+    queue(client, proof, config, models=MODELS[:1])
+    assert worker.process_next()["status"] == "completed"
+    StudyHelpRequest.objects.create(
+        owner=proof.author, request_key=uuid.uuid4(), interaction_key=uuid.uuid4(),
+        statement_uuid=proof.statement.statement_uuid, problem_uuid=proof.problem.problem_uuid,
+        revision=statement_revision(proof.statement), action="hint", slot=1, state="ready",
+        prompt=StudyHelpPrompt.objects.create(hint="Offer a direction.", solution="Write a proof."),
+        body="Try a square. <script>never_execute()</script>", finished_at=timezone.now(),
+        spend=StudyHelpSpend.objects.create(reserved_micros=0, input_price=0, output_price=0),
+    )
+    routes = [reverse(f"pages:{name}") for name in ("ai_hint_history", "ai_review_history", "ai_user_usage")]
+    for url in routes:
+        assert client.get(url).status_code == HTTPStatus.FORBIDDEN
+    client.force_login(proof.trainer)
+    for url in routes:
+        assert client.get(url).status_code == HTTPStatus.FORBIDDEN
+    client.force_login(proof.admin)
+    hints, reviews, usage = [client.get(url, {"user": proof.author.pk}) for url in routes]
+    for page in (hints, reviews, usage):
+        assert page.status_code == HTTPStatus.OK
+        assert "no-store" in page.headers["Cache-Control"]
+        assert proof.author.email.encode() in page.content
+    assert b"REVIEW 2026 P3" in hints.content
+    assert b"REVIEW 2026 P3" in reviews.content
+    assert b"&lt;script&gt;never_execute()" in hints.content
+    assert b"Check the equality case." in reviews.content
+    assert {bool(getattr(review, "self_request", None)) for review in reviews.context["page_obj"]} == {False, True}
+    row = usage.context["rows"][0]
+    assert (row["hint_count"], row["review_count"], row["admin_review_count"], row["remaining"]) == (1, 1, 1, 48)
+    assert client.get(routes[0], {"q": "unknown problem"}).context["page_obj"].paginator.count == 0
 
 
 @pytest.fixture
@@ -615,7 +657,7 @@ def test_self_review_limits_count_successes_and_survive_proof_deletion(
     }
     second_url = reverse("solutions:admin_ai_review_generate", args=[second_solution.pk])
     page = client.post(second_url, data, follow=True)
-    assert b"used all 50 AI reviews" in page.content
+    assert b"used all 50 AI credits" in page.content
     assert not AdminSolutionReview.objects.exists()
 
 
@@ -687,7 +729,7 @@ def test_two_concurrent_self_requests_reserve_only_one_account_slot(proof, confi
     with ThreadPoolExecutor(max_workers=2) as executor:
         results = list(executor.map(request_review, (proof.solution, second_solution)))
     assert results.count(True) == 1
-    assert "You already have an AI review in progress." in results
+    assert "You already have an AI request in progress." in results
     assert SelfSolutionReviewUsage.objects.count() == 1
 
 

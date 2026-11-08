@@ -48,9 +48,9 @@ feedback while the review is taken down. The queue requires migration
 When `SELF_SOLUTION_REVIEW_ENABLED=True`, approved accounts can also request a
 review of their own submitted or member-published proof. Authors choose one
 configured model per request and can have one active request across their account.
-Each account can generate two successful reviews per problem across revisions
-and 50 successful reviews overall. Failed attempts leave those allowances
-available.
+Each account can generate two successful reviews per problem across revisions.
+A successful author request uses one of the 50 account credits shared with
+AI hints. Failed attempts leave those allowances available.
 The author can see partial feedback while their request runs. Once the worker
 validates the final score and feedback, it shares the review privately and queues
 the same email link automatically. Earlier completed drafts are not republished.

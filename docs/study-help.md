@@ -1,12 +1,12 @@
 # Archive AI Study Help
 
-Study Help offers private AI hints and proofs on active text-only archive statements. The free allowance includes five successful new hints per Kuala Lumpur day, 50 successful proofs per account, and two proofs per statement. Earlier statement revisions retain their saved results and proof usage. Generation charges a user credit when the response becomes available. Opening a saved response is free.
+Study Help offers private AI hints and proofs on active text-only archive statements. Each account can save up to two successful hints per problem across statement revisions. A new hint costs one credit from the same 50-credit account allowance as an author-requested AI review. The second hint uses the first as context and asks for a distinct next step. A repeated answer uses no user credit. Proofs have a separate allowance of 50 per account and two per statement. Opening a saved response is free.
 
 ## Student and administrator workflows
 
-The archive statement page shows the live allowance, pending generation, and saved history. A stronger hint requires a revealed first hint for the current revision. A full or alternative proof requires confirmation and a separate reveal. Saved output uses escaped text and restricted MathJax.
+The archive statement page and draft editor show the shared balance, pending generation, and saved hints. The second hint requires a revealed first hint. The archive offers full or alternative proofs with confirmation and a separate reveal. Saved output uses escaped text and restricted MathJax.
 
-The admin workspace is under Advanced analytics → AI study help. Saving a pair of prompts creates a new immutable draft. The fixture preview shows the composed instructions without a provider request. Publish or restore a version after its qualification is recorded for the configured model and output settings. The aggregate usage table counts event dates in Kuala Lumpur. Clicks, confirmations, accepted jobs, completed jobs, failures, and first reveals are distinct. Browser clicks are best effort.
+The administrator sidebar groups AI settings, hint and review histories, the review queue, user AI usage, and hint analytics under AI tools. Saving hint instructions in AI settings creates a new immutable prompt draft. The fixture preview shows the composed instructions without a provider request. Publish or restore a version after its qualification is recorded for the configured model and output settings. Hint analytics counts events by date in Kuala Lumpur. Clicks, confirmations, accepted jobs, completed jobs, failures, and first reveals are distinct. Browser clicks are best effort.
 
 Response text is stored once in a private generation record. It does not appear in analytics, source HTML, or the status endpoint. Account deletion removes private generation records, response text, and identifiable interaction events. Provider receipts retain bounded request and response identifiers, usage, spending, and reconciliation references independently of accounts.
 

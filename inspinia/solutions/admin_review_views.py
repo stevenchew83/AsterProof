@@ -29,6 +29,8 @@ from django.views.decorators.http import require_GET
 from django.views.decorators.http import require_http_methods
 from django.views.decorators.http import require_POST
 
+from inspinia.pages.study_help_views import study_help_prompt_context
+from inspinia.pages.study_help_views import update_study_help_prompt
 from inspinia.users.roles import user_has_admin_role
 
 from . import admin_reviews
@@ -166,6 +168,12 @@ def _save_settings(form):
 @require_http_methods(["GET", "POST"])
 def settings_view(request):
     admin_reviews.require_admin(request.user)
+    if request.method == "POST" and request.POST.get("operation") in {"hint_draft", "publish"}:
+        target = update_study_help_prompt(request)
+        url = reverse("solutions:admin_ai_review_settings")
+        if target:
+            url += f"?prompt={target}"
+        return redirect(url + "#hint-settings")
     saved = admin_reviews.review_settings()
     config = saved or AdminSolutionReviewSettings(models_enabled=["gpt-6.1-sol"])
     # The worker reads the assembled prompt. Only separate a recognized preset from the editable text.
@@ -189,6 +197,7 @@ def settings_view(request):
         messages.success(request, "AI review settings saved.")
         return redirect("solutions:admin_ai_review_settings")
     return render(request, "solutions/admin-ai-review-settings.html", {
+        **study_help_prompt_context(request),
         "form": form,
         "key_saved": bool(config.encrypted_key),
         "key_ready": bool(admin_reviews.read_credential(config)),

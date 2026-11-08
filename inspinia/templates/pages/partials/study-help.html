@@ -1,4 +1,5 @@
-<section class="card mt-3 mb-0" data-study-help aria-labelledby="study-help-title"
+<section class="card {% if study_help_draft %}mx-3 mb-3{% else %}mt-3 mb-0{% endif %}" data-study-help aria-labelledby="study-help-title"
+         {% if study_help_draft %}data-study-help-draft{% endif %}
          data-status-url="{% url 'pages:study_help_status' problem_statement.statement_uuid %}"
          data-request-url="{% url 'pages:study_help_request' problem_statement.statement_uuid %}"
          data-reveal-url="{% url 'pages:study_help_reveal' problem_statement.statement_uuid %}"
@@ -12,6 +13,7 @@
       </h2>
       <p class="text-body-secondary mb-0" data-quota></p>
     </div>
+    <p class="small text-body-secondary mb-1">A new hint uses one AI credit when it’s ready.</p>
     <div class="d-flex flex-wrap gap-2 mt-2" data-actions></div>
     <p class="small text-body-secondary mb-0" data-feedback tabindex="-1" role="status" aria-live="polite"></p>
     <div class="border rounded bg-body-tertiary p-3 mt-3" data-confirmation hidden>

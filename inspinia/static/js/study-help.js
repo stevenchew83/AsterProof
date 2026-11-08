@@ -4,17 +4,25 @@
 (() => {
   const root = document.querySelector("[data-study-help]");
   if (!root) return;
+  const draft = root.hasAttribute("data-study-help-draft");
+  if (draft) {
+    // Keep controls outside the statement's scroll area. This deferred script runs before MathJax.
+    root.closest(".solution-reference-body").after(root);
+    window.MathJax.tex.packages["[-]"] = ["require", "autoload", "html"];
+    window.MathJax.options.safeOptions.allow.URLs = "none";
+  }
   const find = selector => root.querySelector(selector);
   const labels = {
     hint: "Get a hint",
-    stronger_hint: "Stronger hint",
+    stronger_hint: "Get a second hint",
     solution: "Full solution",
     alternative: "Try a different approach",
   };
   const responseLabels = {
-    hint: "Hint", stronger_hint: "Stronger hint", solution: "Full solution", alternative: "Alternative solution",
+    hint: "First hint", stronger_hint: "Second hint", solution: "Full solution", alternative: "Alternative solution",
   };
   const proof = action => action === "solution" || action === "alternative";
+  const actionOrder = Object.keys(labels).filter(action => !draft || !proof(action));
   const token = find("[name=csrfmiddlewaretoken]").value;
   const actions = find("[data-actions]");
   const feedback = find("[data-feedback]");
@@ -72,11 +80,17 @@
     state = next;
     root.hidden = false;
     const quota = find("[data-quota]");
-    quota.textContent = [
-      next.hints_left + (next.hints_left === 1 ? " hint left today" : " hints left today"),
-      next.solutions_left + (next.solutions_left === 1 ? " solution credit left" : " solution credits left"),
-      next.statement_solutions_used + " of " + next.statement_solution_limit + " used here",
-    ].join(" · ");
+    const limits = [
+      next.account_remaining + (next.account_remaining === 1 ? " AI credit left" : " AI credits left"),
+      next.statement_hints_used + " of " + next.statement_hint_limit + " hints used here",
+    ];
+    if (!draft) {
+      limits.push(
+        next.solutions_left + (next.solutions_left === 1 ? " solution credit left" : " solution credits left"),
+        next.statement_solutions_used + " of " + next.statement_solution_limit + " used here",
+      );
+    }
+    quota.textContent = limits.join(" · ");
     if (confirmationData && (
       next.revision !== confirmationData.revision ||
       next.actions[confirmationData.action]?.slot !== confirmationData.slot
@@ -85,20 +99,21 @@
       confirmation.hidden = true;
     }
     const message = next.pending_here ? "Generating your AI response…" : next.message || next.failure || (
-      next.hints_left === 0 ? "Hints reset at midnight in Kuala Lumpur." :
-      next.solutions_left === 0 ? "You’ve used all your free solution credits." :
-      next.statement_solutions_used >= next.statement_solution_limit ? "Both solution slots are used." : ""
+      next.account_remaining === 0 ? "You’ve used all your AI credits." :
+      !draft && next.solutions_left === 0 ? "You’ve used all your free solution credits." :
+      !draft && next.statement_solutions_used >= next.statement_solution_limit ? "Both solution slots are used." : ""
     );
     note(message);
-    if (openId && !next.saved.some(item => item.id === openId)) closeAnswer();
+    const saved = next.saved.filter(item => actionOrder.includes(item.action));
+    if (openId && !saved.some(item => item.id === openId)) closeAnswer();
     const focusedText = root.contains(document.activeElement) ? document.activeElement.textContent : "";
-    const currentHint = next.saved.find(item => item.current && item.action === "hint");
-    const currentProof = next.saved.find(item => item.current && proof(item.action));
+    const currentHint = saved.find(item => item.action === "hint");
+    const currentProof = saved.find(item => item.current && proof(item.action));
     actions.replaceChildren();
     if (currentHint && openId !== currentHint.id) {
       actions.append(button("View saved hint", "btn-light border text-body-emphasis", () => show(currentHint, "View saved hint")));
     }
-    for (const action of ["hint", "stronger_hint", "solution", "alternative"]) {
+    for (const action of actionOrder) {
       if (action === "alternative" && currentProof && openId !== currentProof.id) {
         actions.append(button("View saved solution", "btn-light border text-body-emphasis", () => show(currentProof, "View saved solution")));
       }
@@ -109,10 +124,10 @@
         }));
       }
     }
-    history.hidden = !next.saved.length;
-    find("[data-history-label]").textContent = "My saved responses (" + next.saved.length + ")";
+    history.hidden = !saved.length;
+    find("[data-history-label]").textContent = "My saved responses (" + saved.length + ")";
     historyList.replaceChildren();
-    for (const item of next.saved) {
+    for (const item of saved) {
       const row = document.createElement("li");
       row.className = "d-flex flex-wrap align-items-center gap-2 py-1";
       const title = responseLabels[item.action];
@@ -131,7 +146,7 @@
     clearTimeout(timer);
     if (next.pending && !document.hidden) timer = setTimeout(refresh, 2000);
     if (autoOpenId && !next.pending) {
-      const item = next.saved.find(saved => saved.id === autoOpenId);
+      const item = saved.find(response => response.id === autoOpenId);
       autoOpenId = undefined;
       if (item) show(item, labels[item.action], true);
     }
