@@ -395,6 +395,10 @@ def test_release_is_verified_and_registered_before_artifact_upload() -> None:
         "      - name: Upload immutable release archive\n", 1,
     )[0]
     assert "actions/attest-build-provenance/predicate@864457a58d4733d7f1574bd8821fa24e02cf7538" in signing
+    download = signing.split("curl --fail", 1)[1].split("--output", 1)[0]
+    assert "--retry 3 --retry-max-time 120" in download
+    assert "https://api.github.com/repos/sigstore/cosign/releases/assets/660069428" in download
+    assert "424e2c97d0b45fd7a6b608a87f090f35633f4c23ece5f092d48bba11aaf4bbfa" in signing
     assert signing.index("sha256sum --check") < signing.index('chmod 0755 "$RUNNER_TEMP/cosign"')
     assert "--with-default-rekor-v2" in signing
     assert "--oidc-provider github-actions" in signing
