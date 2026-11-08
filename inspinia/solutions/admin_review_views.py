@@ -1,6 +1,7 @@
 """Admin settings, review requests, and private solver feedback."""
 
 import uuid
+from urllib.parse import urlencode
 
 from django import forms
 from django.conf import settings
@@ -11,8 +12,11 @@ from django.core.paginator import Paginator
 from django.db import transaction
 from django.db.models import Case
 from django.db.models import Count
+from django.db.models import Exists
 from django.db.models import F
+from django.db.models import OuterRef
 from django.db.models import Q
+from django.db.models import Subquery
 from django.db.models import When
 from django.http import JsonResponse
 from django.shortcuts import redirect
@@ -66,6 +70,23 @@ FEEDBACK_STYLES = {
         "and what the solver needs to establish. For a complete proof, offer an optional refinement only if useful.",
     ),
 }
+QUEUE_HISTORY_SIZE = 200
+
+
+class QueueHistoryForm(forms.Form):
+    date_from = forms.DateField(
+        label="From", required=False, widget=forms.DateInput(format="%Y-%m-%d", attrs={**INPUT, "type": "date"}),
+    )
+    date_to = forms.DateField(
+        label="Through", required=False, widget=forms.DateInput(format="%Y-%m-%d", attrs={**INPUT, "type": "date"}),
+    )
+
+    def clean(self):
+        data = super().clean()
+        start, end = data.get("date_from"), data.get("date_to")
+        if start and end and start > end:
+            self.add_error("date_to", "Choose an end date on or after the start date.")
+        return data
 
 
 def _feedback_style_prefix(style):
@@ -193,28 +214,62 @@ def settings_view(request):
 def queue_view(request):
     admin_reviews.require_admin(request.user)
     status = AdminSolutionReview.Status
-    active = AdminSolutionReview.objects.filter(status__in=admin_reviews.LIVE_STATES)
-    counts = active.aggregate(
+    rows = AdminSolutionReview.objects.select_related("target").only(
+        "problem_label", "model", "status", "created_at", "score", "published_at",
+        "taken_down_at", "notification", "target__solution_id",
+    ).annotate(requested_by_solver=Q(self_request__isnull=False))
+    active = Q(status__in=admin_reviews.LIVE_STATES)
+    counts = rows.filter(active).aggregate(
         waiting=Count("pk", filter=Q(status=status.QUEUED)),
         reviewing=Count("pk", filter=Q(status=status.RUNNING)),
     )
-    rows = active.select_related("target").only(
-        "problem_label", "model", "status", "created_at", "target__solution_id",
-    ).annotate(
-        requested_by_solver=Q(self_request__isnull=False),
-    ).order_by(Case(When(status=status.RUNNING, then=0), default=1), "created_at", "pk")
-    page = Paginator(rows, 50).get_page(request.GET.get("page"))
+    history = AdminSolutionReview.objects.exclude(active).order_by("-created_at", "-pk")
+    history_form = QueueHistoryForm(request.GET)
+    dates = {}
+    if history_form.is_valid():
+        if start := history_form.cleaned_data["date_from"]:
+            history = history.filter(created_at__date__gte=start)
+            dates["date_from"] = start.isoformat()
+        if end := history_form.cleaned_data["date_to"]:
+            history = history.filter(created_at__date__lte=end)
+            dates["date_to"] = end.isoformat()
+    page = Paginator(history, QUEUE_HISTORY_SIZE).get_page(request.GET.get("page"))
+    # Read both groups together so a finishing request cannot appear twice.
+    rows = rows.filter(active | Q(pk__in=Subquery(page.object_list.values("pk")))).annotate(
+        can_publish=(
+            Q(
+                status=status.COMPLETED, published_at__isnull=True,
+                solver_id=F("target__solution__author_id"),
+                target__solution__status__in=admin_reviews.REVIEWABLE_STATES,
+                target__solution_version=F("target__solution__edit_version"),
+                target__solution_updated_at=F("target__solution__updated_at"),
+            )
+            & ~Exists(AdminSolutionReview.objects.filter(
+                target_id=OuterRef("target_id"), problem_label=OuterRef("problem_label"), published_at__isnull=False,
+            ))
+        ),
+    ).order_by(
+        Case(When(status=status.RUNNING, then=0), When(status=status.QUEUED, then=1), default=2),
+        Case(When(active, then=F("created_at"))), Case(When(active, then=F("pk"))), "-created_at", "-pk",
+    )
     template = (
         "solutions/partials/admin-review-queue-table.html"
         if request.GET.get("fragment") == "1" else "solutions/admin-ai-review-queue.html"
     )
     return render(request, template, {
-        "queue_page": page, "counts": counts, "generation_enabled": settings.ADMIN_SOLUTION_REVIEW_ENABLED,
+        "queue_rows": rows, "history_page": page, "history_form": history_form, "counts": counts,
+        "history_query": urlencode(dates), "queue_query": urlencode({**dates, "page": page.number}),
+        "generation_enabled": settings.ADMIN_SOLUTION_REVIEW_ENABLED,
     })
 
 
 def _detail_redirect(solution_pk):
     return redirect(reverse("solutions:solution_detail", args=[solution_pk]) + "#ai-review")
+
+
+def _queue_redirect(request):
+    params = {key: request.GET[key] for key in ("date_from", "date_to", "page") if key in request.GET}
+    return redirect(reverse("solutions:admin_ai_review_queue") + ("?" + urlencode(params) if params else ""))
 
 
 @login_required
@@ -236,13 +291,31 @@ def generate_view(request, solution_pk):
 @require_POST
 def publish_view(request, solution_pk, review_id):
     try:
-        published = admin_reviews.publish(request.user, solution_pk, review_id)
+        published = admin_reviews.publish(
+            request.user, solution_pk, review_id, last_taken_down=request.POST.get("last_taken_down", ""),
+        )
     except forum.ForumError as error:
         messages.error(request, str(error))
     else:
         if published:
-            messages.success(request, "Review published to the solver. Their notification email is queued.")
+            messages.success(request, "Review published to the solver.")
+    if request.GET.get("from_queue") == "1":
+        return _queue_redirect(request)
     return _detail_redirect(solution_pk)
+
+
+@login_required
+@never_cache
+@require_POST
+def take_down_view(request, solution_pk, review_id):
+    try:
+        removed = admin_reviews.take_down(request.user, solution_pk, review_id, request.POST.get("publication", ""))
+    except forum.ForumError as error:
+        messages.error(request, str(error))
+    else:
+        if removed:
+            messages.success(request, "Review taken down. The solver's link no longer shows this review.")
+    return _queue_redirect(request)
 
 
 @login_required
@@ -286,12 +359,15 @@ def progress_view(request, solution_pk, batch_id):
     ]})
 
 
-def _review_history(request, reviews, current):
-    # Include the email's linked review even if it is outside the recent history.
+def _linked_review_id(request):
     try:
-        linked_review = uuid.UUID(request.GET.get("ai_review", ""))
+        return uuid.UUID(request.GET.get("ai_review", ""))
     except ValueError:
-        linked_review = None
+        return None
+
+
+def _review_history(reviews, current, linked_review):
+    # Include the linked review even if it is outside the recent history.
     history = list(reviews.exclude(current).select_related("target")[:10])
     if linked_review and all(review.pk != linked_review for review in history):
         linked = reviews.exclude(current).filter(pk=linked_review).select_related("target").first()
@@ -303,7 +379,7 @@ def _review_history(request, reviews, current):
 def _owner_context(user, solution, payload, reviews, current):
     owner_request = reviews.filter(
         current, self_request__user=user, published_at__isnull=True,
-    ).only("batch_id", "status", "problem_label", "feedback", "published_at", "score", "error").first()
+    ).only("batch_id", "status", "problem_label", "feedback", "taken_down_at", "score", "error").first()
     reviews = reviews.filter(published_at__isnull=False)
     can_generate = settings.SELF_SOLUTION_REVIEW_ENABLED
     restricted = (
@@ -342,8 +418,13 @@ def review_context(request, solution, target):
     else:
         reviews, context = _owner_context(request.user, solution, target["payload"], reviews, current)
     owner_request = context.get("owner_request")
-    history = _review_history(request, reviews, current)
+    linked_review = _linked_review_id(request)
+    history = _review_history(reviews, current, linked_review)
     recent = list(reviews.filter(current).order_by("-created_at" if admin else "-published_at", "-pk")[:20])
+    if admin and linked_review and all(review.pk != linked_review for review in [*recent, *history]):
+        linked = reviews.filter(current, pk=linked_review).first()
+        if linked:
+            recent.append(linked)
     published = reviews.filter(current, published_at__isnull=False).first()
     if published and all(review.pk != published.pk for review in recent):
         recent.insert(0, published)

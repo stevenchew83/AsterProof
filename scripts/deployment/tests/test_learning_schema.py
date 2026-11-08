@@ -84,6 +84,7 @@ def copy_candidate(destination):
                 ROOT / "inspinia/solutions/migrations/0013_solution_forum.py",
                 ROOT / "inspinia/solutions/migrations/0014_admin_solution_review.py",
                 ROOT / "inspinia/solutions/migrations/0015_self_solution_review_usage.py",
+                ROOT / "inspinia/solutions/migrations/0016_admin_review_takedown.py",
                 ROOT / "inspinia/pages/migrations/0047_study_help.py",
                 ROOT / "inspinia/rankings/migrations/0005_ranking_analysis_review.py",
                 ROOT / "inspinia/rankings/migrations/0006_student_achievement_profiles.py",
@@ -121,6 +122,7 @@ def test_actual_learning_migration_bundle_and_entire_history_are_hash_bound(tmp_
 @pytest.mark.parametrize(("app", "migration"), [
     ("solutions", "0013_solution_forum"),
     ("solutions", "0014_admin_solution_review"),
+    ("solutions", "0016_admin_review_takedown"),
     ("pages", "0047_study_help"),
 ])
 def test_successors_are_not_part_of_the_historical_learning_allowance(tmp_path, app, migration):
@@ -399,7 +401,7 @@ def test_sqlite_upgrade_preserves_sources_progress_solutions_and_subscribers(tmp
             ignore=shutil.ignore_patterns(
                 "__pycache__", "static", "0013_solution_forum.py", "0005_ranking_analysis_review.py",
                 "0006_student_achievement_profiles.py", "0014_admin_solution_review.py", "0047_study_help.py",
-                "0015_self_solution_review_usage.py",
+                "0015_self_solution_review_usage.py", "0016_admin_review_takedown.py",
             ),
         )
     result = subprocess.run(

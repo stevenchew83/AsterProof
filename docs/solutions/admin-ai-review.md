@@ -20,7 +20,11 @@ text-only.
 
 Each selected model uses one paid request. The token cap covers reasoning and
 output. Use a dedicated OpenAI project to track spend.
-**Administration → AI review queue** shows waiting and running model requests.
+**Administration → AI review queue** keeps each model request in the table as it
+finishes. It shows the score, publication status, and available actions. The
+table loads all active requests and up to 200 past requests per history page.
+Choose request dates to load older history. Local search and filters cover all
+loaded rows and stay applied during live refresh.
 On the solution page, a spinner indicates a request is waiting for the worker.
 
 The fixed rubric requires an integer score from 0 to 7 and feedback supporting
@@ -33,6 +37,17 @@ solver and admins can read the written feedback. Publishing does not change
 trainer assessments, verification, or completion records. If a proof or statement
 changes, regenerate before publishing. Already-published feedback remains marked
 as an earlier version.
+
+Use **Take down** in the queue to remove a published review from the solver's
+view and keep it in admin history. The action records the admin and time and
+cancels an email that is still queued. An email already sending or sent may
+still reach the solver with the score. Its review link stops showing the
+feedback while the review is taken down. The queue requires migration
+`solutions.0016_admin_review_takedown`, which adds nullable take-down metadata.
+The protected release admits only the frozen migration, its actor foreign key
+and index, and the PostgreSQL 17.9 preservation proof. Install the reviewed
+allowance using the [production bootstrap](../deployment/production-bootstrap.md)
+before dispatching the protected schema release.
 
 When `SELF_SOLUTION_REVIEW_ENABLED=True`, approved accounts can also request a
 review of their own submitted or member-published proof. Authors choose one

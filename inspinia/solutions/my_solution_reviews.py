@@ -62,7 +62,8 @@ def _summary(solution, reviews):
     if shared is not None:
         return {"label": "Reviewed", "score": shared["shared_score"]}
     if current:
-        return {"label": REQUEST_LABELS[current[0]["status"]], "score": None}
+        latest = current[0]
+        return {"label": "Taken down" if latest["taken_down_at"] else REQUEST_LABELS[latest["status"]], "score": None}
     if any(row["published_at"] is not None for row in reviews):
         return {"label": "Earlier version", "score": None}
     return None
@@ -83,7 +84,7 @@ def author_review_summaries(user, solution_ids):
         .annotate(shared_score=Case(When(published_at__isnull=False, then="score")))
         .values(
             "target__solution_id", "target__solution_version", "target__solution_updated_at", "target__key",
-            "problem_label", "status", "published_at", "shared_score", "self_request__pk",
+            "problem_label", "status", "published_at", "taken_down_at", "shared_score", "self_request__pk",
         )
     )
     by_solution = defaultdict(list)

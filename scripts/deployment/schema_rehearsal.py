@@ -90,6 +90,10 @@ def _snapshot(connection):
 
 
 def _approved_rehearsal(disclosed_migration):  # noqa: C901, PLR0911, PLR0912 - Only literal, reviewed rehearsal imports.
+    if disclosed_migration == "solutions.0016_admin_review_takedown":
+        from scripts.deployment.admin_review_takedown_schema_rehearsal import run
+
+        return run
     if disclosed_migration == "solutions.0015_self_solution_review_usage":
         from scripts.deployment.self_solution_review_schema_rehearsal import run
 

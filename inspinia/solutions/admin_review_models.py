@@ -77,6 +77,8 @@ class AdminSolutionReview(models.Model):
     started_at = models.DateTimeField(null=True)
     published_at = models.DateTimeField(null=True)
     published_by = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, on_delete=models.SET_NULL, related_name="+")
+    taken_down_at = models.DateTimeField(null=True)
+    taken_down_by = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, on_delete=models.SET_NULL, related_name="+")
     notification = models.CharField(max_length=10, choices=Notification.choices, blank=True)
     notification_started_at = models.DateTimeField(null=True)
 
@@ -109,6 +111,20 @@ class AdminSolutionReview(models.Model):
     @property
     def is_live(self):
         return self.status in {self.Status.QUEUED, self.Status.RUNNING}
+
+    @property
+    def publication_status(self):
+        if self.published_at:
+            return "Published to solver"
+        if self.taken_down_at:
+            return "Taken down"
+        if self.status == self.Status.COMPLETED:
+            return "Unpublished"
+        return "—"
+
+    @property
+    def will_notify_on_publish(self):
+        return self.notification in {self.Notification.NONE, self.Notification.FAILED}
 
     def __str__(self):
         return f"Admin AI review {self.pk}"

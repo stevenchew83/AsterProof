@@ -15,9 +15,13 @@ from scripts.deployment.schema_fingerprint import schema_state
 
 def test_study_help_schema_bytes_and_frozen_delta_agree(tmp_path):
     root = Path.cwd()
+    successors = {
+        self_solution_review_schema.MIGRATION_PATH,
+        Path("inspinia/solutions/migrations/0016_admin_review_takedown.py"),
+    }
     for migration in root.glob("inspinia/*/migrations/*"):
         relative = migration.relative_to(root)
-        if migration.suffix in {".py", ".json"} and relative != self_solution_review_schema.MIGRATION_PATH:
+        if migration.suffix in {".py", ".json"} and relative not in successors:
             staged = tmp_path / relative
             staged.parent.mkdir(parents=True, exist_ok=True)
             staged.write_bytes(migration.read_bytes())

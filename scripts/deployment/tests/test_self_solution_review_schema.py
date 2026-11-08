@@ -12,8 +12,19 @@ from scripts.deployment.concept_schema import ConceptSchemaError
 from scripts.deployment.schema_fingerprint import schema_state
 
 
-def test_frozen_migration_and_quota_table_delta():
-    schema.validate_candidate(Path.cwd())
+def test_frozen_migration_and_quota_table_delta(tmp_path):
+    root = Path.cwd()
+    successor = Path("inspinia/solutions/migrations/0016_admin_review_takedown.py")
+    for migration in root.glob("inspinia/**/migrations/*"):
+        relative = migration.relative_to(root)
+        if migration.suffix in {".py", ".json"} and relative != successor:
+            staged = tmp_path / relative
+            staged.parent.mkdir(parents=True, exist_ok=True)
+            staged.write_bytes(migration.read_bytes())
+    schema.validate_candidate(tmp_path)
+    (tmp_path / successor).write_bytes((root / successor).read_bytes())
+    with pytest.raises(ConceptSchemaError, match="Prior migration sources"):
+        schema.validate_candidate(tmp_path)
     fixture = Path(__file__).parent / "fixtures/self-solution-review-schema-delta.json"
     delta = json.loads(fixture.read_text())
     assert {table["table"] for table in delta["tables"]} == schema.TABLES
