@@ -230,6 +230,7 @@ def test_learning_worker_uses_real_frozen_allowance_bytes_and_evidence(tmp_path)
                         root / "inspinia/solutions/migrations/0013_solution_forum.py",
                         root / "inspinia/solutions/migrations/0014_admin_solution_review.py",
                         root / "inspinia/solutions/migrations/0015_self_solution_review_usage.py",
+                        root / "inspinia/solutions/migrations/0016_admin_review_takedown.py",
                         root / "inspinia/pages/migrations/0047_study_help.py",
                         root / "inspinia/rankings/migrations/0005_ranking_analysis_review.py",
                         root / "inspinia/rankings/migrations/0006_student_achievement_profiles.py",
