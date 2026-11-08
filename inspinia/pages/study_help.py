@@ -14,6 +14,7 @@ from django.db import transaction
 from django.db.models import Sum
 from django.utils import timezone
 
+from inspinia.pages.ai_credits import account_credits
 from inspinia.pages.models import ContestProblemStatement
 from inspinia.pages.study_help_access import assistance_restricted
 from inspinia.pages.study_help_access import can_use_study_help
@@ -42,7 +43,7 @@ REVISION_PATTERN = re.compile(r"[0-9a-f]{64}")
 
 @dataclass(frozen=True)
 class Allowance:
-    hints_daily: int = 5
+    hints_per_statement: int = 2
     solutions_total: int = 50
     solutions_per_statement: int = 2
 
@@ -59,7 +60,8 @@ ERRORS = {
     "unsupported_statement": (422, "This statement is incomplete or too large for AI study help."),
     "generation_paused": (503, "New AI responses are paused. You can still open saved responses."),
     "budget_limit": (503, "AI study help has reached its current capacity. Try again later."),
-    "hints_exhausted": (429, "You've used today's hints. Your allowance resets at midnight in Kuala Lumpur."),
+    "hints_exhausted": (429, "You've used all your AI credits."),
+    "hint_statement_limit": (429, "You've used both hints for this problem."),
     "solutions_exhausted": (429, "You've used all your free solution credits."),
     "statement_limit": (429, "You've used both solution slots for this problem."),
     "generation_pending": (409, "You already have a response in progress."),
@@ -74,6 +76,7 @@ ERRORS = {
 FAILURE_MESSAGES = {
     "abstained": "AI couldn't give useful help for this problem. No credit was used.",
     "no_alternative": "AI couldn't find a different approach. No credit was used.",
+    "duplicate_hint": "AI repeated the first hint. No credit was used. You can try again.",
     "expired": "The request expired. No credit was used.",
     "stale_action": "The statement changed while the response was being generated. No credit was used.",
     "assistance_restricted": "The response is unavailable during this restriction. No credit was used.",
@@ -245,7 +248,8 @@ class ProblemUsage:
             spend__state=StudyHelpSpend.State.UNKNOWN,
         ).exists()
         held = owned.filter(state__in=CHARGED_OR_HELD)
-        self.hints_left = max(0, self.allowance.hints_daily - held.filter(hint_day=self.day).count())
+        self.credits = account_credits(user)
+        self.hints_used = sum(item.action in HINT_ACTIONS for item in self.saved)
         self.solutions_left = max(
             0,
             self.allowance.solutions_total - held.filter(action__in=SOLUTION_ACTIONS).count(),
@@ -256,16 +260,15 @@ class ProblemUsage:
             None,
         )
         current = [item for item in self.saved if item.revision == self.revision]
-        self.hint = next((item for item in current if item.action == StudyHelpAction.HINT), None)
-        self.stronger = next((item for item in current if item.action == StudyHelpAction.STRONGER_HINT), None)
+        self.hint = next((item for item in self.saved if item.action == StudyHelpAction.HINT), None)
         self.proof = next((item for item in current if item.action in SOLUTION_ACTIONS), None)
 
-    def actions(self):
+    def actions(self, user):
         options = {}
-        if self.hints_left:
+        if self.credits.remaining and self.hints_used < self.allowance.hints_per_statement:
             if not self.hint:
                 options[StudyHelpAction.HINT] = {"slot": 1, "prior_id": None}
-            elif self.hint.revealed_at and not self.stronger:
+            elif self.hint.revealed_at and not _restricted(user, self.statement, self.hint.problem_uuid):
                 options[StudyHelpAction.STRONGER_HINT] = {"slot": 2, "prior_id": str(self.hint.pk)}
         if self.solutions_left and self.solution_slot:
             action = StudyHelpAction.ALTERNATIVE if self.proof else StudyHelpAction.SOLUTION
@@ -276,7 +279,7 @@ class ProblemUsage:
         return (
             source_problem(self.statement)
             or ("reconciliation_pending" if self.unreconciled else "")
-            or ("generation_pending" if self.pending else "")
+            or ("generation_pending" if self.pending or self.credits.review_pending else "")
             or ("generation_paused" if not generation_ready(policy) else "")
         )
 
@@ -303,18 +306,20 @@ class ProblemUsage:
         failure = self.latest_failed
         return {
             "revision": self.revision,
-            "hints_left": self.hints_left,
+            "account_remaining": self.credits.remaining,
+            "statement_hints_used": self.hints_used,
+            "statement_hint_limit": self.allowance.hints_per_statement,
             "solutions_left": self.solutions_left,
             "statement_solutions_used": len(self.used_slots),
             "statement_solution_limit": self.allowance.solutions_per_statement,
-            "actions": {} if unavailable else self.actions(),
+            "actions": {} if unavailable else self.actions(user),
             "message": ERRORS[unavailable][1] if unavailable else "",
             "failure": (
                 FAILURE_MESSAGES.get(failure.failure_code, "AI couldn't finish this request. No credit was used.")
                 if failure and failure.state in (StudyHelpRequest.State.FAILED, StudyHelpRequest.State.UNKNOWN)
                 else ""
             ),
-            "pending": bool(self.pending),
+            "pending": bool(self.pending) or self.credits.review_pending,
             "pending_here": str(self.pending.pk) if pending_here else None,
             "saved": saved,
         }
@@ -342,16 +347,19 @@ def _check_replay(job, statement_uuid, spec):
     return job, False
 
 
-def _check_action(usage, spec):
-    if spec.action in HINT_ACTIONS and not usage.hints_left:
-        raise StudyHelpError("hints_exhausted")
+def _check_action(usage, spec, user):
+    if spec.action in HINT_ACTIONS:
+        if not usage.credits.remaining:
+            raise StudyHelpError("hints_exhausted")
+        if usage.hints_used >= usage.allowance.hints_per_statement:
+            raise StudyHelpError("hint_statement_limit")
     if spec.action in SOLUTION_ACTIONS:
         if not usage.solutions_left:
             raise StudyHelpError("solutions_exhausted")
         if not usage.solution_slot:
             raise StudyHelpError("statement_limit")
     expected = {"slot": spec.slot, "prior_id": str(spec.prior_id) if spec.prior_id else None}
-    if spec.revision != usage.revision or usage.actions().get(spec.action) != expected:
+    if spec.revision != usage.revision or usage.actions(user).get(spec.action) != expected:
         raise StudyHelpError("stale_action")
 
 
@@ -375,8 +383,8 @@ def enqueue(user, statement_uuid, spec):
     unavailable = usage.availability(policy)
     if unavailable:
         raise StudyHelpError(unavailable)
-    _check_action(usage, spec)
-    prior = _prior(user, statement, spec.prior_id)
+    _check_action(usage, spec, user)
+    prior = _prior(user, statement, spec.prior_id, spec.action)
     messages = input_messages(spec.action, statement.statement_latex, policy.active_prompt, prior)
     pricing = {"input_price": policy.input_price, "output_price": policy.output_price}
     input_limit, output_limit = maximum_tokens(spec.action, messages)
@@ -411,16 +419,20 @@ def enqueue(user, statement_uuid, spec):
     return job, True
 
 
-def _prior(user, statement, response_id):
+def _prior(user, statement, response_id, action):
     if response_id is None:
         return None
-    prior = StudyHelpRequest.objects.filter(
+    candidates = StudyHelpRequest.objects.filter(
         owner=user,
         statement_uuid=statement.statement_uuid,
-        revision=statement_revision(statement),
         pk=response_id,
         state=StudyHelpRequest.State.READY,
-    ).first()
+    )
+    if action == StudyHelpAction.STRONGER_HINT:
+        candidates = candidates.filter(action=StudyHelpAction.HINT, revealed_at__isnull=False)
+    else:
+        candidates = candidates.filter(revision=statement_revision(statement))
+    prior = candidates.first()
     if prior is None or _restricted(user, statement, prior.problem_uuid):
         raise StudyHelpError("stale_action")
     return prior

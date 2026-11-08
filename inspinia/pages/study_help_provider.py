@@ -14,8 +14,12 @@ from inspinia.pages.study_help_models import StudyHelpAction
 
 HINT_PROMPT = (
     "Help a competition-math student make their own progress. Give one short observation or question. "
-    "For a stronger hint, use the prior hint to suggest a concrete theorem or next step. "
     "Never give the final answer, the key completed calculation, or a full proof."
+)
+SECOND_HINT_RULE = (
+    "Give a second hint that is substantively different from the first hint in prior_body. "
+    "Suggest a distinct observation, method, or next step that applies to the current statement. "
+    "Do not repeat or paraphrase the first hint. Abstain if you cannot offer something different."
 )
 SOLUTION_PROMPT = (
     "Write one rigorous contest proof. State the method briefly, justify nontrivial steps, and check "
@@ -63,6 +67,7 @@ def profile_digest(prompt, model):
         "hint": prompt.hint,
         "solution": prompt.solution,
         "guard": GUARD,
+        "second_hint_rule": SECOND_HINT_RULE,
         "schema": SCHEMA,
         "model": model,
         "max_body": MAX_BODY,
@@ -75,6 +80,8 @@ def profile_digest(prompt, model):
 
 def input_messages(action, statement, prompt, prior=None):
     instruction = prompt.hint if action in HINT_ACTIONS else prompt.solution
+    if action == StudyHelpAction.STRONGER_HINT:
+        instruction = SECOND_HINT_RULE + "\n\n" + instruction
     payload = {"action": StudyHelpAction(action).label, "problem_statement": statement}
     if prior:
         payload.update(prior_body=prior.body, prior_method=prior.method)
@@ -134,6 +141,8 @@ def validate_result(action, result, prior):
         return "", "", "invalid_response"
     if (action in HINT_ACTIONS and method) or (action not in HINT_ACTIONS and not _normalize(method)):
         return "", "", "invalid_response"
+    if action == StudyHelpAction.STRONGER_HINT and (not prior or _normalize(prior.body) == _normalize(body)):
+        return "", "", "duplicate_hint"
     if action == StudyHelpAction.ALTERNATIVE and (
         not prior or _normalize(prior.method) == _normalize(method) or _normalize(prior.body) == _normalize(body)
     ):

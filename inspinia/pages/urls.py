@@ -1,5 +1,8 @@
 from django.urls import path
 
+from inspinia.pages.ai_admin_views import ai_hint_history
+from inspinia.pages.ai_admin_views import ai_review_history
+from inspinia.pages.ai_admin_views import ai_user_usage
 from inspinia.pages.community_views import community_problem_ai_review
 from inspinia.pages.community_views import community_problem_create
 from inspinia.pages.community_views import community_problem_detail
@@ -91,6 +94,9 @@ urlpatterns = [
     path("tools/statement-reports/", statement_report_list, name="statement_report_list"),
     path("tools/statement-reports/<int:report_id>/", statement_report_update, name="statement_report_update"),
     path("tools/study-help/", study_help_admin, name="study_help_admin"),
+    path("tools/ai/hints/", ai_hint_history, name="ai_hint_history"),
+    path("tools/ai/reviews/", ai_review_history, name="ai_review_history"),
+    path("tools/ai/usage/", ai_user_usage, name="ai_user_usage"),
     path("tools/concept-assignment-sources/", assignment_source_export, name="concept_assignment_source_export"),
     path("tools/concept-assignments/", concept_assignment_review_list, name="concept_assignment_review"),
     path("tools/concept-assignments/snapshot/", concept_review_snapshot_export, name="concept_review_snapshot_export"),

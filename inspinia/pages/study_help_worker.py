@@ -79,7 +79,7 @@ def _context(job, policy):
         or not StudyHelpQualification.objects.filter(prompt=job.prompt, profile_digest=job.profile_digest).exists()
     ):
         raise StudyHelpError("generation_paused")
-    return _prior(user, statement, job.prior_id)
+    return _prior(user, statement, job.prior_id, job.action)
 
 
 def _end_job(job, state, now, code="", body="", method=""):  # noqa: PLR0913
