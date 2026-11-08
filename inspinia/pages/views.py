@@ -36,6 +36,8 @@ from django.db.models.functions import Lower
 from django.db.models.functions import NullIf
 from django.http import Http404
 from django.http import HttpResponse
+from django.http import HttpResponseForbidden
+from django.http import HttpResponseNotFound
 from django.http import JsonResponse
 from django.shortcuts import redirect
 from django.shortcuts import render
@@ -45,6 +47,7 @@ from django.utils import timezone
 from django.utils.http import url_has_allowed_host_and_scheme
 from django.utils.text import slugify
 from django.views.decorators.cache import never_cache
+from django.views.decorators.http import require_GET
 from django.views.decorators.http import require_POST
 
 from inspinia.pages.algebra_tag_aliases import AlgebraAliasError
@@ -91,6 +94,13 @@ from inspinia.pages.contest_links import contest_dashboard_listing_url
 from inspinia.pages.contest_links import problem_anchor as dashboard_problem_anchor
 from inspinia.pages.contest_links import problem_statement_contest_year_master_url
 from inspinia.pages.contest_names import normalize_contest_name
+from inspinia.pages.contest_progress import ContestProgressDisplay
+from inspinia.pages.contest_progress import can_select_contest_learner
+from inspinia.pages.contest_progress import contest_completion_heatmap
+from inspinia.pages.contest_progress import contest_learner_label
+from inspinia.pages.contest_progress import contest_progress_url
+from inspinia.pages.contest_progress import find_contest_learner
+from inspinia.pages.contest_progress import problem_sort_key
 from inspinia.pages.contest_rename import ContestRenameValidationError
 from inspinia.pages.contest_rename import rename_contests
 from inspinia.pages.forms import ContestExistenceAuditForm
@@ -1411,7 +1421,7 @@ def _statement_linker_payload() -> dict[str, object]:
         problem_list = problems_by_contest_year.get((contest_name, contest_year), [])
         group_key = _statement_linker_group_key(contest_name, contest_year)
         candidate_groups[group_key] = []
-        for problem in sorted(problem_list, key=lambda p: _problem_sort_key(p.problem)):
+        for problem in sorted(problem_list, key=lambda p: problem_sort_key(p.problem)):
             claimant = claimant_by_problem_uuid.get(problem.problem_uuid)
             candidate_groups[group_key].append(
                 {
@@ -2114,40 +2124,6 @@ def _statement_heatmap_views(rows: list[dict]) -> dict[str, dict[str, object]]:
                 "url_key": "contest_year_url",
             },
         ),
-    }
-
-
-def _contest_completion_heatmap_chart_payload(
-    rows: list[dict[str, object]],
-) -> dict[str, object]:
-    state_values = {
-        "empty": 0,
-        "unsolved": 1,
-        "partial": 2,
-        "solved": 3,
-    }
-    if not rows:
-        return {"max_value": 3, "series": []}
-
-    return {
-        "max_value": 3,
-        "series": [
-            {
-                "name": str(row["year"]),
-                "data": [
-                    {
-                        "display": str(cell["display"]),
-                        "solution_url": str(cell.get("solution_url", "")),
-                        "state": str(cell["state"]),
-                        "title": str(cell["title"]),
-                        "x": str(cell["problem_code"]),
-                        "y": state_values[str(cell["state"])],
-                    }
-                    for cell in row["cells"]
-                ],
-            }
-            for row in rows
-        ],
     }
 
 
@@ -3831,9 +3807,9 @@ def _completion_board_slot_sort_key(
     slot_label: str,
 ) -> tuple[list[tuple[int, int | str]], list[tuple[int, int | str]]]:
     if " · " not in slot_label:
-        return ([], _problem_sort_key(slot_label))
+        return ([], problem_sort_key(slot_label))
     day_label, problem_code = slot_label.split(" · ", 1)
-    return (_problem_sort_key(day_label), _problem_sort_key(problem_code))
+    return (problem_sort_key(day_label), problem_sort_key(problem_code))
 
 
 def _completion_board_parse_row_limit(raw_value: str | None) -> int | None:
@@ -4217,35 +4193,6 @@ def _contest_inventory_rows() -> list[dict]:
         rows,
         key=lambda row: (-row["problem_count"], -row["statement_count"], row["contest"].lower()),
     )
-
-
-def _problem_sort_key(problem_label: str | None) -> list[tuple[int, int | str]]:
-    parts = re.split(r"(\d+)", str(problem_label or ""))
-    return [
-        (0, int(part)) if part.isdigit() else (1, part.lower())
-        for part in parts
-        if part
-    ]
-
-
-def _contest_heatmap_problem_code_group_label(problem_code: str) -> str:
-    grade_match = re.match(r"^(\d+)\.", problem_code.strip())
-    if grade_match and grade_match.group(1) in {"9", "10", "11"}:
-        return f"Grade {grade_match.group(1)}"
-    if re.match(r"^P\d+", problem_code.strip(), flags=re.IGNORECASE):
-        return "P-codes"
-    return "Other"
-
-
-def _contest_heatmap_problem_code_groups(problem_codes: list[str]) -> list[dict[str, int | str]]:
-    groups: list[dict[str, int | str]] = []
-    for index, problem_code in enumerate(problem_codes):
-        label = _contest_heatmap_problem_code_group_label(problem_code)
-        if groups and groups[-1]["label"] == label:
-            groups[-1]["span"] = int(groups[-1]["span"]) + 1
-        else:
-            groups.append({"label": label, "start_index": index, "span": 1})
-    return groups
 
 
 def _problem_anchor(problem_label: str, fallback: str) -> str:
@@ -7632,7 +7579,7 @@ def _build_dashboard_contest_statement_listing_context(
     problem_rows.sort(
         key=lambda row: (
             -int(row["year"]),
-            _problem_sort_key(str(row["problem_code"])),
+            problem_sort_key(str(row["problem_code"])),
             str(row["statement_day_label"] or ""),
             str(row["label"]),
         ),
@@ -8150,11 +8097,80 @@ def contest_analytics_view(request):
     )
 
 
+def _contest_progress_year_rows(contest_base_eff, solved_by_year, selected_contest, *, is_other):
+    year_rows = list(
+        contest_base_eff
+        .values("contest_year")
+        .annotate(
+            avg_mohs=Avg("_eff_mohs"),
+            distinct_topics=Count(
+                "_eff_topic",
+                filter=~Q(_eff_topic=""),
+                distinct=True,
+            ),
+            max_mohs=Max("_eff_mohs"),
+            linked_statement_total=Count(
+                "id",
+                filter=Q(linked_problem__isnull=False),
+                distinct=True,
+            ),
+            problem_count=Count("id", distinct=True),
+            needs_metadata_total=Count(
+                "id", filter=Q(_eff_topic="") | Q(_eff_topic__isnull=True) | Q(_eff_mohs__isnull=True),
+            ),
+        )
+        .order_by("-contest_year"),
+    )
+    year_link = contest_dashboard_listing_url if is_other else contest_completion_quick_update_url
+    for row in year_rows:
+        row["year"] = int(row.pop("contest_year"))
+        row["solved_problem_total"] = solved_by_year.get(row["year"], 0)
+        row["avg_mohs"] = (
+            round(float(row["avg_mohs"]), 2) if row["avg_mohs"] is not None else None
+        )
+        row["statement_problem_total"] = int(row.get("linked_statement_total") or 0)
+        row["linked_rate"] = round(
+            (row["statement_problem_total"] / row["problem_count"]) * 100,
+            1,
+        ) if row["problem_count"] else 0.0
+        row["solved_rate"] = round(
+            (row["solved_problem_total"] / row["problem_count"]) * 100,
+            1,
+        ) if row["problem_count"] else 0.0
+        year_int = int(row["year"])
+        row["year_detail_url"] = year_link(selected_contest, year=year_int)
+
+    return year_rows
+
+
+@never_cache
 @login_required
+@require_GET
 def contest_advanced_analytics_view(request):
-    """Drill-down analytics for one contest, selected by query string."""
-    from inspinia.pages.contest_progress import contest_completion_heatmap
+    """Contest archive and published progress for one authorized learner."""
     from inspinia.pages.shared_library import solved_statements
+    from inspinia.solutions.contest_review_scores import published_contest_scores
+
+    requested_learner = request.GET.get("learner", "").strip()
+    can_select = can_select_contest_learner(request.user)
+    if requested_learner and not can_select:
+        return HttpResponseForbidden("Only admins can view another learner's contest progress.")
+
+    contest_param = request.GET.get("contest", "").strip()
+    subject = find_contest_learner(requested_learner) if requested_learner else request.user
+    is_other = subject is not None and subject.pk != request.user.pk
+    display = ContestProgressDisplay.from_query(request.GET, read_only=is_other)
+    if subject is None:
+        return render(
+            request,
+            "pages/contest-advanced-analytics.html",
+            {
+                "learner_unavailable": True,
+                "my_progress_url": contest_progress_url(contest_param, mode=display.mode),
+            },
+            status=404,
+        )
+    learner_id = subject.pk if is_other else ""
 
     contest_choices = [
         {
@@ -8172,25 +8188,15 @@ def contest_advanced_analytics_view(request):
             "pages/contest-advanced-analytics.html",
             {
                 "contest_choices": [],
-                "contest_completion_heatmap": {
-                    "filled_cell_total": 0,
-                    "has_partial_cells": False,
-                    "problem_code_groups": [],
-                    "problem_code_total": 0,
-                    "problem_codes": [],
-                    "rows": [],
-                    "year_total": 0,
-                },
                 "has_contests": False,
                 "selected_contest": "",
             },
         )
 
     contest_names = [row["contest"] for row in contest_choices]
-    selected_contest = (request.GET.get("contest") or "").strip() or contest_names[0]
+    selected_contest = contest_param or contest_names[0]
     if selected_contest not in set(contest_names):
-        msg = "Contest not found."
-        raise Http404(msg)
+        return HttpResponseNotFound("Contest not found.")
 
     contest_base = _active_dashboard_statements().filter(contest_name=selected_contest)
     contest_base_eff = annotate_effective_statement_analytics(contest_base)
@@ -8227,63 +8233,34 @@ def contest_advanced_analytics_view(request):
         linked_problem__solutions__status=ProblemSolution.Status.PUBLISHED,
     ).distinct().count()
 
-    solved_statement_ids = set(solved_statements(contest_base, request.user).values_list("id", flat=True))
-    solved_by_year = dict(
-        contest_base.filter(id__in=solved_statement_ids).values("contest_year")
-        .annotate(total=Count("id")).values_list("contest_year", "total"),
-    )
-    year_rows = list(
-        annotate_effective_statement_analytics(contest_base)
-        .values("contest_year")
-        .annotate(
-            avg_mohs=Avg("_eff_mohs"),
-            distinct_topics=Count(
-                "_eff_topic",
-                filter=~Q(_eff_topic=""),
-                distinct=True,
-            ),
-            max_mohs=Max("_eff_mohs"),
-            linked_statement_total=Count(
-                "id",
-                filter=Q(linked_problem__isnull=False),
-                distinct=True,
-            ),
-            problem_count=Count("id", distinct=True),
-            needs_metadata_total=Count(
-                "id", filter=Q(_eff_topic="") | Q(_eff_topic__isnull=True) | Q(_eff_mohs__isnull=True),
-            ),
-        )
-        .order_by("-contest_year"),
-    )
-    for row in year_rows:
-        row["year"] = int(row.pop("contest_year"))
-        row["solved_problem_total"] = solved_by_year.get(row["year"], 0)
-        row["avg_mohs"] = (
-            round(float(row["avg_mohs"]), 2) if row["avg_mohs"] is not None else None
-        )
-        row["statement_problem_total"] = int(row.get("linked_statement_total") or 0)
-        row["linked_rate"] = round(
-            (row["statement_problem_total"] / row["problem_count"]) * 100,
-            1,
-        ) if row["problem_count"] else 0.0
-        row["solved_rate"] = round(
-            (row["solved_problem_total"] / row["problem_count"]) * 100,
-            1,
-        ) if row["problem_count"] else 0.0
-        year_int = int(row["year"])
-        row["year_detail_url"] = contest_completion_quick_update_url(selected_contest, year=year_int)
-
     contest_statements = list(
-        contest_base.select_related("linked_problem").values(
+        contest_base.order_by("day_label", "problem_number", "pk").values(
             "id",
             "linked_problem_id",
             "linked_problem__problem_uuid",
+            "problem_uuid",
             "statement_uuid",
             "problem_code",
             "contest_year",
+            "day_label",
         ),
     )
-    completion_heatmap = contest_completion_heatmap(contest_statements, solved_statement_ids, selected_contest)
+    solved_statement_ids = set(solved_statements(contest_base, subject).values_list("id", flat=True))
+    solved_by_year = Counter(
+        row["contest_year"] for row in contest_statements if row["id"] in solved_statement_ids
+    )
+    reviews = published_contest_scores(subject, contest_statements)
+    completion_heatmap = contest_completion_heatmap(
+        contest_statements, solved_statement_ids, reviews, selected_contest, display,
+    )
+    page = completion_heatmap.pop("page")
+
+    def progress_url(*, display_mode=display.mode, highlighted=display.focus, number=1):
+        return contest_progress_url(
+            selected_contest, learner=learner_id, mode=display_mode, focus=highlighted, page=number,
+        )
+
+    year_rows = _contest_progress_year_rows(contest_base_eff, solved_by_year, selected_contest, is_other=is_other)
 
     topic_rows = list(
         contest_base_eff.filter(~Q(_eff_topic=""))
@@ -8330,8 +8307,7 @@ def contest_advanced_analytics_view(request):
         )[:8]
     ]
 
-    contest_quick_update_url = contest_completion_quick_update_url(selected_contest)
-    solved_problem_total = sum(int(row["solved_problem_total"] or 0) for row in year_rows)
+    solved_problem_total = len(solved_statement_ids)
     solved_rate = (
         round((solved_problem_total / statement_row_total) * 100, 1)
         if statement_row_total
@@ -8350,7 +8326,28 @@ def contest_advanced_analytics_view(request):
 
     context = {
         "contest_choices": contest_choices,
+        "can_select_learner": can_select,
+        "is_other_learner": is_other,
+        "selected_learner_id": learner_id,
+        "selected_learner_label": contest_learner_label(subject) if is_other else "My progress",
+        "learner_options_url": reverse("pages:contest_progress_learner_options") if can_select else "",
+        "my_progress_url": contest_progress_url(selected_contest, mode=display.mode),
+        "contest_archive_url": contest_dashboard_listing_url(selected_contest),
+        "mode": display.mode,
+        "focus": display.focus,
+        "score_mode_url": progress_url(display_mode="score"),
+        "completion_mode_url": progress_url(display_mode="completion", highlighted=""),
+        "low_focus_url": progress_url(display_mode="score", highlighted="low"),
+        "unscored_focus_url": progress_url(display_mode="score", highlighted="unscored"),
+        "clear_focus_url": progress_url(highlighted=""),
+        "low_score_total": completion_heatmap["low_score_total"],
+        "unscored_completed_total": completion_heatmap["unscored_completed_total"],
+        "year_page": page.number,
+        "previous_year_page_url": progress_url(number=page.previous_page_number()) if page.has_previous() else "",
+        "next_year_page_url": progress_url(number=page.next_page_number()) if page.has_next() else "",
         "contest_stats": {
+            "ai_reviewed_total": completion_heatmap["ai_reviewed_total"],
+            "average_ai_score": completion_heatmap["average_ai_score"],
             "active_years": stats["active_years"],
             "avg_mohs": round(float(stats["avg_mohs"] or 0), 2),
             "distinct_topics": stats["distinct_topics"],
@@ -8378,7 +8375,7 @@ def contest_advanced_analytics_view(request):
         "confidence_rows": confidence_rows,
         "contest_completion_heatmap": completion_heatmap,
         "has_contests": True,
-        "contest_quick_update_url": contest_quick_update_url,
+        "contest_quick_update_url": "" if is_other else contest_completion_quick_update_url(selected_contest),
         "recent_statement_rows": recent_statement_rows,
         "selected_contest": selected_contest,
         "topic_rows": topic_rows,

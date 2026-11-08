@@ -65,18 +65,21 @@ def can_use_study_help(user, policy):
     )
 
 
-def assistance_restricted(user, problem_uuids, *, statement_uuid=None):
+def active_assistance_restrictions(user):
     now = timezone.now()
-    scope = Q(problem_uuid__isnull=True) | Q(problem_uuid__in=problem_uuids)
-    if statement_uuid is not None:
-        scope |= Q(pk__in=StudyHelpRestriction.objects.filter(statement_uuid=statement_uuid).values("policy_id"))
     return AssistancePolicy.objects.filter(
-        scope,
         Q(actor_id_scope=user.pk) | Q(actor_id_scope__isnull=True),
         mode__in=DENY_MODES,
         starts_at__lte=now,
         ends_at__gt=now,
-    ).exists()
+    )
+
+
+def assistance_restricted(user, problem_uuids, *, statement_uuid=None):
+    scope = Q(problem_uuid__isnull=True) | Q(problem_uuid__in=problem_uuids)
+    if statement_uuid is not None:
+        scope |= Q(pk__in=StudyHelpRestriction.objects.filter(statement_uuid=statement_uuid).values("policy_id"))
+    return active_assistance_restrictions(user).filter(scope).exists()
 
 
 def bind_statement_restrictions(statement_uuid, problem_uuids):

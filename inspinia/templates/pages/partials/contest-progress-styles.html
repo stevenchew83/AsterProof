@@ -1,0 +1,335 @@
+<style>
+  .contest-progress-page {
+    --contest-progress-surface: var(--ins-secondary-bg);
+    --contest-progress-line: var(--ins-border-color);
+    --contest-progress-muted: var(--ins-body-color);
+    --contest-progress-accent: var(--ins-primary-text-emphasis);
+    --contest-progress-muted: color-mix(in srgb, var(--ins-body-color) 75%, var(--ins-secondary-color));
+    --contest-progress-accent: color-mix(in srgb, var(--ins-body-color) 48%, var(--ins-primary-text-emphasis));
+  }
+
+  .contest-progress-page .text-muted { color: var(--contest-progress-muted) !important; }
+
+  .contest-progress-toolbar,
+  .contest-progress-heatmap-header,
+  .contest-progress-pagination {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: .5rem 1rem;
+  }
+
+  .contest-progress-toolbar {
+    padding: .625rem .875rem;
+    border-bottom: 1px solid var(--contest-progress-line);
+  }
+
+  .contest-progress-filters {
+    display: grid;
+    grid-template-columns: minmax(10rem, 15rem) auto;
+    align-items: end;
+    gap: .375rem .625rem;
+    min-width: 0;
+  }
+
+  .contest-progress-filters:has(.contest-progress-learner) {
+    grid-template-columns: minmax(10rem, 15rem) minmax(10rem, 14rem) auto;
+  }
+
+  .contest-progress-filters > div { min-width: 0; }
+  .contest-progress-filters .ts-wrapper { width: 100%; }
+  .app-table-filters.contest-progress-filters :is(.form-control, .form-select, .ts-control, .btn) { min-height: 2.125rem; }
+
+  .contest-progress-search-status {
+    grid-column: 1 / -1;
+    min-width: 0;
+  }
+
+  .contest-progress-scope {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: .125rem .375rem;
+    color: var(--contest-progress-accent);
+    overflow-wrap: anywhere;
+  }
+
+  .contest-progress-scope span { color: var(--contest-progress-muted); }
+
+  .contest-progress-metrics,
+  .contest-progress-archive-metrics {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .contest-progress-metrics > div { padding: .625rem .875rem; }
+  .contest-progress-metrics > div + div { border-inline-start: 1px solid var(--contest-progress-line); }
+
+  .contest-progress-metrics dt,
+  .contest-progress-archive-metrics dt {
+    color: var(--contest-progress-muted);
+    font-size: .75rem;
+    font-weight: 600;
+  }
+
+  .contest-progress-metrics dd,
+  .contest-progress-archive-metrics dd {
+    margin: 0;
+    color: var(--ins-heading-color);
+    font-weight: 700;
+    font-size: 1.375rem;
+    line-height: 1.3;
+    letter-spacing: -.025em;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .contest-progress-metrics dd small,
+  .contest-progress-archive-metrics dd small,
+  .contest-progress-metric-note {
+    color: var(--contest-progress-muted);
+    font-size: .6875rem;
+    font-weight: 400;
+    letter-spacing: 0;
+  }
+
+  .contest-progress-metric-note { margin-top: .125rem; }
+
+  .contest-progress-heatmap-header { padding-block: .625rem; }
+  .contest-progress-heatmap-header .header-title { font-size: 1rem; }
+
+  .contest-progress-mode {
+    display: flex;
+    flex-wrap: wrap;
+    padding: .1875rem;
+    gap: .1875rem;
+    border: 1px solid var(--contest-progress-line);
+    border-radius: var(--ins-border-radius);
+    background: var(--ins-tertiary-bg);
+  }
+
+  .contest-progress-mode .btn {
+    color: var(--contest-progress-muted);
+    padding-block: .1875rem;
+  }
+
+  .contest-progress-mode .is-active,
+  .contest-progress-mode .btn:hover {
+    background: var(--contest-progress-surface);
+    color: var(--contest-progress-accent);
+  }
+
+  .contest-progress-mode .is-active { box-shadow: var(--ins-box-shadow-sm); }
+
+  .contest-progress-legend,
+  .contest-progress-focus {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: .375rem .875rem;
+    padding: 0;
+    margin: 0 0 .5rem;
+    list-style: none;
+    color: var(--contest-progress-muted);
+    font-size: .6875rem;
+  }
+
+  .contest-progress-legend li { display: inline-flex; align-items: center; gap: .3125rem; }
+  .contest-progress-legend-divider { padding-inline-start: .625rem; border-inline-start: 1px solid var(--contest-progress-line); }
+  .contest-progress-legend .contest-progress-tile { width: 1.125rem; min-height: 1.0625rem; }
+
+  .contest-progress-focus {
+    justify-content: space-between;
+    color: var(--contest-progress-accent);
+    background: var(--ins-primary-bg-subtle);
+    padding: .375rem .625rem;
+    border-radius: var(--ins-border-radius);
+    font-weight: 600;
+  }
+
+  .contest-progress-scroll {
+    position: relative;
+    overflow: auto;
+    max-height: 28rem;
+    scroll-padding-inline-start: 3.25rem;
+    scroll-padding-block-start: 3.125rem;
+  }
+
+  .contest-progress-table {
+    width: 100%;
+    min-width: max-content;
+    border-collapse: separate;
+    border-spacing: .1875rem;
+    text-align: center;
+    font-variant-numeric: tabular-nums;
+    font-size: .75rem;
+  }
+
+  .contest-progress-table :is(th, td) { padding: 0; }
+  .contest-progress-table th {
+    color: var(--contest-progress-muted);
+    font-weight: 700;
+  }
+
+  .contest-progress-table thead th {
+    position: sticky;
+    inset-block-start: 0;
+    z-index: 2;
+    height: 1.375rem;
+    background: var(--contest-progress-surface);
+  }
+
+  .contest-progress-table thead tr:nth-child(2) th { inset-block-start: 1.5625rem; }
+  .contest-progress-table .contest-progress-group {
+    background: var(--ins-tertiary-bg);
+    padding-inline: .3125rem;
+    border-radius: .25rem;
+    font-size: .6875rem;
+    white-space: nowrap;
+  }
+
+  .contest-progress-table .contest-progress-year {
+    position: sticky;
+    inset-inline-start: 0;
+    z-index: 1;
+    min-width: 2.875rem;
+    width: 2.875rem;
+    background: var(--contest-progress-surface);
+    color: var(--ins-heading-color);
+    text-align: start;
+    padding-inline-start: .25rem;
+  }
+
+  .contest-progress-table thead .contest-progress-year { z-index: 3; }
+
+  .contest-progress-table td { min-width: 1.75rem; }
+  .contest-progress-tile {
+    display: grid;
+    position: relative;
+    place-items: center;
+    min-height: 1.75rem;
+    width: 100%;
+    padding-inline: .1875rem;
+    border: 1px solid transparent;
+    border-radius: .25rem;
+    background: var(--tile-bg, var(--ins-tertiary-bg));
+    color: var(--tile-color, var(--contest-progress-muted));
+    font-weight: 700;
+    text-decoration: none;
+  }
+
+  .contest-progress-tile.tone-low {
+    --tile-bg: var(--ins-danger-bg-subtle);
+    --tile-color: color-mix(in srgb, var(--ins-body-color) 55%, var(--ins-danger-text-emphasis));
+  }
+  .contest-progress-tile.tone-mid {
+    --tile-bg: var(--ins-warning-bg-subtle);
+    --tile-color: color-mix(in srgb, var(--ins-body-color) 55%, var(--ins-warning-text-emphasis));
+  }
+  .contest-progress-tile.tone-high,
+  .contest-progress-tile.tone-complete {
+    --tile-bg: var(--ins-success-bg-subtle);
+    --tile-color: color-mix(in srgb, var(--ins-body-color) 55%, var(--ins-success-text-emphasis));
+  }
+  .contest-progress-tile.tone-unscored { --tile-bg: var(--ins-primary-bg-subtle); --tile-color: var(--contest-progress-accent); }
+  .contest-progress-tile.tone-multiple { border-color: var(--contest-progress-line); color: var(--ins-emphasis-color); }
+  .contest-progress-tile.tone-empty { background: transparent; border: 1px dashed var(--contest-progress-line); }
+
+  .contest-progress-tile.is-muted { --tile-bg: var(--ins-tertiary-bg); --tile-color: var(--contest-progress-muted); }
+  .contest-progress-tile.is-highlighted { border-color: currentColor; }
+
+  .contest-progress-dot {
+    display: inline-block;
+    width: .3125rem;
+    height: .3125rem;
+    background: currentColor;
+    border-radius: 50%;
+  }
+
+  .contest-progress-tile .contest-progress-dot {
+    position: absolute;
+    inset-block-start: .125rem;
+    inset-inline-end: .125rem;
+  }
+
+  a.contest-progress-tile:is(:hover, :focus-visible) {
+    color: var(--tile-color, var(--contest-progress-muted));
+    border-color: var(--ins-emphasis-color);
+    outline: 2px solid var(--ins-emphasis-color);
+    outline-offset: -2px;
+  }
+
+  .contest-progress-pagination { padding-top: .5rem; }
+  .contest-progress-details article { display: none; }
+  .contest-progress-details article:target {
+    display: block;
+    margin-top: .75rem;
+    padding: .75rem;
+    border: 1px solid var(--contest-progress-line);
+    border-radius: var(--ins-border-radius);
+  }
+
+  .contest-progress-dialog {
+    width: min(28rem, calc(100% - 2rem));
+    max-height: 85vh;
+    padding: 0;
+    border: 1px solid var(--contest-progress-line);
+    border-radius: var(--ins-border-radius);
+    background: var(--contest-progress-surface);
+    color: var(--ins-body-color);
+    box-shadow: var(--ins-box-shadow);
+  }
+
+  .contest-progress-dialog::backdrop { background: rgb(0 0 0 / .45); }
+  .contest-progress-dialog-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: .75rem;
+    padding: .75rem 1rem;
+    border-bottom: 1px solid var(--contest-progress-line);
+  }
+
+  .contest-progress-detail-entry + .contest-progress-detail-entry {
+    padding-top: .75rem;
+    margin-top: .75rem;
+    border-top: 1px solid var(--contest-progress-line);
+  }
+
+  .contest-progress-suggestion {
+    display: flex;
+    align-items: center;
+    gap: .5rem;
+    padding: .5rem .75rem;
+    height: 100%;
+    color: var(--ins-body-color);
+    background: var(--contest-progress-surface);
+    border: 1px solid var(--contest-progress-line);
+    border-radius: var(--ins-border-radius);
+  }
+
+  .contest-progress-suggestion :is(i, small) { color: var(--contest-progress-muted); }
+  .contest-progress-suggestion small { display: block; }
+  .contest-progress-suggestion:is(:hover, .is-active) {
+    color: var(--contest-progress-accent);
+    border-color: var(--ins-primary-border-subtle);
+    background: var(--ins-primary-bg-subtle);
+  }
+
+  .contest-progress-archive summary { cursor: pointer; }
+  .contest-progress-archive-metrics { grid-template-columns: repeat(auto-fit, minmax(8rem, 1fr)); gap: .625rem; }
+  .contest-progress-archive-metrics dd { font-size: 1.125rem; }
+  .contest-progress-archive-metrics small { display: block; }
+  .contest-progress-mini-progress { min-width: 7rem; }
+
+  @media (max-width: 575.98px) {
+    .contest-progress-toolbar { align-items: flex-start; }
+    .contest-progress-filters { width: 100%; grid-template-columns: minmax(0, 1fr) auto; }
+    .contest-progress-filters:has(.contest-progress-learner) { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .contest-progress-filters:has(.contest-progress-learner) button { justify-self: start; }
+    .contest-progress-metrics > div { padding-inline: .5rem; }
+    .contest-progress-metrics dd { font-size: 1.125rem; }
+    .contest-progress-table td { min-width: 2rem; }
+    .contest-progress-table .contest-progress-tile { min-height: 2rem; }
+  }
+</style>

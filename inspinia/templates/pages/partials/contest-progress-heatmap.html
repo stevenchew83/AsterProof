@@ -1,0 +1,133 @@
+<section id="contest-progress-heatmap" class="card mb-3" aria-labelledby="contest-progress-heatmap-title">
+  <header class="card-header contest-progress-heatmap-header">
+    <div>
+      <h2 id="contest-progress-heatmap-title" class="header-title mb-1">Completion heatmap</h2>
+      <p id="contest-progress-heatmap-description" class="text-muted fs-xs mb-0">
+        {% if mode == 'score' %}
+        Latest published AI scores for the current proofs. Dots mark completion.
+        {% else %}
+        Completion by year and problem. Select a cell for details.
+        {% endif %}
+      </p>
+    </div>
+    <nav class="contest-progress-mode" aria-label="Heatmap view">
+      <a class="btn btn-sm{% if mode == 'score' %} is-active{% endif %}" href="{{ score_mode_url }}#contest-progress-heatmap"{% if mode == 'score' %} aria-current="true"{% endif %}>AI scores</a>
+      <a class="btn btn-sm{% if mode == 'completion' %} is-active{% endif %}" href="{{ completion_mode_url }}#contest-progress-heatmap"{% if mode == 'completion' %} aria-current="true"{% endif %}>Completion</a>
+    </nav>
+  </header>
+
+  <div class="card-body pt-2">
+    {% if focus %}
+    <div class="contest-progress-focus mb-2">
+      <span><i class="ti ti-filter" aria-hidden="true"></i> {% if focus == 'low' %}Revisit low scores{% else %}Completed without a current score{% endif %}</span>
+      <a href="{{ clear_focus_url }}#contest-progress-heatmap">Clear filter</a>
+    </div>
+    {% endif %}
+
+    {% if contest_completion_heatmap.rows %}
+    <ul class="contest-progress-legend" aria-label="Heatmap legend">
+      {% if mode == 'score' %}
+      <li><span class="contest-progress-tile tone-low" aria-hidden="true"></span>0–2</li>
+      <li><span class="contest-progress-tile tone-mid" aria-hidden="true"></span>3–5</li>
+      <li><span class="contest-progress-tile tone-high" aria-hidden="true"></span>6–7</li>
+      <li class="contest-progress-legend-divider"><span class="contest-progress-dot" aria-hidden="true"></span>Completed with score</li>
+      <li><span class="contest-progress-tile tone-unscored" aria-hidden="true">✓</span>Completed without score</li>
+      <li><span class="contest-progress-tile tone-incomplete" aria-hidden="true">·</span>Incomplete without score</li>
+      {% else %}
+      <li><span class="contest-progress-tile tone-complete" aria-hidden="true">✓</span>Completed</li>
+      <li><span class="contest-progress-tile tone-incomplete" aria-hidden="true">·</span>Incomplete</li>
+      {% endif %}
+      <li><span class="contest-progress-tile tone-empty" aria-hidden="true">–</span>No statement</li>
+    </ul>
+    {% if mode == 'score' and not contest_stats.ai_reviewed_total %}
+    <p class="text-muted fs-xs mb-2">{% if is_other_learner %}This learner has no published AI scores for this contest yet.{% else %}You have no published AI scores for this contest yet.{% endif %}</p>
+    {% endif %}
+    <div class="contest-progress-scroll" tabindex="0" role="region" aria-label="Scrollable completion heatmap">
+      <table id="contest-completion-heatmap-table" class="contest-progress-table" aria-describedby="contest-progress-heatmap-description">
+        <caption class="visually-hidden">{{ selected_contest }} progress by year and problem</caption>
+        <colgroup span="1"></colgroup>
+        {% for group in contest_completion_heatmap.problem_code_groups %}
+        <colgroup span="{{ group.span }}"></colgroup>
+        {% endfor %}
+        <thead>
+          <tr>
+            <th scope="col" rowspan="2" class="contest-progress-year">Year</th>
+            {% for group in contest_completion_heatmap.problem_code_groups %}
+            <th scope="colgroup" colspan="{{ group.span }}" class="contest-progress-group" data-problem-code-group="{{ group.label }}">{{ group.label }}</th>
+            {% endfor %}
+          </tr>
+          <tr>
+            {% for code in contest_completion_heatmap.problem_codes %}<th scope="col">{{ code }}</th>{% endfor %}
+          </tr>
+        </thead>
+        <tbody>
+          {% for row in contest_completion_heatmap.rows %}
+          <tr>
+            <th scope="row" class="contest-progress-year">{{ row.year }}</th>
+            {% for cell in row.cells %}
+            <td>
+              {% if cell.state == 'empty' %}
+              <span class="contest-progress-tile tone-empty"><span aria-hidden="true">–</span><span class="visually-hidden">No statement</span></span>
+              {% else %}
+              <a id="{{ cell.detail_id }}-cell" href="#{{ cell.detail_id }}" class="contest-progress-tile tone-{{ cell.tone }}{% if cell.highlighted %} is-highlighted{% elif focus %} is-muted{% endif %}" data-progress-cell aria-label="{{ cell.title }}" title="{{ cell.title }}">
+                <span aria-hidden="true">{{ cell.display }}</span>
+                {% if cell.show_completion_mark %}<span class="contest-progress-dot" aria-hidden="true"></span>{% endif %}
+              </a>
+              {% endif %}
+            </td>
+            {% endfor %}
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    <div class="contest-progress-pagination">
+      <p class="text-muted fs-xs mb-0">Showing years {{ contest_completion_heatmap.page_start }}–{{ contest_completion_heatmap.page_end }} of {{ contest_completion_heatmap.year_total }}</p>
+      {% if previous_year_page_url or next_year_page_url %}
+      <nav aria-label="Heatmap years" class="d-flex flex-wrap gap-2">
+        {% if previous_year_page_url %}<a class="btn btn-sm btn-outline-secondary" href="{{ previous_year_page_url }}#contest-progress-heatmap"><i class="ti ti-chevron-left me-1" aria-hidden="true"></i>Newer years</a>{% endif %}
+        {% if next_year_page_url %}<a class="btn btn-sm btn-outline-secondary" href="{{ next_year_page_url }}#contest-progress-heatmap">Older years<i class="ti ti-chevron-right ms-1" aria-hidden="true"></i></a>{% endif %}
+      </nav>
+      {% endif %}
+    </div>
+
+    <div class="contest-progress-details">
+      {% for row in contest_completion_heatmap.rows %}
+      {% for cell in row.cells %}
+      {% if cell.entries %}
+      <article class="contest-progress-detail" id="{{ cell.detail_id }}" tabindex="-1">
+        <div class="d-flex justify-content-between align-items-start gap-3 mb-2">
+          <h3 class="fs-sm mb-0" data-progress-detail-title>{{ selected_contest }} {{ row.year }} · {{ cell.problem_code }}</h3>
+          <a href="#{{ cell.detail_id }}-cell" class="fs-xs text-nowrap">Back to heatmap</a>
+        </div>
+        <ul class="list-unstyled contest-progress-detail-entries mb-0" data-progress-detail-entries>
+          {% for entry in cell.entries %}
+          <li class="contest-progress-detail-entry">
+            <p class="fw-semibold mb-1">{% if entry.day_label %}{{ entry.day_label }}{% else %}{{ cell.problem_code }}{% endif %}</p>
+            <p class="text-muted fs-xs mb-2">{% if entry.completed %}Completed{% else %}Incomplete{% endif %} · {% if entry.score is not None %}AI score {{ entry.score }}/7{% else %}{{ entry.review_label }}{% endif %}</p>
+            <div class="d-flex flex-wrap gap-2">
+              <a href="{{ entry.statement_url }}" class="btn btn-sm btn-outline-secondary">Open statement</a>
+              {% if entry.workspace_url and not is_other_learner %}<a href="{{ entry.workspace_url }}" class="btn btn-sm btn-outline-primary">Open solution workspace</a>{% endif %}
+            </div>
+          </li>
+          {% endfor %}
+        </ul>
+      </article>
+      {% endif %}
+      {% endfor %}
+      {% endfor %}
+    </div>
+    <dialog class="contest-progress-dialog" id="contest-progress-detail-dialog" aria-labelledby="contest-progress-detail-title">
+      <div class="contest-progress-dialog-header">
+        <h3 class="fs-sm mb-0" id="contest-progress-detail-title"></h3>
+        <form method="dialog"><button class="btn btn-sm btn-outline-secondary" type="submit" autofocus>Close</button></form>
+      </div>
+      <div class="p-3" data-progress-dialog-content></div>
+    </dialog>
+    {% elif focus %}
+    <p class="text-muted mb-0">No problems match this suggestion.</p>
+    {% else %}
+    <p class="text-muted mb-0">No problem codes are available for this contest yet.</p>
+    {% endif %}
+  </div>
+</section>
