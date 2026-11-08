@@ -6755,11 +6755,15 @@ def completion_record_list_view(request):
             selected_filters["date_status"]
             or selected_filters["status"]
             or selected_filters["confidence"]
-            or selected_filters["solution_status"]
-            or selected_filters.get("ai_review"),
+            or selected_filters["solution_status"] not in {"", "none"},
         ),
         "completion_record_filter_options": completion_filter_options,
         "completion_record_filters": selected_filters,
+        "completion_record_filter_chips": [
+            chip for chip in completion_active_filters
+            if chip["key"] != "ai_review"
+            and (chip["key"] != "solution_status" or selected_filters["solution_status"] != "none")
+        ],
         "completion_record_has_active_filters": bool(completion_active_filters),
         "completion_record_quick_filters": _completion_record_quick_filters(
             request.GET, selected_filters, show_ai_reviews=show_ai_reviews,
