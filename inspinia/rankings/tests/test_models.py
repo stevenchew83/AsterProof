@@ -16,6 +16,23 @@ pytestmark = pytest.mark.django_db
 
 
 def _single_column_index_count(table_name: str, column_name: str) -> int:
+    if connection.vendor == "postgresql":
+        # Django creates a separate LIKE operator-class index for text fields.
+        # Repeated indexes of either class are duplicates; one of each is not.
+        with connection.cursor() as cursor:
+            cursor.execute(
+                """
+                SELECT count(*) FROM pg_index AS idx
+                JOIN pg_class AS tbl ON tbl.oid = idx.indrelid
+                JOIN pg_namespace AS ns ON ns.oid = tbl.relnamespace
+                JOIN pg_attribute AS col ON col.attrelid = tbl.oid AND col.attnum = idx.indkey[0]
+                WHERE ns.nspname = current_schema() AND tbl.relname = %s AND col.attname = %s
+                  AND NOT idx.indisprimary AND idx.indnkeyatts = 1
+                GROUP BY idx.indclass
+                """,
+                [table_name, column_name],
+            )
+            return max((count for (count,) in cursor.fetchall()), default=0)
     constraints = connection.introspection.get_constraints(connection.cursor(), table_name)
     return sum(
         1
@@ -24,6 +41,26 @@ def _single_column_index_count(table_name: str, column_name: str) -> int:
         and not details["primary_key"]
         and tuple(details["columns"]) == (column_name,)
     )
+
+
+def test_postgres_index_check_detects_duplicate_pattern_indexes():
+    if connection.vendor != "postgresql":
+        pytest.skip("PostgreSQL operator classes only")
+    if (
+        connection.settings_dict["HOST"] not in {"localhost", "127.0.0.1"}
+        or "synthetic" not in connection.settings_dict["NAME"]
+    ):
+        pytest.skip("Requires the explicitly isolated synthetic PostgreSQL fixture")
+    assert _single_column_index_count("rankings_studentresult", "medal") == 1
+    with connection.cursor() as cursor:
+        cursor.execute(
+            "CREATE INDEX rank_test_duplicate_medal_like ON rankings_studentresult "
+            "(medal varchar_pattern_ops)",
+        )
+        try:
+            assert _single_column_index_count("rankings_studentresult", "medal") == 2  # noqa: PLR2004
+        finally:
+            cursor.execute("DROP INDEX rank_test_duplicate_medal_like")
 
 
 def test_school_normalizes_name_and_enforces_unique_normalized_name():

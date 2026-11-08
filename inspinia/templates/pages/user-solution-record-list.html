@@ -5,6 +5,12 @@
 
 {% block extra_css %}
 <link rel="stylesheet" href="{% static 'plugins/datatables/dataTables.bootstrap5.min.css' %}">
+{% if user_solution_record_show_ai_reviews %}
+<style>
+  .user-solution-records .user-solution-ai-review { min-width: 7rem; }
+  .user-solution-records table.dataTable .user-solution-ai-review .dt-column-header { flex-direction: row; }
+</style>
+{% endif %}
 {% endblock extra_css %}
 
 {% block page_content %}
@@ -105,7 +111,7 @@
         {% endif %}
       </p>
       <div class="app-table-region table-responsive" tabindex="0" role="region" aria-label="Solution records" aria-describedby="user-solution-result-description">
-        <table data-paging-type="simple" id="user-solution-record-table" class="app-table-compact table table-sm table-hover align-middle w-100 mb-0"><caption class="visually-hidden">Saved user solutions, authors, publication status and last update</caption></table>
+        <table data-paging-type="simple" id="user-solution-record-table" class="app-table-compact table table-sm table-hover align-middle w-100 mb-0"><caption class="visually-hidden">Saved user solutions, authors, publication status{% if user_solution_record_show_ai_reviews %}, latest AI review{% endif %} and last update</caption></table>
       </div>
       {% else %}
       <div class="user-solution-empty" role="status">
@@ -204,9 +210,34 @@
             '<i class="ti ' + (published ? 'ti-circle-check' : 'ti-pencil') + '" aria-hidden="true"></i>' + escapeHtml(data) + '</span>';
         }
       },
+      {% if user_solution_record_show_ai_reviews %}
+      {
+        data: "ai_review",
+        title: "AI review",
+        className: "user-solution-ai-review text-start",
+        orderSequence: ["desc", "asc", ""],
+        render: function (review, type) {
+          var score = review ? review.score : null;
+          var label = review ? review.label : "Not reviewed";
+          var scoreLabel = score === null ? "" : score + "/7";
+          if (type === "sort" || type === "type") return score === null ? -1 : score;
+          if (type !== "display") return (scoreLabel + " " + label).trim();
+          if (!review) return '<span class="text-muted fs-xs">' + escapeHtml(label) + '</span>';
+
+          var tone = score >= 6 ? "success" : score >= 3 ? "warning" : "danger";
+          var meter = score === null ? "" :
+            '<div class="progress progress-sm mt-1' + (score === 0 ? ' bg-danger-subtle' : '') + '" aria-hidden="true">' +
+            '<div class="progress-bar bg-' + tone + '" style="width:' + (score / 7 * 100) + '%"></div></div>';
+          return '<a class="d-block link-body-emphasis text-decoration-none fs-xs" href="' + escapeHtml(review.url) + '">' +
+            (scoreLabel ? '<span class="fw-semibold me-2">' + escapeHtml(scoreLabel) + '</span>' : '') +
+            '<span class="text-decoration-underline">' + escapeHtml(label) + '</span>' + meter + '</a>';
+        }
+      },
+      {% endif %}
       {
         data: "updated_at",
         title: "Updated",
+        name: "updated",
         className: "text-nowrap user-solution-updated",
         render: function (data, type, row) {
           if (type === "sort" || type === "type") return row.updated_at_sort;
@@ -242,7 +273,7 @@
         }
       }
     ],
-    order: [[3, "desc"]],
+    order: { name: "updated", dir: "desc" },
     pageLength: 25,
     lengthMenu: [10, 25, 50, 100],
     scrollX: true,

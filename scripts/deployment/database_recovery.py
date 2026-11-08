@@ -40,7 +40,7 @@ from scripts.deployment.schema_rehearsal import _snapshot
 AUTHORITY = Path("/usr/local/libexec/asterproof-authority")
 AUDIT_CONFIG = Path("/etc/asterproof/migration-audit.json")
 AUTHORITY_MANIFEST = Path("/etc/asterproof/authority-manifest.json")
-MAX_SOURCE_BYTES = 1024 * 1024 * 1024
+MAX_SOURCE_BYTES = 2 * 1024 * 1024 * 1024
 MAX_METADATA_BYTES = 2 * 1024 * 1024
 MAX_AGE_SECONDS = 1800
 PRIVATE_DIRECTORY_MODE = 0o700
@@ -70,6 +70,51 @@ for _index, _table, _columns, _field, _values in (
     PG17_INDEX_REPARSE_EQUIVALENTS[_prefix + f"(ARRAY[{_array_cast}])::text[]))"] = (
         _prefix + f"ARRAY[{_element_cast}]))"
     )
+# Two Assessment CHECKs exhibit the same PG17 cast redistribution.
+# Bind the complete definition and object identity; every other change must fail.
+PG17_CHECK_REPARSE_EQUIVALENTS = {}
+for _table, _name, _field, _values in (
+    ("solutions_evaluationpackageapproval", "evaluation_package_valid_decision", "decision",
+     ("approved", "rejected", "revoked")),
+    ("solutions_syntheticreview", "synthetic_review_valid_mode", "mode", ("coach", "provisional", "examiner")),
+):
+    _prefix = f"CHECK ({_field}::text = ANY (ARRAY["
+    _array_cast = ", ".join(f"'{value}'::character varying" for value in _values)
+    _element_cast = ", ".join(f"'{value}'::character varying::text" for value in _values)
+    PG17_CHECK_REPARSE_EQUIVALENTS[(
+        "public", _table, _name, "c", _prefix + _array_cast + "]::text[]))",
+    )] = _prefix + _element_cast + "]))"
+
+# Exact native PG17.9 restore cast redistribution for the Training identity CHECK.
+PG17_CHECK_REPARSE_EQUIVALENTS[(
+    "public", "learning_contentdocument", "learning_document_canonical_identity", "c",
+    (
+        "CHECK (canonical_area_id IS NOT NULL AND canonical_concept_id IS NULL AND kind::text = "
+        "'overview'::text OR canonical_area_id IS NULL AND canonical_concept_id IS NOT NULL AND kind::text "
+        "= 'concept'::text OR (kind::text = ANY (ARRAY['lecture'::character varying, 'technique'::character"
+        " varying, 'standalone'::character varying]::text[])))"
+    ),
+)] = (
+    "CHECK (canonical_area_id IS NOT NULL AND canonical_concept_id IS NULL AND kind::text = "
+    "'overview'::text OR canonical_area_id IS NULL AND canonical_concept_id IS NOT NULL AND kind::text "
+    "= 'concept'::text OR (kind::text = ANY (ARRAY['lecture'::character varying::text, "
+    "'technique'::character varying::text, 'standalone'::character varying::text])))"
+)
+# Exact observed PG17.9 restore rewrite for ranking claim verification evidence.
+PG17_CHECK_REPARSE_EQUIVALENTS[(
+    "public", "rankings_resultclaim", "rank_claim_verified_evidence", "c",
+    (
+        "CHECK (NOT active OR NOT verification_status::text = 'verified'::text OR NOT evidence = ''::text AND"
+        " (source_type::text = ANY (ARRAY['organizer'::character varying, 'news'::character varying, "
+        "'other'::character varying]::text[])) AND (NOT source_label::text = ''::text OR NOT source_url::text"
+        " = ''::text))"
+    ),
+)] = (
+        "CHECK (NOT active OR NOT verification_status::text = 'verified'::text OR NOT evidence = ''::text AND"
+        " (source_type::text = ANY (ARRAY['organizer'::character varying::text, 'news'::character "
+        "varying::text, 'other'::character varying::text])) AND (NOT source_label::text = ''::text OR NOT "
+        "source_url::text = ''::text))"
+)
 META_SQL = """SELECT json_build_object(
  'database',current_database(),'server_version',current_setting('server_version_num')::int,
  'database_bytes',pg_database_size(current_database()),'locale',d.datcollate,
@@ -213,7 +258,7 @@ def _copy_digest(connection, query):
 
 
 def logical_backup_schema(snapshot):
-    """Normalize only dropped slots and two exact PG17 literal-array cast rewrites."""
+    """Normalize dropped slots and the exact reviewed PG17 index/CHECK rewrites."""
     result = {k: [dict(row) for row in rows] for k, rows in snapshot.items()}
     ordinals = {}
     for row in sorted(result["columns"], key=lambda r: (r["schema"], r["table"], r["position"])):
@@ -222,6 +267,9 @@ def logical_backup_schema(snapshot):
         row["position"] = ordinals[key]
     for row in result.get("indexes", []):
         row["definition"] = PG17_INDEX_REPARSE_EQUIVALENTS.get(row["definition"], row["definition"])
+    for row in result.get("constraints", []):
+        identity = tuple(row[field] for field in ("schema", "table", "name", "type", "definition"))
+        row["definition"] = PG17_CHECK_REPARSE_EQUIVALENTS.get(identity, row["definition"])
     return result
 
 

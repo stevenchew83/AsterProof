@@ -1,0 +1,38 @@
+.ranking-analysis {
+    .analysis-export > summary { list-style: none; }
+    .analysis-export > summary::-webkit-details-marker { display: none; }
+    .analysis-export[open] > .dropdown-menu { display: block; left: auto; right: 0; }
+    .app-page-header-description { grid-column: 1 / -1; }
+    .header-title { font-size: .9375rem; font-weight: 600; line-height: 1.4; }
+    .analysis-filters .form-label { margin-bottom: .25rem; font-size: .75rem; }
+    .analysis-filters details summary { width: fit-content; }
+    .analysis-tabs { flex-wrap: wrap; padding: .25rem; background: var(--#{$prefix}secondary-bg); border-radius: var(--#{$prefix}border-radius); }
+    .analysis-tabs .nav-link { padding: .5rem .875rem; font-size: .8125rem; font-weight: 600; }
+    .analysis-stat-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: .75rem 1rem; }
+    .analysis-stat-grid dt { color: var(--#{$prefix}secondary-color); font-size: .75rem; font-weight: 400; }
+    .analysis-stat-grid dd { font-variant-numeric: tabular-nums; font-size: 1.125rem; font-weight: 600; margin: .125rem 0 0; }
+    .analysis-chart { min-height: 15rem; }
+    .analysis-chart-values { font-size: .75rem; margin-top: .5rem; }
+    .analysis-chart-values table { font-size: .75rem; }
+    .analysis-quality-item { display: flex; align-items: center; gap: .5rem; height: 100%; padding: .875rem 1rem; background: var(--#{$prefix}secondary-bg); color: var(--#{$prefix}body-color); border: 1px solid var(--#{$prefix}border-color); border-radius: var(--#{$prefix}border-radius); }
+    .analysis-quality-item span { flex: 1; font-size: .8125rem; }
+    .analysis-quality-item strong { font-size: 1.125rem; font-variant-numeric: tabular-nums; }
+    .analysis-quality-item:hover { border-color: var(--#{$prefix}primary); }
+    .analysis-sort { display: inline-flex; align-items: center; }
+    .analysis-main-table td { font-variant-numeric: tabular-nums; }
+    .analysis-chart-card .card-header { min-height: 4.25rem; }
+    @media (max-width: 575.98px) {
+        .app-page-header--with-stats { grid-template-columns: minmax(0, 1fr); }
+        .app-page-header-intro { grid-row: 1; grid-column: 1; }
+        .app-page-header-actions { grid-row: 2; grid-column: 1; }
+        .app-page-header-stats { grid-row: 3; }
+        .app-page-header-description { grid-row: 4; }
+        .analysis-stat-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+        .analysis-quality-item { padding: .75rem; }
+        .analysis-tabs .nav-link { flex: 1 0 auto; text-align: center; padding: .5rem .625rem; }
+        .analysis-chart { min-height: 13rem; }
+    }
+    @media (pointer: coarse) {
+        .btn, .analysis-tabs .nav-link, .form-select, .form-control { min-height: 2.75rem; }
+    }
+}

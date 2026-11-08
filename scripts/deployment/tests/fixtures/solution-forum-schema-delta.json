@@ -1,0 +1,1208 @@
+{
+  "columns": [
+    {
+      "collation": "default",
+      "column": "action",
+      "default": null,
+      "nullable": false,
+      "position": 3,
+      "schema": "public",
+      "table": "solutions_solutioncommentevent",
+      "type": "character varying(24)"
+    },
+    {
+      "collation": "default",
+      "column": "action",
+      "default": null,
+      "nullable": false,
+      "position": 3,
+      "schema": "public",
+      "table": "solutions_solutionverificationdecision",
+      "type": "character varying(12)"
+    },
+    {
+      "collation": "default",
+      "column": "body",
+      "default": null,
+      "nullable": false,
+      "position": 2,
+      "schema": "public",
+      "table": "solutions_solutioncomment",
+      "type": "text"
+    },
+    {
+      "collation": "default",
+      "column": "body",
+      "default": null,
+      "nullable": false,
+      "position": 4,
+      "schema": "public",
+      "table": "solutions_solutioncommentevent",
+      "type": "text"
+    },
+    {
+      "collation": "default",
+      "column": "feedback",
+      "default": null,
+      "nullable": false,
+      "position": 6,
+      "schema": "public",
+      "table": "solutions_solutionhumanassessment",
+      "type": "text"
+    },
+    {
+      "collation": "default",
+      "column": "gaps",
+      "default": null,
+      "nullable": false,
+      "position": 7,
+      "schema": "public",
+      "table": "solutions_solutionhumanassessment",
+      "type": "text"
+    },
+    {
+      "collation": "default",
+      "column": "key",
+      "default": null,
+      "nullable": false,
+      "position": 7,
+      "schema": "public",
+      "table": "solutions_solutionforumtarget",
+      "type": "character varying(64)"
+    },
+    {
+      "collation": "default",
+      "column": "next_steps",
+      "default": null,
+      "nullable": false,
+      "position": 8,
+      "schema": "public",
+      "table": "solutions_solutionhumanassessment",
+      "type": "text"
+    },
+    {
+      "collation": "default",
+      "column": "reason",
+      "default": null,
+      "nullable": false,
+      "position": 2,
+      "schema": "public",
+      "table": "solutions_solutionforumreport",
+      "type": "text"
+    },
+    {
+      "collation": "default",
+      "column": "reason",
+      "default": null,
+      "nullable": false,
+      "position": 5,
+      "schema": "public",
+      "table": "solutions_solutioncommentevent",
+      "type": "text"
+    },
+    {
+      "collation": "default",
+      "column": "reason",
+      "default": null,
+      "nullable": false,
+      "position": 5,
+      "schema": "public",
+      "table": "solutions_solutionverificationdecision",
+      "type": "text"
+    },
+    {
+      "collation": "default",
+      "column": "resolution",
+      "default": null,
+      "nullable": false,
+      "position": 4,
+      "schema": "public",
+      "table": "solutions_solutionforumreport",
+      "type": "text"
+    },
+    {
+      "collation": "default",
+      "column": "state",
+      "default": null,
+      "nullable": false,
+      "position": 3,
+      "schema": "public",
+      "table": "solutions_solutioncomment",
+      "type": "character varying(12)"
+    },
+    {
+      "collation": "default",
+      "column": "statement_source",
+      "default": null,
+      "nullable": false,
+      "position": 5,
+      "schema": "public",
+      "table": "solutions_solutionforumtarget",
+      "type": "text"
+    },
+    {
+      "collation": "default",
+      "column": "status",
+      "default": null,
+      "nullable": false,
+      "position": 2,
+      "schema": "public",
+      "table": "solutions_solutionreviewrequest",
+      "type": "character varying(12)"
+    },
+    {
+      "collation": "default",
+      "column": "status",
+      "default": null,
+      "nullable": false,
+      "position": 3,
+      "schema": "public",
+      "table": "solutions_solutionforumreport",
+      "type": "character varying(12)"
+    },
+    {
+      "collation": "default",
+      "column": "verdict",
+      "default": null,
+      "nullable": false,
+      "position": 4,
+      "schema": "public",
+      "table": "solutions_solutionverificationdecision",
+      "type": "character varying(16)"
+    },
+    {
+      "collation": "default",
+      "column": "verdict",
+      "default": null,
+      "nullable": false,
+      "position": 5,
+      "schema": "public",
+      "table": "solutions_solutionhumanassessment",
+      "type": "character varying(16)"
+    },
+    {
+      "collation": null,
+      "column": "actor_id",
+      "default": null,
+      "nullable": true,
+      "position": 7,
+      "schema": "public",
+      "table": "solutions_solutioncommentevent",
+      "type": "bigint"
+    },
+    {
+      "collation": null,
+      "column": "admin_id",
+      "default": null,
+      "nullable": true,
+      "position": 7,
+      "schema": "public",
+      "table": "solutions_solutionverificationdecision",
+      "type": "bigint"
+    },
+    {
+      "collation": null,
+      "column": "assessment_basis",
+      "default": null,
+      "nullable": false,
+      "position": 6,
+      "schema": "public",
+      "table": "solutions_solutionverificationdecision",
+      "type": "jsonb"
+    },
+    {
+      "collation": null,
+      "column": "author_id",
+      "default": null,
+      "nullable": true,
+      "position": 7,
+      "schema": "public",
+      "table": "solutions_solutioncomment",
+      "type": "bigint"
+    },
+    {
+      "collation": null,
+      "column": "comment_id",
+      "default": null,
+      "nullable": false,
+      "position": 7,
+      "schema": "public",
+      "table": "solutions_solutionforumreport",
+      "type": "bigint"
+    },
+    {
+      "collation": null,
+      "column": "comment_id",
+      "default": null,
+      "nullable": false,
+      "position": 8,
+      "schema": "public",
+      "table": "solutions_solutioncommentevent",
+      "type": "bigint"
+    },
+    {
+      "collation": null,
+      "column": "created_at",
+      "default": null,
+      "nullable": false,
+      "position": 1,
+      "schema": "public",
+      "table": "solutions_solutionforumtarget",
+      "type": "timestamp with time zone"
+    },
+    {
+      "collation": null,
+      "column": "created_at",
+      "default": null,
+      "nullable": false,
+      "position": 2,
+      "schema": "public",
+      "table": "solutions_solutioncommentevent",
+      "type": "timestamp with time zone"
+    },
+    {
+      "collation": null,
+      "column": "created_at",
+      "default": null,
+      "nullable": false,
+      "position": 2,
+      "schema": "public",
+      "table": "solutions_solutionhumanassessment",
+      "type": "timestamp with time zone"
+    },
+    {
+      "collation": null,
+      "column": "created_at",
+      "default": null,
+      "nullable": false,
+      "position": 2,
+      "schema": "public",
+      "table": "solutions_solutionupvote",
+      "type": "timestamp with time zone"
+    },
+    {
+      "collation": null,
+      "column": "created_at",
+      "default": null,
+      "nullable": false,
+      "position": 2,
+      "schema": "public",
+      "table": "solutions_solutionverificationdecision",
+      "type": "timestamp with time zone"
+    },
+    {
+      "collation": null,
+      "column": "created_at",
+      "default": null,
+      "nullable": false,
+      "position": 3,
+      "schema": "public",
+      "table": "solutions_solutionreviewrequest",
+      "type": "timestamp with time zone"
+    },
+    {
+      "collation": null,
+      "column": "created_at",
+      "default": null,
+      "nullable": false,
+      "position": 5,
+      "schema": "public",
+      "table": "solutions_solutioncomment",
+      "type": "timestamp with time zone"
+    },
+    {
+      "collation": null,
+      "column": "created_at",
+      "default": null,
+      "nullable": false,
+      "position": 5,
+      "schema": "public",
+      "table": "solutions_solutionforumreport",
+      "type": "timestamp with time zone"
+    },
+    {
+      "collation": null,
+      "column": "created_revision_id",
+      "default": null,
+      "nullable": true,
+      "position": 8,
+      "schema": "public",
+      "table": "solutions_solutioncomment",
+      "type": "uuid"
+    },
+    {
+      "collation": null,
+      "column": "id",
+      "default": null,
+      "nullable": false,
+      "position": 1,
+      "schema": "public",
+      "table": "solutions_solutioncomment",
+      "type": "bigint"
+    },
+    {
+      "collation": null,
+      "column": "id",
+      "default": null,
+      "nullable": false,
+      "position": 1,
+      "schema": "public",
+      "table": "solutions_solutioncommentevent",
+      "type": "bigint"
+    },
+    {
+      "collation": null,
+      "column": "id",
+      "default": null,
+      "nullable": false,
+      "position": 1,
+      "schema": "public",
+      "table": "solutions_solutionforumreport",
+      "type": "bigint"
+    },
+    {
+      "collation": null,
+      "column": "id",
+      "default": null,
+      "nullable": false,
+      "position": 1,
+      "schema": "public",
+      "table": "solutions_solutionhumanassessment",
+      "type": "bigint"
+    },
+    {
+      "collation": null,
+      "column": "id",
+      "default": null,
+      "nullable": false,
+      "position": 1,
+      "schema": "public",
+      "table": "solutions_solutionreviewrequest",
+      "type": "bigint"
+    },
+    {
+      "collation": null,
+      "column": "id",
+      "default": null,
+      "nullable": false,
+      "position": 1,
+      "schema": "public",
+      "table": "solutions_solutionupvote",
+      "type": "bigint"
+    },
+    {
+      "collation": null,
+      "column": "id",
+      "default": null,
+      "nullable": false,
+      "position": 1,
+      "schema": "public",
+      "table": "solutions_solutionverificationdecision",
+      "type": "bigint"
+    },
+    {
+      "collation": null,
+      "column": "id",
+      "default": null,
+      "nullable": false,
+      "position": 2,
+      "schema": "public",
+      "table": "solutions_solutionforumtarget",
+      "type": "uuid"
+    },
+    {
+      "collation": null,
+      "column": "image_paths",
+      "default": null,
+      "nullable": false,
+      "position": 9,
+      "schema": "public",
+      "table": "solutions_solutionforumtarget",
+      "type": "jsonb"
+    },
+    {
+      "collation": null,
+      "column": "parent_id",
+      "default": null,
+      "nullable": true,
+      "position": 9,
+      "schema": "public",
+      "table": "solutions_solutioncomment",
+      "type": "bigint"
+    },
+    {
+      "collation": null,
+      "column": "reporter_id",
+      "default": null,
+      "nullable": true,
+      "position": 8,
+      "schema": "public",
+      "table": "solutions_solutionforumreport",
+      "type": "bigint"
+    },
+    {
+      "collation": null,
+      "column": "requested_by_id",
+      "default": null,
+      "nullable": true,
+      "position": 4,
+      "schema": "public",
+      "table": "solutions_solutionreviewrequest",
+      "type": "bigint"
+    },
+    {
+      "collation": null,
+      "column": "resolved_at",
+      "default": null,
+      "nullable": true,
+      "position": 6,
+      "schema": "public",
+      "table": "solutions_solutionforumreport",
+      "type": "timestamp with time zone"
+    },
+    {
+      "collation": null,
+      "column": "resolved_by_id",
+      "default": null,
+      "nullable": true,
+      "position": 9,
+      "schema": "public",
+      "table": "solutions_solutionforumreport",
+      "type": "bigint"
+    },
+    {
+      "collation": null,
+      "column": "reviewer_id",
+      "default": null,
+      "nullable": true,
+      "position": 9,
+      "schema": "public",
+      "table": "solutions_solutionhumanassessment",
+      "type": "bigint"
+    },
+    {
+      "collation": null,
+      "column": "reviewer_identity",
+      "default": null,
+      "nullable": false,
+      "position": 3,
+      "schema": "public",
+      "table": "solutions_solutionhumanassessment",
+      "type": "bigint"
+    },
+    {
+      "collation": null,
+      "column": "revision_id",
+      "default": null,
+      "nullable": true,
+      "position": 10,
+      "schema": "public",
+      "table": "solutions_solutionforumtarget",
+      "type": "uuid"
+    },
+    {
+      "collation": null,
+      "column": "sequence",
+      "default": null,
+      "nullable": false,
+      "position": 4,
+      "schema": "public",
+      "table": "solutions_solutionhumanassessment",
+      "type": "integer"
+    },
+    {
+      "collation": null,
+      "column": "snapshot",
+      "default": null,
+      "nullable": false,
+      "position": 8,
+      "schema": "public",
+      "table": "solutions_solutionforumtarget",
+      "type": "jsonb"
+    },
+    {
+      "collation": null,
+      "column": "solution_id",
+      "default": null,
+      "nullable": false,
+      "position": 10,
+      "schema": "public",
+      "table": "solutions_solutioncomment",
+      "type": "bigint"
+    },
+    {
+      "collation": null,
+      "column": "solution_id",
+      "default": null,
+      "nullable": false,
+      "position": 11,
+      "schema": "public",
+      "table": "solutions_solutionforumtarget",
+      "type": "bigint"
+    },
+    {
+      "collation": null,
+      "column": "solution_id",
+      "default": null,
+      "nullable": false,
+      "position": 3,
+      "schema": "public",
+      "table": "solutions_solutionupvote",
+      "type": "bigint"
+    },
+    {
+      "collation": null,
+      "column": "solution_updated_at",
+      "default": null,
+      "nullable": false,
+      "position": 4,
+      "schema": "public",
+      "table": "solutions_solutionforumtarget",
+      "type": "timestamp with time zone"
+    },
+    {
+      "collation": null,
+      "column": "solution_version",
+      "default": null,
+      "nullable": false,
+      "position": 3,
+      "schema": "public",
+      "table": "solutions_solutionforumtarget",
+      "type": "integer"
+    },
+    {
+      "collation": null,
+      "column": "statement_id_value",
+      "default": null,
+      "nullable": true,
+      "position": 6,
+      "schema": "public",
+      "table": "solutions_solutionforumtarget",
+      "type": "bigint"
+    },
+    {
+      "collation": null,
+      "column": "target_id",
+      "default": null,
+      "nullable": false,
+      "position": 10,
+      "schema": "public",
+      "table": "solutions_solutionhumanassessment",
+      "type": "uuid"
+    },
+    {
+      "collation": null,
+      "column": "target_id",
+      "default": null,
+      "nullable": false,
+      "position": 5,
+      "schema": "public",
+      "table": "solutions_solutionreviewrequest",
+      "type": "uuid"
+    },
+    {
+      "collation": null,
+      "column": "target_id",
+      "default": null,
+      "nullable": false,
+      "position": 8,
+      "schema": "public",
+      "table": "solutions_solutionverificationdecision",
+      "type": "uuid"
+    },
+    {
+      "collation": null,
+      "column": "updated_at",
+      "default": null,
+      "nullable": false,
+      "position": 6,
+      "schema": "public",
+      "table": "solutions_solutioncomment",
+      "type": "timestamp with time zone"
+    },
+    {
+      "collation": null,
+      "column": "user_id",
+      "default": null,
+      "nullable": false,
+      "position": 4,
+      "schema": "public",
+      "table": "solutions_solutionupvote",
+      "type": "bigint"
+    },
+    {
+      "collation": null,
+      "column": "version",
+      "default": null,
+      "nullable": false,
+      "position": 4,
+      "schema": "public",
+      "table": "solutions_solutioncomment",
+      "type": "integer"
+    },
+    {
+      "collation": null,
+      "column": "version",
+      "default": null,
+      "nullable": false,
+      "position": 6,
+      "schema": "public",
+      "table": "solutions_solutioncommentevent",
+      "type": "integer"
+    }
+  ],
+  "constraints": [
+    {
+      "definition": "CHECK (NOT action::text = 'verify'::text OR verdict::text = 'correct'::text)",
+      "name": "forum_verified_correct_only",
+      "schema": "public",
+      "table": "solutions_solutionverificationdecision",
+      "type": "c"
+    },
+    {
+      "definition": "CHECK (action::text = 'verify'::text OR action::text = 'adjudicate'::text OR action::text = 'revoke'::text)",
+      "name": "forum_decision_action",
+      "schema": "public",
+      "table": "solutions_solutionverificationdecision",
+      "type": "c"
+    },
+    {
+      "definition": "CHECK (reviewer_identity >= 0)",
+      "name": "solutions_solutionhumanassessment_reviewer_identity_check",
+      "schema": "public",
+      "table": "solutions_solutionhumanassessment",
+      "type": "c"
+    },
+    {
+      "definition": "CHECK (sequence >= 0)",
+      "name": "solutions_solutionhumanassessment_sequence_check",
+      "schema": "public",
+      "table": "solutions_solutionhumanassessment",
+      "type": "c"
+    },
+    {
+      "definition": "CHECK (sequence >= 1)",
+      "name": "forum_assessment_positive_seq",
+      "schema": "public",
+      "table": "solutions_solutionhumanassessment",
+      "type": "c"
+    },
+    {
+      "definition": "CHECK (solution_version >= 0)",
+      "name": "solutions_solutionforumtarget_solution_version_check",
+      "schema": "public",
+      "table": "solutions_solutionforumtarget",
+      "type": "c"
+    },
+    {
+      "definition": "CHECK (state::text = 'visible'::text OR state::text = 'removed'::text OR state::text = 'hidden'::text)",
+      "name": "forum_comment_state",
+      "schema": "public",
+      "table": "solutions_solutioncomment",
+      "type": "c"
+    },
+    {
+      "definition": "CHECK (status::text = 'open'::text OR status::text = 'resolved'::text)",
+      "name": "forum_report_state",
+      "schema": "public",
+      "table": "solutions_solutionforumreport",
+      "type": "c"
+    },
+    {
+      "definition": "CHECK (status::text = 'pending'::text OR status::text = 'answered'::text)",
+      "name": "forum_request_state",
+      "schema": "public",
+      "table": "solutions_solutionreviewrequest",
+      "type": "c"
+    },
+    {
+      "definition": "CHECK (verdict::text = ''::text OR verdict::text = 'correct'::text OR verdict::text = 'minor_gaps'::text OR verdict::text = 'partial'::text OR verdict::text = 'incorrect'::text OR verdict::text = 'undetermined'::text)",
+      "name": "forum_decision_verdict",
+      "schema": "public",
+      "table": "solutions_solutionverificationdecision",
+      "type": "c"
+    },
+    {
+      "definition": "CHECK (verdict::text = 'correct'::text OR verdict::text = 'minor_gaps'::text OR verdict::text = 'partial'::text OR verdict::text = 'incorrect'::text OR verdict::text = 'undetermined'::text)",
+      "name": "forum_assessment_verdict",
+      "schema": "public",
+      "table": "solutions_solutionhumanassessment",
+      "type": "c"
+    },
+    {
+      "definition": "CHECK (version >= 0)",
+      "name": "solutions_solutioncomment_version_check",
+      "schema": "public",
+      "table": "solutions_solutioncomment",
+      "type": "c"
+    },
+    {
+      "definition": "CHECK (version >= 0)",
+      "name": "solutions_solutioncommentevent_version_check",
+      "schema": "public",
+      "table": "solutions_solutioncommentevent",
+      "type": "c"
+    },
+    {
+      "definition": "CHECK (version >= 1)",
+      "name": "forum_comment_positive_ver",
+      "schema": "public",
+      "table": "solutions_solutioncomment",
+      "type": "c"
+    },
+    {
+      "definition": "FOREIGN KEY (actor_id) REFERENCES users_user(id) DEFERRABLE INITIALLY DEFERRED",
+      "name": "solutions_solutionco_actor_id_a0d27837_fk_users_use",
+      "schema": "public",
+      "table": "solutions_solutioncommentevent",
+      "type": "f"
+    },
+    {
+      "definition": "FOREIGN KEY (admin_id) REFERENCES users_user(id) DEFERRABLE INITIALLY DEFERRED",
+      "name": "solutions_solutionve_admin_id_593e2ae8_fk_users_use",
+      "schema": "public",
+      "table": "solutions_solutionverificationdecision",
+      "type": "f"
+    },
+    {
+      "definition": "FOREIGN KEY (author_id) REFERENCES users_user(id) DEFERRABLE INITIALLY DEFERRED",
+      "name": "solutions_solutioncomment_author_id_7cf0ca79_fk_users_user_id",
+      "schema": "public",
+      "table": "solutions_solutioncomment",
+      "type": "f"
+    },
+    {
+      "definition": "FOREIGN KEY (comment_id) REFERENCES solutions_solutioncomment(id) DEFERRABLE INITIALLY DEFERRED",
+      "name": "solutions_solutionco_comment_id_1fe3dfdd_fk_solutions",
+      "schema": "public",
+      "table": "solutions_solutioncommentevent",
+      "type": "f"
+    },
+    {
+      "definition": "FOREIGN KEY (comment_id) REFERENCES solutions_solutioncomment(id) DEFERRABLE INITIALLY DEFERRED",
+      "name": "solutions_solutionfo_comment_id_013cb730_fk_solutions",
+      "schema": "public",
+      "table": "solutions_solutionforumreport",
+      "type": "f"
+    },
+    {
+      "definition": "FOREIGN KEY (created_revision_id) REFERENCES solutions_solutionrevision(id) DEFERRABLE INITIALLY DEFERRED",
+      "name": "solutions_solutionco_created_revision_id_b1c205f0_fk_solutions",
+      "schema": "public",
+      "table": "solutions_solutioncomment",
+      "type": "f"
+    },
+    {
+      "definition": "FOREIGN KEY (parent_id) REFERENCES solutions_solutioncomment(id) DEFERRABLE INITIALLY DEFERRED",
+      "name": "solutions_solutionco_parent_id_9e640802_fk_solutions",
+      "schema": "public",
+      "table": "solutions_solutioncomment",
+      "type": "f"
+    },
+    {
+      "definition": "FOREIGN KEY (reporter_id) REFERENCES users_user(id) DEFERRABLE INITIALLY DEFERRED",
+      "name": "solutions_solutionfo_reporter_id_6a08d416_fk_users_use",
+      "schema": "public",
+      "table": "solutions_solutionforumreport",
+      "type": "f"
+    },
+    {
+      "definition": "FOREIGN KEY (requested_by_id) REFERENCES users_user(id) DEFERRABLE INITIALLY DEFERRED",
+      "name": "solutions_solutionre_requested_by_id_749f37c7_fk_users_use",
+      "schema": "public",
+      "table": "solutions_solutionreviewrequest",
+      "type": "f"
+    },
+    {
+      "definition": "FOREIGN KEY (resolved_by_id) REFERENCES users_user(id) DEFERRABLE INITIALLY DEFERRED",
+      "name": "solutions_solutionfo_resolved_by_id_76794728_fk_users_use",
+      "schema": "public",
+      "table": "solutions_solutionforumreport",
+      "type": "f"
+    },
+    {
+      "definition": "FOREIGN KEY (reviewer_id) REFERENCES users_user(id) DEFERRABLE INITIALLY DEFERRED",
+      "name": "solutions_solutionhu_reviewer_id_c4f70808_fk_users_use",
+      "schema": "public",
+      "table": "solutions_solutionhumanassessment",
+      "type": "f"
+    },
+    {
+      "definition": "FOREIGN KEY (revision_id) REFERENCES solutions_solutionrevision(id) DEFERRABLE INITIALLY DEFERRED",
+      "name": "solutions_solutionfo_revision_id_c3a22cd0_fk_solutions",
+      "schema": "public",
+      "table": "solutions_solutionforumtarget",
+      "type": "f"
+    },
+    {
+      "definition": "FOREIGN KEY (solution_id) REFERENCES solutions_problemsolution(id) DEFERRABLE INITIALLY DEFERRED",
+      "name": "solutions_solutionco_solution_id_da73453e_fk_solutions",
+      "schema": "public",
+      "table": "solutions_solutioncomment",
+      "type": "f"
+    },
+    {
+      "definition": "FOREIGN KEY (solution_id) REFERENCES solutions_problemsolution(id) DEFERRABLE INITIALLY DEFERRED",
+      "name": "solutions_solutionfo_solution_id_b8e17e68_fk_solutions",
+      "schema": "public",
+      "table": "solutions_solutionforumtarget",
+      "type": "f"
+    },
+    {
+      "definition": "FOREIGN KEY (solution_id) REFERENCES solutions_problemsolution(id) DEFERRABLE INITIALLY DEFERRED",
+      "name": "solutions_solutionup_solution_id_7e5f7592_fk_solutions",
+      "schema": "public",
+      "table": "solutions_solutionupvote",
+      "type": "f"
+    },
+    {
+      "definition": "FOREIGN KEY (target_id) REFERENCES solutions_solutionforumtarget(id) DEFERRABLE INITIALLY DEFERRED",
+      "name": "solutions_solutionhu_target_id_e69defba_fk_solutions",
+      "schema": "public",
+      "table": "solutions_solutionhumanassessment",
+      "type": "f"
+    },
+    {
+      "definition": "FOREIGN KEY (target_id) REFERENCES solutions_solutionforumtarget(id) DEFERRABLE INITIALLY DEFERRED",
+      "name": "solutions_solutionre_target_id_ff876c02_fk_solutions",
+      "schema": "public",
+      "table": "solutions_solutionreviewrequest",
+      "type": "f"
+    },
+    {
+      "definition": "FOREIGN KEY (target_id) REFERENCES solutions_solutionforumtarget(id) DEFERRABLE INITIALLY DEFERRED",
+      "name": "solutions_solutionve_target_id_44324ef7_fk_solutions",
+      "schema": "public",
+      "table": "solutions_solutionverificationdecision",
+      "type": "f"
+    },
+    {
+      "definition": "FOREIGN KEY (user_id) REFERENCES users_user(id) DEFERRABLE INITIALLY DEFERRED",
+      "name": "solutions_solutionupvote_user_id_ffff8039_fk_users_user_id",
+      "schema": "public",
+      "table": "solutions_solutionupvote",
+      "type": "f"
+    },
+    {
+      "definition": "PRIMARY KEY (id)",
+      "name": "solutions_solutioncomment_pkey",
+      "schema": "public",
+      "table": "solutions_solutioncomment",
+      "type": "p"
+    },
+    {
+      "definition": "PRIMARY KEY (id)",
+      "name": "solutions_solutioncommentevent_pkey",
+      "schema": "public",
+      "table": "solutions_solutioncommentevent",
+      "type": "p"
+    },
+    {
+      "definition": "PRIMARY KEY (id)",
+      "name": "solutions_solutionforumreport_pkey",
+      "schema": "public",
+      "table": "solutions_solutionforumreport",
+      "type": "p"
+    },
+    {
+      "definition": "PRIMARY KEY (id)",
+      "name": "solutions_solutionforumtarget_pkey",
+      "schema": "public",
+      "table": "solutions_solutionforumtarget",
+      "type": "p"
+    },
+    {
+      "definition": "PRIMARY KEY (id)",
+      "name": "solutions_solutionhumanassessment_pkey",
+      "schema": "public",
+      "table": "solutions_solutionhumanassessment",
+      "type": "p"
+    },
+    {
+      "definition": "PRIMARY KEY (id)",
+      "name": "solutions_solutionreviewrequest_pkey",
+      "schema": "public",
+      "table": "solutions_solutionreviewrequest",
+      "type": "p"
+    },
+    {
+      "definition": "PRIMARY KEY (id)",
+      "name": "solutions_solutionupvote_pkey",
+      "schema": "public",
+      "table": "solutions_solutionupvote",
+      "type": "p"
+    },
+    {
+      "definition": "PRIMARY KEY (id)",
+      "name": "solutions_solutionverificationdecision_pkey",
+      "schema": "public",
+      "table": "solutions_solutionverificationdecision",
+      "type": "p"
+    },
+    {
+      "definition": "UNIQUE (solution_id, key)",
+      "name": "forum_target_solution_key",
+      "schema": "public",
+      "table": "solutions_solutionforumtarget",
+      "type": "u"
+    },
+    {
+      "definition": "UNIQUE (solution_id, user_id)",
+      "name": "forum_one_upvote_per_member",
+      "schema": "public",
+      "table": "solutions_solutionupvote",
+      "type": "u"
+    },
+    {
+      "definition": "UNIQUE (target_id)",
+      "name": "solutions_solutionreviewrequest_target_id_key",
+      "schema": "public",
+      "table": "solutions_solutionreviewrequest",
+      "type": "u"
+    },
+    {
+      "definition": "UNIQUE (target_id, reviewer_identity, sequence)",
+      "name": "forum_assessment_sequence",
+      "schema": "public",
+      "table": "solutions_solutionhumanassessment",
+      "type": "u"
+    }
+  ],
+  "extensions": [],
+  "indexes": [
+    {
+      "definition": "CREATE INDEX forum_comment_thread ON public.solutions_solutioncomment USING btree (solution_id, parent_id, created_at)",
+      "name": "forum_comment_thread",
+      "schema": "public",
+      "table": "solutions_solutioncomment"
+    },
+    {
+      "definition": "CREATE INDEX solutions_solutioncomment_author_id_7cf0ca79 ON public.solutions_solutioncomment USING btree (author_id)",
+      "name": "solutions_solutioncomment_author_id_7cf0ca79",
+      "schema": "public",
+      "table": "solutions_solutioncomment"
+    },
+    {
+      "definition": "CREATE INDEX solutions_solutioncomment_created_revision_id_b1c205f0 ON public.solutions_solutioncomment USING btree (created_revision_id)",
+      "name": "solutions_solutioncomment_created_revision_id_b1c205f0",
+      "schema": "public",
+      "table": "solutions_solutioncomment"
+    },
+    {
+      "definition": "CREATE INDEX solutions_solutioncomment_parent_id_9e640802 ON public.solutions_solutioncomment USING btree (parent_id)",
+      "name": "solutions_solutioncomment_parent_id_9e640802",
+      "schema": "public",
+      "table": "solutions_solutioncomment"
+    },
+    {
+      "definition": "CREATE INDEX solutions_solutioncomment_solution_id_da73453e ON public.solutions_solutioncomment USING btree (solution_id)",
+      "name": "solutions_solutioncomment_solution_id_da73453e",
+      "schema": "public",
+      "table": "solutions_solutioncomment"
+    },
+    {
+      "definition": "CREATE INDEX solutions_solutioncommentevent_actor_id_a0d27837 ON public.solutions_solutioncommentevent USING btree (actor_id)",
+      "name": "solutions_solutioncommentevent_actor_id_a0d27837",
+      "schema": "public",
+      "table": "solutions_solutioncommentevent"
+    },
+    {
+      "definition": "CREATE INDEX solutions_solutioncommentevent_comment_id_1fe3dfdd ON public.solutions_solutioncommentevent USING btree (comment_id)",
+      "name": "solutions_solutioncommentevent_comment_id_1fe3dfdd",
+      "schema": "public",
+      "table": "solutions_solutioncommentevent"
+    },
+    {
+      "definition": "CREATE INDEX solutions_solutionforumreport_comment_id_013cb730 ON public.solutions_solutionforumreport USING btree (comment_id)",
+      "name": "solutions_solutionforumreport_comment_id_013cb730",
+      "schema": "public",
+      "table": "solutions_solutionforumreport"
+    },
+    {
+      "definition": "CREATE INDEX solutions_solutionforumreport_reporter_id_6a08d416 ON public.solutions_solutionforumreport USING btree (reporter_id)",
+      "name": "solutions_solutionforumreport_reporter_id_6a08d416",
+      "schema": "public",
+      "table": "solutions_solutionforumreport"
+    },
+    {
+      "definition": "CREATE INDEX solutions_solutionforumreport_resolved_by_id_76794728 ON public.solutions_solutionforumreport USING btree (resolved_by_id)",
+      "name": "solutions_solutionforumreport_resolved_by_id_76794728",
+      "schema": "public",
+      "table": "solutions_solutionforumreport"
+    },
+    {
+      "definition": "CREATE INDEX solutions_solutionforumtarget_revision_id_c3a22cd0 ON public.solutions_solutionforumtarget USING btree (revision_id)",
+      "name": "solutions_solutionforumtarget_revision_id_c3a22cd0",
+      "schema": "public",
+      "table": "solutions_solutionforumtarget"
+    },
+    {
+      "definition": "CREATE INDEX solutions_solutionforumtarget_solution_id_b8e17e68 ON public.solutions_solutionforumtarget USING btree (solution_id)",
+      "name": "solutions_solutionforumtarget_solution_id_b8e17e68",
+      "schema": "public",
+      "table": "solutions_solutionforumtarget"
+    },
+    {
+      "definition": "CREATE INDEX solutions_solutionhumanassessment_reviewer_id_c4f70808 ON public.solutions_solutionhumanassessment USING btree (reviewer_id)",
+      "name": "solutions_solutionhumanassessment_reviewer_id_c4f70808",
+      "schema": "public",
+      "table": "solutions_solutionhumanassessment"
+    },
+    {
+      "definition": "CREATE INDEX solutions_solutionhumanassessment_target_id_e69defba ON public.solutions_solutionhumanassessment USING btree (target_id)",
+      "name": "solutions_solutionhumanassessment_target_id_e69defba",
+      "schema": "public",
+      "table": "solutions_solutionhumanassessment"
+    },
+    {
+      "definition": "CREATE INDEX solutions_solutionreviewrequest_requested_by_id_749f37c7 ON public.solutions_solutionreviewrequest USING btree (requested_by_id)",
+      "name": "solutions_solutionreviewrequest_requested_by_id_749f37c7",
+      "schema": "public",
+      "table": "solutions_solutionreviewrequest"
+    },
+    {
+      "definition": "CREATE INDEX solutions_solutionupvote_solution_id_7e5f7592 ON public.solutions_solutionupvote USING btree (solution_id)",
+      "name": "solutions_solutionupvote_solution_id_7e5f7592",
+      "schema": "public",
+      "table": "solutions_solutionupvote"
+    },
+    {
+      "definition": "CREATE INDEX solutions_solutionupvote_user_id_ffff8039 ON public.solutions_solutionupvote USING btree (user_id)",
+      "name": "solutions_solutionupvote_user_id_ffff8039",
+      "schema": "public",
+      "table": "solutions_solutionupvote"
+    },
+    {
+      "definition": "CREATE INDEX solutions_solutionverificationdecision_admin_id_593e2ae8 ON public.solutions_solutionverificationdecision USING btree (admin_id)",
+      "name": "solutions_solutionverificationdecision_admin_id_593e2ae8",
+      "schema": "public",
+      "table": "solutions_solutionverificationdecision"
+    },
+    {
+      "definition": "CREATE INDEX solutions_solutionverificationdecision_target_id_44324ef7 ON public.solutions_solutionverificationdecision USING btree (target_id)",
+      "name": "solutions_solutionverificationdecision_target_id_44324ef7",
+      "schema": "public",
+      "table": "solutions_solutionverificationdecision"
+    },
+    {
+      "definition": "CREATE UNIQUE INDEX forum_assessment_sequence ON public.solutions_solutionhumanassessment USING btree (target_id, reviewer_identity, sequence)",
+      "name": "forum_assessment_sequence",
+      "schema": "public",
+      "table": "solutions_solutionhumanassessment"
+    },
+    {
+      "definition": "CREATE UNIQUE INDEX forum_one_open_report ON public.solutions_solutionforumreport USING btree (comment_id, reporter_id) WHERE ((status)::text = 'open'::text)",
+      "name": "forum_one_open_report",
+      "schema": "public",
+      "table": "solutions_solutionforumreport"
+    },
+    {
+      "definition": "CREATE UNIQUE INDEX forum_one_upvote_per_member ON public.solutions_solutionupvote USING btree (solution_id, user_id)",
+      "name": "forum_one_upvote_per_member",
+      "schema": "public",
+      "table": "solutions_solutionupvote"
+    },
+    {
+      "definition": "CREATE UNIQUE INDEX forum_target_solution_key ON public.solutions_solutionforumtarget USING btree (solution_id, key)",
+      "name": "forum_target_solution_key",
+      "schema": "public",
+      "table": "solutions_solutionforumtarget"
+    },
+    {
+      "definition": "CREATE UNIQUE INDEX solutions_solutioncomment_pkey ON public.solutions_solutioncomment USING btree (id)",
+      "name": "solutions_solutioncomment_pkey",
+      "schema": "public",
+      "table": "solutions_solutioncomment"
+    },
+    {
+      "definition": "CREATE UNIQUE INDEX solutions_solutioncommentevent_pkey ON public.solutions_solutioncommentevent USING btree (id)",
+      "name": "solutions_solutioncommentevent_pkey",
+      "schema": "public",
+      "table": "solutions_solutioncommentevent"
+    },
+    {
+      "definition": "CREATE UNIQUE INDEX solutions_solutionforumreport_pkey ON public.solutions_solutionforumreport USING btree (id)",
+      "name": "solutions_solutionforumreport_pkey",
+      "schema": "public",
+      "table": "solutions_solutionforumreport"
+    },
+    {
+      "definition": "CREATE UNIQUE INDEX solutions_solutionforumtarget_pkey ON public.solutions_solutionforumtarget USING btree (id)",
+      "name": "solutions_solutionforumtarget_pkey",
+      "schema": "public",
+      "table": "solutions_solutionforumtarget"
+    },
+    {
+      "definition": "CREATE UNIQUE INDEX solutions_solutionhumanassessment_pkey ON public.solutions_solutionhumanassessment USING btree (id)",
+      "name": "solutions_solutionhumanassessment_pkey",
+      "schema": "public",
+      "table": "solutions_solutionhumanassessment"
+    },
+    {
+      "definition": "CREATE UNIQUE INDEX solutions_solutionreviewrequest_pkey ON public.solutions_solutionreviewrequest USING btree (id)",
+      "name": "solutions_solutionreviewrequest_pkey",
+      "schema": "public",
+      "table": "solutions_solutionreviewrequest"
+    },
+    {
+      "definition": "CREATE UNIQUE INDEX solutions_solutionreviewrequest_target_id_key ON public.solutions_solutionreviewrequest USING btree (target_id)",
+      "name": "solutions_solutionreviewrequest_target_id_key",
+      "schema": "public",
+      "table": "solutions_solutionreviewrequest"
+    },
+    {
+      "definition": "CREATE UNIQUE INDEX solutions_solutionupvote_pkey ON public.solutions_solutionupvote USING btree (id)",
+      "name": "solutions_solutionupvote_pkey",
+      "schema": "public",
+      "table": "solutions_solutionupvote"
+    },
+    {
+      "definition": "CREATE UNIQUE INDEX solutions_solutionverificationdecision_pkey ON public.solutions_solutionverificationdecision USING btree (id)",
+      "name": "solutions_solutionverificationdecision_pkey",
+      "schema": "public",
+      "table": "solutions_solutionverificationdecision"
+    }
+  ],
+  "tables": [
+    {
+      "kind": "r",
+      "schema": "public",
+      "table": "solutions_solutioncomment"
+    },
+    {
+      "kind": "r",
+      "schema": "public",
+      "table": "solutions_solutioncommentevent"
+    },
+    {
+      "kind": "r",
+      "schema": "public",
+      "table": "solutions_solutionforumreport"
+    },
+    {
+      "kind": "r",
+      "schema": "public",
+      "table": "solutions_solutionforumtarget"
+    },
+    {
+      "kind": "r",
+      "schema": "public",
+      "table": "solutions_solutionhumanassessment"
+    },
+    {
+      "kind": "r",
+      "schema": "public",
+      "table": "solutions_solutionreviewrequest"
+    },
+    {
+      "kind": "r",
+      "schema": "public",
+      "table": "solutions_solutionupvote"
+    },
+    {
+      "kind": "r",
+      "schema": "public",
+      "table": "solutions_solutionverificationdecision"
+    }
+  ]
+}

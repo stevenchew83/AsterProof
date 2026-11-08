@@ -147,7 +147,7 @@
       {% include 'partials/page-header-stat.html' with label='Visible problems' value=matching_problem_total stat_icon='ti-stack-2' only %}
       {% include 'partials/page-header-stat.html' with label='Archive years' value=contest_problem_stats.year_range_label stat_icon='ti-calendar' text_value=True only %}
       {% include 'partials/page-header-stat.html' with label='Average MOHS' value=contest_problem_stats.avg_mohs|floatformat:1 stat_icon='ti-chart-dots-3' accent=True only %}
-      {% include 'partials/page-header-stat.html' with label='Solved' value=completion_summary.solved_visible_total stat_icon='ti-circle-check' only %}
+      {% include 'partials/page-header-stat.html' with label='My solved' value=completion_summary.solved_visible_total stat_icon='ti-circle-check' only %}
     </dl>
   </header>
 
@@ -253,7 +253,7 @@
             <th><button type="button" class="js-sort-header" data-sort-direction="" aria-label="Sort by tags">Tags <i class="ti ti-arrows-sort sort-icon"></i></button></th>
             <th><button type="button" class="js-sort-header" data-sort-direction="" aria-label="Sort by session">Session <i class="ti ti-arrows-sort sort-icon"></i></button></th>
             <th><button type="button" class="js-sort-header" data-sort-direction="" aria-label="Sort by published solutions">Solutions <i class="ti ti-arrows-sort sort-icon"></i></button></th>
-            <th><button type="button" class="js-sort-header" data-sort-direction="" aria-label="Sort by progress">Progress <i class="ti ti-arrows-sort sort-icon"></i></button></th>
+            <th><button type="button" class="js-sort-header" data-sort-direction="" aria-label="Sort by my progress">My progress <i class="ti ti-arrows-sort sort-icon"></i></button></th>
           </tr>
         </thead>
         <tbody>
@@ -270,20 +270,18 @@
                 </button>
               </div>
             </td>
-            <td data-sort-value="{% if problem.is_linked %}{{ problem.topic }}{% else %}Unlinked{% endif %}">
-              {% if problem.is_linked and problem.topic %}
+            <td data-sort-value="{{ problem.topic|default:'Uncategorized' }}">
+              {% if problem.topic %}
               <span class="badge bg-light text-dark border">{{ problem.topic }}</span>
               {% else %}
-              <span class="text-muted fs-xs">Unlinked</span>
+              <span class="text-muted fs-xs">Uncategorized</span>
               {% endif %}
             </td>
-            <td class="text-nowrap" data-sort-value="{% if problem.mohs is not None %}{{ problem.mohs }}{% else %}{% if problem.is_linked %}—{% else %}Unlinked{% endif %}{% endif %}">
+            <td class="text-nowrap" data-sort-value="{% if problem.mohs is not None %}{{ problem.mohs }}{% else %}—{% endif %}">
               {% if problem.mohs is not None %}
               {{ problem.mohs }}
-              {% elif problem.is_linked %}
-              <span class="text-muted fs-xs">—</span>
               {% else %}
-              <span class="text-muted fs-xs">Unlinked</span>
+              <span class="text-muted fs-xs">—</span>
               {% endif %}
             </td>
             <td data-sort-value="{{ problem.concept_areas|join:', ' }}">
@@ -385,7 +383,6 @@
                     <div class="d-flex flex-wrap align-items-center gap-2 text-muted fs-xs">
                       {% if problem.statement_day_label %}<span>{{ problem.statement_day_label }}</span>{% endif %}
                       {% if problem.imo_slot_guess_value %}<span class="badge bg-primary-subtle text-primary">IMO {{ problem.imo_slot_guess_value }}</span>{% endif %}
-                      {% if not problem.is_linked %}<span>Unlinked</span>{% endif %}
                       <span>Updated {{ problem.statement_updated_at_label }}</span>
                     </div>
                   </div>

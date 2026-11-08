@@ -17,7 +17,9 @@ from typing import Any
 from scripts.deployment import catalogue_schema
 from scripts.deployment import community_proof_schema
 from scripts.deployment import community_schema
+from scripts.deployment import learning_schema
 from scripts.deployment import maintenance_schema
+from scripts.deployment import ranking_profile_schema
 from scripts.deployment import statement_authoring_schema
 from scripts.deployment.additive_schema import validate_disclosure
 from scripts.deployment.concept_schema import ConceptSchemaError
@@ -337,11 +339,34 @@ def build_migration_disclosure(
         if entry is None:
             raise DispatchValidationError(f"migration is not classified: {migration_id}")
         migrations.append({"migration": migration_id, "classification": str(entry["classification"])})
+    from scripts.deployment import learning_bridge
+
+    learning_plan = sorted(
+        [{"migration": app + "." + name, "classification": "backward-compatible-schema"}
+         for app, name in learning_schema.MIGRATIONS],
+        key=lambda row: row["migration"],
+    )
+    bridge = learning_bridge.is_bridge_source(repository)
+    active_bridge = _active_learning_bridge(repository, active_sha)
+    if bridge:
+        permitted_source_plans = [[], learning_plan] if active_bridge else [learning_plan]
+        if declared_class != "none" or migrations not in permitted_source_plans:
+            raise DispatchValidationError("The learning reader bridge defers only its exact four migrations")
+        learning_bridge.validate_bridge_source(repository)
+    elif active_bridge and declared_class == "backward-compatible-schema":
+        if migrations:
+            raise DispatchValidationError("The learning bridge successor cannot introduce another migration")
+        learning_schema.validate_candidate(repository)
+        # These files were delivered, but deliberately not applied, by the real
+        # bridge release. The server still verifies the exact pending DB plan.
+        migrations = learning_plan
     derived = "none"
     if any(item["classification"] == "data-or-non-compatible" for item in migrations):
         derived = "data-or-non-compatible"
     elif migrations:
         derived = "backward-compatible-schema"
+    if bridge:
+        derived = "none"
     if declared_class == "data-or-non-compatible":
         proof_plan = [
             {"migration": "pages." + name, "classification": classification}
@@ -356,6 +381,7 @@ def build_migration_disclosure(
             )
         ]
         authoring_plan = [{"migration": statement_authoring_schema.MIGRATION, "classification": declared_class}]
+        profile_plan = [{"migration": ranking_profile_schema.MIGRATION, "classification": declared_class}]
         expected = [
             {
                 "migration": "pages." + name,
@@ -363,10 +389,12 @@ def build_migration_disclosure(
             }
             for i, name in enumerate(catalogue_schema.MIGRATIONS)
         ]
-        if migrations not in (expected, authoring_plan, community_plan, proof_plan):
+        if migrations not in (expected, authoring_plan, community_plan, proof_plan, profile_plan):
             raise DispatchValidationError("Data-class deployment requires an exact frozen maintenance plan")
         try:
-            if migrations == proof_plan:
+            if migrations == profile_plan:
+                ranking_profile_schema.validate_candidate(repository)
+            elif migrations == proof_plan:
                 community_proof_schema.validate_candidate(repository)
             elif migrations == community_plan:
                 community_schema.validate_candidate(repository)
@@ -378,13 +406,31 @@ def build_migration_disclosure(
             raise DispatchValidationError("Catalogue migration bytes differ from the frozen scope") from exc
     if derived != declared_class:
         raise DispatchValidationError("declared migration class does not match the reviewed registry")
-    return {
+    result = {
         "format_version": 1,
         "active_sha": active_sha,
         "target_sha": target_sha,
         "classification": derived,
         "migrations": migrations,
     }
+    if bridge:
+        result["learning_reader_preparation"] = {"deferred_migrations": learning_plan, "database_changes": False}
+    elif active_bridge and declared_class == "backward-compatible-schema":
+        result["learning_reader_successor"] = True
+    return result
+
+
+def _active_learning_bridge(repository: Path, sha: str) -> bool:
+    """Identify the reviewed source; runtime eligibility is separately verified."""
+    import hashlib
+
+    from scripts.deployment.learning_bridge import PRODUCTION_SHA256
+
+    result = subprocess.run(
+        ["git", "show", f"{sha}:config/settings/production.py"],
+        cwd=repository, capture_output=True, check=False,
+    )
+    return result.returncode == 0 and hashlib.sha256(result.stdout).hexdigest() == PRODUCTION_SHA256
 
 
 def _json_file(path: Path) -> dict[str, Any]:

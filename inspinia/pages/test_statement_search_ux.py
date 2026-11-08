@@ -29,7 +29,7 @@ def test_statement_library_search_keeps_active_filters_visible(client, filters):
     html = response.content.decode()
     assert response.context["statement_filtered_total"] == 1
     assert html.count('name="q"') == 1
-    assert 'role="search" aria-label="Statement library"' in html
+    assert 'role="search" aria-label="Problem library"' in html
     assert "searching: false" in html
     assert "Within loaded rows" not in html
     if filters:

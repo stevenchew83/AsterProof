@@ -107,11 +107,15 @@ def test_corrupt_or_exposed_recovery_material_is_rejected(receipt, which):
 def test_source_scope_and_isolation_commands_are_bounded():
     good = {"server_version": 170009, "encoding": "UTF8", "locale": "en_US.UTF-8", "provider": "c",
             "extensions": {"plpgsql": "1.0"}, "database_bytes": 478181043}
+    reviewed_source_bound = 2 * 1024**3
+    assert reviewed_source_bound == recovery.MAX_SOURCE_BYTES
     recovery.validate_source_metadata(good)
+    recovery.validate_source_metadata({**good, "database_bytes": 1024**3 + 1})
+    recovery.validate_source_metadata({**good, "database_bytes": recovery.MAX_SOURCE_BYTES})
     with pytest.raises(recovery.RecoveryError, match="scope"):
         recovery.validate_source_metadata({**good, "extensions": {"unreviewed": "1"}})
     with pytest.raises(recovery.RecoveryError, match="scope"):
-        recovery.validate_source_metadata({**good, "database_bytes": 2 * 1024**3})
+        recovery.validate_source_metadata({**good, "database_bytes": recovery.MAX_SOURCE_BYTES + 1})
     contract = SimpleNamespace(
         releases_dir=Path("/safe/releases"), app_user="asterproof", environment_file="/safe/env",
     )
@@ -166,6 +170,68 @@ def test_only_exact_known_pg17_index_cast_reparsing_is_equivalent(original, rest
     ):
         assert recovery.logical_backup_schema(snapshot(change)) != recovery.logical_backup_schema(snapshot(restored))
     assert snapshot(original)["indexes"][0]["definition"] == original
+
+
+@pytest.fixture(params=[
+    (
+        "solutions_evaluationpackageapproval", "evaluation_package_valid_decision",
+        "CHECK (decision::text = ANY (ARRAY['approved'::character varying, 'rejected'::character varying, "
+        "'revoked'::character varying]::text[]))",
+        "CHECK (decision::text = ANY (ARRAY['approved'::character varying::text, "
+        "'rejected'::character varying::text, 'revoked'::character varying::text]))",
+    ),
+    (
+        "solutions_syntheticreview", "synthetic_review_valid_mode",
+        "CHECK (mode::text = ANY (ARRAY['coach'::character varying, 'provisional'::character varying, "
+        "'examiner'::character varying]::text[]))",
+        "CHECK (mode::text = ANY (ARRAY['coach'::character varying::text, "
+        "'provisional'::character varying::text, 'examiner'::character varying::text]))",
+    ),
+])
+def assessment_check(request):
+    table, name, original, restored = request.param
+    return {"schema": "public", "table": table, "name": name, "type": "c", "definition": original}, restored
+
+
+def test_exact_observed_assessment_checks_survive_pg17_restore(assessment_check):
+    original, restored = assessment_check
+    snapshot = {"columns": [], "constraints": [original]}
+    normalized = recovery.logical_backup_schema(snapshot)
+    assert normalized == {"columns": [], "constraints": [{**original, "definition": restored}]}
+    assert recovery.logical_backup_schema(normalized) == normalized
+    assert snapshot["constraints"][0] == original
+    assert snapshot["constraints"][0]["definition"] != restored
+
+
+@pytest.mark.parametrize("field", ["schema", "table", "name", "type"])
+def test_assessment_check_equivalence_requires_exact_object_identity(assessment_check, field):
+    original, _ = assessment_check
+    changed = {**original, field: "different"}
+    snapshot = {"columns": [], "constraints": [changed]}
+    assert recovery.logical_backup_schema(snapshot) == snapshot
+
+
+@pytest.mark.parametrize("change", ["value", "operator", "cast", "column", "order", "extra_condition"])
+def test_assessment_check_equivalence_rejects_unreviewed_definitions(assessment_check, change):
+    original, restored = assessment_check
+    definition = original["definition"]
+    first = "approved" if original["table"].endswith("approval") else "coach"
+    second = "rejected" if first == "approved" else "provisional"
+    variants = {
+        "value": definition.replace(first, "unreviewed"),
+        "operator": definition.replace("= ANY", "<> ALL"),
+        "cast": definition.replace("::text[]", "::varchar[]"),
+        "column": definition.replace("::text =", "_changed::text ="),
+        "order": definition.replace(first, "SWAP").replace(second, first).replace("SWAP", second),
+        "extra_condition": definition[:-1] + " OR true)",
+    }
+    changed = {**original, "definition": variants[change]}
+    snapshot = {"columns": [], "constraints": [changed]}
+    assert changed["definition"] != definition
+    assert recovery.logical_backup_schema(snapshot) == snapshot
+    assert recovery.logical_backup_schema(snapshot) != {
+        "columns": [], "constraints": [{**original, "definition": restored}],
+    }
 
 
 @pytest.mark.parametrize("already_exists", [False, True])

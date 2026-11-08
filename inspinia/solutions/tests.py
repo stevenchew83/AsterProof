@@ -61,7 +61,7 @@ EXPECTED_DEFAULT_BLOCK_TYPES = {
     "remark",
 }
 EXPECTED_VISIBLE_SOLUTION_TOTAL = 2
-EXPECTED_STATEMENT_BACKED_PROBLEM_TOTAL = 3
+EXPECTED_STATEMENT_BACKED_PROBLEM_TOTAL = 4
 EXPECTED_DIFFICULTY_RATING_COUNT = 2
 EXPECTED_USER_DIFFICULTY_RATING = 37
 OTHER_USER_DIFFICULTY_RATING = 17
@@ -254,7 +254,46 @@ def test_my_solution_list_counts_blocks_without_reading_proof_bodies(client):
     assert "A large canonical proof." not in response.content.decode()
 
 
-def test_problem_solution_create_view_lists_only_statement_backed_problems(client):
+def test_my_solution_charts_count_the_authors_solutions_in_local_creation_weeks(client, monkeypatch):
+    monkeypatch.setattr(timezone, "now", lambda: datetime.fromisoformat("2026-11-08T17:00:00+00:00"))
+    user = UserFactory()
+    client.force_login(user)
+    entries = [
+        ("2026-11-08T16:00:00+00:00", ProblemSolution.Status.PUBLISHED, user),
+        ("2026-11-08T15:59:00+00:00", ProblemSolution.Status.DRAFT, user),
+        ("2026-09-20T16:00:00+00:00", ProblemSolution.Status.ARCHIVED, user),
+        ("2026-09-20T15:59:00+00:00", ProblemSolution.Status.DRAFT, user),
+        ("2026-11-08T16:30:00+00:00", ProblemSolution.Status.SUBMITTED, UserFactory()),
+    ]
+    for index, (created, status, author) in enumerate(entries):
+        solution = _solution_with_blocks(problem=_problem(year=2026 - index), author=author, status=status)
+        ProblemSolution.objects.filter(pk=solution.pk).update(created_at=datetime.fromisoformat(created))
+
+    with timezone.override("Asia/Kuala_Lumpur"):
+        response = client.get(reverse("solutions:my_solution_list"))
+
+    assert response.status_code == HTTPStatus.OK
+    html = response.content.decode()
+    expected_weeks = (1, 0, 0, 0, 0, 0, 1, 1)
+    expected_rows = (("published", "7"), ("draft", "6"), ("archived", "0"), ("draft", ""))
+    assert html.count("data-solutions-week=") == len(expected_weeks)
+    assert html.count("data-solution-row ") == len(expected_rows)
+    for index, count in enumerate(expected_weeks):
+        start = date(2026, 9, 21) + timedelta(weeks=index)
+        label = f"{start:%b} {start.day}, {start.year}"
+        label_count = "1 new solution" if count == 1 else "0 new solutions"
+        expected = (
+            f'data-solutions-week="{index}" data-week-label="{label}" aria-label="Week of {label}, {label_count}"'
+        )
+        assert expected in html
+    for status, week in expected_rows:
+        assert f'data-solution-status="{status}" data-solution-week="{week}"' in html
+    for status, count in (("archived", 1), ("draft", 2), ("published", 1)):
+        assert f'class="my-solutions-status-{status}" style="--solution-count: {count}"' in html
+    assert 'data-solutions-status="submitted"' not in html
+
+
+def test_problem_solution_create_view_lists_the_shared_library(client):
     user = UserFactory()
     other_user = UserFactory()
     client.force_login(user)
@@ -307,13 +346,14 @@ def test_problem_solution_create_view_lists_only_statement_backed_problems(clien
     assert response.context["statement_problem_list_is_capped"] is False
     assert response.context["create_stats"]["statement_problem_total"] == EXPECTED_STATEMENT_BACKED_PROBLEM_TOTAL
     assert response.context["create_stats"]["started_total"] == 1
-    assert response.context["create_stats"]["ready_total"] == 2  # noqa: PLR2004
+    assert response.context["create_stats"]["ready_total"] == 3  # noqa: PLR2004
     assert [row["problem_label"] for row in response.context["statement_problem_rows"]] == [
         "IMO 2026 P1",
         "USAMO 2025 P2",
         "Unlinked contest 2025 P3",
+        "BMO 2024 P3",
     ]
-    first_row, second_row, unlinked_row = response.context["statement_problem_rows"]
+    first_row, second_row, unlinked_row, missing_statement_row = response.context["statement_problem_rows"]
     assert first_row["editor_button_label"] == "Continue solution"
     assert first_row["solution_status_label"] == "Draft"
     assert second_row["editor_button_label"] == "Start solution"
@@ -325,11 +365,13 @@ def test_problem_solution_create_view_lists_only_statement_backed_problems(clien
     assert second_editor_url in response_html
     assert unlinked_row["solution_start_url"] in response_html
     assert unlinked_row["editor_url"] == ""
+    assert missing_statement_row["statement_label"] == "Statement missing"
+    assert missing_statement_row["editor_button_label"] == "Start solution"
     assert 'method="post"' in response_html
     assert "Unlinked contest" in response_html
 
 
-def test_problem_solution_create_view_shows_empty_state_without_active_statements(client):
+def test_problem_solution_create_view_shows_empty_state_without_active_problems(client):
     user = UserFactory()
     client.force_login(user)
 
@@ -338,7 +380,7 @@ def test_problem_solution_create_view_shows_empty_state_without_active_statement
     assert response.status_code == HTTPStatus.OK
     assert response.context["create_stats"]["statement_problem_total"] == 0
     assert response.context["statement_problem_list_is_capped"] is False
-    assert "No active problem statements are available yet." in response.content.decode("utf-8")
+    assert "No active problems are available yet." in response.content.decode("utf-8")
 
 
 def test_problem_solution_create_view_caps_statement_rows_at_100(client):
@@ -648,13 +690,13 @@ def test_problem_solution_list_hides_solution_bodies_until_selected_link_opened(
     assert "Published proof" in response_html
     assert "My private draft block." not in response_html
     assert "A published proof block." not in response_html
-    assert f"?solution={my_solution.id}#solution-{my_solution.id}" in response_html
-    assert f"?solution={published_solution.id}#solution-{published_solution.id}" in response_html
+    assert reverse("solutions:solution_detail", args=[my_solution.pk]) in response_html
+    assert reverse("solutions:solution_detail", args=[published_solution.pk]) in response_html
     assert 'target="_blank"' in response_html
 
     selected_response = client.get(
         reverse("solutions:problem_solution_list", args=[problem.problem_uuid]),
-        {"solution": str(published_solution.id)},
+        {"solution": str(published_solution.id)}, follow=True,
     )
 
     assert selected_response.status_code == HTTPStatus.OK
@@ -687,7 +729,7 @@ def test_problem_solution_list_inline_draft_post_creates_solution_and_returns_to
 
     solution = ProblemSolution.objects.get(problem=problem, author=user)
     assert response.status_code == HTTPStatus.FOUND
-    assert response.url == f"{url}?solution={solution.id}#solution-{solution.id}"
+    assert response.url == reverse("solutions:solution_detail", args=[solution.pk])
     assert solution.title == "First draft from page"
     assert solution.summary == "Started without leaving the problem page."
     assert solution.status == ProblemSolution.Status.DRAFT
@@ -752,25 +794,22 @@ def test_problem_solution_list_highlights_selected_solution_from_query_string_fo
         {"solution": str(selected_solution.id)},
     )
 
-    assert response.status_code == HTTPStatus.OK
-    assert response.context["selected_solution_id"] == selected_solution.id
-    response_html = response.content.decode("utf-8")
-    assert f'id="solution-{selected_solution.id}"' in response_html
-    assert "solution-card-selected" in response_html
+    assert response.status_code == HTTPStatus.FOUND
+    assert response.url == reverse("solutions:solution_detail", args=[selected_solution.pk])
 
     own_response = client.get(
         reverse("solutions:problem_solution_list", args=[problem.problem_uuid]),
         {"solution": str(own_solution.id)},
     )
 
-    assert own_response.status_code == HTTPStatus.OK
-    own_html = own_response.content.decode("utf-8")
-    assert own_html.count(f'id="solution-{own_solution.id}"') == 1
+    assert own_response.status_code == HTTPStatus.FOUND
+    own_html = client.get(own_response.url).content.decode("utf-8")
+    assert reverse("solutions:solution_detail", args=[own_solution.pk]) == own_response.url
     assert own_html.count("Another visible solution.") == 1
 
 
 def test_problem_solution_edit_publishes_structured_document_in_authored_order(client):
-    user = UserFactory()
+    user = UserFactory(solution_guide_status=User.SolutionGuideStatus.NOT_ENROLLED)
     client.force_login(user)
     problem = _problem()
     source = (

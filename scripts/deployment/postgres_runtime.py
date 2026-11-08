@@ -336,6 +336,34 @@ def validate_installed_runtime(*, expected_source_sha: str) -> dict:
     return verify_installed_runtime(source_sha=expected_source_sha)
 
 
+def rebind_identical_runtime(archive: Path, *, expected_sha256: str, expected_source_sha: str,
+                             previous_source_sha: str) -> dict:
+    """Explicit administrator step: retain every runtime byte and rebind its provenance."""
+    if os.geteuid() != 0 or not SHA.fullmatch(previous_source_sha):
+        raise PostgresRuntimeError("Runtime rebinding requires root and the exact previous source")
+    descriptor = os.open(archive, os.O_RDONLY | getattr(os, "O_NOFOLLOW", 0))
+    with os.fdopen(descriptor, "rb") as handle:
+        info = os.fstat(handle.fileno())
+        if not stat.S_ISREG(info.st_mode) or info.st_uid != 0 or info.st_nlink != 1 or info.st_mode & 0o022:
+            raise PostgresRuntimeError("Recovery runtime archive is not stabilized under root control")
+        proposed = _validate(handle, expected_sha256=expected_sha256, expected_source_sha=expected_source_sha)
+    installed = verify_installed_runtime(source_sha=previous_source_sha)
+    if {**installed, "source_sha": expected_source_sha} != proposed:
+        raise PostgresRuntimeError("Runtime rebinding cannot change software, membership, modes or image")
+    metadata = INSTALL_ROOT / MANIFEST
+    staged = INSTALL_ROOT / ".runtime-manifest.next"
+    content = (json.dumps(proposed, sort_keys=True, separators=(",", ":")) + "\n").encode()
+    # Exclusive staging fails closed after an ambiguous earlier invocation.
+    descriptor = os.open(staged, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o444)
+    with os.fdopen(descriptor, "wb") as output:
+        output.write(content)
+        output.flush()
+        os.fsync(output.fileno())
+    staged.replace(metadata)
+    verify_installed_runtime(source_sha=expected_source_sha)
+    return {"state": "rebound_identical", "source_sha": expected_source_sha, "archive_sha256": expected_sha256}
+
+
 def validate_and_install_archive(archive: Path, *, expected_sha256: str, expected_source_sha: str) -> dict:
     if os.geteuid() != 0:
         raise PostgresRuntimeError("Recovery runtime installation requires the authorized host administrator")
@@ -453,11 +481,21 @@ def main() -> int:
     install.add_argument("--archive", type=Path, required=True)
     install.add_argument("--sha256", required=True)
     install.add_argument("--source-sha", required=True)
+    rebind = commands.add_parser("rebind-identical")
+    rebind.add_argument("--archive", type=Path, required=True)
+    rebind.add_argument("--sha256", required=True)
+    rebind.add_argument("--source-sha", required=True)
+    rebind.add_argument("--previous-source-sha", required=True)
     commands.add_parser("smoke")
     args = parser.parse_args()
     if args.command == "build":
         result = build_runtime(args.container, output=args.output, source_sha=args.source_sha)
         result = {k: result[k] for k in ("source_sha", "archive_sha256", "archive_size")}
+    elif args.command == "rebind-identical":
+        result = rebind_identical_runtime(
+            args.archive, expected_sha256=args.sha256, expected_source_sha=args.source_sha,
+            previous_source_sha=args.previous_source_sha,
+        )
     elif args.command == "install":
         result = validate_and_install_archive(
             args.archive, expected_sha256=args.sha256, expected_source_sha=args.source_sha,

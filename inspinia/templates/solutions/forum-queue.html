@@ -1,0 +1,117 @@
+{% extends 'layouts/vertical.html' %}
+
+{% block title %}
+  {% if is_admin_queue %}
+    Solution verification queue
+  {% else %}
+    Solution review queue
+  {% endif %}
+{% endblock title %}
+{% block page_content %}
+  <div class="container-fluid solution-forum">
+    <header class="page-title-head app-page-header">
+      {% if is_admin_queue %}
+        {% include 'partials/page-header-intro.html' with title='Solution verification' subtitle='Admin queue' page_icon='ti-shield-check' only %}
+      {% else %}
+        {% include 'partials/page-header-intro.html' with title='Solution reviews' subtitle='Trainer queue' page_icon='ti-user-check' only %}
+      {% endif %}
+      <div class="app-page-header-actions">
+        <a href="{% url 'solutions:my_solution_list' %}"
+           class="btn btn-outline-secondary btn-sm">My solutions</a>
+      </div>
+    </header>
+    <nav class="nav nav-pills gap-2 mb-3" aria-label="Queue filters">
+      {% for value,label in queue_choices %}
+        <a class="nav-link{% if queue_state == value %} active{% endif %}"
+           href="?state={{ value }}"
+           {% if queue_state == value %}aria-current="page"{% endif %}>{{ label }}</a>
+      {% endfor %}
+    </nav>
+    <section class="card">
+      {% if queue_state == 'reports' %}
+        <div class="card-header border-bottom">
+          <h2 class="h5 mb-0">
+            {% if report_status == 'resolved' %}
+              Resolved
+            {% else %}
+              Open
+            {% endif %}
+            comment reports
+          </h2>
+          <nav class="d-flex gap-3 fs-sm mt-2" aria-label="Report status">
+            <a href="?state=reports&amp;report_status=open">Open</a><a href="?state=reports&amp;report_status=resolved">Resolved</a>
+          </nav>
+        </div>
+        {% for report in report_page %}
+          <article class="card-body border-bottom">
+            <div class="d-flex align-items-start justify-content-between flex-wrap gap-2">
+              <h3 class="h6">
+                <a href="{% url 'solutions:solution_detail' report.comment.solution_id %}#comment-{{ report.comment_id }}">{{ report.comment.solution.problem.contest_year_problem|default:report.comment.solution.title }}</a>
+              </h3>
+              <span class="text-muted fs-xs">{{ report.created_at|date:'j M Y, H:i' }}</span>
+            </div>
+            <p class="fs-sm text-muted">Reported by {{ report.reporter.name|default:'Former member' }}</p>
+            <p>{{ report.reason }}</p>
+            <details>
+              <summary>Reported comment</summary>
+              <p class="forum-source mt-2">{{ report.comment.body }}</p>
+            </details>
+            {% if report.status == 'resolved' %}
+              <p class="mt-3 mb-0">
+                <strong>Resolution:</strong> {{ report.resolution }}
+              </p>
+              <p class="text-muted fs-xs">
+                Resolved by {{ report.resolved_by.name|default:'Former admin' }}
+                {% if report.resolved_at %}on {{ report.resolved_at|date:'j M Y, H:i' }}{% endif %}
+              </p>
+            {% else %}
+              <form method="post"
+                    action="{% url 'solutions:forum_action' report.comment.solution_id 'resolve_report' %}"
+                    class="mt-3">
+                {% csrf_token %}
+                <input type="hidden" name="report_id" value="{{ report.pk }}" />
+                <label for="resolution-{{ report.pk }}" class="form-label">Resolution</label>
+                <textarea id="resolution-{{ report.pk }}"
+                          name="resolution"
+                          class="form-control"
+                          rows="2"
+                          required></textarea>
+                <button class="btn btn-primary btn-sm mt-2" type="submit">Resolve report</button>
+              </form>
+            {% endif %}
+          </article>{% empty %}
+          {% if report_status == 'resolved' %}
+            <p class="card-body text-muted mb-0">No resolved reports.</p>
+          {% else %}
+            <p class="card-body text-muted mb-0">No open reports.</p>
+          {% endif %}
+        {% endfor %}
+        {% include 'solutions/forum-pagination.html' with page=report_page %}
+      {% else %}
+        <div class="card-header border-bottom">
+          <h2 class="h5 mb-0">Published member solutions</h2>
+        </div>
+        {% for row in queue_rows %}
+          <article class="card-body border-bottom forum-queue-row">
+            <div class="flex-grow-1">
+              <h3 class="h6 mb-1">
+                <a href="{% url 'solutions:solution_detail' row.solution.pk %}">{{ row.solution.problem.contest_year_problem|default:row.solution.title }}</a>
+              </h3>
+              <p class="text-muted fs-sm mb-2">
+                {{ row.solution.title|default:'Untitled solution' }} · {{ row.solution.author.name|default:'AsterProof member' }}
+              </p>
+              <div class="d-flex flex-wrap gap-2">
+                <span class="badge bg-secondary-subtle text-secondary">{{ row.summary.assessment_label }}</span><span class="badge {% if row.summary.verified %}text-bg-success{% else %}bg-secondary-subtle text-secondary{% endif %}">{{ row.summary.verification_label }}</span>
+              </div>
+            </div>
+            <a href="{% url 'solutions:solution_detail' row.solution.pk %}"
+               class="btn btn-outline-primary btn-sm">Open solution<i class="ti ti-arrow-right ms-1" aria-hidden="true"></i></a></article>{% empty %}
+              <div class="card-body">
+                <p class="text-muted mb-0">No solutions match this queue.</p>
+              </div>
+            {% endfor %}
+            {% include 'solutions/forum-pagination.html' with page=queue_page %}
+          {% endif %}
+        </section>
+      </div>
+    {% endblock page_content %}

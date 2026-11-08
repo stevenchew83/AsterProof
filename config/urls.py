@@ -6,8 +6,10 @@ from django.urls import path
 from django.views import defaults as default_views
 
 from config.health import healthz
+from inspinia.solutions.image_access import raw_image_urlpatterns
 
 urlpatterns = [
+    *raw_image_urlpatterns(),
     path("healthz/", healthz, name="healthz"),
     path("admin/", include("inspinia.training.admin_urls", namespace="training_admin")),
     # Django Admin, use {% url 'admin:index' %}
@@ -15,6 +17,7 @@ urlpatterns = [
     # User management
     path("users/", include("inspinia.users.urls", namespace="users")),
     path("accounts/", include("allauth.urls")),
+    path("learning/", include("inspinia.learning.urls", namespace="learning")),
     path("solutions/", include("inspinia.solutions.urls", namespace="solutions")),
     path("problem-lists/", include("inspinia.problemsets.urls", namespace="problemsets")),
     path("rankings/", include("inspinia.rankings.urls", namespace="rankings")),

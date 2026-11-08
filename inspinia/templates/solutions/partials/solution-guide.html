@@ -1,17 +1,9 @@
 {% if solution_guide.visible %}
 <section class="card mt-3" id="solution-guide" aria-labelledby="solution-guide-heading">
   <div class="card-body">
-    <div class="d-flex flex-wrap align-items-start justify-content-between gap-3">
-      <div>
-        <p class="text-muted fs-xs mb-1">Getting started{% if writer_draft %} · Draft ready to continue{% elif solution_guide.saved %} · Complete{% else %} · {{ solution_guide.completed_steps }} of 2 complete{% endif %}</p>
-        <h2 class="h4 mb-2" id="solution-guide-heading">{% if writer_draft %}Continue your writing{% elif solution_guide.shared %}Your public link is ready{% elif solution_guide.saved %}Your solution is saved{% elif solution_guide.chosen %}Continue your solution{% else %}Save your first solution{% endif %}</h2>
-        <p class="text-muted mb-0">{% if writer_draft %}Choose a problem to bring your Solution Writer draft into your workspace.{% elif solution_guide.shared %}Copy your link to share the saved version. You can update that copy when you choose.{% elif solution_guide.saved %}Keep working on your proof, or share a saved copy when you are ready.{% elif solution_guide.chosen %}Write or paste your proof, check the preview, and save your changes.{% else %}Choose a problem you have already worked on and save your proof.{% endif %}</p>
-      </div>
-      <form method="post" action="{% url 'solutions:solution_guide_preference' %}">
-        {% csrf_token %}
-        <button type="submit" name="action" value="dismiss" class="btn btn-outline-secondary btn-sm">{% if solution_guide.saved and not writer_draft %}Hide guide{% else %}Skip for now{% endif %}</button>
-      </form>
-    </div>
+    <p class="text-muted fs-xs mb-1">Getting started{% if writer_draft %} · Draft ready to continue{% elif solution_guide.saved %} · Complete{% else %} · {{ solution_guide.completed_steps }} of 2 complete{% endif %}</p>
+    <h2 class="h4 mb-2" id="solution-guide-heading">{% if writer_draft %}Continue your writing{% elif solution_guide.shared %}Your public link is ready{% elif solution_guide.private_draft %}Pick up where you left off{% elif solution_guide.saved %}Your solution is saved{% elif solution_guide.chosen %}Continue your solution{% else %}Start with a problem{% endif %}</h2>
+    <p class="mb-0">{% if writer_draft %}Choose a problem to bring your Solution Writer draft into your workspace.{% elif solution_guide.shared %}Copy your link to share the saved version. You can update that copy when you choose.{% elif solution_guide.private_draft and solution_guide.saved %}Your draft is saved. Come back to it whenever you’re ready.{% elif solution_guide.saved %}Keep working on your proof, or share a saved copy when you are ready.{% elif solution_guide.chosen %}Add a first idea or paste a proof, then save your draft.{% else %}Try a problem and save your first idea as a private draft.{% endif %}</p>
 
     {% if writer_draft %}
     <a href="{{ solution_guide.start_url }}" class="btn btn-primary mt-3">Continue my writing</a>
@@ -34,41 +26,49 @@
       {% else %}
       <div class="d-flex flex-wrap align-items-center gap-2 my-3">
         {% if solution_guide.chosen %}
-        <a href="{{ solution_guide.editor_url }}" class="btn btn-primary">Continue writing</a>
+        <a href="{{ solution_guide.editor_url }}" class="btn btn-primary">{% if solution_guide.private_draft %}Continue your draft{% else %}Continue writing{% endif %}</a>
         {% else %}
-        <a href="{{ solution_guide.start_url }}" class="btn btn-primary">Write my first solution</a>
+        {% if solution_guide.starter_url %}<a href="{{ solution_guide.starter_url }}" class="btn btn-primary">Try a starter problem</a>{% endif %}
+        <a href="{{ solution_guide.start_url }}" class="btn {% if solution_guide.starter_url %}btn-outline-secondary{% else %}btn-primary{% endif %}">I already have a proof</a>
         {% endif %}
-        <a href="{% url 'website:solution_preview' %}" class="btn btn-link btn-sm">See an example</a>
+        <a href="{% url 'website:solution_preview' %}" class="btn btn-link">See a worked example</a>
       </div>
       <ol class="list-unstyled mb-0">
         <li class="d-flex align-items-start gap-3 mb-3">
           <span class="badge bg-primary-subtle text-primary mt-1">{% if solution_guide.chosen %}<i class="ti ti-check" aria-hidden="true"></i><span class="visually-hidden">Completed</span>{% else %}1{% endif %}</span>
           <div>
             <h3 class="h6 mb-1">{% if solution_guide.chosen %}Problem selected{% else %}Choose a problem{% endif %}</h3>
-            {% if not solution_guide.chosen %}<p class="text-muted fs-sm mb-0">Find a problem you have already solved. You can use a proof you already have.</p>{% endif %}
+            {% if not solution_guide.chosen %}<p class="text-muted fs-sm mb-0">Try the starter or find a problem you’ve worked on.</p>{% endif %}
           </div>
         </li>
         <li class="d-flex align-items-start gap-3">
           <span class="badge bg-secondary-subtle text-secondary mt-1">2</span>
           <div>
-            <h3 class="h6 mb-1">Write, preview, and save</h3>
-            <p class="text-muted fs-sm mb-0">Write or paste your proof, check Preview, then select Save changes.</p>
+            <h3 class="h6 mb-1">Save a private draft</h3>
+            <p class="text-muted fs-sm mb-0">A small case, a conjecture, or a few lines of reasoning are enough to start.</p>
           </div>
         </li>
       </ol>
       {% endif %}
 
+      {% if solution_guide.saved %}
+      {% if solution_guide.private_draft %}
+      <a href="{{ solution_guide.editor_url }}" class="btn btn-primary mt-3">Continue your draft</a>
+      {% endif %}
       <div class="border-top mt-3 pt-3">
         <h3 class="h6 mb-1">{% if solution_guide.shared %}<i class="ti ti-link text-primary me-1" aria-hidden="true"></i>Public link active{% else %}Share a public link <span class="badge bg-secondary-subtle text-secondary ms-1">Optional</span>{% endif %}</h3>
-        <p class="text-muted fs-sm mb-0">{% if solution_guide.shared %}Saving edits keeps the shared copy unchanged until you update it.{% elif solution_guide.saved %}Review your saved proof and author credit before creating a link. Anyone with the link can read that copy.{% else %}After saving, you can review your proof and create a link for others to read.{% endif %}</p>
-        {% if solution_guide.saved %}
+        <p class="text-muted fs-sm mb-0">{% if solution_guide.shared %}Saving edits keeps the shared copy unchanged until you update it.{% else %}Anyone with the link can read the copy you choose to share.{% endif %}</p>
         <div class="d-flex flex-wrap gap-2 mt-3">
-          <a href="{{ solution_guide.share_url }}" class="btn btn-primary">{% if solution_guide.shared %}Copy or open public link{% else %}Review and share{% endif %}</a>
-          <a href="{{ solution_guide.editor_url }}" class="btn btn-outline-secondary">Continue editing</a>
+          <a href="{{ solution_guide.share_url }}" class="btn {% if solution_guide.private_draft %}btn-outline-secondary{% else %}btn-primary{% endif %}">{% if solution_guide.shared %}Copy or open public link{% else %}Review and share{% endif %}</a>
+          {% if not solution_guide.private_draft %}<a href="{{ solution_guide.editor_url }}" class="btn btn-outline-secondary">Continue editing</a>{% endif %}
         </div>
-        {% endif %}
       </div>
+      {% endif %}
     {% endif %}
+    <form class="mt-3" method="post" action="{% url 'solutions:solution_guide_preference' %}">
+      {% csrf_token %}
+      <button type="submit" name="action" value="dismiss" class="btn btn-link btn-sm p-0">{% if solution_guide.saved and not writer_draft %}Hide guide{% else %}Skip for now{% endif %}</button>
+    </form>
   </div>
 </section>
 {% else %}

@@ -6,8 +6,11 @@ from pathlib import Path
 
 from django.conf import settings
 from django.db import transaction
-from django.db.models import Q
 from django.utils import timezone
+
+from inspinia.pages.study_help_access import assistance_restricted
+from inspinia.pages.study_help_access import bind_statement_restrictions
+from inspinia.pages.study_help_access import lock_study_help
 
 from .evaluation import EvaluationError
 from .evaluation import audit
@@ -39,15 +42,7 @@ def require_offline_provider():
 
 
 def assert_assistance(user, problem_uuid, *, delivery=False, review=None):
-    now = timezone.now()
-    policies = (
-        AssistancePolicy.objects.filter(starts_at__lte=now, ends_at__gt=now)
-        .filter(
-            Q(problem_uuid=problem_uuid) | Q(problem_uuid__isnull=True),
-        )
-        .filter(Q(actor_id_scope=user.pk) | Q(actor_id_scope__isnull=True))
-    )
-    if policies.filter(mode__in=["restricted_assessment", "quarantine", "withdrawal"]).exists():
+    if assistance_restricted(user, (problem_uuid,)):
         raise EvaluationError(
             "AI assistance is restricted for this problem.",
             code="assistance_restricted",
@@ -61,9 +56,12 @@ def assert_assistance(user, problem_uuid, *, delivery=False, review=None):
 
 @transaction.atomic
 def set_assistance_policy(actor, problem_uuid, mode, starts_at, ends_at, reason, *, user=None):
+    from inspinia.pages.models import ContestProblemStatement
+
     from .evaluation import WORKSPACE
     from .evaluation import require
 
+    lock_study_help()
     require(actor, "activation", WORKSPACE)
     if mode not in {"independent_practice", "guided_training", "restricted_assessment", "quarantine", "withdrawal"}:
         raise EvaluationError("Unknown assistance mode.", status=422)
@@ -80,6 +78,13 @@ def set_assistance_policy(actor, problem_uuid, mode, starts_at, ends_at, reason,
         reason=reason[:200],
         appointed_by=actor,
     )
+    if problem_uuid is not None:
+        statement_uuid = (
+            ContestProblemStatement.objects.filter(problem_uuid=problem_uuid).values_list("statement_uuid", flat=True)
+            .first()
+        )
+        if statement_uuid is not None:
+            bind_statement_restrictions(statement_uuid, (problem_uuid,))
     audit(actor, item, "assistance_policy_set", {"mode": mode})
     return item
 

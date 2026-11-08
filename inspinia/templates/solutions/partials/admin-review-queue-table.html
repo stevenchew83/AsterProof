@@ -1,0 +1,115 @@
+<section class="card" aria-labelledby="ai-queue-heading">
+  <div class="card-header d-flex align-items-start justify-content-between flex-wrap gap-2">
+    <div>
+      <h2 id="ai-queue-heading" class="header-title fs-lg mb-1">Review requests</h2>
+      <p class="text-muted fs-sm mb-0">Each row is one model request. The table loads all active requests and up to {{ history_page.paginator.per_page }} past requests per history page.</p>
+    </div>
+    <div class="d-flex flex-wrap gap-2" data-ai-queue-counts>
+      <span class="badge fs-xs bg-warning-subtle text-warning-emphasis">{{ counts.waiting }} waiting</span>
+      <span class="badge fs-xs bg-primary-subtle text-primary-emphasis">{{ counts.reviewing }} reviewing</span>
+      {% if not generation_enabled %}<span class="badge bg-secondary-subtle text-secondary">Generation paused</span>{% endif %}
+    </div>
+  </div>
+  <div class="card-body pt-2">
+    <div class="mb-2" data-ai-queue-filters hidden>
+      <div class="app-table-toolbar d-flex flex-wrap gap-2">
+        <div>
+          <label for="queue-review-status" class="form-label fs-sm mb-1">Review status</label>
+          <select id="queue-review-status" class="form-select form-select-sm" data-queue-column="1">
+            <option value="">All statuses</option>
+            <option>Waiting</option>
+            <option>Reviewing</option>
+            <option>Completed</option>
+            <option>Failed</option>
+            <option>Outcome unknown</option>
+          </select>
+        </div>
+        <div>
+          <label for="queue-publication" class="form-label fs-sm mb-1">Publication</label>
+          <select id="queue-publication" class="form-select form-select-sm" data-queue-column="3">
+            <option value="">Any publication status</option>
+            <option>Unpublished</option>
+            <option>Published to solver</option>
+            <option>Taken down</option>
+          </select>
+        </div>
+      </div>
+    </div>
+    <div class="app-table-region table-responsive" tabindex="0" role="region" aria-label="AI review requests">
+      <table id="ai-review-queue-table" class="table table-striped app-table-compact align-middle w-100 mb-0"
+             aria-label="AI review requests" data-paging-type="simple">
+        <thead>
+          <tr>
+            <th scope="col">Solution</th>
+            <th scope="col">Review status</th>
+            <th scope="col">Score</th>
+            <th scope="col">Publication</th>
+            <th scope="col">Model</th>
+            <th scope="col">Requested by</th>
+            <th scope="col">Queued at</th>
+            <th scope="col">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for review in queue_rows %}
+            <tr id="ai-queue-{{ review.pk }}">
+              <td><a class="app-table-text fw-semibold" href="{% url 'solutions:solution_detail' review.target.solution_id %}?ai_review={{ review.pk }}#ai-review-{{ review.pk }}">{{ review.problem_label }} <span class="text-muted fw-normal">#{{ review.target.solution_id }}</span></a></td>
+              <td>
+                {% if review.status == 'running' %}
+                  <span class="badge d-inline-flex align-items-center gap-1 fs-xs bg-primary-subtle text-primary-emphasis"><span class="spinner-border spinner-border-sm" aria-hidden="true"></span>Reviewing</span>
+                {% elif review.status == 'queued' %}
+                  <span class="badge d-inline-flex align-items-center gap-1 fs-xs bg-warning-subtle text-warning-emphasis"><i class="ti ti-clock" aria-hidden="true"></i>Waiting</span>
+                {% elif review.status == 'completed' %}
+                  <span class="badge fs-xs bg-success-subtle text-success-emphasis">Completed</span>
+                {% elif review.status == 'failed' %}
+                  <span class="badge fs-xs bg-danger-subtle text-danger-emphasis">Failed</span>
+                {% else %}
+                  <span class="badge fs-xs bg-secondary-subtle text-secondary-emphasis">{{ review.get_status_display }}</span>
+                {% endif %}
+              </td>
+              <td data-order="{{ review.score|default_if_none:'-1' }}">{% if review.score != None %}{{ review.score }} / 7{% else %}—{% endif %}</td>
+              <td>{% if review.published_at %}
+                <span class="badge fs-xs bg-success-subtle text-success-emphasis">{{ review.publication_status }}</span>
+              {% elif review.status == 'completed' %}
+                <span class="badge fs-xs bg-secondary-subtle text-secondary-emphasis">{{ review.publication_status }}</span>
+              {% else %}{{ review.publication_status }}{% endif %}</td>
+              <td>{{ review.get_model_display }}</td>
+              <td>{% if review.requested_by_solver %}Solver{% else %}Admin{% endif %}</td>
+              <td data-order="{{ review.created_at|date:'U' }}"><time datetime="{{ review.created_at|date:'c' }}">{{ review.created_at|date:'j M Y, H:i' }}</time></td>
+              <td>
+                {% if review.published_at %}
+                  <form class="app-table-actions" method="post" data-queue-take-down
+                        action="{% url 'solutions:admin_ai_review_take_down' review.target.solution_id review.pk %}?{{ queue_query }}">
+                    {% csrf_token %}
+                    <input type="hidden" name="publication" value="{{ review.published_at|date:'c' }}">
+                    <button class="btn btn-outline-danger btn-sm" type="submit">Take down</button>
+                  </form>
+                {% elif review.can_publish %}
+                  <form class="app-table-actions" method="post"
+                        action="{% url 'solutions:admin_ai_review_publish' review.target.solution_id review.pk %}?from_queue=1&amp;{{ queue_query }}">
+                    {% csrf_token %}
+                    <input type="hidden" name="last_taken_down" value="{{ review.taken_down_at|date:'c' }}">
+                    <button class="btn btn-outline-primary btn-sm" type="submit">{% if review.will_notify_on_publish %}Publish and notify solver{% else %}Publish to solver{% endif %}</button>
+                  </form>
+                {% endif %}
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+  <nav class="card-body border-top" aria-label="Review history pages" data-ai-queue-history {% if not history_page.has_other_pages %}hidden{% endif %}>
+    <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
+      <span class="text-muted fs-sm">History page {{ history_page.number }} of {{ history_page.paginator.num_pages }}</span>
+      <div class="d-flex gap-2">
+        {% if history_page.has_previous %}
+          <a class="btn btn-outline-secondary btn-sm" href="?page={{ history_page.previous_page_number }}{% if history_query %}&amp;{{ history_query }}{% endif %}">Newer history</a>
+        {% endif %}
+        {% if history_page.has_next %}
+          <a class="btn btn-outline-secondary btn-sm" href="?page={{ history_page.next_page_number }}{% if history_query %}&amp;{{ history_query }}{% endif %}">Older history</a>
+        {% endif %}
+      </div>
+    </div>
+  </nav>
+</section>

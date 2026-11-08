@@ -1,0 +1,63 @@
+{% extends 'layouts/vertical.html' %}
+{% load static l10n %}
+
+{% block title %}Student result history{% endblock title %}
+
+{% block page_content %}
+<div class="container-fluid app-table-page">
+  {% include 'partials/page-title.html' with title='Student result history' subtitle='Rankings' page_icon='ti-history' %}
+  {% include 'pages/rankings/result-navigation.html' with current='history' only %}
+  {% include 'pages/rankings/result-messages.html' %}
+  <div class="card mt-0">
+    <div class="card-body">
+      <form method="get" class="app-table-filters row g-2 align-items-end">
+        <div class="col-sm-3 col-lg-2">
+          <label for="history-season" class="form-label mb-1">Season</label>
+          <select name="season" id="history-season" class="form-select">{% for year in years %}<option {% if year == season %}selected{% endif %}>{{ year }}</option>{% endfor %}</select>
+        </div>
+        <div class="col-sm-5 col-lg-4">
+          <label for="history-search" class="form-label mb-1">Student name</label>
+          <input id="history-search" name="q" type="search" value="{{ q }}" class="form-control" placeholder="Search all students in this season" maxlength="255">
+        </div>
+        <div class="col-sm-4 col-lg-3">
+          <label for="history-school" class="form-label mb-1">School</label>
+          <input id="history-school" name="school" type="search" value="{{ school }}" class="form-control" placeholder="School name" maxlength="255">
+        </div>
+        <div class="col-lg-3 d-flex flex-wrap gap-2">
+          <button class="btn btn-primary" type="submit">Apply filters</button>
+          <a class="btn btn-outline-secondary" href="{% url 'rankings:result_history' %}">Reset</a>
+        </div>
+      </form>
+    </div>
+  </div>
+  <div class="card mt-3">
+    <div class="card-header border-0 pb-0">
+      <h2 class="header-title mb-1">{{ season|default:'Student' }} results and group history</h2>
+      <p class="text-muted fs-xs mb-0">One row per student with results in this season. Select a student for their complete history. A dash means no recorded result.</p>
+    </div>
+    <div class="card-body pt-2" data-local-table>
+      {% include 'pages/rankings/local-table-tools.html' with table_id='result-history' only %}
+      <div class="app-table-region table-responsive" tabindex="0" role="region" aria-label="Student history across assessments">
+        <table id="result-history-table" class="app-table-compact table table-bordered table-striped align-middle mb-0">
+          <thead><tr><th scope="col" data-sort-type="text">Student</th><th scope="col" data-sort-type="number">Birth year</th><th scope="col" data-sort-type="text">School</th>{% for assessment in assessments %}<th scope="col" data-sort-type="mixed">{{ assessment.display_name }}</th>{% endfor %}</tr></thead>
+          <tbody>
+            {% for row in rows %}
+            <tr data-local-row="{{ row.student.pk }}">
+              <td><a href="{% url 'rankings:student_detail' row.student.pk %}">{{ row.student.full_name }}</a></td>
+              <td data-sort-value="{{ row.student.birth_year|default_if_none:''|unlocalize }}">{{ row.student.birth_year|default_if_none:'—' }}</td>
+              <td>{{ row.student.school_display|default:'—' }}</td>
+              {% for result in row.cells %}<td data-sort-value="{{ result.raw_score|default_if_none:''|unlocalize }}">{% include 'pages/rankings/result-cell.html' with result=result only %}</td>{% endfor %}
+            </tr>
+            {% empty %}<tr><td colspan="{{ assessments|length|add:'3' }}" class="text-muted py-4">No student history matches these filters. Import a sheet to add results.</td></tr>{% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% include 'pages/rankings/result-pagination.html' with item_label='student' %}
+    </div>
+  </div>
+</div>
+{% endblock page_content %}
+
+{% block extra_javascript %}
+<script src="{% static 'js/ranking-table-tools.js' %}" defer></script>
+{% endblock extra_javascript %}

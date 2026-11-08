@@ -1,0 +1,15 @@
+{% extends 'learning/base.html' %}
+
+{% block learning_content %}
+  <div class="card learning-form-width">
+    <div class="card-body">
+      <h1 class="h3">Start a teaching note</h1>
+      <p class="text-muted">Choose its canonical area or concept. Lectures can connect several concepts in the editor.</p>
+      <form method="post">
+        {% csrf_token %}
+        {% include 'learning/form.html' %}
+        <button class="btn btn-primary">Create private draft</button>
+      </form>
+    </div>
+  </div>
+{% endblock %}

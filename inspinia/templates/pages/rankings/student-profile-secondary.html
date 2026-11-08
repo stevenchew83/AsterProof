@@ -1,0 +1,16 @@
+<section class="student-secondary" data-student-secondary aria-label="Sources and saved rankings" {% if kind != 'sources' and kind != 'all' %}hidden{% endif %}>
+  <section id="student-sources" class="student-secondary-section" aria-labelledby="student-sources-title">
+    <h2 id="student-sources-title" class="h6">Import files &amp; provenance <span class="student-muted">{{ summary.sources }} file group{{ summary.sources|pluralize }}</span></h2>
+    <p class="student-muted mt-2">Import files identify where records came from. They are not a count of independently verified sources. Evidence and its review state appear with each claim.</p>
+    <div class="table-responsive"><table class="table table-sm"><thead><tr><th scope="col">Source</th><th scope="col">Records</th><th scope="col">Latest import</th></tr></thead><tbody>
+    {% for source in sources %}<tr><td>{{ source.label }}{% if source.checksum %}<small>SHA-256 {{ source.checksum }}</small>{% endif %}<p class="mt-2 mb-1">Original source labels</p><ul>{% for label in source.labels %}<li>{{ label }}</li>{% endfor %}</ul></td><td>{{ source.count }}</td><td>{{ source.latest|date:'j M Y, H:i T'|default:'Not recorded' }}</td></tr>{% empty %}<tr><td colspan="3">No source metadata recorded.</td></tr>{% endfor %}
+    </tbody></table></div>
+  </section>
+  {% if rankings %}
+  <section id="student-saved-rankings" class="student-secondary-section" aria-labelledby="student-saved-rankings-title"><h2 id="student-saved-rankings-title" class="h6">Saved rankings <span class="student-muted">{{ rankings|length }} snapshot{{ rankings|length|pluralize }}</span></h2>
+    <div class="table-responsive mt-2"><table class="table table-sm"><thead><tr><th scope="col">Season</th><th scope="col">Formula / version</th><th scope="col">Division</th><th scope="col">Saved total</th><th scope="col">Overall rank</th><th scope="col">Division rank</th><th scope="col">Computed</th></tr></thead><tbody>
+    {% for snapshot in rankings %}<tr><td>{{ snapshot.season_year }}</td><td>{{ snapshot.ranking_formula.name }}<small>{{ snapshot.formula_version_label|default:'Version not recorded' }}</small>{% if snapshot.formula_version_hash %}<code>{{ snapshot.formula_version_hash }}</code>{% endif %}</td><td>{{ snapshot.division|default:'Overall' }}</td><td>{{ snapshot.total_score|floatformat:'-4' }}</td><td>{{ snapshot.rank_overall|default_if_none:'—' }}</td><td>{{ snapshot.rank_within_division|default_if_none:'—' }}</td><td>{{ snapshot.last_computed_at|date:'j M Y, H:i T' }}</td></tr>{% endfor %}
+    </tbody></table></div>
+  </section>
+  {% else %}<p class="student-ranking-empty">No ranking snapshots recorded.</p>{% endif %}
+</section>

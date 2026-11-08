@@ -27,6 +27,8 @@ const moduleScriptEntries = {
     "public-home.bundle.js": "public-home-entry.js",
     "solution-document-editor.bundle.js": "solution-document-editor.js",
     "solution-document-preview.bundle.js": "solution-document-preview-entry.js",
+    "learning-editor.bundle.js": "learning-editor.js",
+    "learning-math.bundle.js": "learning-math.js",
 };
 
 async function publicScripts() {
@@ -194,7 +196,7 @@ function watchFiles() {
     watch(paths.baseSrcAssets + "scss/**/*.scss", series(scss));
     watch(paths.baseSrcAssets + "js/website-geometry.js", geometry);
     watch([...new Set(Object.values(publicScriptGroups).flat())].map(name => paths.baseSrcAssets + "js/" + name), publicScripts);
-    watch(["solution-document-*.js", "public-*-entry.js", "solution-pdf-options.js", "solution-draft-recovery.js"].map(name => paths.baseSrcAssets + "js/" + name), publicScripts);
+    watch(["solution-document-*.js", "math-document-editor.js", "learning-*.js", "public-*-entry.js", "solution-pdf-options.js", "solution-draft-recovery.js"].map(name => paths.baseSrcAssets + "js/" + name), publicScripts);
 }
 
 const geometry = function () {

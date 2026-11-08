@@ -47,7 +47,7 @@
 {% block page_content %}
 <div class="container-fluid app-table-page">
 
-  {% include 'partials/page-title.html' with title='Create solution' subtitle='Choose problem statement' page_icon='ti-pencil-plus' %}
+  {% include 'partials/page-title.html' with title='Create solution' subtitle='Choose a problem' page_icon='ti-pencil-plus' %}
 
   {% if writer_draft %}
   <div class="alert alert-info mt-3" role="status">
@@ -126,15 +126,15 @@
   <div class="card mt-3">
     <div class="card-header border-bottom d-flex flex-wrap align-items-center justify-content-between gap-2">
       <div>
-        <h4 class="header-title mb-0">Pick a problem statement</h4>
-        <p class="text-muted fs-xs mb-0">Choose a problem statement, then start writing your solution.</p>
+        <h4 class="header-title mb-0">Pick a problem</h4>
+        <p class="text-muted fs-xs mb-0">Choose from the shared problem library, then start your own solution.</p>
       </div>
       <a href="{% url 'solutions:my_solution_list' %}" class="btn btn-outline-secondary btn-sm">Back to my solutions</a>
     </div>
     <div class="card-body">
       {% if statement_problem_list_is_capped %}
       <div class="alert alert-info py-2 mb-3" role="alert">
-        Showing the latest {{ statement_problem_list_limit }} updated statements. Use the table search to filter these loaded rows, or <a href="{% url 'pages:problem_statement_list' %}" class="alert-link">search the full problem library</a>.
+        Showing the latest {{ statement_problem_list_limit }} updated problems. Use the table search to filter these loaded rows, or <a href="{% url 'pages:problem_statement_list' %}" class="alert-link">search the full problem library</a>.
       </div>
       {% endif %}
       {% if statement_problem_rows %}
@@ -171,7 +171,7 @@
                 {% endif %}
                 {% if row.problem_url %}<a href="{{ row.problem_url }}" class="btn btn-outline-secondary btn-sm">Solution page</a>{% endif %}
                 {% if row.contest_archive_url %}
-                <a href="{{ row.contest_archive_url }}" class="btn btn-outline-secondary btn-sm">Archive</a>
+                <a href="{{ row.contest_archive_url }}" class="btn btn-outline-secondary btn-sm">Library</a>
                 {% endif %}
               </div>
             </td>
@@ -181,7 +181,7 @@
       </table>
       {% else %}
       <div class="alert alert-info mb-0" role="alert">
-        No active problem statements are available yet. Once a statement is uploaded, you can start writing here.
+        No active problems are available yet. Once a problem is added to the library, you can start writing here.
       </div>
       {% endif %}
     </div>

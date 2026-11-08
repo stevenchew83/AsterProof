@@ -1,0 +1,192 @@
+.student-detail {
+    font-size: .875rem;
+    [hidden] { display: none !important; }
+    [id] { scroll-margin-top: 5rem; }
+    :is(a, button, summary, input, select, [tabindex]):focus-visible { outline: 2px solid var(--#{$prefix}primary); outline-offset: 3px; }
+    .student-muted { color: var(--#{$prefix}body-color); font-size: .75rem; }
+    .text-muted { color: var(--#{$prefix}body-color) !important; }
+    a:not(.btn) { color: var(--#{$prefix}primary-text-emphasis); }
+    .form-control::placeholder { color: var(--#{$prefix}body-color); opacity: 1; }
+    .student-profile .badge.bg-primary-subtle { color: var(--#{$prefix}primary-text-emphasis) !important; }
+    .student-profile .badge.bg-secondary-subtle { color: var(--#{$prefix}body-color) !important; }
+    .student-section-title { font-size: 1rem; font-weight: 600; margin: 0; }
+    small { display: block; color: var(--#{$prefix}body-color); font-size: .75rem; font-weight: 400; }
+    code { overflow-wrap: anywhere; }
+    summary { cursor: pointer; width: fit-content; }
+    summary:hover { color: var(--#{$prefix}primary-text-emphasis); }
+    .student-record > summary { font-size: .75rem; color: var(--#{$prefix}primary-text-emphasis); }
+    .student-profile { padding: 1rem 0; }
+    .app-page-header { padding: 0 0 .5rem; margin: 0; border: 0; background: transparent; }
+    .app-page-header-title { font-size: 1.5rem; }
+    .app-page-header-icon { width: 3rem; height: 3rem; }
+    .student-profile-meta { display: flex; align-items: center; flex-wrap: wrap; gap: .5rem 1.25rem; padding-left: 3.625rem; color: var(--#{$prefix}body-color); font-size: .8125rem; }
+    .student-profile-meta strong { color: var(--#{$prefix}body-color); font-weight: 600; }
+    .student-history-summary { margin: 0 0 0 auto; display: flex; flex-wrap: wrap; gap: .35rem; align-items: baseline; }
+    .student-profile-details { margin: .65rem 0 0 3.625rem; font-size: .75rem; }
+    .student-profile-details .student-metadata { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: .75rem; max-width: 45rem; margin-top: .75rem; }
+    .student-timeline { position: relative; border: 1px solid var(--#{$prefix}border-color); border-radius: var(--#{$prefix}border-radius); background: var(--#{$prefix}secondary-bg); padding: 1rem 1.25rem; margin-bottom: 1.25rem; }
+    .student-full-history { font-size: .8125rem; }
+    .student-event-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); list-style: none; padding: 0; gap: 1rem 2rem; }
+    .student-event-list h3 { font-size: .875rem; }
+    .student-event-list ul { list-style: none; padding: 0; }
+    .student-event-list ul li { border-left: 2px solid var(--#{$prefix}border-color); padding: .25rem .75rem; margin: .5rem 0; overflow-wrap: anywhere; }
+    .student-event-list span { display: block; }
+    .student-explorer { padding: 1rem 1.25rem; box-shadow: none; }
+    .student-results-heading { display: flex; align-items: center; gap: 1.5rem; }
+    .student-filters { margin-left: auto; display: flex; align-items: center; flex-wrap: wrap; gap: .5rem; flex: 1; justify-content: flex-end; }
+    .student-search { flex: 1 1 15rem; max-width: 25rem; }
+    .form-control, .form-select { font-size: .8125rem; min-height: 2.5rem; }
+    &.is-enhanced .student-filters-apply { display: none; }
+    .student-request-state { min-height: 1.5rem; font-size: .75rem; color: var(--#{$prefix}body-color); padding-top: .25rem; }
+    .student-request-state.is-error { color: var(--#{$prefix}danger-text-emphasis); }
+    .student-results-region { overflow-x: auto; }
+    .student-results-table { table-layout: fixed; font-size: .875rem; }
+    .student-results-table th, .student-results-table td { padding: .65rem .75rem; vertical-align: top; overflow-wrap: anywhere; }
+    .student-results-table thead th { font-size: .75rem; color: var(--#{$prefix}body-color); font-weight: 500; background: var(--#{$prefix}tertiary-bg); }
+    .student-results-table thead th:first-child { width: 33%; }
+    .student-results-table thead th:nth-child(2) { width: 24%; }
+    .student-results-table thead th:nth-child(3) { width: 23%; }
+    .student-results-with-score thead th:first-child { width: 30%; }
+    .student-results-with-score thead th:nth-child(2) { width: 22%; }
+    .student-results-with-score thead th:nth-child(3) { width: 20%; }
+    .student-results-with-score thead th:nth-child(4) { width: 10%; }
+    .student-score { text-align: right; font-variant-numeric: tabular-nums; }
+    .student-year-heading th { background: var(--#{$prefix}primary-bg-subtle); padding: 0; }
+    .student-year-label { padding: .65rem .75rem; display: flex; align-items: center; gap: .5rem; color: var(--#{$prefix}body-color); }
+    .student-year-label strong { color: var(--#{$prefix}primary-text-emphasis); }
+    .student-year-label span { margin-left: auto; font-size: .75rem; color: var(--#{$prefix}body-color); font-weight: 400; }
+    .student-record-body { background: var(--#{$prefix}tertiary-bg); border-radius: .25rem; margin-top: .75rem; padding: .875rem; }
+    .student-metadata { margin: 0; font-size: .75rem; }
+    .student-metadata > div { margin-bottom: .65rem; }
+    .student-metadata > div:last-child { margin-bottom: 0; }
+    .student-metadata dt { color: var(--#{$prefix}body-color); font-weight: 400; }
+    .student-metadata dd { margin: .125rem 0 0; overflow-wrap: anywhere; }
+    .student-source-notes { white-space: pre-wrap; }
+    .student-outcome { display: inline-block; font-size: .75rem; border-radius: .25rem; padding: .125rem .4rem; margin: 0 .2rem .15rem 0; background: var(--#{$prefix}secondary-bg); color: var(--#{$prefix}body-color); }
+    .student-outcome-gold { background: var(--#{$prefix}warning-bg-subtle); color: var(--#{$prefix}warning-text-emphasis); }
+    .student-outcome-silver { background: var(--#{$prefix}secondary-bg); color: var(--#{$prefix}body-color); }
+    .student-outcome-bronze { background: var(--#{$prefix}danger-bg-subtle); color: var(--#{$prefix}danger-text-emphasis); }
+    .student-empty { padding: 2rem 0; text-align: center; color: var(--#{$prefix}body-color); }
+    .student-secondary { margin: 1rem 0 2rem; }
+    .student-secondary-section { border-bottom: 1px solid var(--#{$prefix}border-color); padding: .875rem 0; }
+    .student-secondary-section > h2 span { margin-left: .5rem; font-weight: 400; }
+    .student-secondary td { overflow-wrap: anywhere; font-size: .75rem; }
+    .student-secondary th { font-size: .75rem; }
+    .student-secondary td:first-child { min-width: 12rem; }
+    .student-ranking-empty { margin: .75rem 0 0; font-size: .75rem; color: var(--#{$prefix}body-color); }
+    .student-highlights { margin: .25rem 0 1.5rem; }
+    .student-highlight-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: .75rem; }
+    .student-highlight-grid-many { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    .student-highlight { padding: 1rem; border: 1px solid var(--#{$prefix}border-color); border-radius: var(--#{$prefix}border-radius); background: var(--#{$prefix}secondary-bg); min-width: 0; }
+    .student-highlight h3 { font-size: .9375rem; font-weight: 600; margin: .65rem 0 .5rem; overflow-wrap: anywhere; }
+    .student-highlight p { margin-bottom: .4rem; }
+    .student-highlight a { text-decoration: none; }
+    .student-highlight a:hover { text-decoration: underline; }
+    .student-view-navigation { display: flex; gap: .25rem; flex-wrap: wrap; border-bottom: 1px solid var(--#{$prefix}border-color); margin-bottom: 1rem; }
+    .student-view-navigation a { padding: .625rem .75rem; color: var(--#{$prefix}body-color) !important; text-decoration: none; border-bottom: 2px solid transparent; }
+    .student-view-navigation a[aria-current='page'] { color: var(--#{$prefix}primary-text-emphasis) !important; border-bottom-color: var(--#{$prefix}primary); font-weight: 600; }
+    .student-view-navigation a:hover { background: var(--#{$prefix}tertiary-bg); }
+    .student-record-link { display: inline-flex; align-items: baseline; gap: .4rem; text-decoration: none; color: var(--#{$prefix}body-color) !important; font-weight: 500; }
+    .student-record-link:hover { text-decoration: underline; }
+    .student-detail-row > td { padding: 0 .75rem .75rem; }
+    .student-detail-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 1.5rem; }
+    .student-detail-grid > section { min-width: 0; }
+    .student-detail-row .student-record-body { margin-top: .5rem; padding: 1.25rem; }
+    .student-import-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: .75rem 1rem; }
+    .student-source-context { margin-top: .75rem; }
+    .student-claim { margin: 0 0 .75rem; padding: 0 0 .75rem; border-bottom: 1px solid var(--#{$prefix}border-color); overflow-wrap: anywhere; }
+    .student-claim p { font-size: .8125rem; }
+    .student-evidence { display: inline-block; font-size: .75rem; padding: .125rem .4rem; margin: .125rem 0; border-radius: .25rem; background: var(--#{$prefix}secondary-bg); color: var(--#{$prefix}body-color); }
+    .student-evidence-verified { background: var(--#{$prefix}success-bg-subtle); color: var(--#{$prefix}success-text-emphasis); }
+    .student-evidence-reported { background: var(--#{$prefix}info-bg-subtle); color: var(--#{$prefix}info-text-emphasis); }
+    .student-evidence-pending { background: var(--#{$prefix}warning-bg-subtle); color: var(--#{$prefix}warning-text-emphasis); }
+    .student-evidence-conflicting { background: var(--#{$prefix}danger-bg-subtle); color: var(--#{$prefix}danger-text-emphasis); }
+    .student-charts { border-top: 1px solid var(--#{$prefix}border-color); padding: 1rem 0 1.25rem; margin-bottom: .5rem; }
+    .student-chart-heading { display: flex; justify-content: space-between; align-items: baseline; gap: .5rem 1rem; flex-wrap: wrap; margin-bottom: 1rem; }
+    .student-chart-grid { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr); gap: 1.5rem; }
+    .student-chart { margin: 0; min-width: 0; }
+    .student-chart figcaption { margin-bottom: 1rem; }
+    .student-chart a { color: var(--#{$prefix}body-color) !important; text-decoration: none; }
+    .student-chart a:hover { background-color: var(--#{$prefix}tertiary-bg); }
+    .student-year-plot { overflow-x: auto; padding: 1.5rem .25rem 0; }
+    .student-year-columns { display: grid; grid-template-columns: repeat(var(--student-chart-years), minmax(2.5rem, 1fr)); min-width: calc(var(--student-chart-years) * 3rem); gap: .5rem; }
+    .student-chart-column { height: 10rem; display: flex; align-items: flex-end; justify-content: center; border-bottom: 1px solid var(--#{$prefix}border-color); }
+    .student-chart-stack { display: flex; flex-direction: column-reverse; position: relative; width: min(75%, 3rem); }
+    .student-chart-total { position: absolute; top: -1.5rem; left: 0; width: 100%; text-align: center; font-size: .8125rem; font-weight: 600; font-variant-numeric: tabular-nums; }
+    .student-chart .student-chart-segment { display: block; width: 100%; flex-shrink: 0; background-color: var(--student-chart-color); border-top: 1px solid var(--#{$prefix}secondary-bg); }
+    .student-chart .student-chart-segment:hover { filter: brightness(1.12); background-color: var(--student-chart-color); }
+    .student-chart-segment[aria-current] { outline: 2px solid var(--#{$prefix}body-color); outline-offset: 2px; z-index: 1; }
+    .student-chart-year-link { display: flex; align-items: center; justify-content: center; min-height: 2.75rem; font-size: .75rem; border-radius: .25rem; }
+    .student-chart-year-link[aria-current], .student-chart-legend a[aria-current], .student-evidence-bars a[aria-current] { background: var(--#{$prefix}primary-bg-subtle); outline: 1px solid var(--#{$prefix}primary); outline-offset: -1px; }
+    .student-chart-legend { display: flex; flex-wrap: wrap; list-style: none; gap: .25rem .5rem; margin: .5rem 0; padding: 0; font-size: .75rem; }
+    .student-chart-legend a { display: flex; align-items: center; gap: .4rem; min-height: 2.75rem; padding: .25rem .5rem; border-radius: .25rem; }
+    .student-chart-legend strong { font-variant-numeric: tabular-nums; }
+    .student-chart-swatch { display: inline-block; width: .75rem; height: .75rem; flex: 0 0 .75rem; background-color: var(--student-chart-color); border-radius: .125rem; }
+    .student-discipline-unknown { --student-chart-color: var(--#{$prefix}secondary); background-image: repeating-linear-gradient(135deg, transparent 0, transparent 3px, rgba(255, 255, 255, .3) 3px, rgba(255, 255, 255, .3) 5px); }
+    .student-discipline-mathematics { --student-chart-color: var(--#{$prefix}primary); }
+    .student-discipline-computing { --student-chart-color: var(--#{$prefix}info); }
+    .student-discipline-school { --student-chart-color: var(--#{$prefix}warning); }
+    .student-discipline-music { --student-chart-color: var(--#{$prefix}purple); }
+    .student-discipline-english { --student-chart-color: var(--#{$prefix}pink); }
+    .student-discipline-community { --student-chart-color: var(--#{$prefix}success); }
+    .student-discipline-other { --student-chart-color: var(--#{$prefix}body-color); }
+    .student-chart-data { font-size: .75rem; }
+    .student-chart-data table { font-size: .75rem; font-variant-numeric: tabular-nums; }
+    .student-evidence-bars { list-style: none; padding: 0; margin: .75rem 0 1rem; }
+    .student-evidence-bars a, .student-evidence-bar-empty { display: grid; grid-template-columns: minmax(6rem, 9rem) minmax(2rem, 1fr) 1.5rem; gap: .75rem; align-items: center; min-height: 2.75rem; padding: .5rem; border-radius: .25rem; font-size: .75rem; }
+    .student-evidence-bars strong { text-align: right; font-variant-numeric: tabular-nums; }
+    .student-evidence-bar-track { height: .625rem; border-radius: .125rem; background: var(--#{$prefix}tertiary-bg); overflow: hidden; }
+    .student-evidence-bar-fill { display: block; height: 100%; background: var(--student-chart-color); }
+    .student-chart-evidence-verified { --student-chart-color: var(--#{$prefix}success); }
+    .student-chart-evidence-reported { --student-chart-color: var(--#{$prefix}info); }
+    .student-chart-evidence-pending { --student-chart-color: var(--#{$prefix}warning); }
+    .student-chart-evidence-conflicting { --student-chart-color: var(--#{$prefix}danger); }
+    .student-chart-evidence-unreviewed { --student-chart-color: var(--#{$prefix}secondary); }
+    @media (max-width: 1199.98px) {
+        .student-history-summary { margin-left: 0; flex-basis: 100%; }
+        .student-highlight-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    }
+    @media (max-width: 991.98px) {
+        .student-chart-grid { grid-template-columns: minmax(0, 1fr); gap: 1.5rem; }
+        .student-evidence-chart { border-top: 1px solid var(--#{$prefix}border-color); padding-top: 1rem; }
+        .student-highlight-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+        .student-results-heading { align-items: flex-start; flex-direction: column; gap: .75rem; }
+        .student-filters { width: 100%; }
+        .student-search { max-width: none; }
+    }
+    @media (max-width: 767.98px) {
+        .student-year-columns { gap: .25rem; min-width: calc(var(--student-chart-years) * 2.5rem); }
+        .student-highlight-grid, .student-detail-grid, .student-import-grid { grid-template-columns: minmax(0, 1fr); }
+        .student-view-navigation { gap: 0; }
+        .student-view-navigation a { padding: .65rem .5rem; font-size: .8125rem; }
+        .student-results-table .student-detail-row { display: block; padding: 0; }
+        .student-detail-row > td { padding: 0 0 .5rem; }
+        .student-detail-row .student-record-body { padding: .875rem; }
+        .app-page-header-title { font-size: 1.25rem; }
+        .student-profile-meta { padding-left: 0; gap: .5rem .75rem; }
+        .student-profile-details { margin-left: 0; }
+        .student-profile-details .student-metadata { grid-template-columns: minmax(0, 1fr); }
+        .student-event-list { grid-template-columns: minmax(0, 1fr); }
+        .student-explorer { padding: .875rem; }
+        .student-filters { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.25fr); }
+        .student-filters > div { min-width: 0; }
+        .student-search { grid-column: 1 / -1; }
+        .student-evidence-filter { grid-column: 1 / -1; }
+        .student-filters > a { justify-self: start; }
+        .student-results-table, .student-results-table tbody { display: block; width: 100%; }
+        .student-results-table thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
+        .student-results-table tr { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.5fr); border-bottom: 1px solid var(--#{$prefix}border-color); padding: .35rem 0; }
+        .student-results-table td { display: block; border: 0; padding: .35rem .25rem; }
+        .student-results-table .student-assessment { grid-column: 1 / -1; }
+        .student-results-table td::before { content: attr(data-label); display: block; font-size: .6875rem; color: var(--#{$prefix}body-color); margin-bottom: .125rem; }
+        .student-results-table .student-assessment::before { display: none; }
+        .student-score { text-align: left; }
+        .student-results-table td:last-child { grid-column: 1 / -1; }
+        .student-year-heading tr { display: block; padding: 0; border: 0; }
+        .student-year-heading th { display: block; padding: 0; }
+        .student-year-label { padding: .65rem .25rem; }
+        .student-year-label span { text-align: right; }
+        .student-record-body { padding: .75rem; }
+    }
+    @media (pointer: coarse) { summary, .student-view-navigation a, .student-record-link { min-height: 2.75rem; } }
+}

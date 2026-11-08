@@ -23,6 +23,12 @@ from inspinia.rankings.models import StudentResult
 from inspinia.rankings.models import StudentSelectionStatus
 from inspinia.rankings.models import normalize_name
 from inspinia.rankings.models import normalize_whitespace
+from inspinia.rankings.services.import_protection import begin_import
+from inspinia.rankings.services.import_protection import canonical_school
+from inspinia.rankings.services.import_protection import guard_import_row
+from inspinia.rankings.services.import_protection import protected_changes
+from inspinia.rankings.services.import_protection import ranking_write_lock
+from inspinia.rankings.services.import_protection import reviewed_name_candidates
 
 if TYPE_CHECKING:
     import pandas as pd
@@ -97,6 +103,7 @@ class LegacyWidePreviewResult:
     classification: LegacyWideColumnClassification
     rows: list[LegacyWidePreviewRow] = field(default_factory=list)
     issues: list[LegacyWideCellIssue] = field(default_factory=list)
+    held_count: int = 0
 
 
 @dataclass(slots=True)
@@ -108,6 +115,8 @@ class LegacyWideImportResult:
     created_statuses: int = 0
     issues: int = 0
     rows: int = 0
+    held_count: int = 0
+    applied_rows: int = 0
 
 
 def classify_legacy_wide_columns(
@@ -130,16 +139,20 @@ def classify_legacy_wide_columns(
     return classification
 
 
+@ranking_write_lock()
 def preview_legacy_wide_import(
     *,
     dataframe: pd.DataFrame,
     import_batch: ImportBatch,
+    season_year: int | None = None,
 ) -> LegacyWidePreviewResult:
+    begin_import(import_batch)
     working_dataframe = dataframe.copy()
     working_dataframe.columns = [normalize_whitespace(str(column)) for column in working_dataframe.columns]
     classification = classify_legacy_wide_columns(list(working_dataframe.columns))
     preview_rows: list[LegacyWidePreviewRow] = []
     issues: list[LegacyWideCellIssue] = []
+    held_count = 0
 
     with transaction.atomic():
         for ambiguous_column in classification.ambiguous_columns:
@@ -167,6 +180,21 @@ def preview_legacy_wide_import(
                 classification=classification,
             )
             preview_rows.append(preview_row)
+            if season_year is not None:
+                try:
+                    operations = _legacy_operations(preview_row, season_year)
+                except ValueError:
+                    operations = []
+                conflicts = [
+                    conflict for operation in operations
+                    for conflict in protected_changes(operation["kind"], operation["target_id"], operation["values"])
+                ]
+                if conflicts:
+                    held_count += 1
+                    preview_row.issues.append(LegacyWideCellIssue(
+                        row_number=row_number, column="", issue_code="REVIEWED_VALUE_CONFLICT",
+                        message="This source row will be held for correction review.", raw_value=None,
+                    ))
             issues.extend(preview_row.issues)
             for issue in preview_row.issues:
                 ImportRowIssue.objects.create(
@@ -184,15 +212,19 @@ def preview_legacy_wide_import(
             "issues": len(issues),
             "rows": len(preview_rows),
         }
+        if held_count:
+            import_batch.summary_json["held_count"] = held_count
         import_batch.save(update_fields={"status", "summary_json", "updated_at"})
 
     return LegacyWidePreviewResult(
         classification=classification,
         rows=preview_rows,
         issues=issues,
+        held_count=held_count,
     )
 
 
+@ranking_write_lock()
 def apply_legacy_wide_import(  # noqa: C901, PLR0912
     *,
     preview: LegacyWidePreviewResult,
@@ -200,12 +232,18 @@ def apply_legacy_wide_import(  # noqa: C901, PLR0912
     season_year: int,
     actor: Any | None = None,
 ) -> LegacyWideImportResult:
+    begin_import(import_batch)
     result = LegacyWideImportResult(rows=len(preview.rows), issues=len(preview.issues))
     now = timezone.now()
 
     with transaction.atomic():
         for preview_row in preview.rows:
             try:
+                if guard_import_row(
+                    import_batch, preview_row.row_number, _legacy_operations(preview_row, season_year),
+                ):
+                    result.held_count += 1
+                    continue
                 student, created = _upsert_student(preview_row.student_values)
             except ValueError:
                 result.issues += 1
@@ -276,9 +314,10 @@ def apply_legacy_wide_import(  # noqa: C901, PLR0912
 
             if row_has_issue:
                 result.issues += 1
+            result.applied_rows += 1
 
         import_batch.status = (
-            ImportBatch.Status.PARTIAL if result.issues else ImportBatch.Status.APPLIED
+            ImportBatch.Status.PARTIAL if result.issues or result.held_count else ImportBatch.Status.APPLIED
         )
         import_batch.summary_json = {
             "created_students": result.created_students,
@@ -289,9 +328,36 @@ def apply_legacy_wide_import(  # noqa: C901, PLR0912
             "issues": result.issues,
             "rows": result.rows,
         }
+        if result.held_count:
+            import_batch.summary_json.update(held_count=result.held_count, applied_rows=result.applied_rows)
         import_batch.save(update_fields={"status", "summary_json", "updated_at"})
 
     return result
+
+
+def _legacy_operations(row, season_year):
+    student = _match_legacy_student(row.student_values)
+    if student is None:
+        return []
+    school_name = _student_text_value(row.student_values.get("school"))
+    school = canonical_school(school_name) if school_name else None
+    values = {
+        "full_name": _student_name_value(row.student_values),
+        "birth_year": _student_int_value(row.student_values.get("birth_year")),
+        "school_id": school.pk if school else f"new:{normalize_name(school_name)}" if school_name else None,
+    }
+    operations = [{"kind": "student", "target_id": student.pk, "values": values}]
+    for column, raw_value in row.assessment_values.items():
+        score = _coerce_score_value(raw_value)
+        if score is None:
+            continue
+        record = StudentResult.objects.filter(
+            student=student, assessment__code=_assessment_code_for_column(column),
+            assessment__season_year=season_year,
+        ).first()
+        if record:
+            operations.append({"kind": "result", "target_id": record.pk, "values": {"raw_score": score}})
+    return operations
 
 
 def _build_preview_row(
@@ -427,32 +493,36 @@ def _student_payload_empty(student_values: dict[str, Any]) -> bool:
     return _student_name_value(student_values) is None
 
 
-def _upsert_student(student_values: dict[str, Any]) -> tuple[Student, bool]:  # noqa: C901
+def _match_legacy_student(student_values):
     full_name = _student_name_value(student_values)
     if full_name is None:
         msg = "Student rows require a full name."
         raise ValueError(msg)
 
     external_code = _student_text_value(student_values.get("external_code"))
-    legacy_code = _student_text_value(student_values.get("legacy_code"))
     birth_year = _student_int_value(student_values.get("birth_year"))
-
-    student = None
     if external_code:
         student = Student.objects.filter(external_code=external_code.upper()).first()
-    if student is None and full_name and birth_year is not None:
-        matches = list(
-            Student.objects.filter(
-                normalized_name=normalize_name(full_name),
-                birth_year=birth_year,
-            ).order_by("id"),
-        )
-        if len(matches) == 1:
-            student = matches[0]
-    if student is None and full_name:
-        matches = list(Student.objects.filter(normalized_name=normalize_name(full_name)).order_by("id"))
-        if len(matches) == 1:
-            student = matches[0]
+        if student:
+            return student
+    candidates = {student.pk: student for student in Student.objects.filter(normalized_name=normalize_name(full_name))}
+    candidates.update({student.pk: student for student in reviewed_name_candidates(full_name)})
+    if birth_year is not None:
+        exact = [student for student in candidates.values() if student.birth_year == birth_year]
+        if len(exact) == 1:
+            return exact[0]
+    if len(candidates) > 1:
+        msg = "Multiple students match this name; resolve identity before importing."
+        raise ValueError(msg)
+    return next(iter(candidates.values()), None)
+
+
+def _upsert_student(student_values: dict[str, Any]) -> tuple[Student, bool]:
+    student = _match_legacy_student(student_values)
+    full_name = _student_name_value(student_values)
+    external_code = _student_text_value(student_values.get("external_code"))
+    legacy_code = _student_text_value(student_values.get("legacy_code"))
+    birth_year = _student_int_value(student_values.get("birth_year"))
 
     payload = {
         "full_name": full_name,
@@ -491,6 +561,9 @@ def _resolve_school(value: Any) -> School | None:
     school_name = _student_text_value(value)
     if not school_name:
         return None
+    reviewed = canonical_school(school_name)
+    if reviewed:
+        return reviewed
     normalized_name = normalize_name(school_name)
     school, _created = School.objects.get_or_create(
         normalized_name=normalized_name,

@@ -144,7 +144,7 @@
           {% include 'partials/statement-render-content.html' with segments=problem_data.statement_render_segments %}
         </div>
         {% else %}
-        <p class="text-muted mb-3">A linked statement is not available for this problem yet.</p>
+        <p class="text-muted mb-3">Statement missing. Existing progress and solutions are retained.</p>
         {% endif %}
         <section class="solution-guide-panel" aria-labelledby="solution-hints-title">
           <div class="d-flex flex-wrap align-items-center justify-content-between gap-2">
@@ -376,7 +376,7 @@
           </div>
           <div class="text-danger fs-xs mt-1 d-none js-solution-difficulty-error" role="alert"></div>
           {% else %}
-          <div class="text-muted fs-sm">Link a statement before rating difficulty.</div>
+          <div class="text-muted fs-sm">A statement is needed before rating difficulty.</div>
           {% endif %}
         </div>
       </div>
@@ -418,7 +418,7 @@
       </div>
       <div class="card-body">
         {% if my_solution_row %}
-        <article id="solution-{{ my_solution_row.id }}" class="solution-reference-card{% if selected_solution_id == my_solution_row.id %} solution-card-selected{% endif %}">
+        <article data-solution-image-base-url="{{ my_solution_row.image_base_url }}" id="solution-{{ my_solution_row.id }}" class="solution-reference-card{% if selected_solution_id == my_solution_row.id %} solution-card-selected{% endif %}">
           <div class="solution-reference-heading">
             <div class="solution-reference-identity">
               <h3 class="fs-sm fw-semibold mb-1">{{ my_solution_row.title }}</h3>
@@ -458,18 +458,18 @@
 
     <section class="card solution-references-card" aria-labelledby="solution-references-title">
       <div class="card-header border-bottom d-flex flex-wrap align-items-center justify-content-between gap-2">
-        <h2 id="solution-references-title" class="solution-section-title"><i class="ti ti-books" aria-hidden="true"></i>{{ visible_solution_title }}<span class="badge bg-secondary-subtle text-secondary">{{ visible_solution_rows|length }}</span></h2>
-        <span class="text-muted fs-xs">Open a proof when you’re ready</span>
+        <h2 id="solution-references-title" class="solution-section-title"><i class="ti ti-books" aria-hidden="true"></i>{{ visible_solution_title }}<span class="badge bg-secondary-subtle text-secondary">{{ solution_page.paginator.count }}</span></h2>
+        <form method="get" class="d-flex gap-2 align-items-center"><label for="solution-sort" class="visually-hidden">Solution order</label><select id="solution-sort" name="sort" class="form-select form-select-sm"><option value="top" {% if solution_sort == 'top' %}selected{% endif %}>Top voted</option><option value="newest" {% if solution_sort == 'newest' %}selected{% endif %}>Newest</option></select><button class="btn btn-outline-secondary btn-sm">Sort</button></form>
       </div>
       {% for row in visible_solution_rows %}
-      <article {% if row.id != my_solution_row.id %}id="solution-{{ row.id }}"{% endif %} class="solution-reference-card{% if selected_solution_id == row.id and row.id != my_solution_row.id %} solution-card-selected{% endif %}">
+      <article data-solution-image-base-url="{{ row.image_base_url }}" {% if row.id != my_solution_row.id %}id="solution-{{ row.id }}"{% endif %} class="solution-reference-card{% if selected_solution_id == row.id and row.id != my_solution_row.id %} solution-card-selected{% endif %}">
         <div class="solution-reference-heading">
           <div class="solution-reference-identity">
             <h3 class="fs-sm fw-semibold mb-1">{{ row.title }}</h3>
             <p class="text-muted fs-xs mb-0">By {{ row.author_label }} · Updated {{ row.updated_at_label }}</p>
           </div>
           <div class="solution-reference-actions">
-            <span class="badge {{ row.status_badge_class }}">{{ row.status_label }}</span>
+            <span class="badge {{ row.status_badge_class }}">{{ row.status_label }}</span><span class="text-muted fs-xs"><i class="ti ti-arrow-up" aria-hidden="true"></i> {{ row.upvote_count }}</span>
             <a href="{{ row.view_url }}" class="btn btn-outline-secondary btn-sm" target="_blank" rel="noopener noreferrer"><i class="ti ti-external-link me-1" aria-hidden="true"></i>Open solution<span class="visually-hidden"> by {{ row.author_label }} (new tab)</span></a>
           </div>
         </div>
@@ -481,6 +481,7 @@
       {% empty %}
       <div class="card-body"><p class="text-muted fs-sm mb-0">{{ visible_solution_empty_message }}</p></div>
       {% endfor %}
+      {% if solution_page.has_other_pages %}<nav class="card-footer d-flex justify-content-between" aria-label="Solution pages">{% if solution_page.has_previous %}<a href="?sort={{ solution_sort }}&amp;solutions_page={{ solution_page.previous_page_number }}">Previous</a>{% endif %}<span>Page {{ solution_page.number }} of {{ solution_page.paginator.num_pages }}</span>{% if solution_page.has_next %}<a href="?sort={{ solution_sort }}&amp;solutions_page={{ solution_page.next_page_number }}">Next</a>{% endif %}</nav>{% endif %}
     </section>
   </div>
 </div>
@@ -528,7 +529,7 @@ window.MathJax = {
 <script>
 window.ASTERPROOF_SOLUTION_MEDIA = {
   baseUrl: "{{ solution_media_base_url|escapejs }}",
-  mediaUrlPrefix: "{{ MEDIA_URL|escapejs }}",
+  mediaUrlPrefix: "{{ solution_media_base_url|escapejs }}",
   uploadUrl: "{{ solution_body_image_upload_url|escapejs }}"
 };
 </script>

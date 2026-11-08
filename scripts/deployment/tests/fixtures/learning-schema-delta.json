@@ -1,0 +1,3288 @@
+{
+  "columns": [
+    {
+      "collation": null,
+      "column": "operation_id",
+      "default": null,
+      "nullable": false,
+      "position": 1,
+      "schema": "public",
+      "table": "learning_contentaction",
+      "type": "uuid"
+    },
+    {
+      "collation": "default",
+      "column": "action",
+      "default": null,
+      "nullable": false,
+      "position": 2,
+      "schema": "public",
+      "table": "learning_contentaction",
+      "type": "character varying(32)"
+    },
+    {
+      "collation": "default",
+      "column": "payload_digest",
+      "default": null,
+      "nullable": false,
+      "position": 3,
+      "schema": "public",
+      "table": "learning_contentaction",
+      "type": "character varying(64)"
+    },
+    {
+      "collation": null,
+      "column": "result",
+      "default": null,
+      "nullable": false,
+      "position": 4,
+      "schema": "public",
+      "table": "learning_contentaction",
+      "type": "jsonb"
+    },
+    {
+      "collation": null,
+      "column": "created_at",
+      "default": null,
+      "nullable": false,
+      "position": 5,
+      "schema": "public",
+      "table": "learning_contentaction",
+      "type": "timestamp with time zone"
+    },
+    {
+      "collation": null,
+      "column": "actor_id",
+      "default": null,
+      "nullable": true,
+      "position": 6,
+      "schema": "public",
+      "table": "learning_contentaction",
+      "type": "bigint"
+    },
+    {
+      "collation": null,
+      "column": "document_id",
+      "default": null,
+      "nullable": false,
+      "position": 7,
+      "schema": "public",
+      "table": "learning_contentaction",
+      "type": "uuid"
+    },
+    {
+      "collation": null,
+      "column": "id",
+      "default": null,
+      "nullable": false,
+      "position": 1,
+      "schema": "public",
+      "table": "learning_contentasset",
+      "type": "uuid"
+    },
+    {
+      "collation": "default",
+      "column": "file",
+      "default": null,
+      "nullable": false,
+      "position": 2,
+      "schema": "public",
+      "table": "learning_contentasset",
+      "type": "character varying(100)"
+    },
+    {
+      "collation": "default",
+      "column": "state",
+      "default": null,
+      "nullable": false,
+      "position": 3,
+      "schema": "public",
+      "table": "learning_contentasset",
+      "type": "character varying(16)"
+    },
+    {
+      "collation": "default",
+      "column": "sha256",
+      "default": null,
+      "nullable": false,
+      "position": 4,
+      "schema": "public",
+      "table": "learning_contentasset",
+      "type": "character varying(64)"
+    },
+    {
+      "collation": null,
+      "column": "byte_size",
+      "default": null,
+      "nullable": false,
+      "position": 5,
+      "schema": "public",
+      "table": "learning_contentasset",
+      "type": "integer"
+    },
+    {
+      "collation": "default",
+      "column": "mime_type",
+      "default": null,
+      "nullable": false,
+      "position": 6,
+      "schema": "public",
+      "table": "learning_contentasset",
+      "type": "character varying(48)"
+    },
+    {
+      "collation": null,
+      "column": "width",
+      "default": null,
+      "nullable": false,
+      "position": 7,
+      "schema": "public",
+      "table": "learning_contentasset",
+      "type": "integer"
+    },
+    {
+      "collation": null,
+      "column": "height",
+      "default": null,
+      "nullable": false,
+      "position": 8,
+      "schema": "public",
+      "table": "learning_contentasset",
+      "type": "integer"
+    },
+    {
+      "collation": null,
+      "column": "created_at",
+      "default": null,
+      "nullable": false,
+      "position": 9,
+      "schema": "public",
+      "table": "learning_contentasset",
+      "type": "timestamp with time zone"
+    },
+    {
+      "collation": null,
+      "column": "owner_id",
+      "default": null,
+      "nullable": true,
+      "position": 10,
+      "schema": "public",
+      "table": "learning_contentasset",
+      "type": "bigint"
+    },
+    {
+      "collation": null,
+      "column": "document_id",
+      "default": null,
+      "nullable": false,
+      "position": 11,
+      "schema": "public",
+      "table": "learning_contentasset",
+      "type": "uuid"
+    },
+    {
+      "collation": null,
+      "column": "id",
+      "default": null,
+      "nullable": false,
+      "position": 1,
+      "schema": "public",
+      "table": "learning_contentassetgrant",
+      "type": "bigint"
+    },
+    {
+      "collation": null,
+      "column": "created_at",
+      "default": null,
+      "nullable": false,
+      "position": 2,
+      "schema": "public",
+      "table": "learning_contentassetgrant",
+      "type": "timestamp with time zone"
+    },
+    {
+      "collation": null,
+      "column": "asset_id",
+      "default": null,
+      "nullable": false,
+      "position": 3,
+      "schema": "public",
+      "table": "learning_contentassetgrant",
+      "type": "uuid"
+    },
+    {
+      "collation": null,
+      "column": "granted_by_id",
+      "default": null,
+      "nullable": true,
+      "position": 4,
+      "schema": "public",
+      "table": "learning_contentassetgrant",
+      "type": "bigint"
+    },
+    {
+      "collation": null,
+      "column": "document_id",
+      "default": null,
+      "nullable": false,
+      "position": 5,
+      "schema": "public",
+      "table": "learning_contentassetgrant",
+      "type": "uuid"
+    },
+    {
+      "collation": null,
+      "column": "id",
+      "default": null,
+      "nullable": false,
+      "position": 1,
+      "schema": "public",
+      "table": "learning_contentdocument",
+      "type": "uuid"
+    },
+    {
+      "collation": "default",
+      "column": "kind",
+      "default": null,
+      "nullable": false,
+      "position": 2,
+      "schema": "public",
+      "table": "learning_contentdocument",
+      "type": "character varying(16)"
+    },
+    {
+      "collation": "default",
+      "column": "slug",
+      "default": null,
+      "nullable": false,
+      "position": 3,
+      "schema": "public",
+      "table": "learning_contentdocument",
+      "type": "character varying(180)"
+    },
+    {
+      "collation": null,
+      "column": "created_at",
+      "default": null,
+      "nullable": false,
+      "position": 4,
+      "schema": "public",
+      "table": "learning_contentdocument",
+      "type": "timestamp with time zone"
+    },
+    {
+      "collation": "default",
+      "column": "canonical_area_id",
+      "default": null,
+      "nullable": true,
+      "position": 5,
+      "schema": "public",
+      "table": "learning_contentdocument",
+      "type": "character varying(180)"
+    },
+    {
+      "collation": "default",
+      "column": "canonical_concept_id",
+      "default": null,
+      "nullable": true,
+      "position": 6,
+      "schema": "public",
+      "table": "learning_contentdocument",
+      "type": "character varying(160)"
+    },
+    {
+      "collation": null,
+      "column": "creator_id",
+      "default": null,
+      "nullable": true,
+      "position": 7,
+      "schema": "public",
+      "table": "learning_contentdocument",
+      "type": "bigint"
+    },
+    {
+      "collation": null,
+      "column": "id",
+      "default": null,
+      "nullable": false,
+      "position": 1,
+      "schema": "public",
+      "table": "learning_contentdraft",
+      "type": "uuid"
+    },
+    {
+      "collation": "default",
+      "column": "title",
+      "default": null,
+      "nullable": false,
+      "position": 2,
+      "schema": "public",
+      "table": "learning_contentdraft",
+      "type": "character varying(180)"
+    },
+    {
+      "collation": "default",
+      "column": "summary",
+      "default": null,
+      "nullable": false,
+      "position": 3,
+      "schema": "public",
+      "table": "learning_contentdraft",
+      "type": "character varying(320)"
+    },
+    {
+      "collation": "default",
+      "column": "body_source",
+      "default": null,
+      "nullable": false,
+      "position": 4,
+      "schema": "public",
+      "table": "learning_contentdraft",
+      "type": "text"
+    },
+    {
+      "collation": null,
+      "column": "metadata",
+      "default": null,
+      "nullable": false,
+      "position": 5,
+      "schema": "public",
+      "table": "learning_contentdraft",
+      "type": "jsonb"
+    },
+    {
+      "collation": null,
+      "column": "base_publication_version",
+      "default": null,
+      "nullable": false,
+      "position": 6,
+      "schema": "public",
+      "table": "learning_contentdraft",
+      "type": "integer"
+    },
+    {
+      "collation": null,
+      "column": "edit_version",
+      "default": null,
+      "nullable": false,
+      "position": 7,
+      "schema": "public",
+      "table": "learning_contentdraft",
+      "type": "integer"
+    },
+    {
+      "collation": null,
+      "column": "save_receipts",
+      "default": null,
+      "nullable": false,
+      "position": 8,
+      "schema": "public",
+      "table": "learning_contentdraft",
+      "type": "jsonb"
+    },
+    {
+      "collation": null,
+      "column": "updated_at",
+      "default": null,
+      "nullable": false,
+      "position": 9,
+      "schema": "public",
+      "table": "learning_contentdraft",
+      "type": "timestamp with time zone"
+    },
+    {
+      "collation": null,
+      "column": "author_id",
+      "default": null,
+      "nullable": true,
+      "position": 10,
+      "schema": "public",
+      "table": "learning_contentdraft",
+      "type": "bigint"
+    },
+    {
+      "collation": null,
+      "column": "document_id",
+      "default": null,
+      "nullable": false,
+      "position": 11,
+      "schema": "public",
+      "table": "learning_contentdraft",
+      "type": "uuid"
+    },
+    {
+      "collation": null,
+      "column": "base_revision_id",
+      "default": null,
+      "nullable": true,
+      "position": 12,
+      "schema": "public",
+      "table": "learning_contentdraft",
+      "type": "uuid"
+    },
+    {
+      "collation": null,
+      "column": "is_archived",
+      "default": null,
+      "nullable": false,
+      "position": 13,
+      "schema": "public",
+      "table": "learning_contentdraft",
+      "type": "boolean"
+    },
+    {
+      "collation": null,
+      "column": "id",
+      "default": null,
+      "nullable": false,
+      "position": 1,
+      "schema": "public",
+      "table": "learning_contentissue",
+      "type": "uuid"
+    },
+    {
+      "collation": null,
+      "column": "submission_id",
+      "default": null,
+      "nullable": false,
+      "position": 2,
+      "schema": "public",
+      "table": "learning_contentissue",
+      "type": "uuid"
+    },
+    {
+      "collation": "default",
+      "column": "kind",
+      "default": null,
+      "nullable": false,
+      "position": 3,
+      "schema": "public",
+      "table": "learning_contentissue",
+      "type": "character varying(20)"
+    },
+    {
+      "collation": "default",
+      "column": "target_key",
+      "default": null,
+      "nullable": false,
+      "position": 4,
+      "schema": "public",
+      "table": "learning_contentissue",
+      "type": "character varying(180)"
+    },
+    {
+      "collation": "default",
+      "column": "description",
+      "default": null,
+      "nullable": false,
+      "position": 5,
+      "schema": "public",
+      "table": "learning_contentissue",
+      "type": "character varying(2000)"
+    },
+    {
+      "collation": "default",
+      "column": "status",
+      "default": null,
+      "nullable": false,
+      "position": 6,
+      "schema": "public",
+      "table": "learning_contentissue",
+      "type": "character varying(16)"
+    },
+    {
+      "collation": null,
+      "column": "created_at",
+      "default": null,
+      "nullable": false,
+      "position": 7,
+      "schema": "public",
+      "table": "learning_contentissue",
+      "type": "timestamp with time zone"
+    },
+    {
+      "collation": null,
+      "column": "document_id",
+      "default": null,
+      "nullable": true,
+      "position": 8,
+      "schema": "public",
+      "table": "learning_contentissue",
+      "type": "uuid"
+    },
+    {
+      "collation": null,
+      "column": "reporter_id",
+      "default": null,
+      "nullable": true,
+      "position": 9,
+      "schema": "public",
+      "table": "learning_contentissue",
+      "type": "bigint"
+    },
+    {
+      "collation": null,
+      "column": "revision_id",
+      "default": null,
+      "nullable": true,
+      "position": 10,
+      "schema": "public",
+      "table": "learning_contentissue",
+      "type": "uuid"
+    },
+    {
+      "collation": null,
+      "column": "document_id",
+      "default": null,
+      "nullable": false,
+      "position": 1,
+      "schema": "public",
+      "table": "learning_contentpublication",
+      "type": "uuid"
+    },
+    {
+      "collation": null,
+      "column": "version",
+      "default": null,
+      "nullable": false,
+      "position": 2,
+      "schema": "public",
+      "table": "learning_contentpublication",
+      "type": "integer"
+    },
+    {
+      "collation": null,
+      "column": "training_visible",
+      "default": null,
+      "nullable": false,
+      "position": 3,
+      "schema": "public",
+      "table": "learning_contentpublication",
+      "type": "boolean"
+    },
+    {
+      "collation": null,
+      "column": "public_visible",
+      "default": null,
+      "nullable": false,
+      "position": 4,
+      "schema": "public",
+      "table": "learning_contentpublication",
+      "type": "boolean"
+    },
+    {
+      "collation": "default",
+      "column": "announcement_disposition",
+      "default": null,
+      "nullable": false,
+      "position": 5,
+      "schema": "public",
+      "table": "learning_contentpublication",
+      "type": "character varying(16)"
+    },
+    {
+      "collation": null,
+      "column": "published_at",
+      "default": null,
+      "nullable": true,
+      "position": 6,
+      "schema": "public",
+      "table": "learning_contentpublication",
+      "type": "timestamp with time zone"
+    },
+    {
+      "collation": null,
+      "column": "published_by_id",
+      "default": null,
+      "nullable": true,
+      "position": 7,
+      "schema": "public",
+      "table": "learning_contentpublication",
+      "type": "bigint"
+    },
+    {
+      "collation": null,
+      "column": "revision_id",
+      "default": null,
+      "nullable": true,
+      "position": 8,
+      "schema": "public",
+      "table": "learning_contentpublication",
+      "type": "uuid"
+    },
+    {
+      "collation": null,
+      "column": "id",
+      "default": null,
+      "nullable": false,
+      "position": 1,
+      "schema": "public",
+      "table": "learning_contentrevision",
+      "type": "uuid"
+    },
+    {
+      "collation": null,
+      "column": "sequence",
+      "default": null,
+      "nullable": false,
+      "position": 2,
+      "schema": "public",
+      "table": "learning_contentrevision",
+      "type": "integer"
+    },
+    {
+      "collation": "default",
+      "column": "title",
+      "default": null,
+      "nullable": false,
+      "position": 3,
+      "schema": "public",
+      "table": "learning_contentrevision",
+      "type": "character varying(180)"
+    },
+    {
+      "collation": "default",
+      "column": "summary",
+      "default": null,
+      "nullable": false,
+      "position": 4,
+      "schema": "public",
+      "table": "learning_contentrevision",
+      "type": "character varying(320)"
+    },
+    {
+      "collation": "default",
+      "column": "body_source",
+      "default": null,
+      "nullable": false,
+      "position": 5,
+      "schema": "public",
+      "table": "learning_contentrevision",
+      "type": "text"
+    },
+    {
+      "collation": null,
+      "column": "metadata",
+      "default": null,
+      "nullable": false,
+      "position": 6,
+      "schema": "public",
+      "table": "learning_contentrevision",
+      "type": "jsonb"
+    },
+    {
+      "collation": "default",
+      "column": "body_format",
+      "default": null,
+      "nullable": false,
+      "position": 7,
+      "schema": "public",
+      "table": "learning_contentrevision",
+      "type": "character varying(32)"
+    },
+    {
+      "collation": "default",
+      "column": "source_digest",
+      "default": null,
+      "nullable": false,
+      "position": 8,
+      "schema": "public",
+      "table": "learning_contentrevision",
+      "type": "character varying(64)"
+    },
+    {
+      "collation": null,
+      "column": "created_at",
+      "default": null,
+      "nullable": false,
+      "position": 9,
+      "schema": "public",
+      "table": "learning_contentrevision",
+      "type": "timestamp with time zone"
+    },
+    {
+      "collation": null,
+      "column": "author_id",
+      "default": null,
+      "nullable": true,
+      "position": 10,
+      "schema": "public",
+      "table": "learning_contentrevision",
+      "type": "bigint"
+    },
+    {
+      "collation": null,
+      "column": "base_revision_id",
+      "default": null,
+      "nullable": true,
+      "position": 11,
+      "schema": "public",
+      "table": "learning_contentrevision",
+      "type": "uuid"
+    },
+    {
+      "collation": null,
+      "column": "document_id",
+      "default": null,
+      "nullable": false,
+      "position": 12,
+      "schema": "public",
+      "table": "learning_contentrevision",
+      "type": "uuid"
+    },
+    {
+      "collation": null,
+      "column": "id",
+      "default": null,
+      "nullable": false,
+      "position": 1,
+      "schema": "public",
+      "table": "learning_contributionproposal",
+      "type": "uuid"
+    },
+    {
+      "collation": null,
+      "column": "base_publication_version",
+      "default": null,
+      "nullable": false,
+      "position": 2,
+      "schema": "public",
+      "table": "learning_contributionproposal",
+      "type": "integer"
+    },
+    {
+      "collation": "default",
+      "column": "status",
+      "default": null,
+      "nullable": false,
+      "position": 3,
+      "schema": "public",
+      "table": "learning_contributionproposal",
+      "type": "character varying(24)"
+    },
+    {
+      "collation": "default",
+      "column": "review_digest",
+      "default": null,
+      "nullable": false,
+      "position": 4,
+      "schema": "public",
+      "table": "learning_contributionproposal",
+      "type": "character varying(64)"
+    },
+    {
+      "collation": "default",
+      "column": "feedback",
+      "default": null,
+      "nullable": false,
+      "position": 5,
+      "schema": "public",
+      "table": "learning_contributionproposal",
+      "type": "text"
+    },
+    {
+      "collation": null,
+      "column": "reviewed_at",
+      "default": null,
+      "nullable": true,
+      "position": 6,
+      "schema": "public",
+      "table": "learning_contributionproposal",
+      "type": "timestamp with time zone"
+    },
+    {
+      "collation": null,
+      "column": "created_at",
+      "default": null,
+      "nullable": false,
+      "position": 7,
+      "schema": "public",
+      "table": "learning_contributionproposal",
+      "type": "timestamp with time zone"
+    },
+    {
+      "collation": null,
+      "column": "author_id",
+      "default": null,
+      "nullable": true,
+      "position": 8,
+      "schema": "public",
+      "table": "learning_contributionproposal",
+      "type": "bigint"
+    },
+    {
+      "collation": null,
+      "column": "document_id",
+      "default": null,
+      "nullable": false,
+      "position": 9,
+      "schema": "public",
+      "table": "learning_contributionproposal",
+      "type": "uuid"
+    },
+    {
+      "collation": null,
+      "column": "reviewed_by_id",
+      "default": null,
+      "nullable": true,
+      "position": 10,
+      "schema": "public",
+      "table": "learning_contributionproposal",
+      "type": "bigint"
+    },
+    {
+      "collation": null,
+      "column": "revision_id",
+      "default": null,
+      "nullable": false,
+      "position": 11,
+      "schema": "public",
+      "table": "learning_contributionproposal",
+      "type": "uuid"
+    },
+    {
+      "collation": null,
+      "column": "id",
+      "default": null,
+      "nullable": false,
+      "position": 1,
+      "schema": "public",
+      "table": "learning_contributorpermission",
+      "type": "bigint"
+    },
+    {
+      "collation": "default",
+      "column": "agreement_version",
+      "default": null,
+      "nullable": false,
+      "position": 2,
+      "schema": "public",
+      "table": "learning_contributorpermission",
+      "type": "character varying(64)"
+    },
+    {
+      "collation": "default",
+      "column": "source_digest",
+      "default": null,
+      "nullable": false,
+      "position": 3,
+      "schema": "public",
+      "table": "learning_contributorpermission",
+      "type": "character varying(64)"
+    },
+    {
+      "collation": null,
+      "column": "rights_declaration",
+      "default": null,
+      "nullable": false,
+      "position": 4,
+      "schema": "public",
+      "table": "learning_contributorpermission",
+      "type": "jsonb"
+    },
+    {
+      "collation": "default",
+      "column": "public_credit",
+      "default": null,
+      "nullable": false,
+      "position": 5,
+      "schema": "public",
+      "table": "learning_contributorpermission",
+      "type": "character varying(180)"
+    },
+    {
+      "collation": null,
+      "column": "accepted_at",
+      "default": null,
+      "nullable": false,
+      "position": 6,
+      "schema": "public",
+      "table": "learning_contributorpermission",
+      "type": "timestamp with time zone"
+    },
+    {
+      "collation": null,
+      "column": "contributor_id",
+      "default": null,
+      "nullable": true,
+      "position": 7,
+      "schema": "public",
+      "table": "learning_contributorpermission",
+      "type": "bigint"
+    },
+    {
+      "collation": null,
+      "column": "revision_id",
+      "default": null,
+      "nullable": false,
+      "position": 8,
+      "schema": "public",
+      "table": "learning_contributorpermission",
+      "type": "uuid"
+    },
+    {
+      "collation": null,
+      "column": "id",
+      "default": null,
+      "nullable": false,
+      "position": 1,
+      "schema": "public",
+      "table": "learning_legacycontentlink",
+      "type": "bigint"
+    },
+    {
+      "collation": "default",
+      "column": "source_fingerprint",
+      "default": null,
+      "nullable": false,
+      "position": 2,
+      "schema": "public",
+      "table": "learning_legacycontentlink",
+      "type": "character varying(64)"
+    },
+    {
+      "collation": null,
+      "column": "is_cutover",
+      "default": null,
+      "nullable": false,
+      "position": 3,
+      "schema": "public",
+      "table": "learning_legacycontentlink",
+      "type": "boolean"
+    },
+    {
+      "collation": null,
+      "column": "announcement_excluded",
+      "default": null,
+      "nullable": false,
+      "position": 4,
+      "schema": "public",
+      "table": "learning_legacycontentlink",
+      "type": "boolean"
+    },
+    {
+      "collation": null,
+      "column": "created_at",
+      "default": null,
+      "nullable": false,
+      "position": 5,
+      "schema": "public",
+      "table": "learning_legacycontentlink",
+      "type": "timestamp with time zone"
+    },
+    {
+      "collation": null,
+      "column": "area_id",
+      "default": null,
+      "nullable": true,
+      "position": 6,
+      "schema": "public",
+      "table": "learning_legacycontentlink",
+      "type": "bigint"
+    },
+    {
+      "collation": null,
+      "column": "concept_id",
+      "default": null,
+      "nullable": true,
+      "position": 7,
+      "schema": "public",
+      "table": "learning_legacycontentlink",
+      "type": "bigint"
+    },
+    {
+      "collation": null,
+      "column": "document_id",
+      "default": null,
+      "nullable": false,
+      "position": 8,
+      "schema": "public",
+      "table": "learning_legacycontentlink",
+      "type": "uuid"
+    },
+    {
+      "collation": null,
+      "column": "lecture_id",
+      "default": null,
+      "nullable": true,
+      "position": 9,
+      "schema": "public",
+      "table": "learning_legacycontentlink",
+      "type": "bigint"
+    },
+    {
+      "collation": null,
+      "column": "material_id",
+      "default": null,
+      "nullable": true,
+      "position": 10,
+      "schema": "public",
+      "table": "learning_legacycontentlink",
+      "type": "bigint"
+    },
+    {
+      "collation": null,
+      "column": "reviewed_by_id",
+      "default": null,
+      "nullable": true,
+      "position": 11,
+      "schema": "public",
+      "table": "learning_legacycontentlink",
+      "type": "bigint"
+    },
+    {
+      "collation": null,
+      "column": "id",
+      "default": null,
+      "nullable": false,
+      "position": 1,
+      "schema": "public",
+      "table": "learning_revisionasset",
+      "type": "bigint"
+    },
+    {
+      "collation": "default",
+      "column": "alt_text",
+      "default": null,
+      "nullable": false,
+      "position": 2,
+      "schema": "public",
+      "table": "learning_revisionasset",
+      "type": "character varying(500)"
+    },
+    {
+      "collation": "default",
+      "column": "caption",
+      "default": null,
+      "nullable": false,
+      "position": 3,
+      "schema": "public",
+      "table": "learning_revisionasset",
+      "type": "character varying(1000)"
+    },
+    {
+      "collation": "default",
+      "column": "credit",
+      "default": null,
+      "nullable": false,
+      "position": 4,
+      "schema": "public",
+      "table": "learning_revisionasset",
+      "type": "character varying(500)"
+    },
+    {
+      "collation": null,
+      "column": "asset_id",
+      "default": null,
+      "nullable": false,
+      "position": 5,
+      "schema": "public",
+      "table": "learning_revisionasset",
+      "type": "uuid"
+    },
+    {
+      "collation": null,
+      "column": "revision_id",
+      "default": null,
+      "nullable": false,
+      "position": 6,
+      "schema": "public",
+      "table": "learning_revisionasset",
+      "type": "uuid"
+    },
+    {
+      "collation": null,
+      "column": "id",
+      "default": null,
+      "nullable": false,
+      "position": 1,
+      "schema": "public",
+      "table": "learning_revisionconcept",
+      "type": "bigint"
+    },
+    {
+      "collation": "default",
+      "column": "role",
+      "default": null,
+      "nullable": false,
+      "position": 2,
+      "schema": "public",
+      "table": "learning_revisionconcept",
+      "type": "character varying(16)"
+    },
+    {
+      "collation": "default",
+      "column": "concept_id",
+      "default": null,
+      "nullable": false,
+      "position": 3,
+      "schema": "public",
+      "table": "learning_revisionconcept",
+      "type": "character varying(160)"
+    },
+    {
+      "collation": null,
+      "column": "revision_id",
+      "default": null,
+      "nullable": false,
+      "position": 4,
+      "schema": "public",
+      "table": "learning_revisionconcept",
+      "type": "uuid"
+    },
+    {
+      "collation": null,
+      "column": "id",
+      "default": null,
+      "nullable": false,
+      "position": 1,
+      "schema": "public",
+      "table": "pages_catalogueprerequisite",
+      "type": "bigint"
+    },
+    {
+      "collation": null,
+      "column": "approved_at",
+      "default": null,
+      "nullable": false,
+      "position": 2,
+      "schema": "public",
+      "table": "pages_catalogueprerequisite",
+      "type": "timestamp with time zone"
+    },
+    {
+      "collation": null,
+      "column": "approved_by_id",
+      "default": null,
+      "nullable": true,
+      "position": 3,
+      "schema": "public",
+      "table": "pages_catalogueprerequisite",
+      "type": "bigint"
+    },
+    {
+      "collation": "default",
+      "column": "dependent_id",
+      "default": null,
+      "nullable": false,
+      "position": 4,
+      "schema": "public",
+      "table": "pages_catalogueprerequisite",
+      "type": "character varying(160)"
+    },
+    {
+      "collation": "default",
+      "column": "prerequisite_id",
+      "default": null,
+      "nullable": false,
+      "position": 5,
+      "schema": "public",
+      "table": "pages_catalogueprerequisite",
+      "type": "character varying(160)"
+    },
+    {
+      "collation": null,
+      "column": "singleton_key",
+      "default": null,
+      "nullable": false,
+      "position": 1,
+      "schema": "public",
+      "table": "pages_prerequisitegraphstate",
+      "type": "smallint"
+    },
+    {
+      "collation": null,
+      "column": "version",
+      "default": null,
+      "nullable": false,
+      "position": 2,
+      "schema": "public",
+      "table": "pages_prerequisitegraphstate",
+      "type": "integer"
+    },
+    {
+      "collation": null,
+      "column": "validated_catalogue_revision",
+      "default": null,
+      "nullable": true,
+      "position": 3,
+      "schema": "public",
+      "table": "pages_prerequisitegraphstate",
+      "type": "bigint"
+    },
+    {
+      "collation": null,
+      "column": "is_valid",
+      "default": null,
+      "nullable": false,
+      "position": 4,
+      "schema": "public",
+      "table": "pages_prerequisitegraphstate",
+      "type": "boolean"
+    },
+    {
+      "collation": null,
+      "column": "snapshot",
+      "default": null,
+      "nullable": false,
+      "position": 5,
+      "schema": "public",
+      "table": "pages_prerequisitegraphstate",
+      "type": "jsonb"
+    },
+    {
+      "collation": null,
+      "column": "updated_at",
+      "default": null,
+      "nullable": false,
+      "position": 6,
+      "schema": "public",
+      "table": "pages_prerequisitegraphstate",
+      "type": "timestamp with time zone"
+    },
+    {
+      "collation": null,
+      "column": "id",
+      "default": null,
+      "nullable": false,
+      "position": 1,
+      "schema": "public",
+      "table": "training_contentpackimport",
+      "type": "bigint"
+    },
+    {
+      "collation": "default",
+      "column": "pack_key",
+      "default": null,
+      "nullable": false,
+      "position": 2,
+      "schema": "public",
+      "table": "training_contentpackimport",
+      "type": "character varying(160)"
+    },
+    {
+      "collation": "default",
+      "column": "source_digest",
+      "default": null,
+      "nullable": false,
+      "position": 3,
+      "schema": "public",
+      "table": "training_contentpackimport",
+      "type": "character varying(64)"
+    },
+    {
+      "collation": null,
+      "column": "draft_ids",
+      "default": null,
+      "nullable": false,
+      "position": 4,
+      "schema": "public",
+      "table": "training_contentpackimport",
+      "type": "jsonb"
+    },
+    {
+      "collation": null,
+      "column": "created_at",
+      "default": null,
+      "nullable": false,
+      "position": 5,
+      "schema": "public",
+      "table": "training_contentpackimport",
+      "type": "timestamp with time zone"
+    },
+    {
+      "collation": null,
+      "column": "updated_at",
+      "default": null,
+      "nullable": false,
+      "position": 6,
+      "schema": "public",
+      "table": "training_contentpackimport",
+      "type": "timestamp with time zone"
+    },
+    {
+      "collation": null,
+      "column": "user_id",
+      "default": null,
+      "nullable": false,
+      "position": 7,
+      "schema": "public",
+      "table": "training_contentpackimport",
+      "type": "bigint"
+    },
+    {
+      "collation": null,
+      "column": "id",
+      "default": null,
+      "nullable": false,
+      "position": 1,
+      "schema": "public",
+      "table": "training_learningpath",
+      "type": "uuid"
+    },
+    {
+      "collation": "default",
+      "column": "slug",
+      "default": null,
+      "nullable": false,
+      "position": 2,
+      "schema": "public",
+      "table": "training_learningpath",
+      "type": "character varying(120)"
+    },
+    {
+      "collation": null,
+      "column": "is_foundations",
+      "default": null,
+      "nullable": false,
+      "position": 3,
+      "schema": "public",
+      "table": "training_learningpath",
+      "type": "boolean"
+    },
+    {
+      "collation": null,
+      "column": "version",
+      "default": null,
+      "nullable": false,
+      "position": 4,
+      "schema": "public",
+      "table": "training_learningpath",
+      "type": "integer"
+    },
+    {
+      "collation": null,
+      "column": "training_visible",
+      "default": null,
+      "nullable": false,
+      "position": 5,
+      "schema": "public",
+      "table": "training_learningpath",
+      "type": "boolean"
+    },
+    {
+      "collation": null,
+      "column": "public_visible",
+      "default": null,
+      "nullable": false,
+      "position": 6,
+      "schema": "public",
+      "table": "training_learningpath",
+      "type": "boolean"
+    },
+    {
+      "collation": null,
+      "column": "created_at",
+      "default": null,
+      "nullable": false,
+      "position": 7,
+      "schema": "public",
+      "table": "training_learningpath",
+      "type": "timestamp with time zone"
+    },
+    {
+      "collation": "default",
+      "column": "area_id",
+      "default": null,
+      "nullable": true,
+      "position": 8,
+      "schema": "public",
+      "table": "training_learningpath",
+      "type": "character varying(180)"
+    },
+    {
+      "collation": null,
+      "column": "created_by_id",
+      "default": null,
+      "nullable": true,
+      "position": 9,
+      "schema": "public",
+      "table": "training_learningpath",
+      "type": "bigint"
+    },
+    {
+      "collation": "default",
+      "column": "subject_id",
+      "default": null,
+      "nullable": true,
+      "position": 10,
+      "schema": "public",
+      "table": "training_learningpath",
+      "type": "character varying(40)"
+    },
+    {
+      "collation": null,
+      "column": "current_revision_id",
+      "default": null,
+      "nullable": true,
+      "position": 11,
+      "schema": "public",
+      "table": "training_learningpath",
+      "type": "uuid"
+    },
+    {
+      "collation": null,
+      "column": "id",
+      "default": null,
+      "nullable": false,
+      "position": 1,
+      "schema": "public",
+      "table": "training_learningpathitem",
+      "type": "bigint"
+    },
+    {
+      "collation": "default",
+      "column": "item_key",
+      "default": null,
+      "nullable": false,
+      "position": 2,
+      "schema": "public",
+      "table": "training_learningpathitem",
+      "type": "character varying(80)"
+    },
+    {
+      "collation": null,
+      "column": "position",
+      "default": null,
+      "nullable": false,
+      "position": 3,
+      "schema": "public",
+      "table": "training_learningpathitem",
+      "type": "integer"
+    },
+    {
+      "collation": "default",
+      "column": "title",
+      "default": null,
+      "nullable": false,
+      "position": 4,
+      "schema": "public",
+      "table": "training_learningpathitem",
+      "type": "character varying(180)"
+    },
+    {
+      "collation": "default",
+      "column": "kind",
+      "default": null,
+      "nullable": false,
+      "position": 5,
+      "schema": "public",
+      "table": "training_learningpathitem",
+      "type": "character varying(16)"
+    },
+    {
+      "collation": "default",
+      "column": "exercise_source",
+      "default": null,
+      "nullable": false,
+      "position": 6,
+      "schema": "public",
+      "table": "training_learningpathitem",
+      "type": "text"
+    },
+    {
+      "collation": null,
+      "column": "hints",
+      "default": null,
+      "nullable": false,
+      "position": 7,
+      "schema": "public",
+      "table": "training_learningpathitem",
+      "type": "jsonb"
+    },
+    {
+      "collation": null,
+      "column": "document_id",
+      "default": null,
+      "nullable": true,
+      "position": 8,
+      "schema": "public",
+      "table": "training_learningpathitem",
+      "type": "uuid"
+    },
+    {
+      "collation": null,
+      "column": "legacy_material_id",
+      "default": null,
+      "nullable": true,
+      "position": 9,
+      "schema": "public",
+      "table": "training_learningpathitem",
+      "type": "bigint"
+    },
+    {
+      "collation": null,
+      "column": "problem_id",
+      "default": null,
+      "nullable": true,
+      "position": 10,
+      "schema": "public",
+      "table": "training_learningpathitem",
+      "type": "uuid"
+    },
+    {
+      "collation": null,
+      "column": "revision_id",
+      "default": null,
+      "nullable": false,
+      "position": 11,
+      "schema": "public",
+      "table": "training_learningpathitem",
+      "type": "uuid"
+    },
+    {
+      "collation": null,
+      "column": "id",
+      "default": null,
+      "nullable": false,
+      "position": 1,
+      "schema": "public",
+      "table": "training_learningpathrevision",
+      "type": "uuid"
+    },
+    {
+      "collation": null,
+      "column": "sequence",
+      "default": null,
+      "nullable": false,
+      "position": 2,
+      "schema": "public",
+      "table": "training_learningpathrevision",
+      "type": "integer"
+    },
+    {
+      "collation": "default",
+      "column": "title",
+      "default": null,
+      "nullable": false,
+      "position": 3,
+      "schema": "public",
+      "table": "training_learningpathrevision",
+      "type": "character varying(180)"
+    },
+    {
+      "collation": "default",
+      "column": "summary",
+      "default": null,
+      "nullable": false,
+      "position": 4,
+      "schema": "public",
+      "table": "training_learningpathrevision",
+      "type": "character varying(500)"
+    },
+    {
+      "collation": "default",
+      "column": "audience",
+      "default": null,
+      "nullable": false,
+      "position": 5,
+      "schema": "public",
+      "table": "training_learningpathrevision",
+      "type": "character varying(500)"
+    },
+    {
+      "collation": null,
+      "column": "readiness",
+      "default": null,
+      "nullable": false,
+      "position": 6,
+      "schema": "public",
+      "table": "training_learningpathrevision",
+      "type": "jsonb"
+    },
+    {
+      "collation": null,
+      "column": "snapshot",
+      "default": null,
+      "nullable": false,
+      "position": 7,
+      "schema": "public",
+      "table": "training_learningpathrevision",
+      "type": "jsonb"
+    },
+    {
+      "collation": "default",
+      "column": "source_digest",
+      "default": null,
+      "nullable": false,
+      "position": 8,
+      "schema": "public",
+      "table": "training_learningpathrevision",
+      "type": "character varying(64)"
+    },
+    {
+      "collation": null,
+      "column": "operation_id",
+      "default": null,
+      "nullable": false,
+      "position": 9,
+      "schema": "public",
+      "table": "training_learningpathrevision",
+      "type": "uuid"
+    },
+    {
+      "collation": "default",
+      "column": "review_context_digest",
+      "default": null,
+      "nullable": false,
+      "position": 10,
+      "schema": "public",
+      "table": "training_learningpathrevision",
+      "type": "character varying(64)"
+    },
+    {
+      "collation": null,
+      "column": "created_at",
+      "default": null,
+      "nullable": false,
+      "position": 11,
+      "schema": "public",
+      "table": "training_learningpathrevision",
+      "type": "timestamp with time zone"
+    },
+    {
+      "collation": null,
+      "column": "created_by_id",
+      "default": null,
+      "nullable": true,
+      "position": 12,
+      "schema": "public",
+      "table": "training_learningpathrevision",
+      "type": "bigint"
+    },
+    {
+      "collation": null,
+      "column": "path_id",
+      "default": null,
+      "nullable": false,
+      "position": 13,
+      "schema": "public",
+      "table": "training_learningpathrevision",
+      "type": "uuid"
+    },
+    {
+      "collation": null,
+      "column": "id",
+      "default": null,
+      "nullable": false,
+      "position": 1,
+      "schema": "public",
+      "table": "training_pathreading",
+      "type": "bigint"
+    },
+    {
+      "collation": null,
+      "column": "completed_at",
+      "default": null,
+      "nullable": false,
+      "position": 2,
+      "schema": "public",
+      "table": "training_pathreading",
+      "type": "timestamp with time zone"
+    },
+    {
+      "collation": null,
+      "column": "document_revision_id",
+      "default": null,
+      "nullable": false,
+      "position": 3,
+      "schema": "public",
+      "table": "training_pathreading",
+      "type": "uuid"
+    },
+    {
+      "collation": null,
+      "column": "item_id",
+      "default": null,
+      "nullable": false,
+      "position": 4,
+      "schema": "public",
+      "table": "training_pathreading",
+      "type": "bigint"
+    },
+    {
+      "collation": null,
+      "column": "path_revision_id",
+      "default": null,
+      "nullable": false,
+      "position": 5,
+      "schema": "public",
+      "table": "training_pathreading",
+      "type": "uuid"
+    },
+    {
+      "collation": null,
+      "column": "user_id",
+      "default": null,
+      "nullable": false,
+      "position": 6,
+      "schema": "public",
+      "table": "training_pathreading",
+      "type": "bigint"
+    }
+  ],
+  "constraints": [
+    {
+      "definition": "FOREIGN KEY (document_id) REFERENCES learning_contentdocument(id) DEFERRABLE INITIALLY DEFERRED",
+      "name": "learning_contentacti_document_id_f211e5f4_fk_learning_",
+      "schema": "public",
+      "table": "learning_contentaction",
+      "type": "f"
+    },
+    {
+      "definition": "FOREIGN KEY (actor_id) REFERENCES users_user(id) DEFERRABLE INITIALLY DEFERRED",
+      "name": "learning_contentaction_actor_id_8891edee_fk_users_user_id",
+      "schema": "public",
+      "table": "learning_contentaction",
+      "type": "f"
+    },
+    {
+      "definition": "PRIMARY KEY (operation_id)",
+      "name": "learning_contentaction_pkey",
+      "schema": "public",
+      "table": "learning_contentaction",
+      "type": "p"
+    },
+    {
+      "definition": "FOREIGN KEY (document_id) REFERENCES learning_contentdocument(id) DEFERRABLE INITIALLY DEFERRED",
+      "name": "learning_contentasse_document_id_c8a7a364_fk_learning_",
+      "schema": "public",
+      "table": "learning_contentasset",
+      "type": "f"
+    },
+    {
+      "definition": "CHECK (byte_size >= 0)",
+      "name": "learning_contentasset_byte_size_check",
+      "schema": "public",
+      "table": "learning_contentasset",
+      "type": "c"
+    },
+    {
+      "definition": "CHECK (height >= 0)",
+      "name": "learning_contentasset_height_check",
+      "schema": "public",
+      "table": "learning_contentasset",
+      "type": "c"
+    },
+    {
+      "definition": "FOREIGN KEY (owner_id) REFERENCES users_user(id) DEFERRABLE INITIALLY DEFERRED",
+      "name": "learning_contentasset_owner_id_bbbba47f_fk_users_user_id",
+      "schema": "public",
+      "table": "learning_contentasset",
+      "type": "f"
+    },
+    {
+      "definition": "PRIMARY KEY (id)",
+      "name": "learning_contentasset_pkey",
+      "schema": "public",
+      "table": "learning_contentasset",
+      "type": "p"
+    },
+    {
+      "definition": "CHECK (width >= 0)",
+      "name": "learning_contentasset_width_check",
+      "schema": "public",
+      "table": "learning_contentasset",
+      "type": "c"
+    },
+    {
+      "definition": "UNIQUE (asset_id, document_id)",
+      "name": "learning_asset_document_grant",
+      "schema": "public",
+      "table": "learning_contentassetgrant",
+      "type": "u"
+    },
+    {
+      "definition": "FOREIGN KEY (asset_id) REFERENCES learning_contentasset(id) DEFERRABLE INITIALLY DEFERRED",
+      "name": "learning_contentasse_asset_id_917c5736_fk_learning_",
+      "schema": "public",
+      "table": "learning_contentassetgrant",
+      "type": "f"
+    },
+    {
+      "definition": "FOREIGN KEY (document_id) REFERENCES learning_contentdocument(id) DEFERRABLE INITIALLY DEFERRED",
+      "name": "learning_contentasse_document_id_3a4e3d94_fk_learning_",
+      "schema": "public",
+      "table": "learning_contentassetgrant",
+      "type": "f"
+    },
+    {
+      "definition": "FOREIGN KEY (granted_by_id) REFERENCES users_user(id) DEFERRABLE INITIALLY DEFERRED",
+      "name": "learning_contentasse_granted_by_id_2f0ac1c5_fk_users_use",
+      "schema": "public",
+      "table": "learning_contentassetgrant",
+      "type": "f"
+    },
+    {
+      "definition": "PRIMARY KEY (id)",
+      "name": "learning_contentassetgrant_pkey",
+      "schema": "public",
+      "table": "learning_contentassetgrant",
+      "type": "p"
+    },
+    {
+      "definition": "FOREIGN KEY (canonical_area_id) REFERENCES pages_cataloguearea(id) DEFERRABLE INITIALLY DEFERRED",
+      "name": "learning_contentdocu_canonical_area_id_a458906d_fk_pages_cat",
+      "schema": "public",
+      "table": "learning_contentdocument",
+      "type": "f"
+    },
+    {
+      "definition": "FOREIGN KEY (canonical_concept_id) REFERENCES pages_catalogueconcept(id) DEFERRABLE INITIALLY DEFERRED",
+      "name": "learning_contentdocu_canonical_concept_id_3d55ed6f_fk_pages_cat",
+      "schema": "public",
+      "table": "learning_contentdocument",
+      "type": "f"
+    },
+    {
+      "definition": "FOREIGN KEY (creator_id) REFERENCES users_user(id) DEFERRABLE INITIALLY DEFERRED",
+      "name": "learning_contentdocument_creator_id_6dde5230_fk_users_user_id",
+      "schema": "public",
+      "table": "learning_contentdocument",
+      "type": "f"
+    },
+    {
+      "definition": "PRIMARY KEY (id)",
+      "name": "learning_contentdocument_pkey",
+      "schema": "public",
+      "table": "learning_contentdocument",
+      "type": "p"
+    },
+    {
+      "definition": "CHECK (canonical_area_id IS NOT NULL AND canonical_concept_id IS NULL AND kind::text = 'overview'::text OR canonical_area_id IS NULL AND canonical_concept_id IS NOT NULL AND kind::text = 'concept'::text OR (kind::text = ANY (ARRAY['lecture'::character varying, 'technique'::character varying, 'standalone'::character varying]::text[])))",
+      "name": "learning_document_canonical_identity",
+      "schema": "public",
+      "table": "learning_contentdocument",
+      "type": "c"
+    },
+    {
+      "definition": "FOREIGN KEY (base_revision_id) REFERENCES learning_contentrevision(id) DEFERRABLE INITIALLY DEFERRED",
+      "name": "learning_contentdraf_base_revision_id_4cb8507c_fk_learning_",
+      "schema": "public",
+      "table": "learning_contentdraft",
+      "type": "f"
+    },
+    {
+      "definition": "FOREIGN KEY (document_id) REFERENCES learning_contentdocument(id) DEFERRABLE INITIALLY DEFERRED",
+      "name": "learning_contentdraf_document_id_1d496533_fk_learning_",
+      "schema": "public",
+      "table": "learning_contentdraft",
+      "type": "f"
+    },
+    {
+      "definition": "FOREIGN KEY (author_id) REFERENCES users_user(id) DEFERRABLE INITIALLY DEFERRED",
+      "name": "learning_contentdraft_author_id_5a24af0e_fk_users_user_id",
+      "schema": "public",
+      "table": "learning_contentdraft",
+      "type": "f"
+    },
+    {
+      "definition": "CHECK (base_publication_version >= 0)",
+      "name": "learning_contentdraft_base_publication_version_check",
+      "schema": "public",
+      "table": "learning_contentdraft",
+      "type": "c"
+    },
+    {
+      "definition": "CHECK (edit_version >= 0)",
+      "name": "learning_contentdraft_edit_version_check",
+      "schema": "public",
+      "table": "learning_contentdraft",
+      "type": "c"
+    },
+    {
+      "definition": "PRIMARY KEY (id)",
+      "name": "learning_contentdraft_pkey",
+      "schema": "public",
+      "table": "learning_contentdraft",
+      "type": "p"
+    },
+    {
+      "definition": "UNIQUE (document_id, author_id)",
+      "name": "learning_draft_author_document",
+      "schema": "public",
+      "table": "learning_contentdraft",
+      "type": "u"
+    },
+    {
+      "definition": "FOREIGN KEY (document_id) REFERENCES learning_contentdocument(id) DEFERRABLE INITIALLY DEFERRED",
+      "name": "learning_contentissu_document_id_6474775c_fk_learning_",
+      "schema": "public",
+      "table": "learning_contentissue",
+      "type": "f"
+    },
+    {
+      "definition": "FOREIGN KEY (revision_id) REFERENCES learning_contentrevision(id) DEFERRABLE INITIALLY DEFERRED",
+      "name": "learning_contentissu_revision_id_ade91c3e_fk_learning_",
+      "schema": "public",
+      "table": "learning_contentissue",
+      "type": "f"
+    },
+    {
+      "definition": "PRIMARY KEY (id)",
+      "name": "learning_contentissue_pkey",
+      "schema": "public",
+      "table": "learning_contentissue",
+      "type": "p"
+    },
+    {
+      "definition": "FOREIGN KEY (reporter_id) REFERENCES users_user(id) DEFERRABLE INITIALLY DEFERRED",
+      "name": "learning_contentissue_reporter_id_bef2360a_fk_users_user_id",
+      "schema": "public",
+      "table": "learning_contentissue",
+      "type": "f"
+    },
+    {
+      "definition": "UNIQUE (submission_id)",
+      "name": "learning_contentissue_submission_id_key",
+      "schema": "public",
+      "table": "learning_contentissue",
+      "type": "u"
+    },
+    {
+      "definition": "CHECK (announcement_disposition::text = 'excluded'::text)",
+      "name": "learning_announcement_excluded",
+      "schema": "public",
+      "table": "learning_contentpublication",
+      "type": "c"
+    },
+    {
+      "definition": "FOREIGN KEY (document_id) REFERENCES learning_contentdocument(id) DEFERRABLE INITIALLY DEFERRED",
+      "name": "learning_contentpubl_document_id_97f95b59_fk_learning_",
+      "schema": "public",
+      "table": "learning_contentpublication",
+      "type": "f"
+    },
+    {
+      "definition": "FOREIGN KEY (published_by_id) REFERENCES users_user(id) DEFERRABLE INITIALLY DEFERRED",
+      "name": "learning_contentpubl_published_by_id_3ca7d911_fk_users_use",
+      "schema": "public",
+      "table": "learning_contentpublication",
+      "type": "f"
+    },
+    {
+      "definition": "FOREIGN KEY (revision_id) REFERENCES learning_contentrevision(id) DEFERRABLE INITIALLY DEFERRED",
+      "name": "learning_contentpubl_revision_id_2a14c6d5_fk_learning_",
+      "schema": "public",
+      "table": "learning_contentpublication",
+      "type": "f"
+    },
+    {
+      "definition": "PRIMARY KEY (document_id)",
+      "name": "learning_contentpublication_pkey",
+      "schema": "public",
+      "table": "learning_contentpublication",
+      "type": "p"
+    },
+    {
+      "definition": "CHECK (version >= 0)",
+      "name": "learning_contentpublication_version_check",
+      "schema": "public",
+      "table": "learning_contentpublication",
+      "type": "c"
+    },
+    {
+      "definition": "CHECK (NOT public_visible OR training_visible)",
+      "name": "learning_public_implies_training",
+      "schema": "public",
+      "table": "learning_contentpublication",
+      "type": "c"
+    },
+    {
+      "definition": "CHECK (revision_id IS NOT NULL OR NOT public_visible AND NOT training_visible)",
+      "name": "learning_visible_requires_revision",
+      "schema": "public",
+      "table": "learning_contentpublication",
+      "type": "c"
+    },
+    {
+      "definition": "FOREIGN KEY (base_revision_id) REFERENCES learning_contentrevision(id) DEFERRABLE INITIALLY DEFERRED",
+      "name": "learning_contentrevi_base_revision_id_413406f7_fk_learning_",
+      "schema": "public",
+      "table": "learning_contentrevision",
+      "type": "f"
+    },
+    {
+      "definition": "FOREIGN KEY (document_id) REFERENCES learning_contentdocument(id) DEFERRABLE INITIALLY DEFERRED",
+      "name": "learning_contentrevi_document_id_e456aa15_fk_learning_",
+      "schema": "public",
+      "table": "learning_contentrevision",
+      "type": "f"
+    },
+    {
+      "definition": "FOREIGN KEY (author_id) REFERENCES users_user(id) DEFERRABLE INITIALLY DEFERRED",
+      "name": "learning_contentrevision_author_id_5bf4430c_fk_users_user_id",
+      "schema": "public",
+      "table": "learning_contentrevision",
+      "type": "f"
+    },
+    {
+      "definition": "PRIMARY KEY (id)",
+      "name": "learning_contentrevision_pkey",
+      "schema": "public",
+      "table": "learning_contentrevision",
+      "type": "p"
+    },
+    {
+      "definition": "CHECK (sequence >= 0)",
+      "name": "learning_contentrevision_sequence_check",
+      "schema": "public",
+      "table": "learning_contentrevision",
+      "type": "c"
+    },
+    {
+      "definition": "CHECK (sequence >= 1)",
+      "name": "learning_revision_positive_sequence",
+      "schema": "public",
+      "table": "learning_contentrevision",
+      "type": "c"
+    },
+    {
+      "definition": "UNIQUE (document_id, sequence)",
+      "name": "learning_revision_sequence",
+      "schema": "public",
+      "table": "learning_contentrevision",
+      "type": "u"
+    },
+    {
+      "definition": "FOREIGN KEY (author_id) REFERENCES users_user(id) DEFERRABLE INITIALLY DEFERRED",
+      "name": "learning_contributio_author_id_95431c9b_fk_users_use",
+      "schema": "public",
+      "table": "learning_contributionproposal",
+      "type": "f"
+    },
+    {
+      "definition": "FOREIGN KEY (document_id) REFERENCES learning_contentdocument(id) DEFERRABLE INITIALLY DEFERRED",
+      "name": "learning_contributio_document_id_2da58c02_fk_learning_",
+      "schema": "public",
+      "table": "learning_contributionproposal",
+      "type": "f"
+    },
+    {
+      "definition": "FOREIGN KEY (reviewed_by_id) REFERENCES users_user(id) DEFERRABLE INITIALLY DEFERRED",
+      "name": "learning_contributio_reviewed_by_id_a275c4d4_fk_users_use",
+      "schema": "public",
+      "table": "learning_contributionproposal",
+      "type": "f"
+    },
+    {
+      "definition": "FOREIGN KEY (revision_id) REFERENCES learning_contentrevision(id) DEFERRABLE INITIALLY DEFERRED",
+      "name": "learning_contributio_revision_id_c1b15fdf_fk_learning_",
+      "schema": "public",
+      "table": "learning_contributionproposal",
+      "type": "f"
+    },
+    {
+      "definition": "CHECK (base_publication_version >= 0)",
+      "name": "learning_contributionproposal_base_publication_version_check",
+      "schema": "public",
+      "table": "learning_contributionproposal",
+      "type": "c"
+    },
+    {
+      "definition": "PRIMARY KEY (id)",
+      "name": "learning_contributionproposal_pkey",
+      "schema": "public",
+      "table": "learning_contributionproposal",
+      "type": "p"
+    },
+    {
+      "definition": "FOREIGN KEY (contributor_id) REFERENCES users_user(id) DEFERRABLE INITIALLY DEFERRED",
+      "name": "learning_contributor_contributor_id_bb9ea8af_fk_users_use",
+      "schema": "public",
+      "table": "learning_contributorpermission",
+      "type": "f"
+    },
+    {
+      "definition": "FOREIGN KEY (revision_id) REFERENCES learning_contentrevision(id) DEFERRABLE INITIALLY DEFERRED",
+      "name": "learning_contributor_revision_id_12cc167d_fk_learning_",
+      "schema": "public",
+      "table": "learning_contributorpermission",
+      "type": "f"
+    },
+    {
+      "definition": "PRIMARY KEY (id)",
+      "name": "learning_contributorpermission_pkey",
+      "schema": "public",
+      "table": "learning_contributorpermission",
+      "type": "p"
+    },
+    {
+      "definition": "UNIQUE (revision_id)",
+      "name": "learning_contributorpermission_revision_id_key",
+      "schema": "public",
+      "table": "learning_contributorpermission",
+      "type": "u"
+    },
+    {
+      "definition": "CHECK (area_id IS NULL AND concept_id IS NULL AND lecture_id IS NULL AND material_id IS NOT NULL OR area_id IS NOT NULL AND concept_id IS NULL AND lecture_id IS NULL AND material_id IS NULL OR area_id IS NULL AND concept_id IS NOT NULL AND lecture_id IS NULL AND material_id IS NULL OR area_id IS NULL AND concept_id IS NULL AND lecture_id IS NOT NULL AND material_id IS NULL)",
+      "name": "learning_legacy_one_source",
+      "schema": "public",
+      "table": "learning_legacycontentlink",
+      "type": "c"
+    },
+    {
+      "definition": "FOREIGN KEY (area_id) REFERENCES website_libraryarea(id) DEFERRABLE INITIALLY DEFERRED",
+      "name": "learning_legacyconte_area_id_b4bd9166_fk_website_l",
+      "schema": "public",
+      "table": "learning_legacycontentlink",
+      "type": "f"
+    },
+    {
+      "definition": "FOREIGN KEY (concept_id) REFERENCES website_libraryconcept(id) DEFERRABLE INITIALLY DEFERRED",
+      "name": "learning_legacyconte_concept_id_a8e271fb_fk_website_l",
+      "schema": "public",
+      "table": "learning_legacycontentlink",
+      "type": "f"
+    },
+    {
+      "definition": "FOREIGN KEY (document_id) REFERENCES learning_contentdocument(id) DEFERRABLE INITIALLY DEFERRED",
+      "name": "learning_legacyconte_document_id_0152c138_fk_learning_",
+      "schema": "public",
+      "table": "learning_legacycontentlink",
+      "type": "f"
+    },
+    {
+      "definition": "FOREIGN KEY (lecture_id) REFERENCES website_librarylecture(id) DEFERRABLE INITIALLY DEFERRED",
+      "name": "learning_legacyconte_lecture_id_49eebd50_fk_website_l",
+      "schema": "public",
+      "table": "learning_legacycontentlink",
+      "type": "f"
+    },
+    {
+      "definition": "FOREIGN KEY (material_id) REFERENCES training_material(id) DEFERRABLE INITIALLY DEFERRED",
+      "name": "learning_legacyconte_material_id_a72117dc_fk_training_",
+      "schema": "public",
+      "table": "learning_legacycontentlink",
+      "type": "f"
+    },
+    {
+      "definition": "FOREIGN KEY (reviewed_by_id) REFERENCES users_user(id) DEFERRABLE INITIALLY DEFERRED",
+      "name": "learning_legacyconte_reviewed_by_id_a2f837c8_fk_users_use",
+      "schema": "public",
+      "table": "learning_legacycontentlink",
+      "type": "f"
+    },
+    {
+      "definition": "UNIQUE (area_id)",
+      "name": "learning_legacycontentlink_area_id_key",
+      "schema": "public",
+      "table": "learning_legacycontentlink",
+      "type": "u"
+    },
+    {
+      "definition": "UNIQUE (concept_id)",
+      "name": "learning_legacycontentlink_concept_id_key",
+      "schema": "public",
+      "table": "learning_legacycontentlink",
+      "type": "u"
+    },
+    {
+      "definition": "UNIQUE (lecture_id)",
+      "name": "learning_legacycontentlink_lecture_id_key",
+      "schema": "public",
+      "table": "learning_legacycontentlink",
+      "type": "u"
+    },
+    {
+      "definition": "UNIQUE (material_id)",
+      "name": "learning_legacycontentlink_material_id_key",
+      "schema": "public",
+      "table": "learning_legacycontentlink",
+      "type": "u"
+    },
+    {
+      "definition": "PRIMARY KEY (id)",
+      "name": "learning_legacycontentlink_pkey",
+      "schema": "public",
+      "table": "learning_legacycontentlink",
+      "type": "p"
+    },
+    {
+      "definition": "UNIQUE (revision_id, asset_id)",
+      "name": "learning_revision_asset",
+      "schema": "public",
+      "table": "learning_revisionasset",
+      "type": "u"
+    },
+    {
+      "definition": "FOREIGN KEY (asset_id) REFERENCES learning_contentasset(id) DEFERRABLE INITIALLY DEFERRED",
+      "name": "learning_revisionass_asset_id_e49163a4_fk_learning_",
+      "schema": "public",
+      "table": "learning_revisionasset",
+      "type": "f"
+    },
+    {
+      "definition": "FOREIGN KEY (revision_id) REFERENCES learning_contentrevision(id) DEFERRABLE INITIALLY DEFERRED",
+      "name": "learning_revisionass_revision_id_cde7e71d_fk_learning_",
+      "schema": "public",
+      "table": "learning_revisionasset",
+      "type": "f"
+    },
+    {
+      "definition": "PRIMARY KEY (id)",
+      "name": "learning_revisionasset_pkey",
+      "schema": "public",
+      "table": "learning_revisionasset",
+      "type": "p"
+    },
+    {
+      "definition": "UNIQUE (revision_id, concept_id)",
+      "name": "learning_revision_concept",
+      "schema": "public",
+      "table": "learning_revisionconcept",
+      "type": "u"
+    },
+    {
+      "definition": "FOREIGN KEY (concept_id) REFERENCES pages_catalogueconcept(id) DEFERRABLE INITIALLY DEFERRED",
+      "name": "learning_revisioncon_concept_id_0d767eff_fk_pages_cat",
+      "schema": "public",
+      "table": "learning_revisionconcept",
+      "type": "f"
+    },
+    {
+      "definition": "FOREIGN KEY (revision_id) REFERENCES learning_contentrevision(id) DEFERRABLE INITIALLY DEFERRED",
+      "name": "learning_revisioncon_revision_id_93958997_fk_learning_",
+      "schema": "public",
+      "table": "learning_revisionconcept",
+      "type": "f"
+    },
+    {
+      "definition": "PRIMARY KEY (id)",
+      "name": "learning_revisionconcept_pkey",
+      "schema": "public",
+      "table": "learning_revisionconcept",
+      "type": "p"
+    },
+    {
+      "definition": "FOREIGN KEY (approved_by_id) REFERENCES users_user(id) DEFERRABLE INITIALLY DEFERRED",
+      "name": "pages_catalogueprere_approved_by_id_ee5b9868_fk_users_use",
+      "schema": "public",
+      "table": "pages_catalogueprerequisite",
+      "type": "f"
+    },
+    {
+      "definition": "FOREIGN KEY (dependent_id) REFERENCES pages_catalogueconcept(id) DEFERRABLE INITIALLY DEFERRED",
+      "name": "pages_catalogueprere_dependent_id_f8047be0_fk_pages_cat",
+      "schema": "public",
+      "table": "pages_catalogueprerequisite",
+      "type": "f"
+    },
+    {
+      "definition": "FOREIGN KEY (prerequisite_id) REFERENCES pages_catalogueconcept(id) DEFERRABLE INITIALLY DEFERRED",
+      "name": "pages_catalogueprere_prerequisite_id_4090da3b_fk_pages_cat",
+      "schema": "public",
+      "table": "pages_catalogueprerequisite",
+      "type": "f"
+    },
+    {
+      "definition": "PRIMARY KEY (id)",
+      "name": "pages_catalogueprerequisite_pkey",
+      "schema": "public",
+      "table": "pages_catalogueprerequisite",
+      "type": "p"
+    },
+    {
+      "definition": "CHECK (NOT prerequisite_id::text = dependent_id::text)",
+      "name": "pages_prerequisite_not_self",
+      "schema": "public",
+      "table": "pages_catalogueprerequisite",
+      "type": "c"
+    },
+    {
+      "definition": "UNIQUE (prerequisite_id, dependent_id)",
+      "name": "pages_prerequisite_unique",
+      "schema": "public",
+      "table": "pages_catalogueprerequisite",
+      "type": "u"
+    },
+    {
+      "definition": "PRIMARY KEY (singleton_key)",
+      "name": "pages_prerequisitegraphstate_pkey",
+      "schema": "public",
+      "table": "pages_prerequisitegraphstate",
+      "type": "p"
+    },
+    {
+      "definition": "CHECK (singleton_key >= 0)",
+      "name": "pages_prerequisitegraphstate_singleton_key_check",
+      "schema": "public",
+      "table": "pages_prerequisitegraphstate",
+      "type": "c"
+    },
+    {
+      "definition": "CHECK (validated_catalogue_revision >= 0)",
+      "name": "pages_prerequisitegraphstate_validated_catalogue_revision_check",
+      "schema": "public",
+      "table": "pages_prerequisitegraphstate",
+      "type": "c"
+    },
+    {
+      "definition": "CHECK (version >= 0)",
+      "name": "pages_prerequisitegraphstate_version_check",
+      "schema": "public",
+      "table": "pages_prerequisitegraphstate",
+      "type": "c"
+    },
+    {
+      "definition": "PRIMARY KEY (id)",
+      "name": "training_contentpackimport_pkey",
+      "schema": "public",
+      "table": "training_contentpackimport",
+      "type": "p"
+    },
+    {
+      "definition": "FOREIGN KEY (user_id) REFERENCES users_user(id) DEFERRABLE INITIALLY DEFERRED",
+      "name": "training_contentpackimport_user_id_13be6811_fk_users_user_id",
+      "schema": "public",
+      "table": "training_contentpackimport",
+      "type": "f"
+    },
+    {
+      "definition": "UNIQUE (user_id, pack_key)",
+      "name": "training_pack_once_per_author",
+      "schema": "public",
+      "table": "training_contentpackimport",
+      "type": "u"
+    },
+    {
+      "definition": "CHECK (NOT is_foundations OR subject_id IS NULL AND area_id IS NULL)",
+      "name": "training_foundations_cross_topic",
+      "schema": "public",
+      "table": "training_learningpath",
+      "type": "c"
+    },
+    {
+      "definition": "FOREIGN KEY (area_id) REFERENCES pages_cataloguearea(id) DEFERRABLE INITIALLY DEFERRED",
+      "name": "training_learningpat_area_id_dc1d2656_fk_pages_cat",
+      "schema": "public",
+      "table": "training_learningpath",
+      "type": "f"
+    },
+    {
+      "definition": "FOREIGN KEY (current_revision_id) REFERENCES training_learningpathrevision(id) DEFERRABLE INITIALLY DEFERRED",
+      "name": "training_learningpat_current_revision_id_c578b578_fk_training_",
+      "schema": "public",
+      "table": "training_learningpath",
+      "type": "f"
+    },
+    {
+      "definition": "FOREIGN KEY (subject_id) REFERENCES pages_cataloguesubject(id) DEFERRABLE INITIALLY DEFERRED",
+      "name": "training_learningpat_subject_id_1f3e8285_fk_pages_cat",
+      "schema": "public",
+      "table": "training_learningpath",
+      "type": "f"
+    },
+    {
+      "definition": "FOREIGN KEY (created_by_id) REFERENCES users_user(id) DEFERRABLE INITIALLY DEFERRED",
+      "name": "training_learningpath_created_by_id_fed8f7bc_fk_users_user_id",
+      "schema": "public",
+      "table": "training_learningpath",
+      "type": "f"
+    },
+    {
+      "definition": "PRIMARY KEY (id)",
+      "name": "training_learningpath_pkey",
+      "schema": "public",
+      "table": "training_learningpath",
+      "type": "p"
+    },
+    {
+      "definition": "UNIQUE (slug)",
+      "name": "training_learningpath_slug_key",
+      "schema": "public",
+      "table": "training_learningpath",
+      "type": "u"
+    },
+    {
+      "definition": "CHECK (version >= 0)",
+      "name": "training_learningpath_version_check",
+      "schema": "public",
+      "table": "training_learningpath",
+      "type": "c"
+    },
+    {
+      "definition": "CHECK (NOT public_visible OR training_visible)",
+      "name": "training_path_public_needs_training",
+      "schema": "public",
+      "table": "training_learningpath",
+      "type": "c"
+    },
+    {
+      "definition": "FOREIGN KEY (document_id) REFERENCES learning_contentdocument(id) DEFERRABLE INITIALLY DEFERRED",
+      "name": "training_learningpat_document_id_4e16bfc6_fk_learning_",
+      "schema": "public",
+      "table": "training_learningpathitem",
+      "type": "f"
+    },
+    {
+      "definition": "FOREIGN KEY (legacy_material_id) REFERENCES training_material(id) DEFERRABLE INITIALLY DEFERRED",
+      "name": "training_learningpat_legacy_material_id_8189827c_fk_training_",
+      "schema": "public",
+      "table": "training_learningpathitem",
+      "type": "f"
+    },
+    {
+      "definition": "FOREIGN KEY (problem_id) REFERENCES pages_problemsolverecord(problem_uuid) DEFERRABLE INITIALLY DEFERRED",
+      "name": "training_learningpat_problem_id_574222e3_fk_pages_pro",
+      "schema": "public",
+      "table": "training_learningpathitem",
+      "type": "f"
+    },
+    {
+      "definition": "FOREIGN KEY (revision_id) REFERENCES training_learningpathrevision(id) DEFERRABLE INITIALLY DEFERRED",
+      "name": "training_learningpat_revision_id_fb79bc67_fk_training_",
+      "schema": "public",
+      "table": "training_learningpathitem",
+      "type": "f"
+    },
+    {
+      "definition": "PRIMARY KEY (id)",
+      "name": "training_learningpathitem_pkey",
+      "schema": "public",
+      "table": "training_learningpathitem",
+      "type": "p"
+    },
+    {
+      "definition": "CHECK (\"position\" >= 0)",
+      "name": "training_learningpathitem_position_check",
+      "schema": "public",
+      "table": "training_learningpathitem",
+      "type": "c"
+    },
+    {
+      "definition": "UNIQUE (revision_id, item_key)",
+      "name": "training_path_item_key",
+      "schema": "public",
+      "table": "training_learningpathitem",
+      "type": "u"
+    },
+    {
+      "definition": "UNIQUE (revision_id, \"position\")",
+      "name": "training_path_item_position",
+      "schema": "public",
+      "table": "training_learningpathitem",
+      "type": "u"
+    },
+    {
+      "definition": "CHECK (document_id IS NOT NULL AND exercise_source = ''::text AND kind::text = 'document'::text AND legacy_material_id IS NULL AND problem_id IS NULL OR document_id IS NULL AND exercise_source = ''::text AND kind::text = 'problem'::text AND legacy_material_id IS NULL AND problem_id IS NOT NULL OR document_id IS NULL AND exercise_source = ''::text AND kind::text = 'legacy'::text AND legacy_material_id IS NOT NULL AND problem_id IS NULL OR document_id IS NULL AND kind::text = 'exercise'::text AND legacy_material_id IS NULL AND problem_id IS NULL AND NOT exercise_source = ''::text)",
+      "name": "training_path_item_typed_target",
+      "schema": "public",
+      "table": "training_learningpathitem",
+      "type": "c"
+    },
+    {
+      "definition": "FOREIGN KEY (created_by_id) REFERENCES users_user(id) DEFERRABLE INITIALLY DEFERRED",
+      "name": "training_learningpat_created_by_id_ccbbebce_fk_users_use",
+      "schema": "public",
+      "table": "training_learningpathrevision",
+      "type": "f"
+    },
+    {
+      "definition": "FOREIGN KEY (path_id) REFERENCES training_learningpath(id) DEFERRABLE INITIALLY DEFERRED",
+      "name": "training_learningpat_path_id_c8cc92cf_fk_training_",
+      "schema": "public",
+      "table": "training_learningpathrevision",
+      "type": "f"
+    },
+    {
+      "definition": "UNIQUE (operation_id)",
+      "name": "training_learningpathrevision_operation_id_key",
+      "schema": "public",
+      "table": "training_learningpathrevision",
+      "type": "u"
+    },
+    {
+      "definition": "PRIMARY KEY (id)",
+      "name": "training_learningpathrevision_pkey",
+      "schema": "public",
+      "table": "training_learningpathrevision",
+      "type": "p"
+    },
+    {
+      "definition": "CHECK (sequence >= 0)",
+      "name": "training_learningpathrevision_sequence_check",
+      "schema": "public",
+      "table": "training_learningpathrevision",
+      "type": "c"
+    },
+    {
+      "definition": "UNIQUE (path_id, sequence)",
+      "name": "training_path_revision_sequence",
+      "schema": "public",
+      "table": "training_learningpathrevision",
+      "type": "u"
+    },
+    {
+      "definition": "FOREIGN KEY (document_revision_id) REFERENCES learning_contentrevision(id) DEFERRABLE INITIALLY DEFERRED",
+      "name": "training_pathreading_document_revision_id_b4a90539_fk_learning_",
+      "schema": "public",
+      "table": "training_pathreading",
+      "type": "f"
+    },
+    {
+      "definition": "FOREIGN KEY (item_id) REFERENCES training_learningpathitem(id) DEFERRABLE INITIALLY DEFERRED",
+      "name": "training_pathreading_item_id_7ae04fcf_fk_training_",
+      "schema": "public",
+      "table": "training_pathreading",
+      "type": "f"
+    },
+    {
+      "definition": "FOREIGN KEY (path_revision_id) REFERENCES training_learningpathrevision(id) DEFERRABLE INITIALLY DEFERRED",
+      "name": "training_pathreading_path_revision_id_e74baa72_fk_training_",
+      "schema": "public",
+      "table": "training_pathreading",
+      "type": "f"
+    },
+    {
+      "definition": "PRIMARY KEY (id)",
+      "name": "training_pathreading_pkey",
+      "schema": "public",
+      "table": "training_pathreading",
+      "type": "p"
+    },
+    {
+      "definition": "FOREIGN KEY (user_id) REFERENCES users_user(id) DEFERRABLE INITIALLY DEFERRED",
+      "name": "training_pathreading_user_id_3c9066e2_fk_users_user_id",
+      "schema": "public",
+      "table": "training_pathreading",
+      "type": "f"
+    },
+    {
+      "definition": "UNIQUE (user_id, path_revision_id, item_id, document_revision_id)",
+      "name": "training_reading_once_per_revision",
+      "schema": "public",
+      "table": "training_pathreading",
+      "type": "u"
+    }
+  ],
+  "extensions": [],
+  "indexes": [
+    {
+      "definition": "CREATE INDEX learning_contentaction_actor_id_8891edee ON public.learning_contentaction USING btree (actor_id)",
+      "name": "learning_contentaction_actor_id_8891edee",
+      "schema": "public",
+      "table": "learning_contentaction"
+    },
+    {
+      "definition": "CREATE INDEX learning_contentaction_document_id_f211e5f4 ON public.learning_contentaction USING btree (document_id)",
+      "name": "learning_contentaction_document_id_f211e5f4",
+      "schema": "public",
+      "table": "learning_contentaction"
+    },
+    {
+      "definition": "CREATE UNIQUE INDEX learning_contentaction_pkey ON public.learning_contentaction USING btree (operation_id)",
+      "name": "learning_contentaction_pkey",
+      "schema": "public",
+      "table": "learning_contentaction"
+    },
+    {
+      "definition": "CREATE INDEX learning_contentasset_document_id_c8a7a364 ON public.learning_contentasset USING btree (document_id)",
+      "name": "learning_contentasset_document_id_c8a7a364",
+      "schema": "public",
+      "table": "learning_contentasset"
+    },
+    {
+      "definition": "CREATE INDEX learning_contentasset_owner_id_bbbba47f ON public.learning_contentasset USING btree (owner_id)",
+      "name": "learning_contentasset_owner_id_bbbba47f",
+      "schema": "public",
+      "table": "learning_contentasset"
+    },
+    {
+      "definition": "CREATE UNIQUE INDEX learning_contentasset_pkey ON public.learning_contentasset USING btree (id)",
+      "name": "learning_contentasset_pkey",
+      "schema": "public",
+      "table": "learning_contentasset"
+    },
+    {
+      "definition": "CREATE UNIQUE INDEX learning_asset_document_grant ON public.learning_contentassetgrant USING btree (asset_id, document_id)",
+      "name": "learning_asset_document_grant",
+      "schema": "public",
+      "table": "learning_contentassetgrant"
+    },
+    {
+      "definition": "CREATE INDEX learning_contentassetgrant_asset_id_917c5736 ON public.learning_contentassetgrant USING btree (asset_id)",
+      "name": "learning_contentassetgrant_asset_id_917c5736",
+      "schema": "public",
+      "table": "learning_contentassetgrant"
+    },
+    {
+      "definition": "CREATE INDEX learning_contentassetgrant_document_id_3a4e3d94 ON public.learning_contentassetgrant USING btree (document_id)",
+      "name": "learning_contentassetgrant_document_id_3a4e3d94",
+      "schema": "public",
+      "table": "learning_contentassetgrant"
+    },
+    {
+      "definition": "CREATE INDEX learning_contentassetgrant_granted_by_id_2f0ac1c5 ON public.learning_contentassetgrant USING btree (granted_by_id)",
+      "name": "learning_contentassetgrant_granted_by_id_2f0ac1c5",
+      "schema": "public",
+      "table": "learning_contentassetgrant"
+    },
+    {
+      "definition": "CREATE UNIQUE INDEX learning_contentassetgrant_pkey ON public.learning_contentassetgrant USING btree (id)",
+      "name": "learning_contentassetgrant_pkey",
+      "schema": "public",
+      "table": "learning_contentassetgrant"
+    },
+    {
+      "definition": "CREATE INDEX learning_contentdocument_canonical_area_id_a458906d ON public.learning_contentdocument USING btree (canonical_area_id)",
+      "name": "learning_contentdocument_canonical_area_id_a458906d",
+      "schema": "public",
+      "table": "learning_contentdocument"
+    },
+    {
+      "definition": "CREATE INDEX learning_contentdocument_canonical_area_id_a458906d_like ON public.learning_contentdocument USING btree (canonical_area_id varchar_pattern_ops)",
+      "name": "learning_contentdocument_canonical_area_id_a458906d_like",
+      "schema": "public",
+      "table": "learning_contentdocument"
+    },
+    {
+      "definition": "CREATE INDEX learning_contentdocument_canonical_concept_id_3d55ed6f ON public.learning_contentdocument USING btree (canonical_concept_id)",
+      "name": "learning_contentdocument_canonical_concept_id_3d55ed6f",
+      "schema": "public",
+      "table": "learning_contentdocument"
+    },
+    {
+      "definition": "CREATE INDEX learning_contentdocument_canonical_concept_id_3d55ed6f_like ON public.learning_contentdocument USING btree (canonical_concept_id varchar_pattern_ops)",
+      "name": "learning_contentdocument_canonical_concept_id_3d55ed6f_like",
+      "schema": "public",
+      "table": "learning_contentdocument"
+    },
+    {
+      "definition": "CREATE INDEX learning_contentdocument_creator_id_6dde5230 ON public.learning_contentdocument USING btree (creator_id)",
+      "name": "learning_contentdocument_creator_id_6dde5230",
+      "schema": "public",
+      "table": "learning_contentdocument"
+    },
+    {
+      "definition": "CREATE UNIQUE INDEX learning_contentdocument_pkey ON public.learning_contentdocument USING btree (id)",
+      "name": "learning_contentdocument_pkey",
+      "schema": "public",
+      "table": "learning_contentdocument"
+    },
+    {
+      "definition": "CREATE INDEX learning_contentdocument_slug_045888a1 ON public.learning_contentdocument USING btree (slug)",
+      "name": "learning_contentdocument_slug_045888a1",
+      "schema": "public",
+      "table": "learning_contentdocument"
+    },
+    {
+      "definition": "CREATE INDEX learning_contentdocument_slug_045888a1_like ON public.learning_contentdocument USING btree (slug varchar_pattern_ops)",
+      "name": "learning_contentdocument_slug_045888a1_like",
+      "schema": "public",
+      "table": "learning_contentdocument"
+    },
+    {
+      "definition": "CREATE UNIQUE INDEX learning_one_area_landing ON public.learning_contentdocument USING btree (canonical_area_id) WHERE ((kind)::text = 'overview'::text)",
+      "name": "learning_one_area_landing",
+      "schema": "public",
+      "table": "learning_contentdocument"
+    },
+    {
+      "definition": "CREATE UNIQUE INDEX learning_one_concept_landing ON public.learning_contentdocument USING btree (canonical_concept_id) WHERE ((kind)::text = 'concept'::text)",
+      "name": "learning_one_concept_landing",
+      "schema": "public",
+      "table": "learning_contentdocument"
+    },
+    {
+      "definition": "CREATE INDEX learning_contentdraft_author_id_5a24af0e ON public.learning_contentdraft USING btree (author_id)",
+      "name": "learning_contentdraft_author_id_5a24af0e",
+      "schema": "public",
+      "table": "learning_contentdraft"
+    },
+    {
+      "definition": "CREATE INDEX learning_contentdraft_base_revision_id_4cb8507c ON public.learning_contentdraft USING btree (base_revision_id)",
+      "name": "learning_contentdraft_base_revision_id_4cb8507c",
+      "schema": "public",
+      "table": "learning_contentdraft"
+    },
+    {
+      "definition": "CREATE INDEX learning_contentdraft_document_id_1d496533 ON public.learning_contentdraft USING btree (document_id)",
+      "name": "learning_contentdraft_document_id_1d496533",
+      "schema": "public",
+      "table": "learning_contentdraft"
+    },
+    {
+      "definition": "CREATE INDEX learning_contentdraft_is_archived_d966f4b2 ON public.learning_contentdraft USING btree (is_archived)",
+      "name": "learning_contentdraft_is_archived_d966f4b2",
+      "schema": "public",
+      "table": "learning_contentdraft"
+    },
+    {
+      "definition": "CREATE UNIQUE INDEX learning_contentdraft_pkey ON public.learning_contentdraft USING btree (id)",
+      "name": "learning_contentdraft_pkey",
+      "schema": "public",
+      "table": "learning_contentdraft"
+    },
+    {
+      "definition": "CREATE UNIQUE INDEX learning_draft_author_document ON public.learning_contentdraft USING btree (document_id, author_id)",
+      "name": "learning_draft_author_document",
+      "schema": "public",
+      "table": "learning_contentdraft"
+    },
+    {
+      "definition": "CREATE INDEX learning_contentissue_document_id_6474775c ON public.learning_contentissue USING btree (document_id)",
+      "name": "learning_contentissue_document_id_6474775c",
+      "schema": "public",
+      "table": "learning_contentissue"
+    },
+    {
+      "definition": "CREATE UNIQUE INDEX learning_contentissue_pkey ON public.learning_contentissue USING btree (id)",
+      "name": "learning_contentissue_pkey",
+      "schema": "public",
+      "table": "learning_contentissue"
+    },
+    {
+      "definition": "CREATE INDEX learning_contentissue_reporter_id_bef2360a ON public.learning_contentissue USING btree (reporter_id)",
+      "name": "learning_contentissue_reporter_id_bef2360a",
+      "schema": "public",
+      "table": "learning_contentissue"
+    },
+    {
+      "definition": "CREATE INDEX learning_contentissue_revision_id_ade91c3e ON public.learning_contentissue USING btree (revision_id)",
+      "name": "learning_contentissue_revision_id_ade91c3e",
+      "schema": "public",
+      "table": "learning_contentissue"
+    },
+    {
+      "definition": "CREATE UNIQUE INDEX learning_contentissue_submission_id_key ON public.learning_contentissue USING btree (submission_id)",
+      "name": "learning_contentissue_submission_id_key",
+      "schema": "public",
+      "table": "learning_contentissue"
+    },
+    {
+      "definition": "CREATE UNIQUE INDEX learning_contentpublication_pkey ON public.learning_contentpublication USING btree (document_id)",
+      "name": "learning_contentpublication_pkey",
+      "schema": "public",
+      "table": "learning_contentpublication"
+    },
+    {
+      "definition": "CREATE INDEX learning_contentpublication_published_by_id_3ca7d911 ON public.learning_contentpublication USING btree (published_by_id)",
+      "name": "learning_contentpublication_published_by_id_3ca7d911",
+      "schema": "public",
+      "table": "learning_contentpublication"
+    },
+    {
+      "definition": "CREATE INDEX learning_contentpublication_revision_id_2a14c6d5 ON public.learning_contentpublication USING btree (revision_id)",
+      "name": "learning_contentpublication_revision_id_2a14c6d5",
+      "schema": "public",
+      "table": "learning_contentpublication"
+    },
+    {
+      "definition": "CREATE INDEX learning_contentrevision_author_id_5bf4430c ON public.learning_contentrevision USING btree (author_id)",
+      "name": "learning_contentrevision_author_id_5bf4430c",
+      "schema": "public",
+      "table": "learning_contentrevision"
+    },
+    {
+      "definition": "CREATE INDEX learning_contentrevision_base_revision_id_413406f7 ON public.learning_contentrevision USING btree (base_revision_id)",
+      "name": "learning_contentrevision_base_revision_id_413406f7",
+      "schema": "public",
+      "table": "learning_contentrevision"
+    },
+    {
+      "definition": "CREATE INDEX learning_contentrevision_document_id_e456aa15 ON public.learning_contentrevision USING btree (document_id)",
+      "name": "learning_contentrevision_document_id_e456aa15",
+      "schema": "public",
+      "table": "learning_contentrevision"
+    },
+    {
+      "definition": "CREATE UNIQUE INDEX learning_contentrevision_pkey ON public.learning_contentrevision USING btree (id)",
+      "name": "learning_contentrevision_pkey",
+      "schema": "public",
+      "table": "learning_contentrevision"
+    },
+    {
+      "definition": "CREATE UNIQUE INDEX learning_revision_sequence ON public.learning_contentrevision USING btree (document_id, sequence)",
+      "name": "learning_revision_sequence",
+      "schema": "public",
+      "table": "learning_contentrevision"
+    },
+    {
+      "definition": "CREATE INDEX learning_contributionproposal_author_id_95431c9b ON public.learning_contributionproposal USING btree (author_id)",
+      "name": "learning_contributionproposal_author_id_95431c9b",
+      "schema": "public",
+      "table": "learning_contributionproposal"
+    },
+    {
+      "definition": "CREATE INDEX learning_contributionproposal_document_id_2da58c02 ON public.learning_contributionproposal USING btree (document_id)",
+      "name": "learning_contributionproposal_document_id_2da58c02",
+      "schema": "public",
+      "table": "learning_contributionproposal"
+    },
+    {
+      "definition": "CREATE UNIQUE INDEX learning_contributionproposal_pkey ON public.learning_contributionproposal USING btree (id)",
+      "name": "learning_contributionproposal_pkey",
+      "schema": "public",
+      "table": "learning_contributionproposal"
+    },
+    {
+      "definition": "CREATE INDEX learning_contributionproposal_reviewed_by_id_a275c4d4 ON public.learning_contributionproposal USING btree (reviewed_by_id)",
+      "name": "learning_contributionproposal_reviewed_by_id_a275c4d4",
+      "schema": "public",
+      "table": "learning_contributionproposal"
+    },
+    {
+      "definition": "CREATE INDEX learning_contributionproposal_revision_id_c1b15fdf ON public.learning_contributionproposal USING btree (revision_id)",
+      "name": "learning_contributionproposal_revision_id_c1b15fdf",
+      "schema": "public",
+      "table": "learning_contributionproposal"
+    },
+    {
+      "definition": "CREATE INDEX learning_contributorpermission_contributor_id_bb9ea8af ON public.learning_contributorpermission USING btree (contributor_id)",
+      "name": "learning_contributorpermission_contributor_id_bb9ea8af",
+      "schema": "public",
+      "table": "learning_contributorpermission"
+    },
+    {
+      "definition": "CREATE UNIQUE INDEX learning_contributorpermission_pkey ON public.learning_contributorpermission USING btree (id)",
+      "name": "learning_contributorpermission_pkey",
+      "schema": "public",
+      "table": "learning_contributorpermission"
+    },
+    {
+      "definition": "CREATE UNIQUE INDEX learning_contributorpermission_revision_id_key ON public.learning_contributorpermission USING btree (revision_id)",
+      "name": "learning_contributorpermission_revision_id_key",
+      "schema": "public",
+      "table": "learning_contributorpermission"
+    },
+    {
+      "definition": "CREATE UNIQUE INDEX learning_legacycontentlink_area_id_key ON public.learning_legacycontentlink USING btree (area_id)",
+      "name": "learning_legacycontentlink_area_id_key",
+      "schema": "public",
+      "table": "learning_legacycontentlink"
+    },
+    {
+      "definition": "CREATE UNIQUE INDEX learning_legacycontentlink_concept_id_key ON public.learning_legacycontentlink USING btree (concept_id)",
+      "name": "learning_legacycontentlink_concept_id_key",
+      "schema": "public",
+      "table": "learning_legacycontentlink"
+    },
+    {
+      "definition": "CREATE INDEX learning_legacycontentlink_document_id_0152c138 ON public.learning_legacycontentlink USING btree (document_id)",
+      "name": "learning_legacycontentlink_document_id_0152c138",
+      "schema": "public",
+      "table": "learning_legacycontentlink"
+    },
+    {
+      "definition": "CREATE UNIQUE INDEX learning_legacycontentlink_lecture_id_key ON public.learning_legacycontentlink USING btree (lecture_id)",
+      "name": "learning_legacycontentlink_lecture_id_key",
+      "schema": "public",
+      "table": "learning_legacycontentlink"
+    },
+    {
+      "definition": "CREATE UNIQUE INDEX learning_legacycontentlink_material_id_key ON public.learning_legacycontentlink USING btree (material_id)",
+      "name": "learning_legacycontentlink_material_id_key",
+      "schema": "public",
+      "table": "learning_legacycontentlink"
+    },
+    {
+      "definition": "CREATE UNIQUE INDEX learning_legacycontentlink_pkey ON public.learning_legacycontentlink USING btree (id)",
+      "name": "learning_legacycontentlink_pkey",
+      "schema": "public",
+      "table": "learning_legacycontentlink"
+    },
+    {
+      "definition": "CREATE INDEX learning_legacycontentlink_reviewed_by_id_a2f837c8 ON public.learning_legacycontentlink USING btree (reviewed_by_id)",
+      "name": "learning_legacycontentlink_reviewed_by_id_a2f837c8",
+      "schema": "public",
+      "table": "learning_legacycontentlink"
+    },
+    {
+      "definition": "CREATE UNIQUE INDEX learning_revision_asset ON public.learning_revisionasset USING btree (revision_id, asset_id)",
+      "name": "learning_revision_asset",
+      "schema": "public",
+      "table": "learning_revisionasset"
+    },
+    {
+      "definition": "CREATE INDEX learning_revisionasset_asset_id_e49163a4 ON public.learning_revisionasset USING btree (asset_id)",
+      "name": "learning_revisionasset_asset_id_e49163a4",
+      "schema": "public",
+      "table": "learning_revisionasset"
+    },
+    {
+      "definition": "CREATE UNIQUE INDEX learning_revisionasset_pkey ON public.learning_revisionasset USING btree (id)",
+      "name": "learning_revisionasset_pkey",
+      "schema": "public",
+      "table": "learning_revisionasset"
+    },
+    {
+      "definition": "CREATE INDEX learning_revisionasset_revision_id_cde7e71d ON public.learning_revisionasset USING btree (revision_id)",
+      "name": "learning_revisionasset_revision_id_cde7e71d",
+      "schema": "public",
+      "table": "learning_revisionasset"
+    },
+    {
+      "definition": "CREATE UNIQUE INDEX learning_revision_concept ON public.learning_revisionconcept USING btree (revision_id, concept_id)",
+      "name": "learning_revision_concept",
+      "schema": "public",
+      "table": "learning_revisionconcept"
+    },
+    {
+      "definition": "CREATE INDEX learning_revisionconcept_concept_id_0d767eff ON public.learning_revisionconcept USING btree (concept_id)",
+      "name": "learning_revisionconcept_concept_id_0d767eff",
+      "schema": "public",
+      "table": "learning_revisionconcept"
+    },
+    {
+      "definition": "CREATE INDEX learning_revisionconcept_concept_id_0d767eff_like ON public.learning_revisionconcept USING btree (concept_id varchar_pattern_ops)",
+      "name": "learning_revisionconcept_concept_id_0d767eff_like",
+      "schema": "public",
+      "table": "learning_revisionconcept"
+    },
+    {
+      "definition": "CREATE UNIQUE INDEX learning_revisionconcept_pkey ON public.learning_revisionconcept USING btree (id)",
+      "name": "learning_revisionconcept_pkey",
+      "schema": "public",
+      "table": "learning_revisionconcept"
+    },
+    {
+      "definition": "CREATE INDEX learning_revisionconcept_revision_id_93958997 ON public.learning_revisionconcept USING btree (revision_id)",
+      "name": "learning_revisionconcept_revision_id_93958997",
+      "schema": "public",
+      "table": "learning_revisionconcept"
+    },
+    {
+      "definition": "CREATE INDEX pages_catalogueprerequisite_approved_by_id_ee5b9868 ON public.pages_catalogueprerequisite USING btree (approved_by_id)",
+      "name": "pages_catalogueprerequisite_approved_by_id_ee5b9868",
+      "schema": "public",
+      "table": "pages_catalogueprerequisite"
+    },
+    {
+      "definition": "CREATE INDEX pages_catalogueprerequisite_dependent_id_f8047be0 ON public.pages_catalogueprerequisite USING btree (dependent_id)",
+      "name": "pages_catalogueprerequisite_dependent_id_f8047be0",
+      "schema": "public",
+      "table": "pages_catalogueprerequisite"
+    },
+    {
+      "definition": "CREATE INDEX pages_catalogueprerequisite_dependent_id_f8047be0_like ON public.pages_catalogueprerequisite USING btree (dependent_id varchar_pattern_ops)",
+      "name": "pages_catalogueprerequisite_dependent_id_f8047be0_like",
+      "schema": "public",
+      "table": "pages_catalogueprerequisite"
+    },
+    {
+      "definition": "CREATE UNIQUE INDEX pages_catalogueprerequisite_pkey ON public.pages_catalogueprerequisite USING btree (id)",
+      "name": "pages_catalogueprerequisite_pkey",
+      "schema": "public",
+      "table": "pages_catalogueprerequisite"
+    },
+    {
+      "definition": "CREATE INDEX pages_catalogueprerequisite_prerequisite_id_4090da3b ON public.pages_catalogueprerequisite USING btree (prerequisite_id)",
+      "name": "pages_catalogueprerequisite_prerequisite_id_4090da3b",
+      "schema": "public",
+      "table": "pages_catalogueprerequisite"
+    },
+    {
+      "definition": "CREATE INDEX pages_catalogueprerequisite_prerequisite_id_4090da3b_like ON public.pages_catalogueprerequisite USING btree (prerequisite_id varchar_pattern_ops)",
+      "name": "pages_catalogueprerequisite_prerequisite_id_4090da3b_like",
+      "schema": "public",
+      "table": "pages_catalogueprerequisite"
+    },
+    {
+      "definition": "CREATE UNIQUE INDEX pages_prerequisite_unique ON public.pages_catalogueprerequisite USING btree (prerequisite_id, dependent_id)",
+      "name": "pages_prerequisite_unique",
+      "schema": "public",
+      "table": "pages_catalogueprerequisite"
+    },
+    {
+      "definition": "CREATE UNIQUE INDEX pages_prerequisitegraphstate_pkey ON public.pages_prerequisitegraphstate USING btree (singleton_key)",
+      "name": "pages_prerequisitegraphstate_pkey",
+      "schema": "public",
+      "table": "pages_prerequisitegraphstate"
+    },
+    {
+      "definition": "CREATE UNIQUE INDEX training_contentpackimport_pkey ON public.training_contentpackimport USING btree (id)",
+      "name": "training_contentpackimport_pkey",
+      "schema": "public",
+      "table": "training_contentpackimport"
+    },
+    {
+      "definition": "CREATE INDEX training_contentpackimport_user_id_13be6811 ON public.training_contentpackimport USING btree (user_id)",
+      "name": "training_contentpackimport_user_id_13be6811",
+      "schema": "public",
+      "table": "training_contentpackimport"
+    },
+    {
+      "definition": "CREATE UNIQUE INDEX training_pack_once_per_author ON public.training_contentpackimport USING btree (user_id, pack_key)",
+      "name": "training_pack_once_per_author",
+      "schema": "public",
+      "table": "training_contentpackimport"
+    },
+    {
+      "definition": "CREATE INDEX training_learningpath_area_id_dc1d2656 ON public.training_learningpath USING btree (area_id)",
+      "name": "training_learningpath_area_id_dc1d2656",
+      "schema": "public",
+      "table": "training_learningpath"
+    },
+    {
+      "definition": "CREATE INDEX training_learningpath_area_id_dc1d2656_like ON public.training_learningpath USING btree (area_id varchar_pattern_ops)",
+      "name": "training_learningpath_area_id_dc1d2656_like",
+      "schema": "public",
+      "table": "training_learningpath"
+    },
+    {
+      "definition": "CREATE INDEX training_learningpath_created_by_id_fed8f7bc ON public.training_learningpath USING btree (created_by_id)",
+      "name": "training_learningpath_created_by_id_fed8f7bc",
+      "schema": "public",
+      "table": "training_learningpath"
+    },
+    {
+      "definition": "CREATE INDEX training_learningpath_current_revision_id_c578b578 ON public.training_learningpath USING btree (current_revision_id)",
+      "name": "training_learningpath_current_revision_id_c578b578",
+      "schema": "public",
+      "table": "training_learningpath"
+    },
+    {
+      "definition": "CREATE UNIQUE INDEX training_learningpath_pkey ON public.training_learningpath USING btree (id)",
+      "name": "training_learningpath_pkey",
+      "schema": "public",
+      "table": "training_learningpath"
+    },
+    {
+      "definition": "CREATE INDEX training_learningpath_slug_b28fc1b9_like ON public.training_learningpath USING btree (slug varchar_pattern_ops)",
+      "name": "training_learningpath_slug_b28fc1b9_like",
+      "schema": "public",
+      "table": "training_learningpath"
+    },
+    {
+      "definition": "CREATE UNIQUE INDEX training_learningpath_slug_key ON public.training_learningpath USING btree (slug)",
+      "name": "training_learningpath_slug_key",
+      "schema": "public",
+      "table": "training_learningpath"
+    },
+    {
+      "definition": "CREATE INDEX training_learningpath_subject_id_1f3e8285 ON public.training_learningpath USING btree (subject_id)",
+      "name": "training_learningpath_subject_id_1f3e8285",
+      "schema": "public",
+      "table": "training_learningpath"
+    },
+    {
+      "definition": "CREATE INDEX training_learningpath_subject_id_1f3e8285_like ON public.training_learningpath USING btree (subject_id varchar_pattern_ops)",
+      "name": "training_learningpath_subject_id_1f3e8285_like",
+      "schema": "public",
+      "table": "training_learningpath"
+    },
+    {
+      "definition": "CREATE INDEX training_learningpathitem_document_id_4e16bfc6 ON public.training_learningpathitem USING btree (document_id)",
+      "name": "training_learningpathitem_document_id_4e16bfc6",
+      "schema": "public",
+      "table": "training_learningpathitem"
+    },
+    {
+      "definition": "CREATE INDEX training_learningpathitem_item_key_32c3e41c ON public.training_learningpathitem USING btree (item_key)",
+      "name": "training_learningpathitem_item_key_32c3e41c",
+      "schema": "public",
+      "table": "training_learningpathitem"
+    },
+    {
+      "definition": "CREATE INDEX training_learningpathitem_item_key_32c3e41c_like ON public.training_learningpathitem USING btree (item_key varchar_pattern_ops)",
+      "name": "training_learningpathitem_item_key_32c3e41c_like",
+      "schema": "public",
+      "table": "training_learningpathitem"
+    },
+    {
+      "definition": "CREATE INDEX training_learningpathitem_legacy_material_id_8189827c ON public.training_learningpathitem USING btree (legacy_material_id)",
+      "name": "training_learningpathitem_legacy_material_id_8189827c",
+      "schema": "public",
+      "table": "training_learningpathitem"
+    },
+    {
+      "definition": "CREATE UNIQUE INDEX training_learningpathitem_pkey ON public.training_learningpathitem USING btree (id)",
+      "name": "training_learningpathitem_pkey",
+      "schema": "public",
+      "table": "training_learningpathitem"
+    },
+    {
+      "definition": "CREATE INDEX training_learningpathitem_problem_id_574222e3 ON public.training_learningpathitem USING btree (problem_id)",
+      "name": "training_learningpathitem_problem_id_574222e3",
+      "schema": "public",
+      "table": "training_learningpathitem"
+    },
+    {
+      "definition": "CREATE INDEX training_learningpathitem_revision_id_fb79bc67 ON public.training_learningpathitem USING btree (revision_id)",
+      "name": "training_learningpathitem_revision_id_fb79bc67",
+      "schema": "public",
+      "table": "training_learningpathitem"
+    },
+    {
+      "definition": "CREATE UNIQUE INDEX training_path_item_key ON public.training_learningpathitem USING btree (revision_id, item_key)",
+      "name": "training_path_item_key",
+      "schema": "public",
+      "table": "training_learningpathitem"
+    },
+    {
+      "definition": "CREATE UNIQUE INDEX training_path_item_position ON public.training_learningpathitem USING btree (revision_id, \"position\")",
+      "name": "training_path_item_position",
+      "schema": "public",
+      "table": "training_learningpathitem"
+    },
+    {
+      "definition": "CREATE INDEX training_learningpathrevision_created_by_id_ccbbebce ON public.training_learningpathrevision USING btree (created_by_id)",
+      "name": "training_learningpathrevision_created_by_id_ccbbebce",
+      "schema": "public",
+      "table": "training_learningpathrevision"
+    },
+    {
+      "definition": "CREATE UNIQUE INDEX training_learningpathrevision_operation_id_key ON public.training_learningpathrevision USING btree (operation_id)",
+      "name": "training_learningpathrevision_operation_id_key",
+      "schema": "public",
+      "table": "training_learningpathrevision"
+    },
+    {
+      "definition": "CREATE INDEX training_learningpathrevision_path_id_c8cc92cf ON public.training_learningpathrevision USING btree (path_id)",
+      "name": "training_learningpathrevision_path_id_c8cc92cf",
+      "schema": "public",
+      "table": "training_learningpathrevision"
+    },
+    {
+      "definition": "CREATE UNIQUE INDEX training_learningpathrevision_pkey ON public.training_learningpathrevision USING btree (id)",
+      "name": "training_learningpathrevision_pkey",
+      "schema": "public",
+      "table": "training_learningpathrevision"
+    },
+    {
+      "definition": "CREATE UNIQUE INDEX training_path_revision_sequence ON public.training_learningpathrevision USING btree (path_id, sequence)",
+      "name": "training_path_revision_sequence",
+      "schema": "public",
+      "table": "training_learningpathrevision"
+    },
+    {
+      "definition": "CREATE INDEX training_pathreading_document_revision_id_b4a90539 ON public.training_pathreading USING btree (document_revision_id)",
+      "name": "training_pathreading_document_revision_id_b4a90539",
+      "schema": "public",
+      "table": "training_pathreading"
+    },
+    {
+      "definition": "CREATE INDEX training_pathreading_item_id_7ae04fcf ON public.training_pathreading USING btree (item_id)",
+      "name": "training_pathreading_item_id_7ae04fcf",
+      "schema": "public",
+      "table": "training_pathreading"
+    },
+    {
+      "definition": "CREATE INDEX training_pathreading_path_revision_id_e74baa72 ON public.training_pathreading USING btree (path_revision_id)",
+      "name": "training_pathreading_path_revision_id_e74baa72",
+      "schema": "public",
+      "table": "training_pathreading"
+    },
+    {
+      "definition": "CREATE UNIQUE INDEX training_pathreading_pkey ON public.training_pathreading USING btree (id)",
+      "name": "training_pathreading_pkey",
+      "schema": "public",
+      "table": "training_pathreading"
+    },
+    {
+      "definition": "CREATE INDEX training_pathreading_user_id_3c9066e2 ON public.training_pathreading USING btree (user_id)",
+      "name": "training_pathreading_user_id_3c9066e2",
+      "schema": "public",
+      "table": "training_pathreading"
+    },
+    {
+      "definition": "CREATE UNIQUE INDEX training_reading_once_per_revision ON public.training_pathreading USING btree (user_id, path_revision_id, item_id, document_revision_id)",
+      "name": "training_reading_once_per_revision",
+      "schema": "public",
+      "table": "training_pathreading"
+    }
+  ],
+  "tables": [
+    {
+      "kind": "r",
+      "schema": "public",
+      "table": "learning_contentaction"
+    },
+    {
+      "kind": "r",
+      "schema": "public",
+      "table": "learning_contentasset"
+    },
+    {
+      "kind": "r",
+      "schema": "public",
+      "table": "learning_contentassetgrant"
+    },
+    {
+      "kind": "r",
+      "schema": "public",
+      "table": "learning_contentdocument"
+    },
+    {
+      "kind": "r",
+      "schema": "public",
+      "table": "learning_contentdraft"
+    },
+    {
+      "kind": "r",
+      "schema": "public",
+      "table": "learning_contentissue"
+    },
+    {
+      "kind": "r",
+      "schema": "public",
+      "table": "learning_contentpublication"
+    },
+    {
+      "kind": "r",
+      "schema": "public",
+      "table": "learning_contentrevision"
+    },
+    {
+      "kind": "r",
+      "schema": "public",
+      "table": "learning_contributionproposal"
+    },
+    {
+      "kind": "r",
+      "schema": "public",
+      "table": "learning_contributorpermission"
+    },
+    {
+      "kind": "r",
+      "schema": "public",
+      "table": "learning_legacycontentlink"
+    },
+    {
+      "kind": "r",
+      "schema": "public",
+      "table": "learning_revisionasset"
+    },
+    {
+      "kind": "r",
+      "schema": "public",
+      "table": "learning_revisionconcept"
+    },
+    {
+      "kind": "r",
+      "schema": "public",
+      "table": "pages_catalogueprerequisite"
+    },
+    {
+      "kind": "r",
+      "schema": "public",
+      "table": "pages_prerequisitegraphstate"
+    },
+    {
+      "kind": "r",
+      "schema": "public",
+      "table": "training_contentpackimport"
+    },
+    {
+      "kind": "r",
+      "schema": "public",
+      "table": "training_learningpath"
+    },
+    {
+      "kind": "r",
+      "schema": "public",
+      "table": "training_learningpathitem"
+    },
+    {
+      "kind": "r",
+      "schema": "public",
+      "table": "training_learningpathrevision"
+    },
+    {
+      "kind": "r",
+      "schema": "public",
+      "table": "training_pathreading"
+    }
+  ]
+}

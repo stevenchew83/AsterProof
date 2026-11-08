@@ -9,28 +9,38 @@ import pwd
 import shutil
 import stat
 import subprocess
+import time
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
+from scripts.deployment import admin_review_takedown_schema
+from scripts.deployment import admin_solution_review_schema
 from scripts.deployment import assessment_prototype_schema
 from scripts.deployment import catalogue_schema
 from scripts.deployment import community_proof_schema
 from scripts.deployment import community_schema
 from scripts.deployment import curated_collections_schema
 from scripts.deployment import learning_activity_schema
+from scripts.deployment import learning_bridge
+from scripts.deployment import learning_schema
 from scripts.deployment import maintenance_schema
 from scripts.deployment import newsletter_automation_schema
 from scripts.deployment import newsletter_schema
 from scripts.deployment import onboarding_schema
+from scripts.deployment import ranking_analysis_schema
+from scripts.deployment import ranking_profile_schema
+from scripts.deployment import self_solution_review_schema
 from scripts.deployment import solution_analytics_schema
 from scripts.deployment import solution_collections_schema
 from scripts.deployment import solution_document_schema
 from scripts.deployment import solution_evaluation_schema
+from scripts.deployment import solution_forum_schema
 from scripts.deployment import solution_pdf_schema
 from scripts.deployment import solution_sharing_schema
 from scripts.deployment import statement_authoring_schema
 from scripts.deployment import statement_reports_schema
+from scripts.deployment import study_help_schema
 from scripts.deployment import website_schema
 from scripts.deployment.additive_schema import validate_disclosure
 from scripts.deployment.concept_schema import MIGRATION_APPLY
@@ -39,9 +49,13 @@ from scripts.deployment.concept_schema import ConceptSchemaError
 from scripts.deployment.concept_schema import audit_matches
 from scripts.deployment.concept_schema import validate_build_evidence
 from scripts.deployment.concept_schema import validate_candidate
+from scripts.deployment.learning_compat import READER_VERSION as LEARNING_READER_VERSION
+from scripts.deployment.learning_compat import verified_reader_release as verified_learning_reader
 from scripts.deployment.protocol import DIGEST_RE
 from scripts.deployment.protocol import NUMERIC_RE
 from scripts.deployment.protocol import SHA_RE
+from scripts.deployment.ranking_profile_compat import READER_VERSION as PROFILE_READER_VERSION
+from scripts.deployment.ranking_profile_compat import verified_reader_release as verified_profile_reader
 from scripts.deployment.release_state import TRANSITIONS
 from scripts.deployment.release_state import ReleaseStateError
 from scripts.deployment.release_state import atomic_write_json
@@ -58,6 +72,8 @@ from scripts.deployment.server_activate import verify_release
 from scripts.deployment.server_activate import write_runtime_state
 from scripts.deployment.server_gate import DEFAULT_CONTRACT
 from scripts.deployment.solution_document_compat import verified_reader_release
+from scripts.deployment.solution_image_compat import reader_required as image_reader_required
+from scripts.deployment.solution_image_compat import verified_reader_release as verified_image_reader
 from scripts.deployment.target import TargetContract
 
 PREPARE_HELPER = Path("/usr/local/libexec/asterproof-prepare-release")
@@ -66,6 +82,10 @@ RUNUSER = Path("/usr/sbin/runuser")
 SYSTEMD_RUN = Path("/usr/bin/systemd-run")
 MAX_RETAINED_RELEASES = 5
 MIN_RETAINED_RELEASES = 2
+BRIDGE_PGOPTIONS = "-c default_transaction_read_only=on -c lock_timeout=2s -c statement_timeout=30s"
+DRAIN_TIMEOUT_SECONDS = 300
+STOP_REQUEST_TIMEOUT_SECONDS = 30
+DRAIN_POLL_SECONDS = 0.25
 
 
 class OperationError(RuntimeError):
@@ -231,6 +251,7 @@ class WorkerBackend:
         arguments: list[str],
         *,
         migration: bool = False,
+        read_only: bool = False,
         runtime_seconds: int | None = None,
     ) -> None:
         subprocess.run(
@@ -243,6 +264,10 @@ class WorkerBackend:
                 f"--uid={contract.app_user}",
                 "--setenv=DJANGO_READ_DOT_ENV_FILE=False",
                 *(["--setenv=PGOPTIONS=-c lock_timeout=2s -c statement_timeout=30s"] if migration else []),
+                *([
+                    "--setenv=PGOPTIONS=-c default_transaction_read_only=on "
+                    "-c lock_timeout=2s -c statement_timeout=30s",
+                ] if read_only else []),
                 f"--property=WorkingDirectory={release}",
                 f"--property=EnvironmentFile={contract.environment_file}",
                 "--property=NoNewPrivileges=yes",
@@ -251,6 +276,12 @@ class WorkerBackend:
                 "--property=ProtectSystem=strict",
                 "--property=RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6",
                 *([f"--property=RuntimeMaxSec={runtime_seconds}s"] if runtime_seconds else []),
+                # EnvironmentFile overrides systemd Environment assignments.
+                # Apply these fixed bridge-only values after that merge so even
+                # Django setup cannot inherit a writable connection default.
+                *([
+                    "/usr/bin/env", "DJANGO_READ_DOT_ENV_FILE=False", f"PGOPTIONS={BRIDGE_PGOPTIONS}",
+                ] if read_only else []),
                 str(release / ".venv/bin/python"),
                 str(release / "manage.py"),
                 *arguments,
@@ -267,6 +298,12 @@ class WorkerBackend:
 
     def candidate_migrations_applied(self, contract: TargetContract, release: Path) -> None:
         self._run_candidate(contract, release, ["migrate", "--check"])
+
+    def check_learning_bridge(self, contract: TargetContract, release: Path) -> None:
+        learning_bridge.validate_bridge_candidate(release)
+        self._run_candidate(
+            contract, release, ["shell", "--command", learning_bridge.PLAN_CHECK], read_only=True, runtime_seconds=60,
+        )
 
     def migrate(self, contract: TargetContract, release: Path) -> None:
         self._run_candidate(contract, release, ["migrate", "--noinput"])
@@ -387,6 +424,58 @@ class WorkerBackend:
             contract, release, ["shell", "--command", assessment_prototype_schema.MIGRATION_APPLY], migration=True,
         )
 
+    def check_admin_solution_review_schema(self, contract: TargetContract, release: Path) -> None:
+        self.ensure_image_reader(contract, release)
+        admin_solution_review_schema.validate_candidate(release)
+        self._run_candidate(contract, release, ["shell", "--command", admin_solution_review_schema.PLAN_CHECK])
+
+    def migrate_admin_solution_review_schema(self, contract: TargetContract, release: Path) -> None:
+        self._run_candidate(
+            contract, release, ["shell", "--command", admin_solution_review_schema.MIGRATION_APPLY], migration=True,
+        )
+
+    def check_study_help_schema(self, contract: TargetContract, release: Path) -> None:
+        study_help_schema.validate_candidate(release)
+        self._run_candidate(contract, release, ["shell", "--command", study_help_schema.PLAN_CHECK])
+
+    def migrate_study_help_schema(self, contract: TargetContract, release: Path) -> None:
+        self._run_candidate(
+            contract, release, ["shell", "--command", study_help_schema.MIGRATION_APPLY], migration=True,
+        )
+
+    def check_self_solution_review_schema(self, contract: TargetContract, release: Path) -> None:
+        self_solution_review_schema.validate_candidate(release)
+        self._run_candidate(contract, release, ["shell", "--command", self_solution_review_schema.PLAN_CHECK])
+
+    def migrate_self_solution_review_schema(self, contract: TargetContract, release: Path) -> None:
+        self._run_candidate(
+            contract, release, ["shell", "--command", self_solution_review_schema.MIGRATION_APPLY], migration=True,
+        )
+
+    def check_admin_review_takedown_schema(self, contract: TargetContract, release: Path) -> None:
+        admin_review_takedown_schema.validate_candidate(release)
+        self._run_candidate(contract, release, ["shell", "--command", admin_review_takedown_schema.PLAN_CHECK])
+
+    def migrate_admin_review_takedown_schema(self, contract: TargetContract, release: Path) -> None:
+        self._run_candidate(
+            contract, release, ["shell", "--command", admin_review_takedown_schema.MIGRATION_APPLY], migration=True,
+        )
+
+    def check_solution_forum_schema(self, contract: TargetContract, release: Path) -> None:
+        try:
+            if not image_reader_required(contract.registry_dir):
+                raise OperationError("image_privacy_cutover_required")
+        except (OSError, ValueError) as exc:
+            raise OperationError("image_reader_floor_unavailable") from exc
+        self.ensure_image_reader(contract, release)
+        solution_forum_schema.validate_candidate(release)
+        self._run_candidate(contract, release, ["shell", "--command", solution_forum_schema.PLAN_CHECK])
+
+    def migrate_solution_forum_schema(self, contract: TargetContract, release: Path) -> None:
+        self._run_candidate(
+            contract, release, ["shell", "--command", solution_forum_schema.MIGRATION_APPLY], migration=True,
+        )
+
     def check_solution_evaluation_schema(self, contract: TargetContract, release: Path) -> None:
         solution_evaluation_schema.validate_candidate(release)
         self._run_candidate(contract, release, ["shell", "--command", solution_evaluation_schema.PLAN_CHECK])
@@ -396,9 +485,44 @@ class WorkerBackend:
             contract, release, ["shell", "--command", solution_evaluation_schema.MIGRATION_APPLY], migration=True,
         )
 
+    def check_ranking_analysis_schema(self, contract: TargetContract, release: Path) -> None:
+        ranking_analysis_schema.validate_candidate(release)
+        self._run_candidate(contract, release, ["shell", "--command", ranking_analysis_schema.PLAN_CHECK])
+
+    def check_ranking_profile_schema(self, contract: TargetContract, release: Path) -> None:
+        ranking_profile_schema.validate_candidate(release)
+        self._run_candidate(contract, release, ["shell", "--command", ranking_profile_schema.PLAN_CHECK])
+
+    def migrate_ranking_profile_schema(self, contract: TargetContract, release: Path) -> None:
+        self._run_candidate(
+            contract, release, ["shell", "--command", ranking_profile_schema.MIGRATION_APPLY], migration=True,
+        )
+
+    def verify_ranking_profile_records(self, contract: TargetContract, run_id: str, active_sha: str) -> None:
+        from scripts.deployment.ranking_profile_preservation import verify_preserved_records
+
+        try:
+            verify_preserved_records(contract, run_id, active_sha)
+        except Exception as exc:
+            raise OperationError("ranking_profile_original_records_changed") from exc
+
+    def migrate_ranking_analysis_schema(self, contract: TargetContract, release: Path) -> None:
+        self._run_candidate(
+            contract, release, ["shell", "--command", ranking_analysis_schema.MIGRATION_APPLY], migration=True,
+        )
+
     def check_learning_activity_schema(self, contract: TargetContract, release: Path) -> None:
         learning_activity_schema.validate_candidate(release)
         self._run_candidate(contract, release, ["shell", "--command", learning_activity_schema.PLAN_CHECK])
+
+    def check_learning_schema(self, contract: TargetContract, release: Path) -> None:
+        learning_schema.validate_candidate(release)
+        self._run_candidate(contract, release, ["shell", "--command", learning_schema.PLAN_CHECK])
+
+    def migrate_learning_schema(self, contract: TargetContract, release: Path) -> None:
+        self._run_candidate(
+            contract, release, ["shell", "--command", learning_schema.MIGRATION_APPLY], migration=True,
+        )
 
     def migrate_learning_activity_schema(self, contract: TargetContract, release: Path) -> None:
         self._run_candidate(
@@ -529,10 +653,10 @@ class WorkerBackend:
         except Exception as exc:
             raise OperationError("community_original_records_changed") from exc
 
-    def _unit_properties(self, unit: str, names: str) -> dict[str, str]:
+    def _unit_properties(self, unit: str, names: str, *, timeout: float = 15) -> dict[str, str]:
         response = subprocess.run(
             ["/usr/bin/systemctl", "show", unit, "--property=" + names],
-            check=True, capture_output=True, text=True, timeout=15,
+            check=True, capture_output=True, text=True, timeout=timeout,
         )
         return dict(line.split("=", 1) for line in response.stdout.splitlines() if "=" in line)
 
@@ -547,36 +671,78 @@ class WorkerBackend:
         return timer, timer_state["ActiveState"] == "active"
 
     def drain(self, contract: TargetContract, state_path: Path) -> None:
-        timer, was_active = self._scheduler_plan(contract)
+        try:
+            timer, was_active = self._scheduler_plan(contract)
+        except subprocess.TimeoutExpired as exc:
+            raise OperationError("maintenance_drain_observation_timeout") from exc
+        except (OSError, subprocess.SubprocessError) as exc:
+            raise OperationError("maintenance_drain_observation_failed") from exc
         state = read_json(state_path)
         state["maintenance_scheduler_was_active"] = was_active
         atomic_write_json(state_path, state)
-        subprocess.run(
-            ["/usr/bin/systemctl", "stop", timer, contract.scheduler_service, contract.service],
-            check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=90,
-        )
-        for unit in (timer, contract.scheduler_service, contract.service):
-            properties = self._unit_properties(
-                unit, "ActiveState,MainPID,ControlGroup,Result,ExecMainCode,ExecMainStatus",
+        # Queue one stop transaction. Ordered units can each consume their own stop
+        # grace period, so the client request must not own the shutdown lifecycle.
+        deadline = time.monotonic() + DRAIN_TIMEOUT_SECONDS
+        try:
+            subprocess.run(
+                ["/usr/bin/systemctl", "stop", "--no-block", timer, contract.scheduler_service, contract.service],
+                check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=STOP_REQUEST_TIMEOUT_SECONDS,
             )
-            # A stopped oneshot scheduler can retain failed/signal after our SIGTERM.
-            # Accept only that exact scheduler outcome; PID/cgroup/writer guards still apply.
-            stopped_scheduler = unit == contract.scheduler_service and (
-                properties.get("ActiveState"), properties.get("Result"),
-                properties.get("ExecMainCode"), properties.get("ExecMainStatus"),
-            ) == ("failed", "signal", "2", "15")
-            if (properties.get("ActiveState") != "inactive" and not stopped_scheduler) or (
-                properties.get("MainPID", "0") != "0"
-            ):
-                raise OperationError("maintenance_drain_incomplete")
-            group = properties.get("ControlGroup", "")
-            if group:
-                path = Path("/sys/fs/cgroup") / group.lstrip("/") / "cgroup.procs"
-                if path.exists() and path.read_text().strip():
-                    raise OperationError("maintenance_cgroup_not_empty")
-
-            if unit == contract.scheduler_service:
-                state["maintenance_scheduler_stop_result"] = properties
+        except subprocess.TimeoutExpired as exc:
+            raise OperationError("maintenance_stop_request_timeout") from exc
+        except (OSError, subprocess.SubprocessError) as exc:
+            raise OperationError("maintenance_stop_request_failed") from exc
+        while True:
+            stopped = True
+            for unit in (timer, contract.scheduler_service, contract.service):
+                remaining = deadline - time.monotonic()
+                if remaining <= 0:
+                    raise OperationError("maintenance_drain_timeout")
+                try:
+                    properties = self._unit_properties(
+                        unit, "ActiveState,MainPID,ControlGroup,Result,ExecMainCode,ExecMainStatus,Job",
+                        timeout=min(15, remaining),
+                    )
+                except subprocess.TimeoutExpired as exc:
+                    raise OperationError("maintenance_drain_observation_timeout") from exc
+                except (OSError, subprocess.SubprocessError) as exc:
+                    raise OperationError("maintenance_drain_observation_failed") from exc
+                if time.monotonic() >= deadline:
+                    raise OperationError("maintenance_drain_timeout")
+                if "Job" not in properties:
+                    raise OperationError("maintenance_drain_incomplete")
+                # systemd 255 reports an empty Job when the stop transaction is
+                # complete. Even an inactive unit can still have a queued job.
+                if properties["Job"] or properties.get("ActiveState") in {
+                    "active", "activating", "deactivating", "reloading",
+                }:
+                    stopped = False
+                    continue
+                # Only the scheduler's exact stopped SIGTERM outcome is permitted.
+                stopped_scheduler = unit == contract.scheduler_service and (
+                    properties.get("ActiveState"), properties.get("Result"),
+                    properties.get("ExecMainCode"), properties.get("ExecMainStatus"),
+                ) == ("failed", "signal", "2", "15")
+                if (properties.get("ActiveState") != "inactive" and not stopped_scheduler) or (
+                    properties.get("MainPID", "0") != "0"
+                ):
+                    raise OperationError("maintenance_drain_incomplete")
+                group = properties.get("ControlGroup", "")
+                if group:
+                    path = Path("/sys/fs/cgroup") / group.lstrip("/") / "cgroup.procs"
+                    try:
+                        populated = path.exists() and bool(path.read_text().strip())
+                    except OSError as exc:
+                        raise OperationError("maintenance_drain_observation_failed") from exc
+                    if populated:
+                        raise OperationError("maintenance_cgroup_not_empty")
+                if unit == contract.scheduler_service:
+                    state["maintenance_scheduler_stop_result"] = properties
+            if time.monotonic() >= deadline:
+                raise OperationError("maintenance_drain_timeout")
+            if stopped:
+                break
+            time.sleep(max(0, min(DRAIN_POLL_SECONDS, deadline - time.monotonic())))
         atomic_write_json(state_path, state)
         self.assert_database_drained()
 
@@ -644,8 +810,73 @@ class WorkerBackend:
         return value["reader_required"]
 
     def ensure_document_reader(self, contract: TargetContract, release: Path, *, required: bool = False) -> None:
+        self.ensure_image_reader(contract, release)
         if (required or self.document_reader_required(contract)) and not verified_reader_release(release):
             raise OperationError("document_reader_required")
+
+    def ensure_image_reader(self, contract: TargetContract, release: Path) -> None:
+        try:
+            required = image_reader_required(contract.registry_dir)
+        except (OSError, ValueError) as exc:
+            raise OperationError("image_reader_floor_unavailable") from exc
+        if required and not verified_image_reader(release):
+            raise OperationError("image_reader_required")
+
+    def learning_reader_required(self, contract: TargetContract) -> bool:
+        try:
+            result = subprocess.run(
+                [str(MIGRATION_AUDIT_HELPER), "learning-reader-floor", "--contract", str(self.contract_path)],
+                check=True,
+                capture_output=True,
+                text=True,
+                timeout=30,
+            )
+            value = json.loads(result.stdout)
+            if (
+                not isinstance(value, dict)
+                or type(value.get("format_version")) is not int
+                or value.get("format_version") != 1
+                or type(value.get("reader_required")) is not bool
+                or type(value.get("minimum_reader_version")) is not int
+                or value["minimum_reader_version"] != (LEARNING_READER_VERSION if value["reader_required"] else 0)
+            ):
+                raise ValueError
+        except (OSError, ValueError, subprocess.SubprocessError) as exc:
+            raise OperationError("learning_reader_floor_unavailable") from exc
+        return value["reader_required"]
+
+    def ensure_learning_reader(self, contract: TargetContract, release: Path, *, required: bool = False) -> None:
+        if (required or self.learning_reader_required(contract)) and not verified_learning_reader(release):
+            raise OperationError("learning_reader_required")
+
+    def ranking_profile_reader_required(self, contract: TargetContract) -> bool:
+        try:
+            result = subprocess.run(
+                [str(MIGRATION_AUDIT_HELPER), "ranking-profile-reader-floor", "--contract", str(self.contract_path)],
+                check=True,
+                capture_output=True,
+                text=True,
+                timeout=30,
+            )
+            value = json.loads(result.stdout)
+            if (
+                not isinstance(value, dict)
+                or type(value.get("format_version")) is not int
+                or value.get("format_version") != 1
+                or type(value.get("reader_required")) is not bool
+                or type(value.get("minimum_reader_version")) is not int
+                or value["minimum_reader_version"] != (PROFILE_READER_VERSION if value["reader_required"] else 0)
+            ):
+                raise ValueError
+        except (OSError, ValueError, subprocess.SubprocessError) as exc:
+            raise OperationError("ranking_profile_reader_floor_unavailable") from exc
+        return value["reader_required"]
+
+    def ensure_ranking_profile_reader(
+        self, contract: TargetContract, release: Path, *, required: bool = False,
+    ) -> None:
+        if (required or self.ranking_profile_reader_required(contract)) and not verified_profile_reader(release):
+            raise OperationError("ranking_profile_reader_required")
 
     def legacy_service_matches(self, contract: TargetContract, source_root: Path) -> bool:
         try:
@@ -888,7 +1119,28 @@ def _deploy(
     backend.prepare(contract, request, staging)
     backend.publish_permissions(contract, staging, release)
     try:
+        try:
+            bridge = learning_bridge.is_bridge_source(release)
+            bridge_marker = learning_bridge.has_bridge_marker(release)
+        except (OSError, ValueError) as exc:
+            raise OperationError("learning_bridge_invalid") from exc
+        if bridge_marker:
+            if not bridge:
+                raise OperationError("learning_bridge_invalid")
+            if request["migration_class"] != "none" or "schema_disclosure" in request:
+                raise OperationError("learning_bridge_requires_none")
+            if baseline_sha is None or baseline_record.get("rollback_eligible") is not True:
+                raise OperationError("learning_bridge_eligible_baseline_required")
+            try:
+                learning_bridge.validate_bridge_candidate(release)
+            except (OSError, ValueError) as exc:
+                raise OperationError("learning_bridge_invalid") from exc
         backend.ensure_document_reader(contract, release)
+        backend.ensure_learning_reader(contract, release)
+        backend.ensure_ranking_profile_reader(
+            contract, release,
+            required=request.get("schema_disclosure", {}).get("kind") == ranking_profile_schema.KIND,
+        )
         backend.candidate_check(contract, release)
         transition(state_path, "prepared")
         if request["migration_class"] == "data-or-non-compatible":
@@ -898,13 +1150,21 @@ def _deploy(
                 if disclosure["kind"] in {community_schema.KIND, community_proof_schema.KIND}
                 else backend.catalogue_audit
             )
-            if baseline_sha is None or disclosure["active_sha"] != baseline_sha or not catalogue_schema.audit_matches(
+            if disclosure["kind"] == ranking_profile_schema.KIND:
+                maintenance_audit = backend.schema_audit
+            maintenance_matches = (
+                ranking_profile_schema.audit_matches if disclosure["kind"] == ranking_profile_schema.KIND
+                else catalogue_schema.audit_matches
+            )
+            if baseline_sha is None or disclosure["active_sha"] != baseline_sha or not maintenance_matches(
                 disclosure, maintenance_audit(contract), stage="starting",
             ):
                 raise OperationError("catalogue_starting_state_mismatch")
             try:
                 maintenance_schema.validate_build_evidence(release, disclosure)
-                if disclosure["kind"] == community_schema.KIND:
+                if disclosure["kind"] == ranking_profile_schema.KIND:
+                    backend.check_ranking_profile_schema(contract, release)
+                elif disclosure["kind"] == community_schema.KIND:
                     backend.check_community_schema(contract, release)
                 elif disclosure["kind"] == community_proof_schema.KIND:
                     backend.check_community_proof_schema(contract, release)
@@ -915,7 +1175,7 @@ def _deploy(
             except (OSError, ValueError) as exc:
                 raise OperationError("catalogue_candidate_invalid") from exc
             backend.preflight_recovery(contract)
-            if not catalogue_schema.audit_matches(disclosure, maintenance_audit(contract), stage="starting"):
+            if not maintenance_matches(disclosure, maintenance_audit(contract), stage="starting"):
                 raise OperationError("catalogue_starting_state_drift")
             transition(state_path, "draining")
             backend.drain(contract, state_path)
@@ -933,11 +1193,13 @@ def _deploy(
                 "recovery_archive_sha256": receipt["archive_sha256"],
             })
             atomic_write_json(state_path, state)
-            if not catalogue_schema.audit_matches(disclosure, maintenance_audit(contract), stage="starting"):
+            if not maintenance_matches(disclosure, maintenance_audit(contract), stage="starting"):
                 raise OperationError("catalogue_starting_state_drift")
             backend.assert_database_drained()
             transition(state_path, "migrating")
-            if disclosure["kind"] == community_schema.KIND:
+            if disclosure["kind"] == ranking_profile_schema.KIND:
+                backend.migrate_ranking_profile_schema(contract, release)
+            elif disclosure["kind"] == community_schema.KIND:
                 backend.migrate_community_schema(contract, release)
             elif disclosure["kind"] == community_proof_schema.KIND:
                 backend.migrate_community_proof_schema(contract, release)
@@ -945,9 +1207,11 @@ def _deploy(
                 backend.migrate_statement_authoring_schema(contract, release)
             else:
                 backend.migrate_catalogue_schema(contract, release)
-            if not catalogue_schema.audit_matches(disclosure, maintenance_audit(contract), stage="expected"):
+            if not maintenance_matches(disclosure, maintenance_audit(contract), stage="expected"):
                 raise OperationError("catalogue_ending_state_mismatch")
-            if disclosure["kind"] == community_schema.KIND:
+            if disclosure["kind"] == ranking_profile_schema.KIND:
+                backend.verify_ranking_profile_records(contract, request["run_id"], baseline_sha)
+            elif disclosure["kind"] == community_schema.KIND:
                 backend.initialize_community_index(contract, release)
             elif disclosure["kind"] == community_proof_schema.KIND:
                 backend.check_community_proof_ai_disabled(contract, release)
@@ -955,22 +1219,45 @@ def _deploy(
                 backend.refresh_catalogue(contract, release)
             if disclosure["kind"] == community_proof_schema.KIND:
                 backend.verify_community_proof_records(contract, request["run_id"], baseline_sha)
-            else:
+            elif disclosure["kind"] != ranking_profile_schema.KIND:
                 backend.verify_catalogue_records(contract, request["run_id"], baseline_sha)
-            if not catalogue_schema.audit_matches(disclosure, maintenance_audit(contract), stage="expected"):
+            if not maintenance_matches(disclosure, maintenance_audit(contract), stage="expected"):
                 raise OperationError("catalogue_ending_behaviour_drift")
         if request["migration_class"] == "backward-compatible-schema":
             disclosure = request.get("schema_disclosure")
             if disclosure is None:
                 raise OperationError("migration_disclosure_contract_missing")
-            if disclosure["active_sha"] != baseline_sha or not audit_matches(
+            schema_audit_matches = (
+                learning_schema.audit_matches
+                if disclosure["migration"] == learning_schema.MIGRATION
+                else audit_matches
+            )
+            if disclosure["active_sha"] != baseline_sha or not schema_audit_matches(
                 disclosure,
                 backend.schema_audit(contract),
                 stage="starting",
             ):
                 raise OperationError("schema_starting_state_mismatch")
             try:
-                if disclosure["migration"] == assessment_prototype_schema.MIGRATION:
+                if disclosure["migration"] == ranking_analysis_schema.MIGRATION:
+                    ranking_analysis_schema.validate_build_evidence(release, disclosure)
+                    backend.check_ranking_analysis_schema(contract, release)
+                elif disclosure["migration"] == admin_solution_review_schema.MIGRATION:
+                    admin_solution_review_schema.validate_build_evidence(release, disclosure)
+                    backend.check_admin_solution_review_schema(contract, release)
+                elif disclosure["migration"] == study_help_schema.MIGRATION:
+                    study_help_schema.validate_build_evidence(release, disclosure)
+                    backend.check_study_help_schema(contract, release)
+                elif disclosure["migration"] == self_solution_review_schema.MIGRATION:
+                    self_solution_review_schema.validate_build_evidence(release, disclosure)
+                    backend.check_self_solution_review_schema(contract, release)
+                elif disclosure["migration"] == admin_review_takedown_schema.MIGRATION:
+                    admin_review_takedown_schema.validate_build_evidence(release, disclosure)
+                    backend.check_admin_review_takedown_schema(contract, release)
+                elif disclosure["migration"] == solution_forum_schema.MIGRATION:
+                    solution_forum_schema.validate_build_evidence(release, disclosure)
+                    backend.check_solution_forum_schema(contract, release)
+                elif disclosure["migration"] == assessment_prototype_schema.MIGRATION:
                     assessment_prototype_schema.validate_build_evidence(release, disclosure)
                     backend.check_assessment_prototype_schema(contract, release)
                 elif disclosure["migration"] == solution_evaluation_schema.MIGRATION:
@@ -979,6 +1266,23 @@ def _deploy(
                 elif disclosure["migration"] == learning_activity_schema.MIGRATION:
                     learning_activity_schema.validate_build_evidence(release, disclosure)
                     backend.check_learning_activity_schema(contract, release)
+                elif disclosure["migration"] == learning_schema.MIGRATION:
+                    backend.ensure_learning_reader(contract, release, required=True)
+                    # The schema makes old readers ineligible immediately, even
+                    # when empty. Verify the actual existing recovery target
+                    # before DDL; never invent a different selector or baseline.
+                    if baseline_sha is None or baseline_record.get("rollback_eligible") is not True:
+                        raise OperationError("learning_recovery_reader_required")
+                    try:
+                        backend.ensure_learning_reader(
+                            contract,
+                            safe_release_path(contract.releases_dir, baseline_sha),
+                            required=True,
+                        )
+                    except OperationError as exc:
+                        raise OperationError("learning_recovery_reader_required") from exc
+                    learning_schema.validate_build_evidence(release, disclosure)
+                    backend.check_learning_schema(contract, release)
                 elif disclosure["migration"] == statement_reports_schema.MIGRATION:
                     statement_reports_schema.validate_build_evidence(release, disclosure)
                     backend.check_statement_reports_schema(contract, release)
@@ -1018,15 +1322,29 @@ def _deploy(
                     backend.check_concept_schema(contract, release)
             except ConceptSchemaError as exc:
                 raise OperationError("schema_candidate_invalid") from exc
-            if not audit_matches(disclosure, backend.schema_audit(contract), stage="starting"):
+            if not schema_audit_matches(disclosure, backend.schema_audit(contract), stage="starting"):
                 raise OperationError("schema_starting_state_drift")
             transition(state_path, "migrating")
-            if disclosure["migration"] == assessment_prototype_schema.MIGRATION:
+            if disclosure["migration"] == ranking_analysis_schema.MIGRATION:
+                backend.migrate_ranking_analysis_schema(contract, release)
+            elif disclosure["migration"] == admin_solution_review_schema.MIGRATION:
+                backend.migrate_admin_solution_review_schema(contract, release)
+            elif disclosure["migration"] == study_help_schema.MIGRATION:
+                backend.migrate_study_help_schema(contract, release)
+            elif disclosure["migration"] == self_solution_review_schema.MIGRATION:
+                backend.migrate_self_solution_review_schema(contract, release)
+            elif disclosure["migration"] == admin_review_takedown_schema.MIGRATION:
+                backend.migrate_admin_review_takedown_schema(contract, release)
+            elif disclosure["migration"] == solution_forum_schema.MIGRATION:
+                backend.migrate_solution_forum_schema(contract, release)
+            elif disclosure["migration"] == assessment_prototype_schema.MIGRATION:
                 backend.migrate_assessment_prototype_schema(contract, release)
             elif disclosure["migration"] == solution_evaluation_schema.MIGRATION:
                 backend.migrate_solution_evaluation_schema(contract, release)
             elif disclosure["migration"] == learning_activity_schema.MIGRATION:
                 backend.migrate_learning_activity_schema(contract, release)
+            elif disclosure["migration"] == learning_schema.MIGRATION:
+                backend.migrate_learning_schema(contract, release)
             elif disclosure["migration"] == statement_reports_schema.MIGRATION:
                 backend.migrate_statement_reports_schema(contract, release)
             elif disclosure["migration"] == solution_document_schema.MIGRATION:
@@ -1051,9 +1369,12 @@ def _deploy(
                 backend.migrate_newsletter_automation_schema(contract, release)
             else:
                 backend.migrate_concept_schema(contract, release)
-            if not audit_matches(disclosure, backend.schema_audit(contract), stage="expected"):
+            if not schema_audit_matches(disclosure, backend.schema_audit(contract), stage="expected"):
                 raise OperationError("schema_ending_state_mismatch")
-        backend.candidate_migrations_applied(contract, release)
+        if bridge and not backend.learning_reader_required(contract):
+            backend.check_learning_bridge(contract, release)
+        else:
+            backend.candidate_migrations_applied(contract, release)
         ending_fingerprint = backend.state_fingerprint(contract)
         if request["migration_class"] in {"backward-compatible-schema", "data-or-non-compatible"} and (
             ending_fingerprint != request["schema_disclosure"]["expected"]["state_fingerprint"]
@@ -1072,6 +1393,14 @@ def _deploy(
             backend.discard_candidate(contract, release)
         raise
     transition(state_path, "activating")
+    # Recheck after a schema operation, under the same global operation lock.
+    # Installing even an empty learning schema makes the capability mandatory.
+    backend.ensure_learning_reader(
+        contract,
+        release,
+        required=request.get("schema_disclosure", {}).get("migration") == learning_schema.MIGRATION,
+    )
+    backend.ensure_ranking_profile_reader(contract, release)
     backend.activate(contract, request["release_sha"])
     try:
         health = backend.restart_and_verify(contract, request["release_sha"], request["artifact_digest"])
@@ -1080,7 +1409,7 @@ def _deploy(
             or backend.state_fingerprint(contract) != ending_fingerprint
         ):
             raise OperationError("activation_state_drift")
-        if request["migration_class"] == "data-or-non-compatible" and not catalogue_schema.audit_matches(
+        if request["migration_class"] == "data-or-non-compatible" and not maintenance_matches(
             request["schema_disclosure"], maintenance_audit(contract), stage="expected",
         ):
             raise OperationError("catalogue_activation_behaviour_drift")
@@ -1093,6 +1422,8 @@ def _deploy(
         # Check before touching the current/previous symlinks. The schema floor
         # also applies to automatic recovery after activation failure.
         backend.ensure_document_reader(contract, safe_release_path(contract.releases_dir, baseline_sha))
+        backend.ensure_learning_reader(contract, safe_release_path(contract.releases_dir, baseline_sha))
+        backend.ensure_ranking_profile_reader(contract, safe_release_path(contract.releases_dir, baseline_sha))
         try:
             if backend.state_fingerprint(contract) != ending_fingerprint:
                 raise OperationError("rollback_database_state_drift")
@@ -1170,6 +1501,8 @@ def _rollback(
     if previous_sha != request["release_sha"]:
         raise OperationError("rollback_target_not_previous")
     backend.ensure_document_reader(contract, safe_release_path(contract.releases_dir, request["release_sha"]))
+    backend.ensure_learning_reader(contract, safe_release_path(contract.releases_dir, request["release_sha"]))
+    backend.ensure_ranking_profile_reader(contract, safe_release_path(contract.releases_dir, request["release_sha"]))
     before_fingerprint = backend.state_fingerprint(contract)
     if (
         current_record["state_fingerprint"] != before_fingerprint

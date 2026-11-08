@@ -1,0 +1,9 @@
+<div class="list-group mb-3">
+  {% for publication in publications %}
+    <a class="list-group-item list-group-item-action"
+       href="{% url 'learning:read' publication.document_id %}"><strong>{{ publication.revision.title }}</strong>
+      <p class="text-muted mb-0">{{ publication.revision.summary }}</p>
+    </a>{% empty %}
+    <div class="list-group-item text-muted">No reviewed notes here yet. A private draft can be proposed for review.</div>
+  {% endfor %}
+</div>

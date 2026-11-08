@@ -1,0 +1,7 @@
+{% if result %}
+  {% if result.raw_score is not None %}<span class="fw-semibold">{{ result.raw_score|floatformat:'-2' }}</span>{% endif %}
+  {% if result.medal %}<span class="badge bg-warning-subtle text-warning-emphasis">{{ result.medal }}</span>{% endif %}
+  {% if result.band %}<span class="badge bg-primary-subtle text-primary-emphasis">{{ result.band }}</span>{% endif %}
+  {% if result.status_text %}<span>{{ result.status_text }}</span>{% endif %}
+  {% if result.remarks %}<details class="app-table-details"><summary>Source notes</summary><div class="app-table-details-body">{{ result.remarks }}</div></details>{% endif %}
+{% else %}<span class="text-muted" aria-label="No result">—</span>{% endif %}

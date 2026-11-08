@@ -63,3 +63,40 @@ test('start forms escape problem labels and action attributes', () => {
   assert.ok(html.includes('&lt;img'));
   assert.ok(html.includes('action="/write/?x=&quot;&amp;y=1"'));
 });
+
+test('record-only problems retain distinct taxonomy dialogs across table redraws', () => {
+  const rows = ['first', 'second'].map(id => ({
+    problem_uuid: id, statement_uuid: '', has_statement: false,
+    contest_year_problem: `Legacy problem ${id}`, concept_coverage_status: 'Untagged',
+    statement_detail_url: `/solutions/problems/${id}/`,
+  }));
+  const elements = new Map();
+  let clickHandler, dialogOpened = false, table;
+  const getElementById = id => {
+    if (!elements.has(id)) elements.set(id, {
+      textContent: id === 'problem-statements-table-data' ? JSON.stringify(rows) : '',
+      addEventListener(event, handler) {
+        if (id === 'problem-statements-table' && event === 'click') clickHandler = handler;
+      },
+      querySelectorAll: () => [], replaceChildren() {}, appendChild() {},
+      showModal() { dialogOpened = true; },
+    });
+    return elements.get(id);
+  };
+  vm.runInNewContext(script, {
+    document: {getElementById, createElement: () => ({})},
+    DataTable: function (_selector, options) { table = options; },
+  });
+  for (const row of rows) {
+    for (let draw = 0; draw < 2; draw++) {
+      const html = table.columns[3].render(null, 'display', row);
+      assert.ok(html.includes(`data-problem-uuid="${row.problem_uuid}"`));
+      dialogOpened = false;
+      clickHandler({target: {closest: () => ({getAttribute: () => row.problem_uuid})}});
+      assert.equal(dialogOpened, true);
+      assert.equal(getElementById('statement-taxonomy-title').textContent, row.contest_year_problem);
+      assert.equal(getElementById('statement-taxonomy-detail').href, row.statement_detail_url);
+      assert.equal(getElementById('statement-taxonomy-detail').textContent, 'Open problem');
+    }
+  }
+});

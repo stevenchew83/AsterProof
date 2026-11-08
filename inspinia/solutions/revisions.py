@@ -15,6 +15,7 @@ from inspinia.solutions.document_source import solution_source
 from inspinia.solutions.document_source import source_digest
 from inspinia.solutions.models import ProblemSolution
 from inspinia.solutions.models import SolutionRevision
+from inspinia.solutions.onboarding import needs_private_first_save
 
 DOCUMENT_SOURCE_LIMIT = 64_000
 SUMMARY_LIMIT = 12_000
@@ -154,9 +155,13 @@ def save_document(  # noqa: PLR0913
     source, title, summary = _validated_document(
         source, title, summary, pdf_options, legacy_source=previous_source,
     )
-    if action == "publish" and not source.strip():
-        message = "Write a solution before publishing it."
-        raise InvalidDocument(message)
+    if action == "publish":
+        if not source.strip():
+            message = "Write a solution before publishing it."
+            raise InvalidDocument(message)
+        if needs_private_first_save(user, current, previous_source):
+            message = "Save a private draft before publishing your first solution."
+            raise InvalidDocument(message)
     action_changed = _apply_action(current, action)
     digest = source_digest(source, title, summary, pdf_options)
     revision = current.current_revision if current.current_revision_id else None
