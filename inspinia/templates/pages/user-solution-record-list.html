@@ -111,6 +111,10 @@
         {% endif %}
       </p>
       {% if user_solution_record_show_ai_reviews %}
+      <p class="text-muted fs-xs mb-2">
+        <span id="user-solution-review-start-description">AI review sends the problem statement, saved proof, and any embedded proof images to OpenAI as a paid request.</span>
+        <span id="user-solution-review-publish-description">Publishing shares the score and feedback with the solver and may notify them by email.</span>
+      </p>
       <div id="user-solution-review-feedback" role="status" class="text-muted fs-xs mb-0" data-csrf-token="{{ csrf_token }}"></div>
       {% endif %}
       <div class="app-table-region table-responsive" tabindex="0" role="region" aria-label="Solution records" aria-describedby="user-solution-result-description">
@@ -289,6 +293,7 @@
           var icon = publish ? "ti-send" : "ti-sparkles";
           var reviewButton = action
             ? '<button type="button" class="btn btn-sm btn-outline-primary" data-ai-review-action="' + action + '"' +
+              ' aria-describedby="user-solution-review-' + action + '-description"' +
               (row.review_submitting ? ' disabled>' + busyLabel : '><i class="ti ' + icon + '" aria-hidden="true"></i> ' + label) +
               '</button>'
             : "";
@@ -401,13 +406,6 @@
     const publishing = action === "publish";
     const draft = data.review_action?.publish;
     if (publishing ? !draft : !data.review_action?.can_start) return;
-
-    const confirmation = publishing
-      ? "Publish the " + draft.model + " review (" + data.ai_review.score + "/7)? " +
-        "This shares the score and feedback with the solver and may queue an email notification."
-      : "Queue one paid OpenAI review? This sends the problem statement, saved proof text, " +
-        "and any embedded proof images to OpenAI.";
-    if (!window.confirm(confirmation)) return;
 
     data.review_submitting = true;
     button.disabled = true;
