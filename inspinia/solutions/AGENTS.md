@@ -1,27 +1,35 @@
 # Solutions App Guide
 
-This app owns user-authored problem solutions and their block structure.
+This app owns user-authored archive problem solutions and their saved revisions.
+See the [continuous editor guide](../../docs/solutions/continuous-solution-editor.md),
+[document schema contract](../../docs/deployment/solution-document-editor.md),
+and [multiple-solutions contract](../../docs/deployment/multiple-solutions-release.md).
 
-## Core models and ownership
+## Ownership and routing
 
-- `ProblemSolution`: one user-owned solution for one `ProblemSolveRecord`.
-- `SolutionBlockType`: seeded structural vocabulary such as `claim`, `proof`, and `case`.
-- `ProblemSolutionBlock`: ordered blocks inside a solution.
-- `SolutionSourceArtifact`: optional raw PDF/text/URL provenance for imported material.
+- Each `ProblemSolution` belongs to one author and one `pages.ProblemSolveRecord`.
+  Preserve the shared problem UUID. The linked statement provides context for
+  rendering and review.
+- A problem-only authoring route selects the author's original slot
+  (`additional_draft_key` is null). Additional solutions have their own IDs.
+  Carry the selected solution ID through edit, upload, export, and share flows
+  for an additional solution. Check ownership and problem identity on lookup.
+  Repeated creation with the same additional draft key must resolve to the same draft.
+- Reuse the existing access checks for editing, member publication, and public
+  sharing. A private save must not change a published snapshot.
 
-## Invariants
+## Saved source and legacy content
 
-- A user can save multiple independent solutions for one problem. Problem-only authoring routes target the original solution. Routes for an individual saved solution must use its ID.
-- Block order is explicit through `position`; do not infer it from timestamps.
-- Block `title` is free-form display text. Do not promote transition words like `Therefore` or `Hence` into schema-only meaning.
-- `body_format` controls rendering expectations. Do not assume all stored content is valid LaTeX.
-- Source artifacts are provenance, not the canonical rendered solution body.
-
-## Schema discipline
-
-- Anchor solutions to `pages.ProblemSolveRecord`, not directly to statement rows.
-- If you add nesting behavior, keep parent/child relationships inside the same solution.
-- If you add moderation or history, prefer new revision/review tables over mutating the authored blocks into audit records.
+- The editor saves one continuous LaTeX document. `current_revision` points to
+  an immutable `SolutionRevision` belonging to that solution. Save a new revision
+  through the existing signed editor context and optimistic version check.
+- When `current_revision` is null, read the legacy blocks in `position` order.
+  The first explicit document save preserves those blocks. Keep parent and child
+  blocks inside their solution, preserve free-form titles, and respect
+  `body_format` when converting legacy content.
+- `SolutionSourceArtifact` records import provenance. Keep it separate from the
+  rendered proof source. Store moderation and review history separately from
+  the authored content.
 
 ## PDF export
 

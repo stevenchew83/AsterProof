@@ -24,6 +24,14 @@ If independent recovery evidence does not exist, stop. Open a separate backup-au
 6. Record the restored runtime as a baseline only if its clean SHA, source identity, artifact/content digest, schema fingerprint, health, service, and host marker are proven. Otherwise record a legacy, non-rollback-eligible baseline and perform a reviewed no-migration adoption release.
 7. Run a non-mutating protected preflight, then complete the safe-target deploy/induced-failure/rollback drill using the same gateway, operation worker, and probes.
 8. During a separately authorized staffed window, deploy the exact current `main` SHA, verify immediate/stabilization evidence, and cut traffic over through the approved DNS/TLS procedure.
-9. Complete +1h/+4h/+24h monitoring and preserve the old host according to the recovery plan until replacement evidence is accepted.
+9. Preserve the old host according to the recovery plan until all applicable
+   recovery and replacement acceptance conditions are satisfied.
+
+Use the [delayed monitoring checklist](production-monitoring.md#optional-delayed-observations)
+only when the user explicitly requests follow-up observations. Host retention
+is independent of these observations. Passing immediate checks leaves any
+outstanding retention and recovery obligations in force. Throughout replacement,
+follow the eligibility and reconciliation rules in
+[Rollback and operation recovery](rollback-and-recovery.md).
 
 The replacement is complete only when GitHub, `/healthz/`, service cgroup, static bytes, registry SHA/digest, database fingerprint, scheduler, and restored media checks agree. Destroy or repurpose the old host only through a separate provider-authorized procedure.

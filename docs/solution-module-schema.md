@@ -1,6 +1,10 @@
 # Solution Module Schema Plan
 
-This document proposes the first database shape for a user-submitted solution module.
+> **Superseded design.** This proposal records the original block-based schema.
+> For current authoring and saved revisions, see the
+> [continuous solution editor](solutions/continuous-solution-editor.md). For
+> solution identity and migration constraints, see the
+> [multiple-solutions release contract](deployment/multiple-solutions-release.md).
 
 ## Goals
 

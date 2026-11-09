@@ -1,5 +1,8 @@
 # Admin AI solution review
 
+This guide describes the review workflow in the current source. Check the active
+release and feature settings before using it in production.
+
 Under **Administration → AI review settings**, save an OpenAI project API key,
 select the models available on solution entries, set the thinking level and
 output token limit, and edit the review prompt. The key is encrypted at rest
@@ -7,42 +10,64 @@ and is never returned to the browser. Saving settings does not contact OpenAI.
 An empty key field keeps the current key; **Remove the saved key** removes it.
 Replacing or removing the key invalidates queued work for that key.
 
-On a submitted or member-published solution, use **AI review** to choose models
-and generate drafts. Every request includes the problem label, active linked
-statement and complete saved proof text. All three are required. Both author
-and admin requests also send images uploaded to that solution and referenced in
-the saved proof. Each review supports up to four static PNG, JPEG, GIF, or WebP
-images, each at most 3 MiB and 16 megapixels. The worker sends PNGs scaled to
-fit within 1536 by 1536 pixels. A missing or invalid embedded image stops the
-review before it reaches OpenAI. External image references and diagram code
-remain part of the text. Requests queued before the image disclosure remain
-text-only.
+## Queue a review
 
-Each selected model uses one paid request. The token cap covers reasoning and
-output. Use a dedicated OpenAI project to track spend.
-**Administration → AI review queue** keeps each model request in the table as it
-finishes. It shows the score, publication status, and available actions. The
-table loads all active requests and up to 200 past requests per history page.
-Choose request dates to load older history. Local search and filters cover all
-loaded rows and stay applied during live refresh.
-On the solution page, a spinner indicates a request is waiting for the worker.
+The admin actions require an active app admin or superuser. The worker also
+checks that the requester can still access the app and that their role, key,
+and review target are current before sending a request.
 
-The fixed rubric requires an integer score from 0 to 7 and feedback supporting
-that score. The worker reads OpenAI's stream and the review panel polls for
-status and partial feedback. Admin-generated drafts are private to admins until
-they choose a completed draft to publish. Only one review can be published per
-saved version, and partial feedback is never published as the result.
-The solver's email includes the score and links to the signed-in entry. Only the
-solver and admins can read the written feedback. Publishing does not change
-trainer assessments, verification, or completion records. If a proof or statement
-changes, regenerate before publishing. Already-published feedback remains marked
-as an earlier version.
+- On a submitted or member-published solution, open **AI review** on the
+  solution detail page to select one or more configured models and queue drafts.
+- In **User Solution Records** (`/dashboard/user-solutions/`), the row's
+  **AI review** action queues one request using the first enabled model in the
+  app's model order. It is available for a reviewable saved proof with no review
+  for its current version, when generation is enabled. The button submits
+  immediately. The server checks the saved input and prevents duplicate queue
+  entries for the same current target. The row polls for status.
+
+Every request requires the problem label, active linked statement, and complete
+saved proof text. Both author and admin requests also send images uploaded to
+that solution and referenced in the proof. Each review supports up to four static
+PNG, JPEG, GIF, or WebP images, each at most 3 MiB and 16 megapixels. The worker
+sends PNGs scaled to fit within 1536 by 1536 pixels. A missing or invalid
+embedded image stops the review before it reaches OpenAI. External image
+references and diagram code remain part of the text. Requests queued before the
+image disclosure remain text-only.
+
+Queueing itself saves work for the worker. Each model dispatched to OpenAI is a
+paid request, and the token cap covers reasoning and output. Use a dedicated
+OpenAI project to track spend and queue requests only within authorized spending.
+
+## Inspect and publish a review
+
+**Administration → AI review queue** shows active jobs and up to 200 past
+requests per history page, with date filters and local search. The solution
+detail page shows partial feedback while the worker streams. The fixed rubric
+requires an integer score from 0 to 7 and feedback supporting that score.
+Admin drafts are private to admins. The inventory row shows status and score.
+Open the solution detail page to read the draft feedback.
+
+When the inventory row has a completed current draft and no review in progress
+or published for that version, **Publish AI review** publishes the draft shown
+by that row immediately. The solution detail page and queue also support
+publication. Only one review can be published per saved version. A changed
+proof or active statement makes the old result an earlier version. Generate
+a review for the new version before publishing.
+
+Publication makes the score and written feedback available to the solver and
+admins through the signed-in reader. It queues a notification when eligible.
+The email contains the score and a link to the signed-in entry. Publication
+does not make a provider request or change trainer assessments, verification,
+or completion records.
 
 Use **Take down** in the queue to remove a published review from the solver's
 view and keep it in admin history. The action records the admin and time and
 cancels an email that is still queued. An email already sending or sent may
 still reach the solver with the score. Its review link stops showing the
-feedback while the review is taken down. The queue requires migration
+feedback while the review is taken down. An outdated publish or takedown action
+must be refreshed after the publication changes. An admin can republish a
+completed review if it still matches the current proof and statement. The queue
+requires migration
 `solutions.0016_admin_review_takedown`, which adds nullable take-down metadata.
 The protected release admits only the frozen migration, its actor foreign key
 and index, and the PostgreSQL 17.9 preservation proof. Install the reviewed

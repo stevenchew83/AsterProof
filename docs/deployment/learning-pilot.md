@@ -1,9 +1,19 @@
 # Shared learning release and recovery
 
-The local implementation serves all four subjects and Foundations. Inequalities
-is the first editorial pilot. Installing software, enabling contribution intake,
-publishing reviewed content and qualifying a teaching package are separate steps.
-This document records implemented safeguards; it grants no operational authority.
+The repository implements Training 2.0 for all four subjects and Foundations,
+with Inequalities as the first editorial pilot. The 2 November 2026 production
+release deployed `fd2bb2bc737004652d4e72d4b44f1b80170cc67d`. The starter manuscripts
+remained private and unpublished at release verification.
+[Production release record](https://github.com/stevenchew83/AsterProof/actions/runs/41392266006)
+
+Runtime configuration controls feature enablement. Contribution intake has a
+separate switch. Content publication requires editorial approval of the exact
+revision and a separate publication action. Teaching-package qualification is
+also a separate step.
+
+This runbook grants no operational authority. For operational actions, follow
+the authorization and approval rules in the
+[production release procedure](production-release.md).
 
 ## Current bundle and historical evidence
 
@@ -22,8 +32,9 @@ then adds exactly these four migrations and 20 new tables. Its allowance must bi
 the renumbered migration files and all 95 historical migration sources, preserving
 Assessment and Community schema, records, visibility and AI-off controls. This
 ordering enables no AI execution, provider use, funded policy or access grant.
-This document does not claim that the Community production release or its
-qualification has completed.
+Confirm the Community production baseline and its qualification for the release
+being prepared. See the [Phase 1 release record](../community-proof-library.md)
+for the historical Community deployment.
 
 The learning_schema.py deployment module binds the accepted migration files to their
 real SHA-256 digests. A local SQLite rehearsal upgrades the preceding schema and checks
@@ -50,13 +61,12 @@ qualify the new Assessment-and-Community baseline or the renumbered 0046 bundle.
 Earlier 93-source baseline reports likewise remain historical evidence; their
 executed identifiers and proof claims are not rewritten as 95-source proof.
 
-New-baseline proof is pending until the actual Assessment-and-Community-qualified
-source and Training bridge/successor identities are bound to a fresh PostgreSQL 17.9
-rehearsal. Freeze and verify its exact delta, all 95 historical sources, Assessment
-and Community preservation, release identities and compatible reader before dispatch. Precommit evidence is
-not deployable release proof. CI and the protected release build must repeat the
-proof on the existing pinned Linux PostgreSQL 17.9 container. No local evidence
-installs production authority.
+For this baseline, bind the actual Assessment-and-Community-qualified source
+and Training bridge/successor identities to a fresh PostgreSQL 17.9 rehearsal.
+Before dispatch, verify its exact delta, all 95 historical sources, Assessment and
+Community preservation, release identities, and compatible reader. CI and the
+protected release build must repeat the proof on the pinned Linux PostgreSQL 17.9
+container. Production authority installation remains a separate operation.
 
 The pre-DDL worker check also requires a real, rollback-eligible compatible baseline
 with verified learning-reader bytes. An ordinary previous reader cannot qualify.
