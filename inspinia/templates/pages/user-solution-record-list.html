@@ -204,6 +204,17 @@
         }
       },
       {
+        data: "mohs",
+        title: "MOHS",
+        className: "text-nowrap",
+        render: function (data, type) {
+          var value = data ?? "";
+          if (type === "sort" || type === "type") return value === "" ? -1 : Number(value);
+          if (type === "display") return value === "" ? "—" : escapeHtml(value);
+          return value;
+        }
+      },
+      {
         data: "user_label",
         title: "Author",
         render: function (data, type, row) {
