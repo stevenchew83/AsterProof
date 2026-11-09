@@ -50,4 +50,13 @@ does not replace the operator's full cgroup/runtime/static/schema acceptance.
 
 ## Incident exit criteria
 
-Service recovery alone is insufficient. Close the recovery state only when the active SHA/digest/schema evidence is consistent, persistent data ownership is confirmed, all ambiguous operations are terminal, normal authority controls pass, credentials are rotated as required, and named +1h/+4h/+24h follow-ups are assigned.
+Restoring service alone is insufficient. Before closing the recovery state,
+verify that the active source SHA, artifact digest, and schema and migration
+evidence agree. Confirm persistent data ownership and integrity, reconcile all
+ambiguous or incomplete operations to a verified terminal state, and verify that
+normal authority controls are restored and pass their checks. Complete required
+credential rotation and all other acceptance checks in the approved recovery
+procedure.
+
+Assign [delayed observations](production-monitoring.md#optional-delayed-observations)
+only when the user explicitly requests them.

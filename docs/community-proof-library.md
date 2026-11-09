@@ -1,8 +1,12 @@
 # Community Proof Library — Phase 1
 
-Phase 1 implements private problem sharing and community proof contributions.
-The [adopted requirements](plans/2026-11-01-community-proof-library-requirements.md)
-remain the roadmap for subsequent phases.
+Phase 1 covers private problem sharing and community proof contributions. The
+[2 November 2026 production release](https://github.com/stevenchew83/AsterProof/actions/runs/41374182958)
+deployed `50476bcc718b6ce8e9f514f47ccd63b3a9ea0280`. Publication still requires
+moderation and an explicit author action. The
+[adopted requirements](plans/2026-11-01-community-proof-library-requirements.md)
+describe the broader roadmap, including preferred-explanation voting and
+independent correctness verification in later phases.
 
 ## Submit and share a problem
 
@@ -10,7 +14,11 @@ Post a complete statement, proposed subject, and source/author attribution throu
 Community problems. Difficulty, method tags, core ideas, rationale, and a solution
 outline may be unknown. A numeric difficulty of zero retains its actual meaning;
 blank difficulty is displayed as Unknown. Library similarity preflight is still
-required, bound to the current content and source index.
+required, bound to the current content and source index. See the
+[similarity-index maintenance procedure](community-problems.md#library-similarity-index)
+for the refresh command and stale-index behavior. Use the
+[Phase 1 release contract](deployment/community-proof-library-release.md) for
+the production schema and recovery procedure.
 
 New submissions are private to their author and admins. Existing member-visible
 posts retain their earlier audience; the migration creates no public publications

@@ -1,13 +1,14 @@
 # AsterProof (Django + Inspinia)
 
-AsterProof is a Django 5 project built on the Inspinia dashboard shell. The current product centers on:
+AsterProof is a Django application for olympiad mathematics. The public website
+offers a Solution Writer, a library of published learning resources, and shared
+community proofs. The signed-in workspace brings together the contest archive,
+mathematical catalogue, progress tracking, training, and solution authoring.
+Operator tools cover rankings, moderation, AI review, and operations.
 
-- workbook-imported contest problem analytics
-- parsed topic-technique tags with uppercase normalization
-- contest problem statement import and analytics
-- per-user problem completion tracking
-- Math Olympiad self-progression training with trainer review and points
-- role-aware profile, audit log, and session monitoring screens
+Start with the [documentation index](docs/README.md) for subsystem guides, release
+contracts, and historical records. The routes below describe this repository's
+implementation. Features with rollout controls can vary by environment.
 
 ## Stack
 
@@ -32,8 +33,9 @@ see [public website and library](docs/public-website.md).
 
 ## Setup (pip)
 
+Run these setup commands from the repository root.
+
 ```bash
-cd /Users/stevenchew/Dev/AsterProof
 python3 -m venv .venv
 source .venv/bin/activate
 pip install -r requirements/local.txt
@@ -50,7 +52,6 @@ python manage.py runserver
 You can use [uv](https://docs.astral.sh/uv/) instead of `pip`; it respects the same `requirements/*.txt` files:
 
 ```bash
-cd /Users/stevenchew/Dev/AsterProof
 uv venv
 source .venv/bin/activate
 uv pip install -r requirements/local.txt
@@ -73,72 +74,41 @@ python manage.py runserver
 ## First run and access model
 
 - Sign in through [http://127.0.0.1:8000/accounts/login/](http://127.0.0.1:8000/accounts/login/).
-- `/` is the authenticated landing page and search entry point.
-- Most product pages are login-protected.
-- When `DEBUG=True`, archive dashboards and import tools are available to any authenticated user.
-- When `DEBUG=False`, admin tools require either a superuser or a user whose `role` is `admin`.
+- The public homepage is `/`. Sign in to open the dashboard, archive workspace,
+  or your saved solutions.
+- Archive tools that use the standard admin-tools gate can be available to signed-in
+  users in `DEBUG`. In production that gate requires the app Admin role or
+  superuser status. Individual tools can impose additional checks.
 - Roles live on `inspinia.users.models.User.role`.
 - Django admin is mounted at `/admin/` by default, unless `DJANGO_ADMIN_URL` overrides it.
 
-## Math Olympiad Training Hub
+## Training workspaces
 
-The training hub lets approved students progress through Algebra, Number Theory, Geometry, and Combinatorics.
-Students read curated materials, mark lessons complete, attempt problems, submit written solutions, receive trainer
-comments, and earn points toward Level 1 through Level 10. Trainers manage training content and review solutions;
-admins can also manage users and level thresholds.
+The legacy Training Hub uses `/dashboard/` for points, levels, submissions, and
+trainer feedback. Its roadmap remains available at `/training/legacy/`.
+`PointLedger` records material completions and reviewed submission awards.
+`seed_training_hub` supplies the local demo and default level thresholds.
 
-Points are never edited directly on a user. They are summed from `PointLedger` entries:
-
-- material completion entries are awarded once per user/material
-- problem submission entries are awarded only after trainer/admin review
-- accepted submissions receive full problem points
-- partially accepted submissions receive trainer-selected points
-- needs-revision and rejected submissions award no points
-
-The current level is calculated from configured `LevelThreshold` rows. Default levels are seeded by
-`seed_training_hub`, from Euclid Initiate at 0 points through Grothendieck Legend at 6000 points.
-
-Trainer review workflow:
-
-1. Student studies a material and marks it complete.
-2. The system creates one material completion ledger entry.
-3. Student submits a Markdown/math solution for a problem.
-4. Trainer comments and marks the submission accepted, partially accepted, needs revision, or rejected.
-5. Accepted and partially accepted reviews create or update one point-ledger entry for that submission.
-6. Student dashboard updates total points, level, comments, and topic progress.
+[Training 2.0](docs/README.md#mathematics-training-20) adds a workspace for
+catalogue-based learning, versioned notes, and curated pathways. When the module
+is enabled, `/training/` leads to `/learning/`. Contribution intake and publication
+have separate controls.
 
 ## Main routes
 
 | Route | Purpose | Access |
-|------|---------|--------|
-| `/` | Landing page, archive search, and navigation hub | Login required |
-| `/archive/` | Archive workflow hub | Login required |
-| `/problems/` | Temporary redirect to `/archive/` | Login required |
-| `/dashboard/` | Training dashboard with level, points, progress, comments, and recommendations | Login required |
-| `/dashboard/progress/alex/` | Alex's completions, technique coverage, and training roadmap | Configured Alex/Ben accounts only |
-| `/dashboard/progress/ben/` | Ben's completions, technique coverage, and training roadmap | Configured Alex/Ben accounts only |
-| `/dashboard/problem-analytics/` | Problem analytics dashboard | Login required; admin tools only when `DEBUG=False` |
-| `/training/` | Main olympiad training roadmap | Login required |
-| `/materials/<slug>/` | Study material with Markdown and MathJax rendering | Login required; unpublished trainer/admin only |
-| `/problems/<slug>/` | Training problem detail and solution submission | Login required; unpublished trainer/admin only |
-| `/submissions/` | Current user's training submissions | Login required |
-| `/trainer/` | Trainer dashboard and pending review queue | Trainer/admin |
-| `/trainer/topics/` | Topic and subtopic CMS | Trainer/admin |
-| `/trainer/materials/` | Material CMS | Trainer/admin |
-| `/trainer/problems/` | Problem CMS | Trainer/admin |
-| `/trainer/submissions/` | Submission review queue with filters | Trainer/admin |
-| `/admin/users/` | Admin user-role management alias | Admin |
-| `/admin/levels/` | Admin level threshold settings | Admin |
-| `/dashboard/contests/` | Contest analytics dashboard | Login required; admin tools only when `DEBUG=False` |
-| `/dashboard/topic-tags/` | Topic-tag analytics dashboard | Login required; admin tools only when `DEBUG=False` |
-| `/dashboard/problem-statements/` | Problem statement library list | Login required |
-| `/dashboard/problem-statements/analytics/` | Problem statement analytics | Login required; admin tools only when `DEBUG=False` |
-| `/import-problems/` | Excel workbook preview/import for archive rows | Login required; admin tools only when `DEBUG=False` |
-| `/tools/latex-preview/` | Parse and preview statement text | Login required; save path requires admin tools when `DEBUG=False` |
-| `/users/profile/` | User profile, completion stats, and completion import | Login required |
-| `/users/manage-roles/` | Role management | Admin-only in practice |
-| `/users/monitor/events/` | Audit event log | Admin-focused |
-| `/users/monitor/sessions/` | Session monitor and revocation UI | Admin-focused |
+|---|---|---|
+| `/` | Homepage and Solution Writer | Public |
+| `/library/` | Published learning resources | Public |
+| `/community/proofs/` | Directory of public community proofs | Public |
+| `/dashboard/` | Signed-in dashboard with legacy training progress | Sign-in required |
+| `/archive/` | Contest archive tools and analytics | Sign-in required |
+| `/dashboard/topic-tags/` | Mathematics catalogue | Sign-in required |
+| `/training/` | Training entry point | Sign-in required |
+| `/learning/` | Training 2.0 workspace | Sign-in, approval, and module enablement |
+| `/solutions/` | Your saved solutions | Sign-in required |
+| `/rankings/` | Olympiad rankings | Moderator or admin |
+| `/dashboard/user-solutions/` | User Solution Records inventory | Admin tools |
 
 ## Settings
 
@@ -273,7 +243,7 @@ Start at the repo root file, then read the nearest more specific file for the pa
 | Path | Purpose |
 |------|---------|
 | `config/` | Settings split, middleware, and root URL wiring |
-| `docs/` | Shared implementation guidance such as Inspinia dashboard rules |
+| [`docs/`](docs/README.md) | Subsystem guides, operational contracts, and historical records |
 | `inspinia/pages/` | Archive models, imports, dashboards, statements, completions |
 | `inspinia/users/` | Custom user model, roles, profiles, sessions, audit log |
 | `inspinia/templates/` | Django templates for pages, users, allauth, and shared layout |

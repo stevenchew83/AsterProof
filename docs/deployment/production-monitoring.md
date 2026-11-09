@@ -1,6 +1,6 @@
 # Production release monitoring
 
-Blocking verification covers activation and one short stabilization interval. Longer observations are assigned to a named operator and do not keep the GitHub workflow open.
+Every release requires immediate preflight, immediate postflight, and one short stabilization interval.
 
 ## Baseline and blocking checks
 
@@ -18,15 +18,19 @@ Immediately after activation and again after the workflow's stabilization interv
 
 Do not use a cached browser page as release evidence. `/healthz/` is intentionally non-secret and `no-store`; it is not a database/Redis diagnostic endpoint.
 
-## Assigned observations
+## Optional delayed observations
 
-Record one owner and due time for each checkpoint:
+Use the +1h, +4h, and +24h checkpoints only when the user explicitly requests
+delayed monitoring. For requested checkpoints, record an owner and due time.
+Complete the release after its required checks pass. Optional observations run
+outside the workflow and do not count as pending release tasks. Existing
+automated monitoring and alerting continue independently.
 
-| Time | Required observations |
+| Time | Observations when requested |
 |---|---|
 | +1 hour | SHA/digest drift, HTTP error count, latency, static failures, disk trend, database connectivity/fingerprint, scheduler path/run |
 | +4 hours | Repeat +1h evidence and compare to the recorded pre-release baseline |
-| +24 hours | Repeat all evidence, confirm next scheduled catalog task, close or escalate the release record |
+| +24 hours | Repeat all evidence, confirm next scheduled catalog task, record or escalate findings |
 
 Use existing monitoring and narrowly scoped manual/read-only evidence. This work does not create a monitoring platform. Store links or sanitized summaries in the release/incident record; do not paste raw environment values, credentials, query parameters, customer data, or unrestricted logs.
 

@@ -1,5 +1,10 @@
 # Community problems release readiness
 
+> **Historical release contract.** This record covers the original submission
+> release and its 0042/0043 allowance. Use the
+> [Phase 1 release contract](community-proof-library-release.md) for the
+> later Community Proof Library migration and recovery procedure.
+
 ## Application release
 
 This release adds authenticated community problem posting at

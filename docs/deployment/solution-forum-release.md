@@ -2,12 +2,13 @@
 
 ## Status and authority
 
-This document describes prepared source and required release evidence. It is not
-an assertion that a release, privileged allowance, proxy change or production
-verification has occurred. Application changes follow
-[Production release](production-release.md). A direct human deployment request
-supplies the scoped application-deployment authorization under the current user
-policy; resolving its exact SHA does not require another conversational approval.
+This runbook specifies preparation and evidence for the two-stage release.
+The [2 November 2026 acceptance record](../solution-forum.md#release-acceptance-record--2-november-2026)
+records the completed deployments and the limits of their verification.
+Application changes follow [Production release](production-release.md). A direct
+human deployment request supplies the scoped application-deployment authorization
+under the current user policy; resolving its exact SHA does not require another
+conversational approval.
 
 The bounded root-owned migration allowance and media-server configuration change
 each require their own action-specific authorization. Never install either by

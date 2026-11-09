@@ -1,6 +1,14 @@
 # Catalogue exploration and derived progress
 
-Implemented on 27 October 2026 and integrated against main `29a2053d9622113a66e34538dade876f0e11b7c5`. Production activation awaits the bounded deployment-support work and recovery evidence described in [release readiness](deployment/catalogue-release-readiness-2026-10-27.md).
+The catalogue and derived progress changes were integrated on 27 October 2026
+against main `29a2053d9622113a66e34538dade876f0e11b7c5`. The dated
+[release readiness record](deployment/catalogue-release-readiness-2026-10-27.md)
+captures the preactivation state and the evidence required at that checkpoint.
+
+See the [concept alias policy](concept-alias-policy.md) for resolving captions,
+[reviewed problem-to-concept assignments](problem-concept-assignments.md) for
+evidence and provenance, and [problem-library Area and Coverage](problem-library-concept-coverage.md)
+for the displayed labels, search, and exports.
 
 ## Behaviour
 

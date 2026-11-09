@@ -1,13 +1,17 @@
 # Community problems
 
-The adopted direction is the
-[Community Proof Library](plans/2026-11-01-community-proof-library-requirements.md):
-moderated Private/Unlisted/Public publication, separate private attempts and public
-proofs, one preferred-explanation vote per member/problem, and independent human
-verification. [Phase 1 is now implemented locally](community-proof-library.md),
-with AI disabled and no production deployment. The original submission release
-described below remains historical context; use the Phase 1 guide for the new
-visibility, optional metadata, moderation, and publication behavior.
+> **Superseded submission guide.** This page records the original workflow.
+> Use the [Community Proof Library guide](community-proof-library.md) for current
+> visibility, moderation, and publication rules. The similarity-index command
+> below still applies. Its original schema setup and AI activation steps describe
+> the earlier release.
+
+At this guide's original checkpoint, the adopted
+[Community Proof Library requirements](plans/2026-11-01-community-proof-library-requirements.md)
+called for moderated Private/Unlisted/Public publication, separate private
+attempts and public proofs, preferred-explanation voting, and independent human
+verification. Phase 1 had been implemented locally with AI disabled and its
+production deployment was still ahead.
 
 Signed-in, approved users can browse `/community/problems/` and post at
 `/community/problems/new/`. These posts never create or modify

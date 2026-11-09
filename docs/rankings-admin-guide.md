@@ -1,6 +1,10 @@
 # Rankings Admin Guide
 
-This guide covers the day-to-day workflow for the olympiad ranking system.
+This guide covers day-to-day olympiad ranking operations. For an existing student's
+profile, use [achievement paste imports](ranking-achievement-paste.md) to preview
+and record supplied evidence. An import records provenance; independent
+verification is a separate decision. Use [ranking analysis and corrections](ranking-analysis.md)
+for moderator and admin analysis, proposals, and reviewed corrections.
 
 ## 1. Student Master Import
 
