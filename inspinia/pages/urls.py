@@ -17,6 +17,7 @@ from inspinia.pages.concept_assignment_views import concept_assignment_review_li
 from inspinia.pages.concept_assignment_views import concept_assignment_review_preview
 from inspinia.pages.contest_papers import contest_papers_view
 from inspinia.pages.contest_progress import contest_progress_learner_options_view
+from inspinia.pages.inventory_ai_reviews import user_solution_record_review_view
 from inspinia.pages.learning_activity import learning_activity_collect
 from inspinia.pages.shared_progress_views import shared_progress_comparison_view
 from inspinia.pages.shared_progress_views import shared_progress_view
@@ -211,6 +212,10 @@ urlpatterns = [
     path("dashboard/techniques/", technique_progress_dashboard_view, name="technique_dashboard"),
     path("dashboard/topic-tags/", topic_tag_analytics_view, name="topic_tag_dashboard"),
     path("dashboard/user-solutions/", user_solution_record_list_view, name="user_solution_record_list"),
+    path(
+        "dashboard/user-solutions/<int:solution_pk>/ai-review/",
+        user_solution_record_review_view, name="user_solution_record_review",
+    ),
     path("dashboard/page-views/", page_view_analytics_view, name="page_view_analytics"),
     path(
         "dashboard/problem-statements/analytics/",

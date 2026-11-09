@@ -122,7 +122,7 @@ from inspinia.pages.handle_summary_parser import parse_handle_summary_text
 from inspinia.pages.inventory_ai_reviews import DRAFT_READY
 from inspinia.pages.inventory_ai_reviews import completion_review_summaries
 from inspinia.pages.inventory_ai_reviews import draft_ready_completions
-from inspinia.pages.inventory_ai_reviews import latest_solution_review_summaries
+from inspinia.pages.inventory_ai_reviews import solution_inventory_review_states
 from inspinia.pages.models import DIFFICULTY_RATING_MAX
 from inspinia.pages.models import DIFFICULTY_RATING_MIN
 from inspinia.pages.models import ContestMetadata
@@ -3045,7 +3045,7 @@ def _admin_solution_listing_rows(
         [solution.problem.contest for solution in solutions],
     )
     status_counts = Counter(solution.status for solution in solutions)
-    ai_reviews = latest_solution_review_summaries(solutions) if show_ai_reviews else {}
+    review_states = solution_inventory_review_states(solutions) if show_ai_reviews else {}
     table_rows: list[dict] = []
     for solution in solutions:
         problem = solution.problem
@@ -3097,7 +3097,7 @@ def _admin_solution_listing_rows(
             },
         )
         if show_ai_reviews:
-            table_rows[-1]["ai_review"] = ai_reviews.get(solution.pk)
+            table_rows[-1].update(review_states[solution.pk])
 
     return table_rows, {
         "author_total": len({solution.author_id for solution in solutions}),

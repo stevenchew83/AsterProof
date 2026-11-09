@@ -110,6 +110,9 @@
         Showing {{ user_solution_record_filtered_total }} matching solution record{{ user_solution_record_filtered_total|pluralize }}.
         {% endif %}
       </p>
+      {% if user_solution_record_show_ai_reviews %}
+      <div id="user-solution-review-feedback" role="status" class="text-muted fs-xs mb-0" data-csrf-token="{{ csrf_token }}"></div>
+      {% endif %}
       <div class="app-table-region table-responsive" tabindex="0" role="region" aria-label="Solution records" aria-describedby="user-solution-result-description">
         <table data-paging-type="simple" id="user-solution-record-table" class="app-table-compact table table-sm table-hover align-middle w-100 mb-0"><caption class="visually-hidden">Saved user solutions, authors, publication status{% if user_solution_record_show_ai_reviews %}, latest AI review{% endif %}, publication date and last update</caption></table>
       </div>
@@ -168,7 +171,7 @@
       ' <span class="user-solution-time">' + escapeHtml(parts[1]) + '</span></time>';
   }
 
-  new DataTable("#user-solution-record-table", {
+  var table = new DataTable("#user-solution-record-table", {
     data: rows,
     columns: [
       {
@@ -222,6 +225,7 @@
       {
         data: "ai_review",
         title: "AI review",
+        name: "ai_review",
         className: "user-solution-ai-review text-start",
         orderSequence: ["desc", "asc", ""],
         render: function (review, type) {
@@ -265,6 +269,7 @@
       {
         data: "solution_url",
         title: "Actions",
+        name: "actions",
         className: "text-nowrap",
         orderable: false,
         searchable: false,
@@ -276,6 +281,20 @@
           var pdfButton = row.pdf_url
             ? '<a href="' + escapeHtml(row.pdf_url) + '" class="btn btn-sm btn-light" title="Download Evan PDF" aria-label="Download Evan PDF"><i class="ti ti-file-type-pdf"></i></a>'
             : "";
+          {% if user_solution_record_show_ai_reviews %}
+          var publish = row.review_action?.publish;
+          var action = publish ? "publish" : row.review_action?.can_start ? "start" : "";
+          var label = publish ? "Publish AI review" : "AI review";
+          var busyLabel = publish ? "Publishing…" : "Queuing…";
+          var icon = publish ? "ti-send" : "ti-sparkles";
+          var reviewButton = action
+            ? '<button type="button" class="btn btn-sm btn-outline-primary" data-ai-review-action="' + action + '"' +
+              (row.review_submitting ? ' disabled>' + busyLabel : '><i class="ti ' + icon + '" aria-hidden="true"></i> ' + label) +
+              '</button>'
+            : "";
+          {% else %}
+          var reviewButton = "";
+          {% endif %}
           return (
             '<div class="d-flex app-table-actions user-solution-record-actions" role="group" aria-label="Solution actions">' +
             '<a href="' +
@@ -283,6 +302,7 @@
             '" class="btn btn-sm btn-light user-solution-open" title="Open solution" aria-label="Open solution">Open <i class="ti ti-arrow-up-right" aria-hidden="true"></i></a>' +
             archiveButton +
             pdfButton +
+            reviewButton +
             "</div>"
           );
         }
@@ -304,6 +324,103 @@
       lengthMenu: "_MENU_ per page"
     }
   });
+
+  {% if user_solution_record_show_ai_reviews %}
+  const feedback = document.getElementById("user-solution-review-feedback");
+  const tableNode = table.table().node();
+
+  function updateReview(row, result) {
+    const data = row.data();
+    const changed = data.review_submitting || data.ai_review?.label !== result.ai_review?.label ||
+      data.ai_review?.score !== result.ai_review?.score ||
+      data.review_action?.can_start !== result.review_action?.can_start ||
+      data.review_action?.publish?.id !== result.review_action?.publish?.id;
+    data.ai_review = result.ai_review;
+    data.review_action = result.review_action;
+    data.review_submitting = false;
+    if (changed) {
+      table.cell(row.index(), "ai_review:name").invalidate();
+      table.cell(row.index(), "actions:name").invalidate();
+      table.draw(false);
+    }
+    return changed;
+  }
+
+  function pollReview(row, delay = 5000, failures = 0) {
+    window.setTimeout(() => {
+      if (document.hidden) {
+        pollReview(row, delay, failures);
+      } else {
+        syncReview(row, null, failures);
+      }
+    }, delay);
+  }
+
+  async function syncReview(row, requestData, failures = 0) {
+    const data = row.data();
+    const announce = (message) => { feedback.textContent = data.problem_label + " · " + message; };
+    try {
+      const response = await fetch(data.review_action.url, {
+        method: requestData ? "POST" : "GET",
+        cache: "no-store",
+        headers: requestData
+          ? {"Accept": "application/json", "X-CSRFToken": feedback.dataset.csrfToken}
+          : {"Accept": "application/json"},
+        body: requestData ? new URLSearchParams(requestData) : undefined,
+        signal: AbortSignal.timeout(10000),
+      });
+      if (response.redirected || [401, 403, 404].includes(response.status)) {
+        announce("AI review access is unavailable. Reload the page to check access.");
+        return;
+      }
+
+      const result = await response.json();
+      if (!Object.hasOwn(result, "review_action")) throw new Error("Review status unavailable");
+      const changed = updateReview(row, result);
+      if (result.error) {
+        announce(result.error);
+      } else if (requestData || changed) {
+        announce(result.ai_review?.label || "No review status is available.");
+      }
+      if (result.review_action?.active) pollReview(row);
+    } catch {
+      announce("Could not check AI review status. " +
+        (failures < 3 ? "Reconnecting…" : "Reload the page to see the latest status."));
+      if (failures < 3) pollReview(row, 10000, failures + 1);
+    }
+  }
+
+  tableNode.addEventListener("click", (event) => {
+    const button = event.target.closest("[data-ai-review-action]");
+    if (!button) return;
+    const row = table.row(button.closest("tr"));
+    const data = row.data();
+    if (data.review_submitting) return;
+
+    const action = button.dataset.aiReviewAction;
+    const publishing = action === "publish";
+    const draft = data.review_action?.publish;
+    if (publishing ? !draft : !data.review_action?.can_start) return;
+
+    const confirmation = publishing
+      ? "Publish the " + draft.model + " review (" + data.ai_review.score + "/7)? " +
+        "This shares the score and feedback with the solver and may queue an email notification."
+      : "Queue one paid OpenAI review? This sends the problem statement, saved proof text, " +
+        "and any embedded proof images to OpenAI.";
+    if (!window.confirm(confirmation)) return;
+
+    data.review_submitting = true;
+    button.disabled = true;
+    button.textContent = publishing ? "Publishing…" : "Queuing…";
+    syncReview(row, publishing
+      ? {action, review_id: draft.id, last_taken_down: draft.last_taken_down}
+      : {action, include_solution_images: "1"});
+  });
+
+  table.rows().every(function () {
+    if (this.data().review_action?.active) pollReview(this);
+  });
+  {% endif %}
 })();
 </script>
 {% endif %}

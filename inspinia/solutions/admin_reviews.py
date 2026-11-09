@@ -218,8 +218,8 @@ def _review_instructions(prompt, paths, image_disclosed):
 
 
 @transaction.atomic
-def enqueue(user, solution_pk, data):
-    self_requested = not user_has_admin_role(user)
+def enqueue(user, solution_pk, data, *, only_unreviewed=False):
+    self_requested = not only_unreviewed and not user_has_admin_role(user)
     if self_requested:
         user = _lock_self_requester(user)
     else:
@@ -230,14 +230,17 @@ def enqueue(user, solution_pk, data):
     blocker = input_blocker(solution, current["payload"])
     if blocker:
         raise forum.ForumError(blocker)
-    if data.get("target_key") != current["key"] or data.get("problem_label") != problem_label(solution):
+    label = problem_label(solution)
+    if data.get("target_key") != current["key"] or data.get("problem_label") != label:
         raise forum.ForumError("The solution or statement changed. Reload before generating.")
     target = forum._target(solution, data)  # noqa: SLF001 - reuse the forum's version binding
-    if target.ai_reviews.filter(batch_id=batch_id).exists():
+    if target.ai_reviews.filter(batch_id=batch_id).exists() or (
+        only_unreviewed and target.ai_reviews.filter(solver_id=solution.author_id, problem_label=label).exists()
+    ):
         return False
     if self_requested and SelfSolutionReviewUsage.objects.filter(user=user, batch_id=batch_id).exists():
         return False
-    if target.ai_reviews.filter(problem_label=problem_label(solution), published_at__isnull=False).exists():
+    if target.ai_reviews.filter(problem_label=label, published_at__isnull=False).exists():
         raise forum.ForumError("A review has already been published for this version.")
     if target.ai_reviews.filter(status__in=LIVE_STATES).exists():
         raise forum.ForumError("This version already has a review in progress.")
@@ -250,7 +253,7 @@ def enqueue(user, solution_pk, data):
         AdminSolutionReview(
             target=target, requested_by=user, solver_id=solution.author_id, batch_id=batch_id,
             key_version=config.key_version,
-            problem_label=problem_label(solution), model=model, effort=config.effort, output_limit=config.output_limit,
+            problem_label=label, model=model, effort=config.effort, output_limit=config.output_limit,
             instructions=instructions,
         )
         for model in selected
