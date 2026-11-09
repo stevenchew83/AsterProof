@@ -118,7 +118,7 @@
       <div id="user-solution-review-feedback" role="status" class="text-muted fs-xs mb-0" data-csrf-token="{{ csrf_token }}"></div>
       {% endif %}
       <div class="app-table-region table-responsive" tabindex="0" role="region" aria-label="Solution records" aria-describedby="user-solution-result-description">
-        <table data-paging-type="simple" id="user-solution-record-table" class="app-table-compact table table-sm table-hover align-middle w-100 mb-0"><caption class="visually-hidden">Saved user solutions, authors, publication status{% if user_solution_record_show_ai_reviews %}, latest AI review{% endif %}, publication date and last update</caption></table>
+        <table data-paging-type="simple" id="user-solution-record-table" class="app-table-compact table table-sm table-hover align-middle w-100 mb-0"><caption class="visually-hidden">Saved user solutions, topics, MOHS scores, authors, publication status{% if user_solution_record_show_ai_reviews %}, latest AI review{% endif %}, publication date and last update</caption></table>
       </div>
       {% else %}
       <div class="user-solution-empty" role="status">
@@ -201,6 +201,16 @@
             detail("Topic", row.topic || "—") + detail("MOHS", mohs) +
             detail("Content", blockLabel + " · " + (Number(row.summary_length) || 0) + " summary chars") +
             '</dl></div></details></div>';
+        }
+      },
+      {
+        data: "topic",
+        title: "Topic",
+        className: "text-nowrap",
+        render: function (data, type) {
+          var value = data ?? "";
+          if (type === "display") return value === "" ? "—" : escapeHtml(value);
+          return value;
         }
       },
       {

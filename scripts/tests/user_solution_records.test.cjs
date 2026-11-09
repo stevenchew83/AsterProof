@@ -37,7 +37,7 @@ function render(field, type, overrides = {}) {
   return definition.render(record[field], type, record);
 }
 
-test('MOHS is present with and without AI review and the default date order is preserved', () => {
+test('Topic precedes MOHS with and without AI review and the default date order is preserved', () => {
   assert.equal(render('problem_label', 'sort'), row.problem_label);
   assert.equal(render('updated_at', 'sort'), row.updated_at_sort);
   for (const tableConfig of [config, loadConfig(true)]) {
@@ -45,8 +45,12 @@ test('MOHS is present with and without AI review and the default date order is p
       tableConfig.columns.find(column => column.name === name).data, dir,
     ]);
     assert.deepEqual(ordering, [['published_at', 'desc'], ['updated_at', 'desc']]);
-    assert.equal(tableConfig.columns.find(column => column.data === 'mohs').title, 'MOHS');
+    const mohsIndex = tableConfig.columns.findIndex(column => column.data === 'mohs');
+    assert.equal(tableConfig.columns[mohsIndex].title, 'MOHS');
+    assert.equal(tableConfig.columns[mohsIndex - 1].title, 'Topic');
   }
+  assert.equal(render('topic', 'display'), 'Geometry');
+  assert.equal(render('topic', 'display', {topic: ''}), '—');
 });
 
 test('the MOHS column displays zero and unknown scores and sorts numerically', () => {
