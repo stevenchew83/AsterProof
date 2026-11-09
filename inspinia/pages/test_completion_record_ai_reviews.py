@@ -200,7 +200,7 @@ def test_review_data_and_filter_require_admin_even_in_debug(client, author, sett
     assert b'title: "AI review"' not in response.content
 
 
-def test_user_solution_record_list_shows_latest_review_for_current_proof(client, author):
+def test_user_solution_record_list_prioritizes_published_review_for_current_proof(client, author):
     client.force_login(UserFactory(role="admin"))
     url = reverse("pages:user_solution_record_list")
     solution, completion = _proof(author, 1)
@@ -218,8 +218,8 @@ def test_user_solution_record_list_shows_latest_review_for_current_proof(client,
     response = client.get(url)
     rows = {row["user_email"]: row["ai_review"] for row in response.context["user_solution_record_rows"]}
     assert rows[author.email] == {
-        "label": "Draft ready",
-        "score": 0,
+        "label": "Published",
+        "score": published.score,
         "url": reverse("solutions:solution_detail", args=[solution.pk]) + "#ai-review",
     }
     assert rows[unreviewed.author.email] is None
@@ -227,8 +227,9 @@ def test_user_solution_record_list_shows_latest_review_for_current_proof(client,
 
     _review(solution, status=AdminSolutionReview.Status.RUNNING)
     rows = client.get(url, {"user": author.email}).context["user_solution_record_rows"]
-    assert rows[0]["ai_review"]["label"] == "Reviewing"
-    assert rows[0]["ai_review"]["score"] is None
+    assert rows[0]["ai_review"]["label"] == "Published"
+    assert rows[0]["ai_review"]["score"] == published.score
+    assert rows[0]["review_action"] is None
 
     completion.statement.statement_latex = "Prove that a square vanishes only at zero."
     completion.statement.save(update_fields=["statement_latex"])

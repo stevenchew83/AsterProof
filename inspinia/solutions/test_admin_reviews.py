@@ -138,6 +138,153 @@ def queue(client, proof, config, **values):
     })
 
 
+def test_inventory_ai_review_queues_once_and_reports_completion(proof, config):
+    client = Client(enforce_csrf_checks=True)
+    client.force_login(proof.admin)
+    inventory_url = reverse("pages:user_solution_record_list")
+    url = reverse("pages:user_solution_record_review", args=[proof.solution.pk])
+    response = client.get(inventory_url)
+    row = response.context["user_solution_record_rows"][0]
+    assert row["review_action"] == {"url": url, "can_start": True, "active": False}
+    assert row["ai_review"] is None
+    assert client.get(url).json()["review_action"] == row["review_action"]
+    assert not AdminSolutionReview.objects.exists()
+
+    data = {"include_solution_images": "1"}
+    csrf = {"HTTP_X_CSRFTOKEN": client.cookies["csrftoken"].value}
+    assert client.post(url, data).status_code == HTTPStatus.FORBIDDEN
+    assert client.post(url, {}, **csrf).status_code == HTTPStatus.UNPROCESSABLE_ENTITY
+
+    response = client.post(url, data, **csrf)
+    assert response.status_code == HTTPStatus.ACCEPTED
+    assert response.json()["ai_review"]["label"] == "Queued"
+    assert response.json()["review_action"] == {"url": url, "can_start": False, "active": True}
+    assert client.get(inventory_url).context["user_solution_record_rows"][0]["review_action"]["active"]
+    assert client.post(url, data, **csrf).status_code == HTTPStatus.OK
+    review = AdminSolutionReview.objects.get()
+    assert review.model == "gpt-6-astra"
+    assert review.requested_by == proof.admin
+
+    AdminSolutionReview.objects.filter(pk=review.pk).update(status=AdminSolutionReview.Status.RUNNING)
+    assert client.get(url).json()["ai_review"]["label"] == "Reviewing"
+    AdminSolutionReview.objects.filter(pk=review.pk).update(
+        status=AdminSolutionReview.Status.COMPLETED, score=0, feedback=FEEDBACK,
+    )
+    response = client.get(url)
+    assert response.json()["ai_review"] == {"label": "Draft ready", "score": 0, "url": proof.url + "#ai-review"}
+    draft = response.json()["review_action"]["publish"]
+    assert draft == {"id": str(review.pk), "model": "GPT-6 Astra", "last_taken_down": ""}
+    assert FEEDBACK.encode() not in response.content
+    assert client.post(url, data, **csrf).status_code == HTTPStatus.OK
+    review.refresh_from_db()
+    assert AdminSolutionReview.objects.count() == 1
+    assert review.published_at is None
+
+    proof.statement.statement_latex = "Use a different version of the statement."
+    proof.statement.save(update_fields=["statement_latex"])
+    response = client.get(url).json()
+    assert response["ai_review"]["label"] == "Earlier version"
+    assert response["review_action"]["can_start"]
+
+
+def test_inventory_publishes_with_csrf_and_preserves_takedown_version(client, proof, config):
+    queue(client, proof, config, models=MODELS[:1])
+    review = AdminSolutionReview.objects.get()
+    AdminSolutionReview.objects.filter(pk=review.pk).update(status=AdminSolutionReview.Status.COMPLETED, score=0)
+
+    client = Client(enforce_csrf_checks=True)
+    client.force_login(proof.admin)
+    client.get(reverse("pages:user_solution_record_list"))
+    csrf = {"HTTP_X_CSRFTOKEN": client.cookies["csrftoken"].value}
+    url = reverse("pages:user_solution_record_review", args=[proof.solution.pk])
+    draft = client.get(url).json()["review_action"]["publish"]
+    publish_data = {"action": "publish", "review_id": draft["id"], "last_taken_down": draft["last_taken_down"]}
+    assert client.post(url, publish_data).status_code == HTTPStatus.FORBIDDEN
+    response = client.post(url, publish_data, **csrf)
+    assert response.status_code == HTTPStatus.OK
+    assert response.json()["ai_review"] == {"label": "Published", "score": 0, "url": proof.url + "#ai-review"}
+    assert response.json()["review_action"] is None
+    review.refresh_from_db()
+    published_at = review.published_at
+    assert published_at is not None
+    assert review.published_by == proof.admin
+    assert review.notification == AdminSolutionReview.Notification.PENDING
+    assert client.post(url, publish_data, **csrf).status_code == HTTPStatus.OK
+    review.refresh_from_db()
+    assert review.published_at == published_at
+
+    assert admin_reviews.take_down(proof.admin, proof.solution.pk, review.pk, published_at.isoformat())
+    response = client.post(url, publish_data, **csrf)
+    assert response.status_code == HTTPStatus.UNPROCESSABLE_ENTITY
+    assert "Publication changed" in response.json()["error"]
+    publish_data["last_taken_down"] = response.json()["review_action"]["publish"]["last_taken_down"]
+    assert publish_data["last_taken_down"]
+    assert client.post(url, publish_data, **csrf).json()["ai_review"]["label"] == "Published"
+
+
+def test_inventory_ai_review_rejects_nonadmins_and_ineligible_proofs(client, proof, config, settings):
+    url = reverse("pages:user_solution_record_review", args=[proof.solution.pk])
+    data = {"include_solution_images": "1"}
+    settings.DEBUG = True
+    client.force_login(proof.author)
+    assert client.get(url).status_code == HTTPStatus.FORBIDDEN
+    assert client.post(url, data).status_code == HTTPStatus.FORBIDDEN
+    assert client.post(url, {"action": "publish", "review_id": str(uuid.uuid4())}).status_code == HTTPStatus.FORBIDDEN
+
+    client.force_login(proof.admin)
+    proof.solution.status = ProblemSolution.Status.DRAFT
+    proof.solution.save(update_fields=["status"])
+    assert client.get(url).json()["review_action"] is None
+    response = client.post(url, data)
+    assert response.status_code == HTTPStatus.UNPROCESSABLE_ENTITY
+    assert "submitted" in response.json()["error"]
+
+    proof.solution.status = ProblemSolution.Status.PUBLISHED
+    proof.solution.save(update_fields=["status"])
+    settings.ADMIN_SOLUTION_REVIEW_ENABLED = False
+    assert client.get(url).json()["review_action"] is None
+    response = client.post(url, data)
+    assert response.status_code == HTTPStatus.UNPROCESSABLE_ENTITY
+    assert "disabled" in response.json()["error"]
+    assert not AdminSolutionReview.objects.exists()
+
+
+
+def test_inventory_publish_targets_the_displayed_current_draft(client, proof, config, second_solution):
+    assert queue(client, proof, config).status_code == HTTPStatus.FOUND
+    latest, first = AdminSolutionReview.objects.all()
+    url = reverse("pages:user_solution_record_review", args=[proof.solution.pk])
+    other_url = reverse("pages:user_solution_record_review", args=[second_solution.pk])
+    data = {"action": "publish", "review_id": str(first.pk)}
+    assert client.post(url, data).status_code == HTTPStatus.UNPROCESSABLE_ENTITY
+
+    first_score, latest_score = 6, 3
+    AdminSolutionReview.objects.filter(pk=first.pk).update(
+        status=AdminSolutionReview.Status.COMPLETED, score=first_score,
+    )
+    assert "publish" not in client.get(url).json()["review_action"]
+    AdminSolutionReview.objects.filter(pk=latest.pk).update(
+        status=AdminSolutionReview.Status.COMPLETED, score=latest_score,
+    )
+    state = client.get(url).json()
+    assert state["ai_review"]["score"] == latest_score
+    assert state["review_action"]["publish"]["id"] == str(latest.pk)
+
+    AdminSolutionReview.objects.filter(pk=latest.pk).update(status=AdminSolutionReview.Status.FAILED, score=None)
+    state = client.get(url).json()
+    assert state["ai_review"]["score"] == first_score
+    assert state["review_action"]["publish"]["id"] == str(first.pk)
+    assert client.post(other_url, data).status_code == HTTPStatus.NOT_FOUND
+
+    proof.statement.statement_latex = "A replacement statement."
+    proof.statement.save(update_fields=["statement_latex"])
+    response = client.post(url, data)
+    assert response.status_code == HTTPStatus.UNPROCESSABLE_ENTITY
+    assert response.json()["ai_review"]["label"] == "Earlier version"
+    assert "publish" not in response.json()["review_action"]
+    assert not AdminSolutionReview.objects.filter(published_at__isnull=False).exists()
+
+
 def publisher(proof, review):
     return reverse("solutions:admin_ai_review_publish", args=[proof.solution.pk, review.pk])
 
