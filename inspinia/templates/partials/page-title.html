@@ -1,6 +1,6 @@
 {% if title %}
   {% url 'pages:user_activity_dashboard' as header_home_url %}
-  <header class="page-title-head app-page-header">
+  <header class="page-title-head d-flex flex-wrap align-items-center gap-2">
     {% if request.path == header_home_url %}
       {% include 'partials/page-header-intro.html' with title=title subtitle=subtitle page_icon=page_icon only %}
     {% else %}

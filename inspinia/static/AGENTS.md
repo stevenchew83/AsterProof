@@ -10,9 +10,7 @@ This directory contains frontend source files, compiled assets, images, and vend
 
 ## UI framework rules
 
-- The project uses Bootstrap 5 plus the Inspinia theme conventions.
-- Keep `config.js` behavior and `data-*` theme configuration intact.
-- Use the existing design tokens and semantic color patterns; do not introduce a second styling system.
+- Follow [the INSPINIA 5.2.0 Bootstrap reference](../../docs/inspinia-dashboard-style.md) for theme initialization, asset order, semantic tokens, and component styling.
 
 ## Rebuild expectations
 

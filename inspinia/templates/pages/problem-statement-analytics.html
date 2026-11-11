@@ -12,11 +12,11 @@
 {% block page_content %}
   <div class="container-fluid app-table-page statement-analytics-page"
        id="statement-analytics-dashboard">
-    <header class="page-title-head app-page-header">
+    <header class="page-title-head d-flex flex-wrap align-items-center gap-2">
       {% url 'pages:user_activity_dashboard' as statement_analytics_home_url %}
       {% include 'partials/page-header-intro.html' with title='Statement analytics' subtitle='Admin analytics' page_icon='ti-chart-bar' back_url=statement_analytics_home_url back_label='AsterProof' only %}
       {% if statement_dashboard_total %}
-        <div class="app-page-header-actions">
+        <div class="page-title-actions d-flex flex-wrap align-items-center gap-2">
           <a href="#statement-analytics-directory"
              class="btn btn-sm btn-outline-secondary"><i class="ti ti-list-search me-1" aria-hidden="true"></i>Browse directory</a>
         </div>
@@ -67,7 +67,7 @@
     {% if statement_dashboard_total == 0 %}
       <section class="statement-analytics-empty" role="status">
         <span class="statement-analytics-empty-icon"><i class="ti ti-files" aria-hidden="true"></i></span>
-        <h2 class="header-title">No statement data yet</h2>
+        <h2 class="card-title">No statement data yet</h2>
         <p>Save parsed statements from LaTeX preview to populate this dashboard.</p>
         <a href="{% url 'pages:latex_preview' %}" class="btn btn-sm btn-primary">Open LaTeX preview</a>
       </section>
@@ -75,7 +75,7 @@
       <section class="card statement-analytics-attention-panel"
                aria-labelledby="statement-attention-heading">
         <div class="card-header border-0 pb-0">
-          <h2 class="header-title mb-0" id="statement-attention-heading">Needs attention</h2>
+          <h2 class="card-title mb-0" id="statement-attention-heading">Needs attention</h2>
           <p class="text-muted fs-xs mb-0">Start with the next statement-linking pass</p>
         </div>
         <div class="card-body pt-2">
@@ -105,7 +105,7 @@
                aria-labelledby="statement-heatmap-heading">
         <div class="card-header border-0 pb-0 statement-analytics-chart-header">
           <div>
-            <h2 class="header-title mb-0" id="statement-heatmap-heading">Unlinked statement backlog heatmap</h2>
+            <h2 class="card-title mb-0" id="statement-heatmap-heading">Unlinked statement backlog heatmap</h2>
             <p class="text-muted fs-xs mb-0">Select a populated cell to open its contest-year master list.</p>
           </div>
           <div class="app-table-toolbar statement-analytics-mode-controls statement-analytics-js-only"
@@ -175,7 +175,7 @@
                aria-labelledby="statement-directory-heading">
         <div class="card-header statement-analytics-directory-header">
           <div>
-            <h2 class="header-title mb-0" id="statement-directory-heading">Contest-year directory</h2>
+            <h2 class="card-title mb-0" id="statement-directory-heading">Contest-year directory</h2>
             <p class="text-muted fs-xs mb-0">
               {{ statement_dashboard_total_label }} sets · {{ statement_dashboard_stats.year_range_label }}
             </p>
@@ -227,7 +227,7 @@
                aria-label="Scrollable contest-year directory">
             <table data-paging-type="simple"
                    id="problem-statement-analytics-table"
-                   class="app-table-compact statement-analytics-table table table-sm table-hover align-middle w-100"
+                   class="table-sm statement-analytics-table table table-hover align-middle w-100"
                    aria-label="Contest-year statement coverage">
             </table>
           </div>
@@ -239,7 +239,7 @@
                  tabindex="0"
                  role="region"
                  aria-label="Contest-year directory without JavaScript">
-              <table class="app-table-compact table table-sm align-middle mb-0">
+              <table class="table-sm table align-middle mb-0">
                 <thead>
                   <tr>
                     <th scope="col">Contest-year</th>
@@ -342,14 +342,14 @@
 
         function themeColors() {
           return {
-            body: cssVar("--ins-body-color", "#212529"),
-            border: cssVar("--ins-border-color", "rgba(108,117,125,0.2)"),
-            empty: cssVar("--ins-tertiary-bg", "#eef2f7"),
-            primary: cssVar("--ins-primary", "#0d6efd"),
-            primarySubtle: cssVar("--ins-primary-bg-subtle", "#cfe2ff"),
-            warning: cssVar("--ins-warning", "#ffc107"),
-            warningSubtle: cssVar("--ins-warning-bg-subtle", "#fff3cd"),
-            danger: cssVar("--ins-danger", "#dc3545")
+            body: cssVar("--theme-body-color"),
+            border: cssVar("--theme-border-color", "rgba(108,117,125,0.2)"),
+            empty: cssVar("--theme-tertiary-bg"),
+            primary: cssVar("--theme-primary"),
+            primarySubtle: cssVar("--theme-primary-bg-subtle"),
+            warning: cssVar("--theme-warning"),
+            warningSubtle: cssVar("--theme-warning-bg-subtle"),
+            danger: cssVar("--theme-danger")
           };
         }
 

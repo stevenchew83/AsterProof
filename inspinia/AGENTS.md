@@ -16,6 +16,4 @@ This file covers shared expectations for code under `inspinia/`.
 
 ## UI rules
 
-- Follow [`docs/inspinia-dashboard-style.md`](../docs/inspinia-dashboard-style.md) for dashboard and admin UI.
-- Preserve the current layout shell and Bootstrap/Inspinia conventions.
-- Use Tabler `ti ti-*` icons when adding new iconography to dashboard pages.
+- Follow [the INSPINIA 5.2.0 Bootstrap reference](../docs/inspinia-dashboard-style.md) for browser layouts, theme tokens, components, and icons.

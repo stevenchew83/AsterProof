@@ -42,9 +42,9 @@
 {% endblock extra_css %}
 {% block page_content %}
   <div class="container-fluid solution-workspace-page proof-attempt-workspace">
-    <header class="page-title-head app-page-header">
+    <header class="page-title-head d-flex flex-wrap align-items-center gap-2">
       {% include 'partials/page-header-intro.html' with title='Your private attempt' subtitle='Community Proof Library' page_icon='ti-lock' only %}
-      <div class="app-page-header-actions">
+      <div class="page-title-actions d-flex flex-wrap align-items-center gap-2">
         <span id="solution-save-status" class="text-muted fs-sm" role="status">
           {% if attempt %}
             Saved
@@ -164,7 +164,7 @@
     {% if attempt.body_source %}
       <section class="card mt-3">
         <div class="card-body">
-          <h2 class="header-title fs-16">Last saved draft</h2>
+          <h2 class="card-title fs-16">Last saved draft</h2>
           <div class="community-problem-text tex2jax_ignore"
                data-proof-source
                data-proof-media-prefix="{{ attempt_media_prefix }}">{{ attempt.body_source }}</div>

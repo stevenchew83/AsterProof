@@ -2,10 +2,10 @@
 @import "structure/website-shared-solution";
 @import "components/solution-document-reader";
 .public-shared-paper .solution-document-rendered {
-  --document-surface: #fffefa;
-  --document-ink: var(--w-ink);
-  --document-muted: var(--w-muted);
-  --document-line: var(--w-line);
-  --document-soft: #edf0e8;
-  --document-accent: var(--w-accent);
+  --document-surface: var(--theme-secondary-bg);
+  --document-ink: var(--theme-body-color);
+  --document-muted: var(--theme-secondary-color);
+  --document-line: var(--theme-border-color);
+  --document-soft: var(--theme-tertiary-bg);
+  --document-accent: var(--theme-primary-text-emphasis);
 }

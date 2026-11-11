@@ -13,11 +13,13 @@
       <div class="card">
         <div class="card-body">
           <div class="d-flex gap-3">
-            <span class="avatar-title bg-warning-subtle text-warning rounded fs-24 flex-shrink-0">
-              <i class="ti ti-lock-check"></i>
+            <span class="avatar-md flex-shrink-0" aria-hidden="true">
+              <span class="avatar-title bg-warning-subtle text-warning rounded">
+                <i class="ti ti-lock-check fs-lg"></i>
+              </span>
             </span>
-            <div>
-              <h4 class="header-title mb-1">{% translate "Your account is waiting for admin approval." %}</h4>
+            <div class="flex-grow-1 text-break">
+              <h4 class="card-title mb-1">{% translate "Your account is waiting for admin approval." %}</h4>
               <p class="text-muted mb-3">
                 {% translate "You can stay signed in, update account security settings, or log out. AsterProof features will unlock after an admin approves this account." %}
               </p>

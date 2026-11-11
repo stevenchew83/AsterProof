@@ -10,13 +10,13 @@
         href="{% static 'plugins/datatables/dataTables.bootstrap5.min.css' %}" />
   <style>
     .contest-mohs-page {
-      --mohs-surface: var(--ins-secondary-bg);
-      --mohs-muted: var(--ins-body-color);
+      --mohs-surface: var(--theme-secondary-bg);
+      --mohs-muted: var(--theme-body-color);
       padding-bottom: 1rem;
     }
 
     .contest-mohs-workspace.card {
-      border: 1px solid var(--ins-border-color);
+      border: 1px solid var(--theme-border-color);
       box-shadow: none;
       overflow: hidden;
     }
@@ -43,7 +43,7 @@
     }
 
     .contest-mohs-help-toggle:hover {
-      color: var(--ins-primary);
+      color: var(--theme-primary);
     }
 
     .contest-mohs-help {
@@ -53,8 +53,8 @@
     .contest-mohs-help>div {
       padding: .75rem;
       margin-block: .25rem .5rem;
-      background: var(--ins-tertiary-bg);
-      border-radius: var(--ins-border-radius);
+      background: var(--theme-tertiary-bg);
+      border-radius: var(--theme-border-radius);
       font-size: .8125rem;
       color: var(--mohs-muted);
     }
@@ -101,9 +101,9 @@
       display: inline-flex;
       align-items: center;
       padding: .125rem;
-      border: 1px solid var(--ins-border-color);
-      border-radius: var(--ins-border-radius);
-      background: var(--ins-tertiary-bg);
+      border: 1px solid var(--theme-border-color);
+      border-radius: var(--theme-border-radius);
+      background: var(--theme-tertiary-bg);
     }
 
     .contest-mohs-samples .btn {
@@ -116,8 +116,8 @@
 
     .contest-mohs-samples .btn[aria-pressed="true"] {
       background: var(--mohs-surface);
-      color: var(--ins-emphasis-color);
-      box-shadow: 0 1px 3px rgba(var(--ins-emphasis-color-rgb), .08);
+      color: var(--theme-emphasis-color);
+      box-shadow: 0 1px 3px rgba(var(--theme-emphasis-color-rgb), .08);
     }
 
     .contest-mohs-filter-state {
@@ -127,8 +127,8 @@
       justify-content: space-between;
       gap: .5rem;
       padding: .375rem 1rem;
-      background: var(--ins-tertiary-bg);
-      border-top: 1px solid var(--ins-border-color);
+      background: var(--theme-tertiary-bg);
+      border-top: 1px solid var(--theme-border-color);
       font-size: .75rem;
       color: var(--mohs-muted);
     }
@@ -140,7 +140,7 @@
     .contest-mohs-reset {
       border: 0;
       padding: 0;
-      color: var(--ins-primary);
+      color: var(--theme-primary);
       background: transparent;
       font-size: inherit;
       font-weight: 600;
@@ -210,11 +210,11 @@
     }
 
     #contest-mohs-summary-table thead th {
-      background: var(--ins-tertiary-bg);
+      background: var(--theme-tertiary-bg);
       color: var(--mohs-muted);
       font-size: .7rem;
       font-weight: 600;
-      border-bottom: 1px solid var(--ins-border-color);
+      border-bottom: 1px solid var(--theme-border-color);
       white-space: nowrap;
       padding-block: .5rem;
     }
@@ -236,13 +236,13 @@
 
     #contest-mohs-summary-table tbody td {
       padding-block: .5rem;
-      border-bottom: 1px solid var(--ins-border-color);
+      border-bottom: 1px solid var(--theme-border-color);
       box-shadow: none;
       background: var(--mohs-surface);
     }
 
     #contest-mohs-summary-table tbody tr:hover td {
-      background: var(--ins-tertiary-bg);
+      background: var(--theme-tertiary-bg);
     }
 
     #contest-mohs-summary-table .contest-mohs-contest {
@@ -255,7 +255,7 @@
       display: inline-flex;
       align-items: center;
       gap: .5rem;
-      color: var(--ins-emphasis-color);
+      color: var(--theme-emphasis-color);
       font-weight: 600;
       font-size: .8125rem;
       line-height: 1.4;
@@ -264,7 +264,7 @@
     }
 
     .contest-mohs-contest-link i {
-      color: var(--ins-primary);
+      color: var(--theme-primary);
       opacity: 0;
       transform: translateX(-.2rem);
       transition: opacity .15s ease, transform .15s ease;
@@ -277,7 +277,7 @@
     }
 
     .contest-mohs-contest-link:hover {
-      color: var(--ins-primary);
+      color: var(--theme-primary);
     }
 
     .contest-mohs-levels {
@@ -290,9 +290,9 @@
       display: inline-block;
       min-width: 3rem;
       padding: .15rem .375rem;
-      border-radius: var(--ins-border-radius-sm);
-      color: var(--ins-primary-text-emphasis);
-      background: var(--ins-primary-bg-subtle);
+      border-radius: var(--theme-border-radius-sm);
+      color: var(--theme-primary-text-emphasis);
+      background: var(--theme-primary-bg-subtle);
       font-size: .8125rem;
       font-weight: 700;
       text-align: center;
@@ -305,7 +305,7 @@
 
     .contest-mohs-metric-detail {
       cursor: help;
-      text-decoration: underline dotted var(--ins-border-color);
+      text-decoration: underline dotted var(--theme-border-color);
       text-underline-offset: .3rem;
     }
 
@@ -341,7 +341,7 @@
     }
 
     .contest-mohs-sample-label.is-reliable::before {
-      background: var(--ins-primary);
+      background: var(--theme-primary);
     }
 
     .contest-mohs-mobile-topics {
@@ -374,11 +374,11 @@
     .contest-mohs-empty h2 {
       margin-block: 1rem .5rem;
       font-size: 1.1rem;
-      color: var(--ins-emphasis-color);
+      color: var(--theme-emphasis-color);
     }
 
     .contest-mohs-page :is(a, button, input, select, [tabindex]):focus-visible {
-      outline: 2px solid var(--ins-primary);
+      outline: 2px solid var(--theme-primary);
       outline-offset: 3px;
       box-shadow: none;
     }
@@ -527,21 +527,21 @@
 {% block page_content %}
   <div class="container-fluid contest-mohs-page">
     {% url 'pages:archive_hub' as header_archive_url %}
-    <header class="page-title-head app-page-header app-page-header--with-stats contest-mohs-hero">
+    <header class="page-title-head d-flex flex-wrap align-items-center gap-2 contest-mohs-hero">
       {% include 'partials/page-header-intro.html' with title='Contest MOHS' page_icon='ti-chart-bar' back_url=header_archive_url back_label='Archive' only %}
-      <dl class="app-page-header-stats" aria-label="Archive overview">
-        {% include 'partials/page-header-stat.html' with label='Contests' value=contest_mohs_summary_stats.contest_total|floatformat:'0g' stat_icon='ti-trophy' only %}
-        {% include 'partials/page-header-stat.html' with label='Rated problems' value=contest_mohs_summary_stats.total_statement_count|floatformat:'0g' stat_icon='ti-stack-2' only %}
-        {% include 'partials/page-header-stat.html' with label='Archive average' value=contest_mohs_summary_stats.overall_average_mohs|floatformat:2 unit='MOHS' stat_icon='ti-chart-dots-3' accent=True only %}
-        {% include 'partials/page-header-stat.html' with label='Reliable contests' value=contest_mohs_summary_stats.visible_over_threshold|floatformat:'0g' stat_icon='ti-shield-check' only %}
-      </dl>
       <a href="{% url 'pages:completion_quick_update' %}"
-         class="btn btn-sm btn-primary app-page-header-action-icon d-inline-flex align-items-center gap-2"
+         class="btn btn-sm btn-primary d-inline-flex align-items-center gap-2"
          aria-label="Record completions"
          title="Record completions">
         <i class="ti ti-plus fs-16" aria-hidden="true"></i><span>Record completions</span>
       </a>
     </header>
+      <dl class="row row-cols-2 row-cols-lg-4 g-3 mb-3" aria-label="Archive overview">
+        {% include 'partials/page-header-stat.html' with label='Contests' value=contest_mohs_summary_stats.contest_total|floatformat:'0g' stat_icon='ti-trophy' only %}
+        {% include 'partials/page-header-stat.html' with label='Rated problems' value=contest_mohs_summary_stats.total_statement_count|floatformat:'0g' stat_icon='ti-stack-2' only %}
+        {% include 'partials/page-header-stat.html' with label='Archive average' value=contest_mohs_summary_stats.overall_average_mohs|floatformat:2 unit='MOHS' stat_icon='ti-chart-dots-3' accent=True only %}
+        {% include 'partials/page-header-stat.html' with label='Reliable contests' value=contest_mohs_summary_stats.visible_over_threshold|floatformat:'0g' stat_icon='ti-shield-check' only %}
+      </dl>
     <section class="card contest-mohs-workspace mb-3"
              aria-labelledby="contest-mohs-table-title">
       <div class="card-header border-0 d-flex align-items-center justify-content-between gap-2">

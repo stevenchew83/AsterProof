@@ -5,27 +5,27 @@
 {% block extra_css %}
 <style>
   .concept-progress {
-    --cp-muted: color-mix(in srgb, var(--ins-body-color) 82%, var(--ins-secondary-bg));
-    --cp-primary-ink: color-mix(in srgb, var(--ins-primary) 35%, var(--ins-body-color));
+    --cp-muted: color-mix(in srgb, var(--theme-body-color) 82%, var(--theme-secondary-bg));
+    --cp-primary-ink: color-mix(in srgb, var(--theme-primary) 35%, var(--theme-body-color));
     padding-bottom: 2rem;
   }
   .concept-progress .text-muted { color: var(--cp-muted) !important; }
   .concept-progress .text-primary { color: var(--cp-primary-ink) !important; }
-  .concept-progress .form-control, .concept-progress .form-select { border-color: color-mix(in srgb, var(--ins-body-color) 64%, var(--ins-secondary-bg)); }
+  .concept-progress .form-control, .concept-progress .form-select { border-color: color-mix(in srgb, var(--theme-body-color) 64%, var(--theme-secondary-bg)); }
   .concept-progress .form-control::placeholder { color: var(--cp-muted); opacity: 1; }
   .concept-progress .btn-primary, .concept-progress .btn-outline-primary {
-    --ins-btn-hover-bg: var(--cp-primary-ink);
-    --ins-btn-hover-border-color: var(--cp-primary-ink);
-    --ins-btn-hover-color: var(--ins-secondary-bg);
-    --ins-btn-active-bg: var(--cp-primary-ink);
-    --ins-btn-active-color: var(--ins-secondary-bg);
-    --ins-btn-active-border-color: var(--cp-primary-ink);
+    --theme-btn-hover-bg: var(--cp-primary-ink);
+    --theme-btn-hover-border-color: var(--cp-primary-ink);
+    --theme-btn-hover-color: var(--theme-secondary-bg);
+    --theme-btn-active-bg: var(--cp-primary-ink);
+    --theme-btn-active-color: var(--theme-secondary-bg);
+    --theme-btn-active-border-color: var(--cp-primary-ink);
   }
-  .concept-progress .btn-primary { --ins-btn-bg: var(--cp-primary-ink); --ins-btn-border-color: var(--cp-primary-ink); --ins-btn-color: var(--ins-secondary-bg); }
-  .concept-progress .btn-outline-secondary { --ins-btn-color: var(--cp-muted); --ins-btn-border-color: var(--cp-muted); --ins-btn-hover-bg: var(--ins-tertiary-bg); --ins-btn-hover-color: var(--ins-body-color); --ins-btn-hover-border-color: var(--ins-body-color); }
-  .concept-progress .btn-outline-primary { --ins-btn-color: var(--cp-primary-ink); --ins-btn-border-color: var(--cp-primary-ink); }
-  .concept-progress .header-title { font-size: 1rem; font-weight: 600; letter-spacing: -.015em; }
-  .concept-progress .card { border: 1px solid var(--ins-border-color); box-shadow: none; }
+  .concept-progress .btn-primary { --theme-btn-bg: var(--cp-primary-ink); --theme-btn-border-color: var(--cp-primary-ink); --theme-btn-color: var(--theme-secondary-bg); }
+  .concept-progress .btn-outline-secondary { --theme-btn-color: var(--cp-muted); --theme-btn-border-color: var(--cp-muted); --theme-btn-hover-bg: var(--theme-tertiary-bg); --theme-btn-hover-color: var(--theme-body-color); --theme-btn-hover-border-color: var(--theme-body-color); }
+  .concept-progress .btn-outline-primary { --theme-btn-color: var(--cp-primary-ink); --theme-btn-border-color: var(--cp-primary-ink); }
+  .concept-progress .card-title { font-size: 1rem; font-weight: 600; letter-spacing: -.015em; }
+  .concept-progress .card { border: 1px solid var(--theme-border-color); box-shadow: none; }
   .concept-progress .cp-context { padding: 1rem 1.25rem; }
   .concept-progress .cp-context .form-label { font-size: .72rem; font-weight: 600; margin-bottom: .4rem; }
   .concept-progress .cp-context .form-select { min-height: 2.5rem; }
@@ -34,36 +34,36 @@
   .concept-progress .cp-stat .card-body { padding: 1.25rem; }
   .concept-progress .cp-stat h3 { font-size: 1.85rem; letter-spacing: -.04em; font-variant-numeric: tabular-nums; }
   .concept-progress .cp-stat .avatar-title { height: 2.4rem; width: 2.4rem; }
-  .concept-progress .cp-subject { display: block; color: var(--ins-body-color); padding: 1rem 1.1rem; border: 1px solid var(--ins-border-color); border-radius: var(--ins-border-radius); background: var(--ins-secondary-bg); transition: border-color .16s ease, background .16s ease; }
-  .concept-progress .cp-subject:hover, .concept-progress .cp-subject.active { border-color: var(--ins-primary); background: var(--ins-primary-bg-subtle); }
-  .concept-progress .cp-track { height: .3rem; background: var(--ins-tertiary-bg); border-radius: 1rem; overflow: hidden; }
+  .concept-progress .cp-subject { display: block; color: var(--theme-body-color); padding: 1rem 1.1rem; border: 1px solid var(--theme-border-color); border-radius: var(--theme-border-radius); background: var(--theme-secondary-bg); transition: border-color .16s ease, background .16s ease; }
+  .concept-progress .cp-subject:hover, .concept-progress .cp-subject.active { border-color: var(--theme-primary); background: var(--theme-primary-bg-subtle); }
+  .concept-progress .cp-track { height: .3rem; background: var(--theme-tertiary-bg); border-radius: 1rem; overflow: hidden; }
   .concept-progress .cp-fill { height: 100%; background: var(--cp-primary-ink); border-radius: inherit; }
   .concept-progress .cp-coverage { min-width: 5rem; }
   .concept-progress .cp-number { font-variant-numeric: tabular-nums; }
   .concept-progress .cp-view-tabs { display: flex; gap: 1.2rem; }
   .concept-progress .cp-view-tab { color: var(--cp-muted); padding: .8rem 0; border-bottom: 2px solid transparent; font-size: .88rem; font-weight: 600; }
-  .concept-progress .cp-view-tab.active { border-color: var(--ins-primary); color: var(--cp-primary-ink); }
+  .concept-progress .cp-view-tab.active { border-color: var(--theme-primary); color: var(--cp-primary-ink); }
   .concept-progress .cp-status-tabs { display: flex; gap: .3rem; flex-wrap: wrap; }
-  .concept-progress .cp-status-tab { padding: .4rem .6rem; color: var(--cp-muted); border-radius: var(--ins-border-radius); font-size: .75rem; }
-  .concept-progress .cp-status-tab.active { background: var(--ins-primary-bg-subtle); color: var(--cp-primary-ink); font-weight: 600; }
-  .concept-progress .cp-status-tab:hover { background: var(--ins-tertiary-bg); }
+  .concept-progress .cp-status-tab { padding: .4rem .6rem; color: var(--cp-muted); border-radius: var(--theme-border-radius); font-size: .75rem; }
+  .concept-progress .cp-status-tab.active { background: var(--theme-primary-bg-subtle); color: var(--cp-primary-ink); font-weight: 600; }
+  .concept-progress .cp-status-tab:hover { background: var(--theme-tertiary-bg); }
   .concept-progress .cp-status-tab span { margin-left: .3rem; font-variant-numeric: tabular-nums; }
-  .concept-progress .cp-table th { padding: .8rem 1rem; background: var(--ins-tertiary-bg); color: var(--cp-muted); font-size: .66rem; letter-spacing: .06em; text-transform: uppercase; white-space: nowrap; font-weight: 600; }
+  .concept-progress .cp-table th { padding: .8rem 1rem; background: var(--theme-tertiary-bg); color: var(--cp-muted); font-size: .66rem; letter-spacing: .06em; text-transform: uppercase; white-space: nowrap; font-weight: 600; }
   .concept-progress .cp-table td { padding: 1rem; vertical-align: middle; }
-  .concept-progress .cp-name { color: var(--ins-body-color); font-weight: 600; line-height: 1.45; }
-  .concept-progress .cp-name:hover { color: var(--ins-primary); }
+  .concept-progress .cp-name { color: var(--theme-body-color); font-weight: 600; line-height: 1.45; }
+  .concept-progress .cp-name:hover { color: var(--theme-primary); }
   .concept-progress .cp-table-wrap { position: relative; }
   .concept-progress .cp-search { position: relative; flex: 1 1 14rem; max-width: 25rem; }
   .concept-progress .cp-search > i { position: absolute; left: .8rem; top: .75rem; color: var(--cp-muted); }
   .concept-progress .cp-search input { padding-left: 2.2rem; padding-right: 2.3rem; min-height: 2.4rem; }
   .concept-progress .cp-search button { position: absolute; right: .2rem; top: .1rem; }
-  .concept-progress .cp-practice-item { padding-block: 1rem; border-top: 1px solid var(--ins-border-color); }
+  .concept-progress .cp-practice-item { padding-block: 1rem; border-top: 1px solid var(--theme-border-color); }
   .concept-progress .cp-practice-item:first-child { border-top: 0; padding-top: .35rem; }
   .concept-progress .cp-pagination { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: .75rem; padding: 1rem 1.25rem; }
   .concept-progress .cp-empty { padding: 2.5rem 1.25rem; text-align: center; }
   .concept-progress .cp-study p { line-height: 1.65; }
   .concept-progress summary { cursor: pointer; }
-  .concept-progress a:focus-visible, .concept-progress summary:focus-visible { outline: 2px solid var(--cp-primary-ink); outline-offset: 3px; border-radius: var(--ins-border-radius); }
+  .concept-progress a:focus-visible, .concept-progress summary:focus-visible { outline: 2px solid var(--cp-primary-ink); outline-offset: 3px; border-radius: var(--theme-border-radius); }
   .concept-progress #progress-explorer { scroll-margin-top: 5.5rem; }
   @media (max-width: 767.98px) {
     .concept-progress .cp-search { max-width: none; flex-basis: 100%; }
@@ -85,14 +85,14 @@
 <div class="container-fluid app-table-page">{% include 'partials/page-title.html' with title='Area & Concepts Progress' subtitle='Learning' page_icon='ti-circles-relation' %}<div class="alert alert-info" role="status">Progress summaries are being updated. Your completion records are preserved. Please try again shortly.</div></div>
 {% else %}
 <div class="container-fluid app-table-page concept-progress">
-  <header class="page-title-head app-page-header">
+  <header class="page-title-head d-flex flex-wrap align-items-center gap-2">
     {% if subject %}
       {% include 'partials/page-header-intro.html' with title=subject|add:' progress' page_icon='ti-circles-relation' back_url=all_subjects_url back_label='Area & Concepts Progress' only %}
     {% else %}
       {% include 'partials/page-header-intro.html' with title='Area & Concepts Progress' subtitle='Learning' page_icon='ti-circles-relation' only %}
     {% endif %}
-    <div class="app-page-header-actions">
-      <a href="{{ completion_url }}" class="btn btn-sm btn-primary app-page-header-action-icon d-inline-flex align-items-center gap-2" aria-label="Record completions" title="Record completions"><i class="ti ti-calendar-check" aria-hidden="true"></i><span>Record completions</span></a>
+    <div class="page-title-actions d-flex flex-wrap align-items-center gap-2">
+      <a href="{{ completion_url }}" class="btn btn-sm btn-primary d-inline-flex align-items-center gap-2" aria-label="Record completions" title="Record completions"><i class="ti ti-calendar-check" aria-hidden="true"></i><span>Record completions</span></a>
     </div>
   </header>
 
@@ -124,7 +124,7 @@
     <section class="{% if filters.mode == 'problems' %}col-12{% else %}col-xl-9{% endif %}" aria-labelledby="progress-explorer-title">
       <div class="card mb-0" id="progress-explorer">
         <div class="card-header border-0 pt-3 pb-2 d-flex flex-wrap align-items-start justify-content-between gap-2">
-          <div>{% if selected_concept %}<a href="{{ back_to_concepts_url }}" class="text-muted fs-xs"><i class="ti ti-arrow-left me-1" aria-hidden="true"></i>Back to concepts</a><h2 class="header-title mt-2 mb-1" id="progress-explorer-title">{{ selected_concept.label }}</h2><p class="text-muted fs-xs mb-0">{{ selected_concept.subject }} / {{ selected_concept.area }} · {{ selected_concept.solved }} of {{ selected_concept.total }} completed</p>{% if selected_summary.solved_average_mohs is not None %}<p class="text-muted fs-xs mb-0 mt-2">Average MOHS of completed problems: <strong>{{ selected_summary.solved_average_mohs|floatformat:'-1' }}</strong></p>{% endif %}{% else %}<h2 class="header-title mb-1" id="progress-explorer-title">{% if selected_area %}{{ selected_area.label }}{% elif subject %}{{ subject }} areas &amp; concepts{% else %}Explore your progress{% endif %}</h2><p class="text-muted fs-xs mb-0">{% if filters.mode == 'concepts' %}Each concept has one shared identity across its aliases and roles.{% else %}Choose an area to explore its concepts and remaining problems.{% endif %}</p>{% endif %}</div>
+          <div>{% if selected_concept %}<a href="{{ back_to_concepts_url }}" class="text-muted fs-xs"><i class="ti ti-arrow-left me-1" aria-hidden="true"></i>Back to concepts</a><h2 class="card-title mt-2 mb-1" id="progress-explorer-title">{{ selected_concept.label }}</h2><p class="text-muted fs-xs mb-0">{{ selected_concept.subject }} / {{ selected_concept.area }} · {{ selected_concept.solved }} of {{ selected_concept.total }} completed</p>{% if selected_summary.solved_average_mohs is not None %}<p class="text-muted fs-xs mb-0 mt-2">Average MOHS of completed problems: <strong>{{ selected_summary.solved_average_mohs|floatformat:'-1' }}</strong></p>{% endif %}{% else %}<h2 class="card-title mb-1" id="progress-explorer-title">{% if selected_area %}{{ selected_area.label }}{% elif subject %}{{ subject }} areas &amp; concepts{% else %}Explore your progress{% endif %}</h2><p class="text-muted fs-xs mb-0">{% if filters.mode == 'concepts' %}Each concept has one shared identity across its aliases and roles.{% else %}Choose an area to explore its concepts and remaining problems.{% endif %}</p>{% endif %}</div>
           <a href="{{ export_url }}" class="btn btn-sm btn-outline-secondary"><i class="ti ti-download me-1" aria-hidden="true"></i> Export CSV</a>
         </div>
         {% if not selected_concept %}<nav class="cp-view-tabs border-bottom px-4" aria-label="Progress views">{% for tab in mode_tabs %}<a href="{{ tab.url }}" class="cp-view-tab{% if filters.mode == tab.value %} active{% endif %}"{% if filters.mode == tab.value %} aria-current="page"{% endif %}>{{ tab.label }}</a>{% endfor %}</nav>{% endif %}
@@ -135,7 +135,7 @@
         <div class="px-3 px-sm-4 py-2 border-top d-flex align-items-center justify-content-between flex-wrap gap-2"><span class="text-muted fs-xs" role="status">{{ progress_page.paginator.count }} matching {% if selected_concept %}problems{% elif filters.mode == 'concepts' %}concepts{% else %}areas{% endif %}{% if filters.q %} for “{{ filters.q }}”{% endif %}</span>{% if not selected_concept %}<form method="get" action="{{ form_url }}#progress-explorer" class="app-table-filters d-flex align-items-center gap-2">{% for key, value in filters.items %}{% if key != 'sort' and value %}<input type="hidden" name="{{ key }}" value="{{ value }}">{% endif %}{% endfor %}<label for="progress-sort" class="text-muted fs-xs text-nowrap">Sort by</label><select name="sort" id="progress-sort" class="form-select form-select-sm w-auto"><option value="remaining"{% if filters.sort == 'remaining' %} selected{% endif %}>Most remaining</option><option value="progress"{% if filters.sort == 'progress' %} selected{% endif %}>Most progress</option><option value="name"{% if filters.sort == 'name' %} selected{% endif %}>Name</option></select><button type="submit" class="btn btn-sm btn-outline-secondary">Sort</button></form>{% endif %}</div>
 
         {% if progress_page.object_list %}
-        <div class="app-table-region table-responsive cp-table-wrap" tabindex="0" role="region" aria-label="Scrollable results"><table class="app-table-compact table table-hover cp-table mb-0" id="area-concept-progress-table">
+        <div class="app-table-region table-responsive cp-table-wrap" tabindex="0" role="region" aria-label="Scrollable results"><table class="table-sm table table-hover cp-table mb-0" id="area-concept-progress-table">
           <caption class="visually-hidden">{% if selected_concept %}Problems for {{ selected_concept.label }}{% else %}{{ filters.mode|capfirst }} progress{% endif %}</caption>
           {% if selected_concept %}<thead><tr><th scope="col">Problem</th><th scope="col">Status</th><th scope="col">MOHS</th><th scope="col">Completed on</th><th scope="col"><span class="visually-hidden">Action</span></th></tr></thead><tbody>{% for row in progress_page %}<tr><td><a href="{{ row.url }}" class="cp-name">{{ row.label }}</a><span class="text-muted fs-xs mt-1 app-table-meta">{{ row.subject }}</span></td><td data-label="Status"><span class="badge {% if row.is_solved %}bg-primary-subtle text-primary{% else %}bg-secondary-subtle text-secondary{% endif %}">{{ row.status_label }}</span></td><td data-label="MOHS" class="cp-number">{{ row.mohs|default_if_none:'—' }}</td><td data-label="Completed on" class="text-muted fs-xs">{% if row.is_solved %}{{ row.completion_date|date:'j M Y'|default:'Date not recorded' }}{% else %}—{% endif %}</td><td class="text-end"><a href="{{ row.url }}" class="btn btn-sm btn-outline-primary">Open problem <i class="ti ti-arrow-up-right ms-1" aria-hidden="true"></i></a></td></tr>{% endfor %}</tbody>
           {% else %}<thead><tr><th scope="col">{% if filters.mode == 'concepts' %}Concept{% else %}Area{% endif %}</th><th scope="col">Completed</th><th scope="col">Remaining</th><th scope="col">Progress</th><th scope="col"><span class="visually-hidden">Action</span></th></tr></thead><tbody>{% for row in progress_page %}<tr><td><a class="cp-name" href="{{ row.url }}">{{ row.label }}</a><span class="text-muted fs-xs mt-1 app-table-meta">{% if filters.mode == 'concepts' %}{{ row.area }}{% else %}{{ row.subject }} · {{ row.practiced }} / {{ row.available }} concepts practiced{% endif %}</span>{% if filters.mode == 'concepts' %}<span class="text-muted fs-xs">{{ row.subject }}{% if row.median_mohs is not None %} · Median MOHS {{ row.median_mohs|floatformat:'-1' }}{% endif %}</span>{% endif %}</td><td data-label="Completed" class="cp-number text-nowrap"><strong>{{ row.solved }}</strong><span class="text-muted fs-xs"> / {{ row.total }}</span></td><td data-label="Remaining" class="cp-number">{{ row.remaining }}</td><td data-label="Progress">{% include 'pages/partials/concept-progress-bar.html' %}</td><td class="text-end"><a class="btn btn-sm btn-outline-secondary text-nowrap" href="{{ row.url }}">{% if filters.mode == 'concepts' and row.remaining %}Practice{% elif filters.mode == 'concepts' and row.total %}Review{% else %}Explore{% endif %} <i class="ti ti-arrow-right ms-1" aria-hidden="true"></i></a></td></tr>{% endfor %}</tbody>{% endif %}
@@ -146,7 +146,7 @@
       {% if study_notes %}<details class="card cp-study mt-3"><summary class="px-4 py-3 fw-semibold fs-sm">Study notes for {{ selected_concept.label }}</summary><div class="card-body pt-0">{% if study_notes.key_insight_spoiler_free %}<h3 class="fs-xs text-muted text-uppercase">Key insight</h3><p class="fs-sm">{{ study_notes.key_insight_spoiler_free }}</p>{% endif %}{% if study_notes.rationale %}<h3 class="fs-xs text-muted text-uppercase">Why it matters</h3><p class="fs-sm">{{ study_notes.rationale }}</p>{% endif %}{% if study_notes.pitfalls %}<h3 class="fs-xs text-muted text-uppercase">Common pitfalls</h3><p class="fs-sm">{{ study_notes.pitfalls }}</p>{% endif %}{% if study_notes.recommended_sequence %}<h3 class="fs-xs text-muted text-uppercase">Suggested sequence</h3><p class="fs-sm mb-0">{{ study_notes.recommended_sequence }}</p>{% endif %}</div></details>{% endif %}
     </section>
 
-    {% if filters.mode != 'problems' %}<aside class="col-xl-3" aria-labelledby="continue-practicing-title"><div class="card mb-0"><div class="card-header border-0 pt-3 pb-2"><div><h2 id="continue-practicing-title" class="header-title mb-1">Continue practicing</h2><p class="text-muted fs-xs mb-0">Started concepts first, then those with the most remaining problems.</p></div></div><div class="card-body pt-2">{% for row in practice_rows %}<div class="cp-practice-item"><a class="cp-name fs-sm" href="{{ row.url }}">{{ row.label }}</a><p class="text-muted fs-xs mt-1 mb-2">{{ row.subject }} · {{ row.area }}</p><div class="d-flex justify-content-between fs-xs mb-2"><span class="text-muted">{{ row.solved }} / {{ row.total }} completed</span><strong class="cp-number">{{ row.remaining }} left</strong></div><div class="cp-track mb-3" aria-hidden="true"><div class="cp-fill" style="width:{{ row.percent|floatformat:'-1' }}%"></div></div><a href="{{ row.url }}" class="btn btn-sm btn-outline-primary w-100">Practice <i class="ti ti-arrow-right ms-1" aria-hidden="true"></i></a></div>{% empty %}<div class="text-muted fs-sm py-3">{% if stats.total %}All available problems in this view are complete. Explore another subject to continue.{% else %}Practice suggestions appear when mapped problems are available.{% endif %}</div>{% endfor %}</div></div></aside>{% endif %}
+    {% if filters.mode != 'problems' %}<aside class="col-xl-3" aria-labelledby="continue-practicing-title"><div class="card mb-0"><div class="card-header border-0 pt-3 pb-2"><div><h2 id="continue-practicing-title" class="card-title mb-1">Continue practicing</h2><p class="text-muted fs-xs mb-0">Started concepts first, then those with the most remaining problems.</p></div></div><div class="card-body pt-2">{% for row in practice_rows %}<div class="cp-practice-item"><a class="cp-name fs-sm" href="{{ row.url }}">{{ row.label }}</a><p class="text-muted fs-xs mt-1 mb-2">{{ row.subject }} · {{ row.area }}</p><div class="d-flex justify-content-between fs-xs mb-2"><span class="text-muted">{{ row.solved }} / {{ row.total }} completed</span><strong class="cp-number">{{ row.remaining }} left</strong></div><div class="cp-track mb-3" aria-hidden="true"><div class="cp-fill" style="width:{{ row.percent|floatformat:'-1' }}%"></div></div><a href="{{ row.url }}" class="btn btn-sm btn-outline-primary w-100">Practice <i class="ti ti-arrow-right ms-1" aria-hidden="true"></i></a></div>{% empty %}<div class="text-muted fs-sm py-3">{% if stats.total %}All available problems in this view are complete. Explore another subject to continue.{% else %}Practice suggestions appear when mapped problems are available.{% endif %}</div>{% endfor %}</div></div></aside>{% endif %}
   </div>
 
   <details class="text-muted fs-xs mt-4 px-1"><summary>How progress is counted</summary><div class="mt-2" style="max-width:65rem"><p>Each problem counts once in an area or concept, even when it has several aliases or roles. Subject groups follow the mathematical concept catalogue. A problem can contribute to more than one area or subject, so their counts can overlap.</p><p>Solved, checked, written, and published records count as completed. Attempted and unattempted records remain open. Progress recorded on a statement takes priority over older completion records for the same problem.</p><p>Concepts practiced have at least one completed problem. This measures recorded practice and does not establish mastery. Areas or concepts without problems have no completion percentage.</p><p class="mb-0">Progress reflects current library mappings and recorded completions.{% if unmapped_total %} {{ unmapped_total }} active problems in this subject scope have no mapped concepts and are excluded from these progress counts.{% endif %} Search and status tabs refine the explorer; summary figures follow the selected subject and area.</p></div></details>

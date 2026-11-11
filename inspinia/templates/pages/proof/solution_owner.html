@@ -8,7 +8,7 @@
 {% endblock extra_css %}
 {% block page_content %}
   <div class="container-fluid">
-    <header class="page-title-head app-page-header">
+    <header class="page-title-head d-flex flex-wrap align-items-center gap-2">
       {% include 'partials/page-header-intro.html' with title='Your community solution' subtitle='Community Proof Library' page_icon='ti-notes' only %}
     </header>
     {% include 'pages/proof/partials/messages.html' %}
@@ -39,7 +39,7 @@
       <aside class="col-lg-4">
         <section class="card">
           <div class="card-body">
-            <h2 class="header-title fs-16">Your contribution</h2>
+            <h2 class="card-title fs-16">Your contribution</h2>
             <p class="text-muted fs-sm">
               Saving your private draft does not change this submitted copy. A new proof version needs a fresh publication review.
             </p>

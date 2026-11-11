@@ -2,194 +2,26 @@
 
 {% block title %}{{ problem_list.title }}{% endblock title %}
 
-{% block extra_css %}
-{{ block.super }}
-<style>
-  .problem-list-public-shell {
-    --bs-primary: #0f766e;
-    --bs-primary-rgb: 15, 118, 110;
-    --bs-primary-bg-subtle: #d9f0ea;
-    --bs-primary-border-subtle: #a9d9cf;
-    --pl-bg: #f4f7f3;
-    --pl-border: #d8e1d7;
-    --pl-ink: #172026;
-    --pl-muted: #5e6872;
-    --pl-paper: #fffefb;
-    --pl-teal: #0f766e;
-    --pl-warm: #b4532a;
-    --pl-blue: #2457a6;
-    --pl-gold: #a66f16;
-    min-height: 100vh;
-    background: var(--pl-bg);
-    color: var(--pl-ink);
-  }
-
-  .problem-list-public-header {
-    position: sticky;
-    top: 0;
-    z-index: 10;
-    border-bottom: 1px solid rgba(23, 32, 38, 0.09);
-    background: rgba(255, 254, 251, 0.94);
-    backdrop-filter: blur(10px);
-  }
-
-  .problem-list-public-brand {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.5rem;
-    color: var(--pl-ink);
-    font-weight: 700;
-    letter-spacing: 0;
-  }
-
-  .problem-list-public-brand i {
-    color: var(--pl-warm);
-  }
-
-  .problem-list-public-card {
-    border: 1px solid var(--pl-border);
-    border-radius: 0.5rem;
-    background: var(--pl-paper);
-    box-shadow: 0 1rem 2rem rgba(23, 32, 38, 0.055);
-    transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
-  }
-
-  .problem-list-public-card:hover {
-    border-color: rgba(15, 118, 110, 0.38);
-    box-shadow: 0 1.25rem 2.5rem rgba(23, 32, 38, 0.085);
-    transform: translateY(-1px);
-  }
-
-  .problem-list-public-number {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    width: 2.5rem;
-    height: 2.5rem;
-    flex: 0 0 auto;
-    border-radius: 0.5rem;
-    background: var(--pl-teal);
-    color: #ffffff;
-    font-weight: 700;
-    box-shadow: 0 0.5rem 1rem rgba(15, 118, 110, 0.22);
-  }
-
-  .problem-list-public-problem-title {
-    color: var(--pl-ink);
-    font-size: 1.15rem;
-    line-height: 1.35;
-  }
-
-  .problem-list-public-tags .badge {
-    border-color: #cad8cf !important;
-    background: #eef4f0 !important;
-    color: #40504b !important;
-    font-weight: 600;
-  }
-
-  .problem-list-public-note,
-  .problem-list-public-analytics-note,
-  .problem-list-public-hint {
-    border: 1px solid var(--ins-border-color);
-    border-radius: 0.5rem;
-    background: var(--bs-tertiary-bg);
-  }
-
-  .problem-list-public-note {
-    border-left: 3px solid var(--bs-primary);
-  }
-
-  .problem-list-public-analytics-note {
-    border-left: 3px solid var(--pl-blue);
-  }
-
-  .problem-list-public-analytics-label,
-  .problem-list-public-note-label {
-    color: var(--bs-secondary-color);
-    font-size: 0.72rem;
-    font-weight: 700;
-    text-transform: uppercase;
-  }
-
-  .problem-list-public-hint summary {
-    cursor: pointer;
-    font-weight: 700;
-  }
-
-  .problem-list-public-card .statement-render-content {
-    padding-top: 0.75rem;
-    border-top: 1px solid var(--pl-border);
-  }
-
-  .problem-list-public-card .statement-text-fragment {
-    color: var(--pl-ink);
-    font-size: 1.02rem;
-    line-height: 1.78;
-  }
-
-  .problem-list-public-shell .btn-primary {
-    --bs-btn-bg: var(--pl-teal);
-    --bs-btn-border-color: var(--pl-teal);
-    --bs-btn-hover-bg: #0b5f59;
-    --bs-btn-hover-border-color: #0b5f59;
-    --bs-btn-active-bg: #084f4a;
-    --bs-btn-active-border-color: #084f4a;
-  }
-
-  .problem-list-public-shell .btn-outline-primary {
-    --bs-btn-color: var(--pl-teal);
-    --bs-btn-border-color: #86bdb3;
-    --bs-btn-hover-bg: var(--pl-teal);
-    --bs-btn-hover-border-color: var(--pl-teal);
-    --bs-btn-hover-color: #ffffff;
-    --bs-btn-active-bg: var(--pl-teal);
-    --bs-btn-active-border-color: var(--pl-teal);
-  }
-
-  html[data-bs-theme="dark"] .problem-list-public-shell {
-    --pl-bg: #111917;
-    --pl-border: #293b37;
-    --pl-ink: #ecf4f1;
-    --pl-muted: #a9b7b3;
-    --pl-paper: #17211f;
-    --pl-warm: #e28a5d;
-    --pl-blue: #8fb8ff;
-    background: var(--pl-bg);
-  }
-
-  html[data-bs-theme="dark"] .problem-list-public-header {
-    border-bottom-color: rgba(236, 244, 241, 0.1);
-    background: rgba(17, 25, 23, 0.94);
-  }
-
-  html[data-bs-theme="dark"] .problem-list-public-tags .badge {
-    border-color: #314843 !important;
-    background: #20332f !important;
-    color: #cbdad6 !important;
-  }
-
-</style>
-{% endblock extra_css %}
 
 {% block body %}
-<div class="problem-list-public-shell">
-  <header class="problem-list-public-header py-3">
+<div class="min-vh-100">
+  <header class="navbar bg-body border-bottom py-3">
     <div class="container">
       <div class="d-flex flex-wrap align-items-center justify-content-between gap-2">
-        <a href="{% url 'account_login' %}" class="problem-list-public-brand text-decoration-none">
+        <a href="{% url 'account_login' %}" class="navbar-brand d-inline-flex align-items-center gap-2 text-decoration-none">
           <i class="ti ti-sparkles"></i>
           <span>AsterProof</span>
         </a>
         <div class="d-flex flex-wrap gap-2">
           {% if request.user.is_authenticated %}
-          <a href="{% url 'problemsets:public_pdf' problem_list.share_token problem_list.public_slug %}" class="btn btn-primary btn-sm">
+          <a href="{% url 'problemsets:public_pdf' problem_list.share_token problem_list.public_slug %}" class="btn btn-dark btn-sm">
             <i class="ti ti-file-type-pdf me-1"></i> Download PDF
           </a>
           <a href="{% url 'problemsets:detail' problem_list.list_uuid %}" class="btn btn-outline-primary btn-sm">
             <i class="ti ti-layout-dashboard me-1"></i> Open workspace view
           </a>
           {% else %}
-          <a href="{% url 'account_login' %}" class="btn btn-primary btn-sm">
+          <a href="{% url 'account_login' %}" class="btn btn-dark btn-sm">
             <i class="ti ti-login-2 me-1"></i> Sign in
           </a>
           {% endif %}
@@ -199,7 +31,7 @@
   </header>
 
   <main class="container pb-5">
-    <header class="app-page-header">
+    <header class="page-title-head mx-0 d-flex flex-wrap align-items-center gap-2">
       {% with author_context='Curated by '|add:problem_list_author_label %}
         {% include 'partials/page-header-intro.html' with title=problem_list.title subtitle=author_context page_icon='ti-list-details' only %}
       {% endwith %}
@@ -215,18 +47,18 @@
           </button>
         </form>
         {% endif %}
-      {% if problem_list.description %}<p class="app-page-header-description">{{ problem_list.description }}</p>{% endif %}
+      {% if problem_list.description %}<p class="w-100 text-body-secondary mb-2">{{ problem_list.description }}</p>{% endif %}
     </header>
 
     {% if problem_list_items %}
     <div class="d-grid gap-4">
       {% for row in problem_list_items %}
-      <article class="problem-list-public-card p-3 p-lg-4">
+      <article class="card card-body p-3 p-lg-4">
         <div class="d-flex flex-wrap align-items-start justify-content-between gap-3 mb-3">
           <div class="d-flex align-items-start gap-3">
-            <span class="problem-list-public-number">#{{ row.position }}</span>
+            <span class="badge bg-primary-subtle text-primary-emphasis">#{{ row.position }}</span>
             <div>
-              <h2 class="problem-list-public-problem-title fw-bold mb-1">{{ row.display_label }}</h2>
+              <h2 class="h5 fw-bold mb-1">{{ row.display_label }}</h2>
               {% if row.show_source_context or not problem_list.hide_topic or not problem_list.hide_mohs %}
               <p class="text-muted fs-sm mb-0 d-flex flex-wrap align-items-center gap-2">
                 {% if row.show_source_context %}
@@ -243,28 +75,28 @@
             </div>
           </div>
           {% if request.user.is_authenticated %}
-          <a href="{{ row.solution_editor_url }}" class="btn btn-primary btn-sm">
+          <a href="{{ row.solution_editor_url }}" class="btn btn-dark btn-sm">
             <i class="ti ti-edit me-1"></i> Submit solution
           </a>
           {% else %}
-          <a href="{% url 'account_login' %}?next={{ row.solution_editor_url|urlencode:'' }}" class="btn btn-primary btn-sm">
+          <a href="{% url 'account_login' %}?next={{ row.solution_editor_url|urlencode:'' }}" class="btn btn-dark btn-sm">
             <i class="ti ti-login-2 me-1"></i> Sign in to submit solution
           </a>
           {% endif %}
         </div>
         {% if row.topic_tags and not problem_list.hide_subtopics %}
-        <div class="problem-list-public-tags d-flex flex-wrap gap-2 mb-3">
+        <div class="d-flex flex-wrap gap-2 mb-3">
           {% for tag in row.topic_tags %}
           <span class="badge bg-light text-dark border">{{ tag }}</span>
           {% endfor %}
         </div>
         {% endif %}
         {% if row.problem_notes %}
-        <div class="problem-list-public-analytics-note p-3 mb-3">
+        <div class="alert alert-info p-3 mb-3">
           <ul class="mb-0 ps-3">
           {% for note in row.problem_notes %}
             <li class="problem-list-public-analytics-note-item mb-1">
-              <span class="problem-list-public-analytics-label">{{ note.label }}:</span>
+              <span class="fw-semibold">{{ note.label }}:</span>
               <span>{{ note.value|linebreaksbr }}</span>
             </li>
           {% endfor %}
@@ -274,13 +106,13 @@
         {% if row.comment or row.hint %}
         <div class="d-grid gap-2 mb-3">
           {% if row.comment %}
-          <div class="problem-list-public-note p-3">
-            <p class="problem-list-public-note-label mb-1">Curator comment</p>
+          <div class="alert alert-info mb-0 p-3">
+            <p class="fw-semibold mb-1">Curator comment</p>
             <div>{{ row.comment|linebreaksbr }}</div>
           </div>
           {% endif %}
           {% if row.hint %}
-          <details class="problem-list-public-hint p-3">
+          <details class="bg-light-subtle border rounded p-3">
             <summary>Show hint</summary>
             <div class="text-muted mt-2">{{ row.hint|linebreaksbr }}</div>
           </details>

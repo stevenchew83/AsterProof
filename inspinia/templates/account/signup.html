@@ -6,20 +6,20 @@
 {% endblock head_title %}
 
 {% block content %}
-  <header class="auth-login-heading">
-    <p class="auth-login-eyebrow">{% trans "Your mathematics workspace" %}</p>
-    <h1 id="auth-login-title">{% trans "Create your account." %}</h1>
+  <header class="text-center mb-4">
+
+    <h1 class="h5 fw-bold" id="auth-login-title">{% trans "Create your account." %}</h1>
     <p>{% trans "Create an account to explore problems and track your progress." %}</p>
   </header>
   {% if not SOCIALACCOUNT_ONLY %}
-    <form method="post" action="{% url 'account_signup' %}" class="auth-login-form">
+    <form method="post" action="{% url 'account_signup' %}" class="mb-3">
       {% csrf_token %}
       {{ redirect_field }}
       {% include "account/partials/entrance_fields.html" %}
-      <button type="submit" class="btn btn-primary auth-login-submit">
+      <button type="submit" class="btn btn-dark w-100 fw-semibold py-2">
         {% trans "Create account" %}<i class="ti ti-arrow-right" aria-hidden="true"></i>
       </button>
     </form>
   {% endif %}
-  <p class="auth-login-signup">{% trans "Already have an account?" %} <a href="{{ login_url }}">{% trans "Sign in" %}</a></p>
+  <p class="text-center mt-3 mb-0">{% trans "Already have an account?" %} <a href="{{ login_url }}">{% trans "Sign in" %}</a></p>
 {% endblock content %}

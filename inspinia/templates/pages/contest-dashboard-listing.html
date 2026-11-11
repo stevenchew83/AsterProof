@@ -8,9 +8,9 @@
   {{ block.super }}
   <style>
     .contest-dashboard-listing .contest-workspace {
-      border: 1px solid var(--ins-border-color);
+      border: 1px solid var(--theme-border-color);
       overflow: hidden;
-      box-shadow: 0 .25rem 1rem rgba(var(--ins-body-color-rgb), .025);
+      box-shadow: 0 .25rem 1rem rgba(var(--theme-body-color-rgb), .025);
     }
     .contest-dashboard-listing .contest-dashboard-filter-toolbar {
       display: grid;
@@ -21,7 +21,7 @@
     .contest-dashboard-listing .filter-search { position: relative; }
     .contest-dashboard-listing .filter-search > i {
       position: absolute; left: .65rem; top: 50%; transform: translateY(-50%);
-      color: var(--ins-secondary-color); pointer-events: none;
+      color: var(--theme-secondary-color); pointer-events: none;
     }
     .contest-dashboard-listing .filter-search input { padding-left: 2rem; }
     .contest-dashboard-listing .contest-dashboard-filter-chip {
@@ -30,10 +30,10 @@
     .contest-dashboard-listing .problem-table { min-width: 77rem; font-size: .8rem; }
     .contest-dashboard-listing .problem-table thead th {
       position: sticky; top: 0; z-index: 2;
-      background: var(--ins-tertiary-bg);
+      background: var(--theme-tertiary-bg);
       padding: .65rem .75rem;
       white-space: nowrap;
-      border-top: 1px solid var(--ins-border-color);
+      border-top: 1px solid var(--theme-border-color);
       font-size: .68rem;
       letter-spacing: .035em;
     }
@@ -47,13 +47,13 @@
     .contest-dashboard-listing .problem-sticky-col {
       position: sticky; left: 0; z-index: 2;
       min-width: 9rem;
-      background: var(--ins-secondary-bg);
-      box-shadow: 1px 0 0 var(--ins-border-color);
+      background: var(--theme-secondary-bg);
+      box-shadow: 1px 0 0 var(--theme-border-color);
     }
     .contest-dashboard-listing thead .problem-sticky-col { z-index: 3; }
     .contest-dashboard-listing .js-problem-row:hover > td,
-    .contest-dashboard-listing .js-problem-row.is-drawer-open > td { background-color: var(--ins-tertiary-bg); }
-    .contest-dashboard-listing .js-problem-row.is-selected > td { background-color: var(--ins-primary-bg-subtle); }
+    .contest-dashboard-listing .js-problem-row.is-drawer-open > td { background-color: var(--theme-tertiary-bg); }
+    .contest-dashboard-listing .js-problem-row.is-selected > td { background-color: var(--theme-primary-bg-subtle); }
     .contest-dashboard-listing .problem-identity { display: flex; align-items: center; gap: .6rem; }
     .contest-dashboard-listing .problem-identity .form-check-input { margin: 0; flex-shrink: 0; }
     .contest-dashboard-listing .problem-open-button {
@@ -61,13 +61,13 @@
       padding: 0; border: 0; background: transparent; color: inherit;
       font: inherit; white-space: nowrap;
     }
-    .contest-dashboard-listing .problem-code { font-weight: 700; color: var(--ins-body-color); }
-    .contest-dashboard-listing .problem-chevron { color: var(--ins-primary); transition: transform .15s; }
+    .contest-dashboard-listing .problem-code { font-weight: 700; color: var(--theme-body-color); }
+    .contest-dashboard-listing .problem-chevron { color: var(--theme-primary); transition: transform .15s; }
     .contest-dashboard-listing .is-drawer-open .problem-chevron { transform: rotate(90deg); }
     .contest-dashboard-listing .problem-tag-list {
       display: inline-flex; align-items: center; gap: .4rem;
       max-width: 14rem; vertical-align: middle;
-      border: 0; padding: 0; background: transparent; color: var(--ins-body-color); font: inherit;
+      border: 0; padding: 0; background: transparent; color: var(--theme-body-color); font: inherit;
     }
     .contest-dashboard-listing .problem-tag-name,
     .contest-dashboard-listing .problem-session { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -83,26 +83,26 @@
     .contest-dashboard-listing .completion-editor { min-width: 8.5rem; }
     .contest-dashboard-listing .completion-popover {
       width: 16rem; max-width: calc(100vw - 2rem);
-      border: 1px solid var(--ins-border-color);
-      box-shadow: 0 .75rem 1.5rem rgba(var(--ins-body-color-rgb), .12);
+      border: 1px solid var(--theme-border-color);
+      box-shadow: 0 .75rem 1.5rem rgba(var(--theme-body-color-rgb), .12);
       white-space: normal;
     }
     .contest-dashboard-listing .completion-editor.is-busy { opacity: .72; }
-    .contest-dashboard-listing .js-completion-display { color: var(--ins-body-color) !important; }
-    .contest-dashboard-listing .statement-drawer-row > td { padding: .75rem; background: var(--ins-tertiary-bg); }
+    .contest-dashboard-listing .js-completion-display { color: var(--theme-body-color) !important; }
+    .contest-dashboard-listing .statement-drawer-row > td { padding: .75rem; background: var(--theme-tertiary-bg); }
     .contest-dashboard-listing .statement-drawer-panel {
-      border: 1px solid var(--ins-border-color);
-      border-left: 3px solid var(--ins-primary);
-      border-radius: var(--ins-border-radius);
-      background: var(--ins-secondary-bg);
+      border: 1px solid var(--theme-border-color);
+      border-left: 3px solid var(--theme-primary);
+      border-radius: var(--theme-border-radius);
+      background: var(--theme-secondary-bg);
       padding: 1rem 1.25rem;
     }
     .contest-dashboard-listing .statement-render-content { border: 0; background: transparent; padding: 0; }
     .contest-dashboard-listing .statement-text-fragment { white-space: pre-wrap; overflow-wrap: anywhere; line-height: 1.7; }
     .contest-dashboard-listing .asymptote-svg-frame {
       overflow-x: auto; padding: .75rem;
-      border-radius: var(--ins-border-radius);
-      border: 1px solid var(--ins-border-color); background: var(--ins-body-bg);
+      border-radius: var(--theme-border-radius);
+      border: 1px solid var(--theme-border-color); background: var(--theme-body-bg);
     }
     .contest-dashboard-listing .asymptote-svg-frame svg { display: block; max-width: 100%; height: auto; margin: 0 auto; }
     .contest-dashboard-listing .problem-detail-tags { display: flex; flex-wrap: wrap; gap: .4rem; }
@@ -111,8 +111,8 @@
     .contest-dashboard-listing .problem-list-add-form { width: min(100%, 22rem); }
     .contest-dashboard-listing .contest-dashboard-bulk-bar {
       position: sticky; bottom: 1rem; z-index: 10; margin-top: .75rem;
-      border: 1px solid var(--ins-border-color); border-radius: var(--ins-border-radius);
-      background: var(--ins-secondary-bg); box-shadow: 0 .75rem 2rem rgba(var(--ins-body-color-rgb), .16);
+      border: 1px solid var(--theme-border-color); border-radius: var(--theme-border-radius);
+      background: var(--theme-secondary-bg); box-shadow: 0 .75rem 2rem rgba(var(--theme-body-color-rgb), .16);
       padding: .65rem 1rem;
     }
     .contest-dashboard-listing .contest-dashboard-bulk-bar-inner,
@@ -123,7 +123,7 @@
       background: transparent; color: inherit; font: inherit; text-transform: inherit; letter-spacing: inherit;
     }
     .contest-dashboard-listing .sort-icon { font-size: .9rem; opacity: .5; }
-    .contest-dashboard-listing button:focus-visible { outline: 2px solid var(--ins-primary); outline-offset: 3px; }
+    .contest-dashboard-listing button:focus-visible { outline: 2px solid var(--theme-primary); outline-offset: 3px; }
     @media (max-width: 767.98px) {
       .contest-dashboard-listing .contest-dashboard-filter-toolbar { grid-template-columns: minmax(0, 1fr) auto; }
       .contest-dashboard-listing .filter-search { grid-column: 1 / -1; }
@@ -141,15 +141,15 @@
 
 {% block page_content %}
 <div class="container-fluid contest-dashboard-listing">
-  <header class="page-title-head app-page-header app-page-header--with-stats app-page-header--stats-only">
+  <header class="page-title-head d-flex flex-wrap align-items-center gap-2">
     {% include 'partials/page-header-intro.html' with title=contest_title page_icon='ti-trophy' back_url=contest_back_url back_label=contest_back_label only %}
-    <dl class="app-page-header-stats" aria-label="Contest overview">
+  </header>
+    <dl class="row row-cols-2 row-cols-lg-4 g-3 mb-3" aria-label="Contest overview">
       {% include 'partials/page-header-stat.html' with label='Visible problems' value=matching_problem_total stat_icon='ti-stack-2' only %}
       {% include 'partials/page-header-stat.html' with label='Archive years' value=contest_problem_stats.year_range_label stat_icon='ti-calendar' text_value=True only %}
       {% include 'partials/page-header-stat.html' with label='Average MOHS' value=contest_problem_stats.avg_mohs|floatformat:1 stat_icon='ti-chart-dots-3' accent=True only %}
       {% include 'partials/page-header-stat.html' with label='My solved' value=completion_summary.solved_visible_total stat_icon='ti-circle-check' only %}
     </dl>
-  </header>
 
   <div class="card contest-workspace">
     <div class="card-body p-3">

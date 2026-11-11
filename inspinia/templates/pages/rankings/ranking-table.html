@@ -80,12 +80,12 @@
 
   <div class="card mt-3">
     <div class="card-header border-0 pb-0">
-      <h4 class="header-title mb-1">Ranking snapshots</h4>
+      <h4 class="card-title mb-1">Ranking snapshots</h4>
       <p class="text-muted fs-xs mb-0">Loaded rows: {{ ranking_rows|length }}{% if ranking_rows|length >= ranking_row_limit %} (limited to {{ ranking_row_limit }}){% endif %}.</p>
     </div>
     <div class="card-body pt-2">
       <div class="app-table-region table-responsive" tabindex="0" role="region" aria-label="Scrollable results">
-        <table data-paging-type="simple" id="ranking-table" class="app-table-compact table table-striped table-bordered align-middle w-100">
+        <table data-paging-type="simple" id="ranking-table" class="table-sm table table-striped table-bordered align-middle w-100">
           <thead>
             <tr>
               <th>Rank</th>

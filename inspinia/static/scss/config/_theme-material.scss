@@ -1,5 +1,5 @@
-// 
-// material Theme Mode
+//
+// Material Theme Mode
 //
 
 $theme-material-colors: (
@@ -14,14 +14,13 @@ $theme-material-colors: (
 
 @if $theme-material ==true {
 
+    html[data-skin='material'] {
+        --#{$prefix}font-sans-serif: 'Roboto', sans-serif;
+        --#{$prefix}font-family-secondary: 'Roboto', sans-serif;
 
-    html[data-skin="material"] {
-
-        --#{$prefix}font-sans-serif:        "Roboto", sans-serif;
-
-        --#{$prefix}body-font-size:               14px;
-        --#{$prefix}body-bg:               #f3f3f4;
-        --#{$prefix}secondary-bg:          #fff;
+        --#{$prefix}body-font-size: 14px;
+        --#{$prefix}body-bg: #f3f3f4;
+        --#{$prefix}secondary-bg: #fff;
 
         --#{$prefix}theme-card-border-width:                 1px;
         --#{$prefix}theme-card-border-color:                 transparent;
@@ -40,7 +39,7 @@ $theme-material-colors: (
         --#{$prefix}font-size-lg:           16px;
         --#{$prefix}font-size-xl:           18px;
         --#{$prefix}font-size-xxl:          20px;
-        
+
         // Menu items
         --#{$prefix}sidenav-item-icon-size:                  1.125rem;
         --#{$prefix}sidenav-item-gap:                        12px;
@@ -57,7 +56,7 @@ $theme-material-colors: (
         --#{$prefix}sidenav-sub-item-padding-y:              7px;
 
         // Background Light left-sidebar
-        &[data-menu-color="light"] {
+        &[data-menu-color='light'] {
             --#{$prefix}sidenav-bg:                       #{$white};
             --#{$prefix}sidenav-border-color:             #{$white};
             --#{$prefix}sidenav-item-color:               #{$gray-700};
@@ -68,7 +67,7 @@ $theme-material-colors: (
         }
 
         // Background Gray left-sidebar
-        &[data-menu-color="gray"] {
+        &[data-menu-color='gray'] {
             --#{$prefix}sidenav-bg:                       #f1f2f7;
             --#{$prefix}sidenav-border-color:             #e7e9eb;
             --#{$prefix}sidenav-item-color:               #{$gray-700};
@@ -79,7 +78,7 @@ $theme-material-colors: (
         }
 
         // Dark Left Sidebar
-        &[data-menu-color="dark"] {
+        &[data-menu-color='dark'] {
             --#{$prefix}sidenav-bg:                     #28293c;
             --#{$prefix}sidenav-border-color:           #28293c;
             --#{$prefix}sidenav-item-color:             #8495ab;
@@ -90,7 +89,7 @@ $theme-material-colors: (
         }
 
         // Gradient Menu
-        &[data-menu-color="gradient"] {
+        &[data-menu-color='gradient'] {
             --#{$prefix}sidenav-bg:                       #{linear-gradient(135deg, #1a455f, #262549)};
             --#{$prefix}sidenav-border-color:             null;
             --#{$prefix}sidenav-item-color:             #799cb7;
@@ -101,7 +100,7 @@ $theme-material-colors: (
         }
 
         // Image Menu
-        &[data-menu-color="image"] {
+        &[data-menu-color='image'] {
             --#{$prefix}sidenav-bg:                       #{linear-gradient(to bottom right, rgba(16,16,30,0.85), #183c52), url('../images/sidenav-bg.jpg') center/cover no-repeat};
             --#{$prefix}sidenav-border-color:             null;
             --#{$prefix}sidenav-item-color:             #799cb7;
@@ -112,9 +111,9 @@ $theme-material-colors: (
         }
 
         // Dark Mode
-        &[data-bs-theme="dark"][data-menu-color="dark"],
-        &[data-bs-theme="dark"][data-menu-color="gray"],
-        &[data-bs-theme="dark"][data-menu-color="light"] {
+        &[data-bs-theme='dark'][data-menu-color='dark'],
+        &[data-bs-theme='dark'][data-menu-color='gray'],
+        &[data-bs-theme='dark'][data-menu-color='light'] {
             --#{$prefix}sidenav-bg:                     #1e1f27;
             --#{$prefix}sidenav-border-color:           #2c2d38;
             --#{$prefix}sidenav-item-color:             #8495ab;
@@ -125,7 +124,7 @@ $theme-material-colors: (
         }
 
         // Light Topbar
-        &[data-topbar-color="light"] {
+        &[data-topbar-color='light'] {
             --#{$prefix}topbar-bg:                      #ffffff;
             --#{$prefix}topbar-item-color:                #{$gray-700};
             --#{$prefix}topbar-item-hover-color:          #3c7de1;
@@ -134,7 +133,7 @@ $theme-material-colors: (
         }
 
         // Gray Topbar
-        &[data-topbar-color="gray"] {
+        &[data-topbar-color='gray'] {
             --#{$prefix}topbar-bg:                      #f1f2f7;
             --#{$prefix}topbar-item-color:                #{$gray-700};
             --#{$prefix}topbar-item-hover-color:          #3c7de1;
@@ -143,7 +142,7 @@ $theme-material-colors: (
         }
 
         // Dark Topbar
-        &[data-topbar-color="dark"] {
+        &[data-topbar-color='dark'] {
             --#{$prefix}topbar-bg:                      #3c7de1;
             --#{$prefix}topbar-item-color:              #e9ecf1;
             --#{$prefix}topbar-item-hover-color:        #e0eeff;
@@ -152,7 +151,7 @@ $theme-material-colors: (
         }
 
         // Gradient Topbar
-        &[data-topbar-color="gradient"] {
+        &[data-topbar-color='gradient'] {
             --#{$prefix}topbar-bg:                        #{linear-gradient(to bottom, #1a455f, #262549)};
             --#{$prefix}topbar-item-color:              rgba(255, 255, 255, 0.7);
             --#{$prefix}topbar-item-hover-color:        #ffffff;
@@ -161,9 +160,9 @@ $theme-material-colors: (
         }
 
         // Topbar (Dark Mode)
-        &[data-bs-theme="dark"][data-topbar-color="dark"],
-        &[data-bs-theme="dark"][data-topbar-color="light"],
-        &[data-bs-theme="dark"][data-topbar-color="gray"] {
+        &[data-bs-theme='dark'][data-topbar-color='dark'],
+        &[data-bs-theme='dark'][data-topbar-color='light'],
+        &[data-bs-theme='dark'][data-topbar-color='gray'] {
             --#{$prefix}topbar-bg:                      #252630;
             --#{$prefix}topbar-item-color:              #adb5bf;
             --#{$prefix}topbar-item-hover-color:        #e0eeff;
@@ -190,20 +189,63 @@ $theme-material-colors: (
         @each $name, $value in $theme-material-colors {
             --#{$prefix}#{$name}-text-emphasis: #{shade-color($value, 25%)};
         }
+
+        // Chart Colors
+        --#{$prefix}chart-primary: #3c7de1; // Main Color
+        --#{$prefix}chart-primary-rgb: #{to-rgb(#3c7de1)};
+        --#{$prefix}chart-secondary: #926fa7; // Secondary Color
+        --#{$prefix}chart-secondary-rgb: #{to-rgb(#926fa7)};
+        --#{$prefix}chart-alpha: #18bb9b; // Success Color
+        --#{$prefix}chart-alpha-rgb: #{to-rgb(#18bb9b)};
+        --#{$prefix}chart-beta: #d96262; // Danger Color
+        --#{$prefix}chart-beta-rgb: #{to-rgb(#d96262)};
+        --#{$prefix}chart-gamma: #f8ac59; // Warning Color
+        --#{$prefix}chart-gamma-rgb: #{to-rgb(#f8ac59)};
+        --#{$prefix}chart-delta: #23c6c8; // Info Color
+        --#{$prefix}chart-delta-rgb: #{to-rgb(#23c6c8)};
+        --#{$prefix}chart-zeta: #8768cd; // Purple or custom Color
+        --#{$prefix}chart-zeta-rgb: #{to-rgb(#8768cd)};
+        --#{$prefix}chart-gray: #e2daed; // Gray Color
+        --#{$prefix}chart-gray-rgb: #{to-rgb(#e2daed)};
+        --#{$prefix}chart-dark: #396699; // Primary Dark Color
+        --#{$prefix}chart-dark-rgb: #{to-rgb(#396699)};
+        --#{$prefix}chart-border-color: #ecf4fc; // Border Color
+        --#{$prefix}chart-title-color: #bbcae1; // Title Color
     }
 
     @if $enable-dark-mode {
         @include color-mode(dark, true) {
-            &[data-skin="material"] {
-                --#{$prefix}body-bg:                     #{#17181e};
-                --#{$prefix}body-bg-rgb:                 #{to-rgb(#17181e)};
+            &[data-skin='material'] {
+                --#{$prefix}body-bg: #{#17181e};
+                --#{$prefix}body-bg-rgb: #{to-rgb(#17181e)};
 
-                --#{$prefix}secondary-bg:                #{#1b1c22};
-                --#{$prefix}secondary-bg-rgb:            #{to-rgb(#1b1c22)};
+                --#{$prefix}light: #252630;
+                --#{$prefix}light-rgb: #{to-rgb(#252630)};
 
-                --#{$prefix}box-shadow:                  #{0px 0px 30px rgba(0, 0, 0, 0.3)};
+                --#{$prefix}secondary-bg: #{#1b1c22};
+                --#{$prefix}secondary-bg-rgb: #{to-rgb(#1b1c22)};
 
-                --#{$prefix}theme-card-border-color:                 #293036;
+                --#{$prefix}box-shadow: #{0px 0px 30px rgba(0, 0, 0, 0.3)};
+
+                --#{$prefix}theme-card-border-color: #293036;
+
+                --#{$prefix}tertiary-bg: #252630;
+
+                --#{$prefix}secondary-color: #8391a2;
+
+                --#{$prefix}border-color: #293036;
+
+                --#{$prefix}chart-gray: #40424f;
+                --#{$prefix}chart-gray-rgb: #{to-rgb(#40424f)};
+
+                --#{$prefix}chart-border-color: #242c31;
+                --#{$prefix}chart-gray: #40424f;
+                --#{$prefix}chart-gray-rgb: #{to-rgb(#40424f)};
+
+                .dropdown-menu,
+                .offcanvas {
+                    background-color: #1b1c22;
+                }
             }
         }
     }

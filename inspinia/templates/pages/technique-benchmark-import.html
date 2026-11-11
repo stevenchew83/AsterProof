@@ -5,7 +5,7 @@
 {% block page_content %}
 <div class="container-fluid app-table-page">
   {% url 'pages:technique_benchmark_list' as header_benchmark_url %}
-  <header class="page-title-head app-page-header">
+  <header class="page-title-head d-flex flex-wrap align-items-center gap-2">
     {% include 'partials/page-header-intro.html' with title='Benchmark import' page_icon='ti-file-import' back_url=header_benchmark_url back_label='Benchmark Map' only %}
   </header>
 
@@ -13,7 +13,7 @@
     <div class="col-12 col-xl-8">
       <div class="card">
         <div class="card-header border-0 pb-0">
-          <h4 class="header-title mb-0">Paste benchmark table</h4>
+          <h4 class="card-title mb-0">Paste benchmark table</h4>
           <p class="text-muted fs-xs mb-0">Accepts JSON benchmark payloads, CSV, TSV, markdown tables, JSONL, and fenced JSON. Bare row keys resolve against current gap rows.</p>
         </div>
         <div class="card-body pt-2">
@@ -42,7 +42,7 @@
     <div class="col-12 col-xl-4">
       <div class="card">
         <div class="card-header border-0 pb-0">
-          <h4 class="header-title mb-0">Mark reviewed</h4>
+          <h4 class="card-title mb-0">Mark reviewed</h4>
           <p class="text-muted fs-xs mb-0">Clear review flags for explicit benchmark row keys.</p>
         </div>
         <div class="card-body pt-2">
@@ -65,7 +65,7 @@
     <div class="card-header border-0 pb-0">
       <div class="d-flex flex-wrap align-items-center justify-content-between gap-2">
         <div>
-          <h4 class="header-title mb-0">Preview parsed benchmark rows</h4>
+          <h4 class="card-title mb-0">Preview parsed benchmark rows</h4>
           <p class="text-muted fs-xs mb-0">
             {{ preview_result.rows_total }} total, {{ preview_result.rows_valid }} valid, {{ preview_result.rows_invalid }} invalid.
           </p>
@@ -77,7 +77,7 @@
     </div>
     <div class="card-body pt-2">
       <div class="app-table-region table-responsive" tabindex="0" role="region" aria-label="Scrollable results">
-        <table class="app-table-compact table table-sm table-hover align-middle mb-0">
+        <table class="table-sm table table-hover align-middle mb-0">
           <thead>
             <tr>
               <th>Status</th>
@@ -146,12 +146,12 @@
 
   <div class="card mt-3">
     <div class="card-header border-0 pb-0">
-      <h4 class="header-title mb-0">Recent import batches</h4>
+      <h4 class="card-title mb-0">Recent import batches</h4>
       <p class="text-muted fs-xs mb-0">Restore reverses benchmark field updates and imported alias suggestions.</p>
     </div>
     <div class="card-body pt-2">
       <div class="app-table-region table-responsive" tabindex="0" role="region" aria-label="Scrollable results">
-        <table class="app-table-compact table table-sm align-middle mb-0">
+        <table class="table-sm table align-middle mb-0">
           <thead>
             <tr>
               <th>Batch</th>

@@ -1,0 +1,75 @@
+.asterproof-admin {
+  --primary: var(--theme-primary);
+  --secondary: var(--theme-dark);
+  --accent: var(--theme-primary-text-emphasis);
+  --primary-fg: var(--theme-white);
+  --body-fg: var(--theme-body-color);
+  --body-bg: var(--theme-secondary-bg);
+  --body-quiet-color: var(--theme-secondary-color);
+  --body-medium-color: var(--theme-body-color);
+  --body-loud-color: var(--theme-emphasis-color);
+  --header-color: var(--theme-emphasis-color);
+  --header-branding-color: var(--theme-emphasis-color);
+  --header-bg: var(--theme-secondary-bg);
+  --header-link-color: var(--theme-emphasis-color);
+  --breadcrumbs-fg: var(--theme-body-color);
+  --breadcrumbs-link-fg: var(--theme-primary-text-emphasis);
+  --breadcrumbs-bg: var(--theme-light-bg-subtle);
+  --link-fg: var(--theme-primary-text-emphasis);
+  --link-hover-color: var(--theme-emphasis-color);
+  --link-selected-fg: var(--theme-emphasis-color);
+  --hairline-color: var(--theme-border-color);
+  --border-color: var(--theme-border-color);
+  --error-fg: var(--theme-danger-text-emphasis);
+  --message-success-bg: var(--theme-success-bg-subtle);
+  --message-warning-bg: var(--theme-warning-bg-subtle);
+  --message-error-bg: var(--theme-danger-bg-subtle);
+  --darkened-bg: var(--theme-tertiary-bg);
+  --selected-bg: var(--theme-tertiary-bg);
+  --selected-row: var(--theme-primary-bg-subtle);
+  --button-fg: var(--theme-white);
+  --button-bg: var(--theme-dark);
+  --button-hover-bg: var(--theme-dark-text-emphasis);
+  --default-button-bg: var(--theme-dark);
+  --default-button-hover-bg: var(--theme-dark-text-emphasis);
+  --close-button-bg: var(--theme-secondary-color);
+  --close-button-hover-bg: var(--theme-dark);
+  --delete-button-bg: var(--theme-danger-text-emphasis);
+  --delete-button-hover-bg: var(--theme-dark);
+  --font-family-primary: var(--theme-body-font-family);
+  --font-family-monospace: var(--theme-font-monospace);
+  font-family: var(--theme-body-font-family);
+  font-size: var(--theme-body-font-size);
+}
+.asterproof-admin #header {
+  border-bottom: 1px solid var(--theme-border-color);
+}
+.asterproof-admin .page-title-head {
+  margin-inline: 0;
+}
+.asterproof-admin .module {
+  border: 1px solid var(--theme-border-color);
+  border-radius: var(--theme-border-radius);
+  overflow: hidden;
+}
+.asterproof-admin .module h2,
+.asterproof-admin .module caption {
+  background: var(--theme-tertiary-bg);
+  color: var(--theme-emphasis-color);
+}
+.asterproof-admin .module caption a.section {
+  color: inherit;
+}
+.asterproof-admin #changelist .results {
+  overflow-x: auto;
+}
+.asterproof-admin :where(a, button, input, select, textarea):focus-visible {
+  outline: 2px solid var(--theme-primary-text-emphasis);
+  outline-offset: 2px;
+}
+
+[data-bs-theme=dark] .asterproof-admin {
+  --button-hover-bg: var(--theme-gray-700);
+  --default-button-hover-bg: var(--theme-gray-700);
+  --delete-button-bg: var(--theme-danger);
+}

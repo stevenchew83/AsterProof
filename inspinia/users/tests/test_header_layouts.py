@@ -28,7 +28,7 @@ def test_account_settings_keep_dashboard_shell_and_one_page_heading(client, url_
     assert html.count('class="wrapper"') == 1
     assert html.count('class="content-page"') == 1
     assert 'class="sidenav-menu"' in html
-    assert html.count('class="app-page-header-title"') == 1
+    assert html.count('class="page-main-title m-0"') == 1
     assert len(re.findall(r"<h1(?:\s|>)", html)) == 1
     assert re.search(rf"<h1[^>]*>\s*{re.escape(heading)}\s*</h1>", html)
     assert 'name="csrfmiddlewaretoken"' in html or url_name == "mfa_index"
@@ -43,7 +43,7 @@ def test_standard_dashboard_keeps_its_shell_and_heading(client):
     html = response.content.decode()
     assert html.count('class="wrapper"') == 1
     assert html.count('class="content-page"') == 1
-    assert html.count('class="app-page-header-title"') == 1
+    assert html.count('class="page-main-title m-0"') == 1
     assert len(re.findall(r"<h1(?:\s|>)", html)) == 1
 
 

@@ -12,7 +12,41 @@
         }
     }
 
-    &[class*="text"]  {
+    &.card-collapsed {
+        overflow: hidden;
+
+        .card-header {
+            border-bottom: 0;
+
+            .card-action-item {
+                &[data-action="card-toggle"] {
+                    i, svg {
+                        transform: rotate(-180deg);
+                    }
+                    iconify-icon {
+                        display: inline-block;
+                        transform: rotate(-180deg);
+                    }
+                }
+            }
+        }
+
+        .card-body {
+            margin-bottom: -$card-spacer-y * 2;
+
+            & + .card-body,
+            &.p-0 {
+                margin-bottom: 0; // remove margin for 2nd
+            }
+        }
+
+        .card-footer {
+            margin-top: -$card-cap-padding-y;
+            margin-bottom: -$card-cap-padding-y;
+        }
+    }
+
+    &[class*='text'] {
         .card-action-item {
             background-color: rgba(var(--#{$prefix}white-rgb), 0.2) !important;
             color: $white !important;
@@ -26,7 +60,7 @@
 
     &.card-bordered {
         border: none;
-        border-left: 3px solid;
+        border-inline-start: 3px solid;
     }
 }
 
@@ -39,7 +73,7 @@
 .card-header {
     display: flex;
     align-items: center;
-    border-bottom: 1px dashed var(--#{$prefix}border-color); 
+    border-bottom: 1px dashed var(--#{$prefix}border-color);
     @extend .gap-3;
     @extend .flex-wrap;
 
@@ -50,15 +84,15 @@
 
 // Custom Card Style
 .card-out-of-container {
-    margin-left: calc(calc($spacer + $card-border-width) * -1);
-    margin-right: calc(calc($spacer + $card-border-width) * -1);
+    margin-inline-start: calc(calc($spacer + 1px) * -1);
+    margin-inline-end: calc(calc($spacer + 1px) * -1);
     border-radius: 0;
     border-top: 0;
 
-    html[data-layout="topnav"] & {
-        margin-left: 0;
+    html[data-layout='topnav'] & {
+        margin-inline-start: 0;
         margin-top: $spacer;
-        margin-right: 0;
+        margin-inline-end: 0;
         border-radius: $card-border-radius;
     }
 }
@@ -67,10 +101,12 @@
 .card-action {
     display: flex;
     gap: 0.25rem;
-    margin-left: auto;
+    margin-inline-start: auto;
 
     .card-action-item {
-        display: inline-block;
+        display: flex;
+        justify-content: center;
+        align-items: center;
         font-size: 16px;
         height: 24px;
         width: 24px;
@@ -79,10 +115,11 @@
         border-radius: 50%;
         background-color: rgba(var(--#{$prefix}light-rgb), 0.75);
         color: $gray-700;
-        transition: all 0.3s ease-out;
+        transition: all 0.3s ease-out, transform 0.1s ease-in-out;
 
-        i {
+        i,svg, iconify-icon {
             vertical-align: middle;
+            transition: transform 0.2s ease-in-out;
         }
 
         &:hover {
@@ -92,12 +129,11 @@
     }
 }
 
-
 // Card Overlay
 .card-overlay {
     position: absolute;
     top: 0;
-    left: 0;
+    inset-inline-start: 0;
     width: 100%;
     height: 100%;
     background-color: rgba(var(--#{$prefix}primary-rgb), 0.15);
@@ -106,7 +142,7 @@
     justify-content: center;
     align-items: center;
     z-index: 10;
-    border-radius: 0.3rem;
+    border-radius: var(--#{$prefix}border-radius);
 }
 
 // Custom card height

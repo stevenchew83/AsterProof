@@ -2,18 +2,18 @@
 {% load static %}
 {% block public_stylesheet %}{% static 'css/public-shared.min.css' %}{% endblock public_stylesheet %}
 {% block public_content %}
-<div class="website-container public-shared-page">
+<div class="container public-shared-page">
   <div class="public-shared-toolbar">
     <p>Shared by its author · Read without an account</p>
     <div>
-      <button type="button" class="website-text-link" data-copy-public-link="{{ canonical_url }}">Copy link</button>
-      <a href="{{ whatsapp_url }}" target="_blank" rel="noopener noreferrer" class="website-text-link">Share on WhatsApp ↗</a>
+      <button type="button" class="btn btn-link link-body-emphasis p-0" data-copy-public-link="{{ canonical_url }}">Copy link</button>
+      <a href="{{ whatsapp_url }}" target="_blank" rel="noopener noreferrer" class="btn btn-link link-body-emphasis p-0">Share on WhatsApp ↗</a>
     </div>
   </div>
-  <p class="website-fineprint" data-copy-feedback role="status"></p>
+  <p class="form-text" data-copy-feedback role="status"></p>
   {% include 'solutions/partials/shared-solution-content.html' %}
-  <div class="public-shared-cta"><div><p class="website-kicker">Your next insight</p><h2>Write your own solution.</h2>
-        <p>Write your argument, preview the mathematics, and save your progress.</p></div><a href="{% url 'website:solution_preview' %}" class="website-button">Open Solution Writer <span aria-hidden="true">↗</span></a></div>
+  <div class="public-shared-cta"><div><p class="small fw-semibold text-uppercase text-primary-emphasis mb-2">Your next insight</p><h2>Write your own solution.</h2>
+        <p>Write your argument, preview the mathematics, and save your progress.</p></div><a href="{% url 'website:solution_preview' %}" class="btn btn-dark">Open Solution Writer <span aria-hidden="true">↗</span></a></div>
 </div>
 {% endblock public_content %}
 {% block website_javascript %}

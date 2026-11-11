@@ -7,8 +7,8 @@
 {% block extra_css %}
 <style>
   .solution-problem-page { --solution-space: 1.25rem; }
-  .solution-problem-page .app-page-header { margin-bottom: 1rem; }
-  .solution-problem-page .card { margin: 0; box-shadow: none; border: 1px solid var(--ins-border-color); }
+  .solution-problem-page .page-title-head { margin-bottom: 1rem; }
+  .solution-problem-page .card { margin: 0; box-shadow: none; border: 1px solid var(--theme-border-color); }
   .solution-problem-page .card-header { padding: 1rem var(--solution-space); background: transparent; }
   .solution-problem-page .card-body { padding: var(--solution-space); }
   .solution-problem-layout {
@@ -21,51 +21,51 @@
   .solution-problem-layout > * { min-width: 0; }
   .solution-statement-card, .solution-personal-card, .solution-references-card { grid-column: 1; }
   .solution-progress { grid-column: 2; grid-row: 1 / span 3; }
-  .solution-statement-card { border-top: 2px solid var(--ins-primary) !important; }
+  .solution-statement-card { border-top: 2px solid var(--theme-primary) !important; }
   .solution-section-title { display: flex; align-items: center; gap: .5rem; margin: 0; font-size: .9375rem; font-weight: 600; }
-  .solution-section-title > i { color: var(--ins-primary); font-size: 1.125rem; }
+  .solution-section-title > i { color: var(--theme-primary); font-size: 1.125rem; }
   .solution-problem-page .statement-panel { padding: .25rem 0 1.5rem; font-size: 1rem; line-height: 1.9; overflow-wrap: anywhere; }
   .solution-problem-page .statement-evan-box { padding: 0; border: 0; background: transparent; box-shadow: none; }
   .solution-problem-page .statement-text-fragment { white-space: pre-wrap; }
   .solution-problem-page .statement-panel mjx-container[display="true"] { overflow-x: auto; overflow-y: hidden; max-width: 100%; padding-block: .25rem; }
   .solution-problem-page .asymptote-svg-frame svg { max-width: 100%; height: auto; }
-  .solution-guide-panel, .solution-subtopics-panel { border-top: 1px solid var(--ins-border-color); padding-top: .625rem; }
+  .solution-guide-panel, .solution-subtopics-panel { border-top: 1px solid var(--theme-border-color); padding-top: .625rem; }
   .solution-guide-panel { margin-bottom: .625rem; }
-  .solution-disclosure-icon { display: grid; place-items: center; width: 1.75rem; height: 1.75rem; border-radius: var(--ins-border-radius); background: var(--ins-tertiary-bg); color: var(--ins-secondary-color); }
-  .solution-problem-page .solution-disclosure-toggle { display: grid; place-items: center; width: 2rem; height: 2rem; color: var(--ins-secondary-color); }
+  .solution-disclosure-icon { display: grid; place-items: center; width: 1.75rem; height: 1.75rem; border-radius: var(--theme-border-radius); background: var(--theme-tertiary-bg); color: var(--theme-secondary-color); }
+  .solution-problem-page .solution-disclosure-toggle { display: grid; place-items: center; width: 2rem; height: 2rem; color: var(--theme-secondary-color); }
   .solution-disclosure-chevron { transition: transform .18s ease; }
   .solution-disclosure-toggle[aria-expanded="true"] .solution-disclosure-chevron { transform: rotate(180deg); }
   .solution-guide-panel .nav-pills { gap: .25rem; }
   .solution-guide-panel .nav-link { padding: .375rem .625rem; font-size: .8125rem; }
   .solution-guide-panel li + li { margin-top: .375rem; }
-  .solution-metrics { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); margin: 0; padding: 1rem .5rem; border-bottom: 1px solid var(--ins-border-color); background: var(--ins-tertiary-bg); border-radius: var(--ins-border-radius) var(--ins-border-radius) 0 0; }
+  .solution-metrics { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); margin: 0; padding: 1rem .5rem; border-bottom: 1px solid var(--theme-border-color); background: var(--theme-tertiary-bg); border-radius: var(--theme-border-radius) var(--theme-border-radius) 0 0; }
   .solution-metric { text-align: center; min-width: 0; }
-  .solution-metric + .solution-metric { border-left: 1px solid var(--ins-border-color); }
-  .solution-metric p { font-size: .6875rem; font-weight: 500; color: var(--ins-secondary-color); margin-bottom: .25rem; }
-  .solution-metric strong { display: block; color: var(--ins-emphasis-color); font-size: 1.375rem; font-weight: 600; line-height: 1.2; font-variant-numeric: tabular-nums; }
-  .solution-metric:last-child strong { color: var(--ins-primary-text-emphasis); }
+  .solution-metric + .solution-metric { border-left: 1px solid var(--theme-border-color); }
+  .solution-metric p { font-size: .6875rem; font-weight: 500; color: var(--theme-secondary-color); margin-bottom: .25rem; }
+  .solution-metric strong { display: block; color: var(--theme-emphasis-color); font-size: 1.375rem; font-weight: 600; line-height: 1.2; font-variant-numeric: tabular-nums; }
+  .solution-metric:last-child strong { color: var(--theme-primary-text-emphasis); }
   .solution-progress .solution-progress-section { padding: 1rem var(--solution-space); }
-  .solution-progress-section + .solution-progress-section { border-top: 1px solid var(--ins-border-color); }
+  .solution-progress-section + .solution-progress-section { border-top: 1px solid var(--theme-border-color); }
   .solution-progress-heading { margin-bottom: .875rem; }
   .solution-problem-page .form-control, .solution-problem-page .form-select { min-width: 0; }
   .solution-problem-page .js-solution-completion-timezone-label { line-height: 1.5; overflow-wrap: anywhere; }
   .solution-problem-page .solution-empty-draft { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 1rem; }
   .solution-empty-draft .solution-empty-copy { flex: 1 1 14rem; }
-  .solution-draft-icon { display: grid; place-items: center; width: 2.5rem; height: 2.5rem; flex-shrink: 0; border-radius: var(--ins-border-radius); background: var(--ins-primary-bg-subtle); color: var(--ins-primary-text-emphasis); font-size: 1.25rem; }
+  .solution-draft-icon { display: grid; place-items: center; width: 2.5rem; height: 2.5rem; flex-shrink: 0; border-radius: var(--theme-border-radius); background: var(--theme-primary-bg-subtle); color: var(--theme-primary-text-emphasis); font-size: 1.25rem; }
   .solution-reference-card { padding: 1rem var(--solution-space); }
-  .solution-reference-card, .solution-personal-card { scroll-margin-top: calc(var(--ins-topbar-height, 64px) + 1rem); }
-  .solution-reference-card + .solution-reference-card { border-top: 1px solid var(--ins-border-color); }
+  .solution-reference-card, .solution-personal-card { scroll-margin-top: calc(var(--theme-topbar-height, 64px) + 1rem); }
+  .solution-reference-card + .solution-reference-card { border-top: 1px solid var(--theme-border-color); }
   .solution-reference-heading { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: .75rem; }
   .solution-reference-identity { flex: 1 1 12rem; min-width: 0; overflow-wrap: anywhere; }
   .solution-reference-actions { display: flex; flex-wrap: wrap; align-items: center; gap: .625rem; }
   .solution-personal-card .solution-reference-card { padding: 0; }
   .solution-block-body { white-space: pre-wrap; line-height: 1.8; overflow-wrap: anywhere; }
   .solution-block-card + .solution-block-card { margin-top: .75rem; }
-  .solution-inline-draft { margin-top: 1rem; scroll-margin-top: calc(var(--ins-topbar-height, 64px) + 1rem); }
+  .solution-inline-draft { margin-top: 1rem; scroll-margin-top: calc(var(--theme-topbar-height, 64px) + 1rem); }
   .solution-problem-layout.is-editing .solution-personal-card,
   .solution-problem-layout.is-editing .solution-references-card { grid-column: 1 / -1; }
   .solution-problem-layout.is-editing .solution-progress { grid-row: 1; }
-  .solution-problem-page :is(a, button, input, select):focus-visible { outline: 2px solid var(--ins-primary); outline-offset: 3px; }
+  .solution-problem-page :is(a, button, input, select):focus-visible { outline: 2px solid var(--theme-primary); outline-offset: 3px; }
   @media (max-width: 1199.98px) {
     .solution-problem-layout { grid-template-columns: minmax(0, 1fr) 17rem; }
     .solution-problem-page { --solution-space: 1rem; }
@@ -76,12 +76,12 @@
     .solution-progress { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
     .solution-progress .solution-metrics { grid-column: 1 / -1; }
     .solution-progress .solution-progress-section:last-child { grid-column: 1 / -1; }
-    .solution-progress .solution-progress-section:nth-child(3) { border-left: 1px solid var(--ins-border-color); border-top: 0; }
+    .solution-progress .solution-progress-section:nth-child(3) { border-left: 1px solid var(--theme-border-color); border-top: 0; }
   }
   @media (max-width: 575.98px) {
     .solution-progress { display: block; }
-    .solution-progress .solution-progress-section:nth-child(3) { border-left: 0; border-top: 1px solid var(--ins-border-color); }
-    .solution-problem-page .app-page-header-actions { width: 100%; }
+    .solution-progress .solution-progress-section:nth-child(3) { border-left: 0; border-top: 1px solid var(--theme-border-color); }
+    .solution-problem-page .page-title-actions { width: 100%; }
     .solution-problem-page .solution-primary-action { flex: 1; }
     .solution-problem-page .statement-panel { font-size: .9375rem; }
     .solution-disclosure-icon { display: none; }
@@ -97,9 +97,9 @@
 {% block page_content %}
 <div class="container-fluid solution-problem-page">
   {% url 'pages:problem_statement_list' as problem_library_url %}
-  <header class="page-title-head app-page-header">
+  <header class="page-title-head d-flex flex-wrap align-items-center gap-2">
     {% include 'partials/page-header-intro.html' with title=problem_data.problem_label subtitle='Problem workspace' page_icon='ti-notebook' back_url=problem_library_url back_label='Problem library' only %}
-    <div class="app-page-header-actions">
+    <div class="page-title-actions d-flex flex-wrap align-items-center gap-2">
       {% if my_solution_rows %}
       <a href="#my-solutions" class="btn btn-primary btn-sm solution-primary-action"><i class="ti ti-pencil me-1" aria-hidden="true"></i>My solutions</a>
       {% else %}

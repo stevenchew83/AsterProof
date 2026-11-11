@@ -5,7 +5,6 @@
 html {
     position: relative;
     min-height: 100%;
-    // direction: ltr;
 }
 
 body {
@@ -15,6 +14,15 @@ body {
 button,
 a {
     outline: none !important;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+    font-family: $font-family-secondary;
 }
 
 // Forms
@@ -56,7 +64,7 @@ svg.lucide {
 
 .sk-wave {
     inline-size: 40px;
-    white-space: nowrap
+    white-space: nowrap;
 }
 
 // Custom Inner Shadow
@@ -70,8 +78,24 @@ hr.border-dashed {
 }
 
 // Overwrite for Dark Mode
-html[data-bs-theme="dark"] {
+html[data-bs-theme='dark'] {
     .text-bg-light {
         color: var(--#{$prefix}body-color) !important;
     }
+}
+
+//Remix Icons
+.ri {
+    line-height: 1;
+    vertical-align: middle;
+}
+
+// Lucide Icons
+.star-filled {
+    fill: currentcolor;
+}
+
+// Cursor Pointer
+.cursor-pointer {
+    cursor: pointer;
 }

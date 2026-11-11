@@ -6,22 +6,22 @@
   {{ block.super }}
   <style>
     .contest-papers { --paper-reading-width: 60rem; }
-    .contest-papers .app-page-header { margin-bottom: .75rem; }
+    .contest-papers .page-title-head { margin-bottom: .75rem; }
     .contest-papers .paper-header-actions { display: flex; align-items: center; flex-wrap: wrap; gap: .5rem; }
     .contest-papers .paper-year-form { display: flex; align-items: center; gap: .35rem; }
     .contest-papers .paper-year-form .form-select { width: 6.5rem; }
-    .contest-papers .paper-intro { color: var(--ins-secondary-color); font-size: .8rem; margin: 0; }
+    .contest-papers .paper-intro { color: var(--theme-secondary-color); font-size: .8rem; margin: 0; }
     .contest-papers .paper-sheet { overflow: clip; }
-    .contest-papers .paper-jump-nav { display: flex; flex-wrap: wrap; align-items: center; gap: .4rem; padding: .65rem 1.25rem; border-bottom: 1px solid var(--ins-border-color); }
-    .contest-papers .paper-jump-nav a { display: inline-flex; align-items: center; gap: .45rem; padding: .3rem .65rem; border-radius: var(--ins-border-radius); color: var(--ins-secondary-color); font-size: .78rem; text-decoration: none; transition: background-color .15s, color .15s; }
-    .contest-papers .paper-jump-nav a:hover { background: var(--ins-primary-bg-subtle); color: var(--ins-primary); }
+    .contest-papers .paper-jump-nav { display: flex; flex-wrap: wrap; align-items: center; gap: .4rem; padding: .65rem 1.25rem; border-bottom: 1px solid var(--theme-border-color); }
+    .contest-papers .paper-jump-nav a { display: inline-flex; align-items: center; gap: .45rem; padding: .3rem .65rem; border-radius: var(--theme-border-radius); color: var(--theme-secondary-color); font-size: .78rem; text-decoration: none; transition: background-color .15s, color .15s; }
+    .contest-papers .paper-jump-nav a:hover { background: var(--theme-primary-bg-subtle); color: var(--theme-primary); }
     .contest-papers .paper-jump-nav .badge { font-weight: 500; }
     .contest-papers .paper-reading { max-width: var(--paper-reading-width); margin-inline: auto; padding: .3rem 1.5rem .75rem; }
-    .contest-papers .paper-section-heading { display: flex; align-items: baseline; justify-content: space-between; gap: 1rem; padding: 1rem 0 .45rem; border-bottom: 1px solid var(--ins-border-color); }
+    .contest-papers .paper-section-heading { display: flex; align-items: baseline; justify-content: space-between; gap: 1rem; padding: 1rem 0 .45rem; border-bottom: 1px solid var(--theme-border-color); }
     .contest-papers .paper-section-heading h2 { margin: 0; font-size: .9rem; font-weight: 700; scroll-margin-top: 6rem; }
-    .contest-papers .paper-section-heading h2:target { color: var(--ins-primary); }
-    .contest-papers .paper-section-heading span { color: var(--ins-secondary-color); font-size: .75rem; white-space: nowrap; }
-    .contest-papers .paper-problem { padding: 1rem 0; border-bottom: 1px solid var(--ins-border-color); scroll-margin-top: 6rem; }
+    .contest-papers .paper-section-heading h2:target { color: var(--theme-primary); }
+    .contest-papers .paper-section-heading span { color: var(--theme-secondary-color); font-size: .75rem; white-space: nowrap; }
+    .contest-papers .paper-problem { padding: 1rem 0; border-bottom: 1px solid var(--theme-border-color); scroll-margin-top: 6rem; }
     .contest-papers .paper-problem:last-child { border-bottom: 0; }
     .contest-papers .paper-problem-header { display: flex; justify-content: space-between; align-items: center; gap: .75rem; margin-bottom: .6rem; }
     .contest-papers .paper-problem-header h3 { font-size: .85rem; font-weight: 700; margin: 0; }
@@ -32,49 +32,49 @@
     .contest-papers .asymptote-svg-frame svg { display: block; max-width: 100%; height: auto; margin-inline: auto; }
     .contest-papers mjx-container[display="true"] { overflow-x: auto; max-width: 100%; margin: .5rem 0 !important; padding-bottom: .15rem; }
     .contest-papers .paper-review { margin-top: .6rem; }
-    .contest-papers .paper-review summary { width: fit-content; cursor: pointer; color: var(--ins-secondary-color); font-size: .75rem; }
+    .contest-papers .paper-review summary { width: fit-content; cursor: pointer; color: var(--theme-secondary-color); font-size: .75rem; }
     .contest-papers .paper-review summary:focus-visible,
-    .contest-papers .paper-jump-nav a:focus-visible { outline: 2px solid var(--ins-primary); outline-offset: 4px; }
-    .contest-papers .paper-review-body { display: flex; flex-wrap: wrap; align-items: center; gap: .5rem 1rem; margin-top: .5rem; padding: .6rem .75rem; border-radius: var(--ins-border-radius); background: var(--ins-tertiary-bg); font-size: .78rem; }
+    .contest-papers .paper-jump-nav a:focus-visible { outline: 2px solid var(--theme-primary); outline-offset: 4px; }
+    .contest-papers .paper-review-body { display: flex; flex-wrap: wrap; align-items: center; gap: .5rem 1rem; margin-top: .5rem; padding: .6rem .75rem; border-radius: var(--theme-border-radius); background: var(--theme-tertiary-bg); font-size: .78rem; }
     .contest-papers .paper-search { display: flex; align-items: center; gap: .5rem; width: min(30rem, 100%); }
-    .contest-papers .paper-search-field { display: flex; align-items: center; flex: 1; min-width: 0; padding-left: .75rem; gap: .5rem; border: 1px solid var(--ins-border-color); border-radius: var(--ins-border-radius); background: var(--ins-body-bg); }
-    .contest-papers .paper-search-field:focus-within { border-color: var(--ins-primary); box-shadow: 0 0 0 2px var(--ins-primary-bg-subtle); }
+    .contest-papers .paper-search-field { display: flex; align-items: center; flex: 1; min-width: 0; padding-left: .75rem; gap: .5rem; border: 1px solid var(--theme-border-color); border-radius: var(--theme-border-radius); background: var(--theme-body-bg); }
+    .contest-papers .paper-search-field:focus-within { border-color: var(--theme-primary); box-shadow: 0 0 0 2px var(--theme-primary-bg-subtle); }
     .contest-papers .paper-search-field input { min-width: 0; padding-left: 0; border: 0; background: transparent; box-shadow: none; }
     .contest-papers .paper-search-field input:focus { box-shadow: none; }
-    .contest-papers .paper-search-field .ti { color: var(--ins-secondary-color); }
+    .contest-papers .paper-search-field .ti { color: var(--theme-secondary-color); }
     .contest-papers .paper-browser-panel { overflow: clip; }
-    .contest-papers .paper-browser-toolbar { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: .5rem 1rem; padding: .85rem 1.25rem; border-bottom: 1px solid var(--ins-border-color); font-size: .78rem; color: var(--ins-secondary-color); }
+    .contest-papers .paper-browser-toolbar { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: .5rem 1rem; padding: .85rem 1.25rem; border-bottom: 1px solid var(--theme-border-color); font-size: .78rem; color: var(--theme-secondary-color); }
     .contest-papers .paper-directory-grid { display: grid; grid-template-columns: minmax(0, 1fr); column-gap: 1.5rem; list-style: none; padding: 0 1.25rem; margin: 0; }
-    .contest-papers .paper-contest-row { display: flex; align-items: stretch; min-width: 0; border-bottom: 1px solid var(--ins-border-color); transition: background-color .15s; }
+    .contest-papers .paper-contest-row { display: flex; align-items: stretch; min-width: 0; border-bottom: 1px solid var(--theme-border-color); transition: background-color .15s; }
     .contest-papers .paper-contest-row:hover,
-    .contest-papers .paper-contest-row:focus-within { background: var(--ins-tertiary-bg); }
-    .contest-papers .paper-contest-link { display: flex; align-items: center; flex: 1; min-width: 0; gap: .75rem; padding: .9rem .5rem .9rem 0; color: var(--ins-body-color); text-decoration: none; }
+    .contest-papers .paper-contest-row:focus-within { background: var(--theme-tertiary-bg); }
+    .contest-papers .paper-contest-link { display: flex; align-items: center; flex: 1; min-width: 0; gap: .75rem; padding: .9rem .5rem .9rem 0; color: var(--theme-body-color); text-decoration: none; }
     .contest-papers .contest-name { min-width: 0; overflow-wrap: anywhere; }
     .contest-papers .paper-contest-name { display: block; font-size: .875rem; font-weight: 600; line-height: 1.35; }
-    .contest-papers .paper-directory-meta { display: block; margin-top: .2rem; font-size: .75rem; color: var(--ins-secondary-color); line-height: 1.4; }
-    .contest-papers .paper-contest-link > .ti { margin-left: auto; color: var(--ins-secondary-color); flex-shrink: 0; font-size: .85rem; }
-    .contest-papers .paper-latest-link { display: flex; flex-direction: column; justify-content: center; align-items: flex-end; flex-shrink: 0; gap: .1rem; align-self: center; min-height: 44px; margin-left: .5rem; padding: .35rem .6rem; border-left: 1px solid var(--ins-border-color); text-decoration: none; color: var(--ins-body-color); font-size: .8rem; font-variant-numeric: tabular-nums; }
-    .contest-papers .paper-latest-link small { color: var(--ins-secondary-color); font-size: .65rem; }
+    .contest-papers .paper-directory-meta { display: block; margin-top: .2rem; font-size: .75rem; color: var(--theme-secondary-color); line-height: 1.4; }
+    .contest-papers .paper-contest-link > .ti { margin-left: auto; color: var(--theme-secondary-color); flex-shrink: 0; font-size: .85rem; }
+    .contest-papers .paper-latest-link { display: flex; flex-direction: column; justify-content: center; align-items: flex-end; flex-shrink: 0; gap: .1rem; align-self: center; min-height: 44px; margin-left: .5rem; padding: .35rem .6rem; border-left: 1px solid var(--theme-border-color); text-decoration: none; color: var(--theme-body-color); font-size: .8rem; font-variant-numeric: tabular-nums; }
+    .contest-papers .paper-latest-link small { color: var(--theme-secondary-color); font-size: .65rem; }
     .contest-papers .paper-contest-link:hover,
-    .contest-papers .paper-latest-link:hover { color: var(--ins-primary); }
+    .contest-papers .paper-latest-link:hover { color: var(--theme-primary); }
     .contest-papers .paper-contest-link:focus-visible,
     .contest-papers .paper-latest-link:focus-visible,
-    .contest-papers .paper-year-link:focus-visible { outline: 2px solid var(--ins-primary); outline-offset: -2px; border-radius: var(--ins-border-radius); }
+    .contest-papers .paper-year-link:focus-visible { outline: 2px solid var(--theme-primary); outline-offset: -2px; border-radius: var(--theme-border-radius); }
     .contest-papers .paper-directory-footer { padding: .85rem 1.25rem; }
-    .contest-papers .paper-archive-summary { padding: 1rem 1.25rem; border-bottom: 1px solid var(--ins-border-color); }
+    .contest-papers .paper-archive-summary { padding: 1rem 1.25rem; border-bottom: 1px solid var(--theme-border-color); }
     .contest-papers .paper-archive-name { font-size: .9rem; font-weight: 600; margin: 0 0 .35rem; overflow-wrap: anywhere; }
-    .contest-papers .paper-archive-meta { display: flex; align-items: center; flex-wrap: wrap; gap: .35rem .65rem; color: var(--ins-secondary-color); font-size: .78rem; }
-    .contest-papers .paper-archive-heading { margin: 0; font-size: .85rem; font-weight: 600; color: var(--ins-body-color); }
-    .contest-papers .paper-decade { display: grid; grid-template-columns: 5rem minmax(0, 1fr); gap: .75rem 1.25rem; padding: 1.15rem 1.25rem; border-bottom: 1px solid var(--ins-border-color); }
+    .contest-papers .paper-archive-meta { display: flex; align-items: center; flex-wrap: wrap; gap: .35rem .65rem; color: var(--theme-secondary-color); font-size: .78rem; }
+    .contest-papers .paper-archive-heading { margin: 0; font-size: .85rem; font-weight: 600; color: var(--theme-body-color); }
+    .contest-papers .paper-decade { display: grid; grid-template-columns: 5rem minmax(0, 1fr); gap: .75rem 1.25rem; padding: 1.15rem 1.25rem; border-bottom: 1px solid var(--theme-border-color); }
     .contest-papers .paper-decade:last-child { border-bottom: 0; }
     .contest-papers .paper-decade-heading { margin: .25rem 0 0; font-size: .85rem; font-weight: 600; font-variant-numeric: tabular-nums; }
-    .contest-papers .paper-decade-count { display: block; margin-top: .3rem; font-size: .7rem; color: var(--ins-secondary-color); }
+    .contest-papers .paper-decade-count { display: block; margin-top: .3rem; font-size: .7rem; color: var(--theme-secondary-color); }
     .contest-papers .paper-year-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(6rem, 1fr)); gap: .5rem; }
-    .contest-papers .paper-year-link { display: flex; flex-direction: column; align-items: flex-start; justify-content: center; gap: .15rem; min-height: 68px; padding: .65rem .8rem; border: 1px solid var(--ins-border-color); border-radius: var(--ins-border-radius); color: var(--ins-body-color); background: var(--ins-body-bg); text-decoration: none; transition: background-color .15s, border-color .15s; }
+    .contest-papers .paper-year-link { display: flex; flex-direction: column; align-items: flex-start; justify-content: center; gap: .15rem; min-height: 68px; padding: .65rem .8rem; border: 1px solid var(--theme-border-color); border-radius: var(--theme-border-radius); color: var(--theme-body-color); background: var(--theme-body-bg); text-decoration: none; transition: background-color .15s, border-color .15s; }
     .contest-papers .paper-year-number { font-size: 1.05rem; font-weight: 600; font-variant-numeric: tabular-nums; }
-    .contest-papers .paper-year-meta { font-size: .7rem; color: var(--ins-secondary-color); }
-    .contest-papers .paper-year-link--latest { border-color: var(--ins-primary-border-subtle); background: var(--ins-primary-bg-subtle); }
-    .contest-papers .paper-year-link:hover { border-color: var(--ins-primary); background: var(--ins-primary-bg-subtle); color: var(--ins-primary); }
+    .contest-papers .paper-year-meta { font-size: .7rem; color: var(--theme-secondary-color); }
+    .contest-papers .paper-year-link--latest { border-color: var(--theme-primary-border-subtle); background: var(--theme-primary-bg-subtle); }
+    .contest-papers .paper-year-link:hover { border-color: var(--theme-primary); background: var(--theme-primary-bg-subtle); color: var(--theme-primary); }
     @media (min-width: 992px) {
       .contest-papers .paper-directory-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
     }
@@ -114,7 +114,7 @@
     }
     @media print {
       .sidenav-menu, .app-topbar, .footer, .paper-controls, .paper-review, .paper-jump-nav, .paper-write-action,
-      .contest-papers .app-page-header-context { display: none !important; }
+      .contest-papers .page-title-head-context { display: none !important; }
       .content-page { margin: 0 !important; padding: 0 !important; }
       .contest-papers .card { border: 0; box-shadow: none; }
       .contest-papers .paper-reading { max-width: none; padding: 0; }
@@ -125,7 +125,7 @@
 
 {% block page_content %}
 <div class="container-fluid contest-papers">
-  <header class="page-title-head app-page-header">
+  <header class="page-title-head d-flex flex-wrap align-items-center gap-2">
     {% if selected_year %}
       {% include 'partials/page-header-intro.html' with title=paper_title subtitle='Contest papers' page_icon='ti-files' back_url=browser_url back_label='All contests' only %}
     {% elif selected_contest %}
@@ -134,7 +134,7 @@
       {% include 'partials/page-header-intro.html' with title='Contest papers' page_icon='ti-files' only %}
     {% endif %}
     {% if selected_year %}
-    <div class="app-page-header-actions paper-header-actions paper-controls">
+    <div class="page-title-actions d-flex flex-wrap align-items-center gap-2 paper-header-actions paper-controls">
       <form method="get" action="{{ browser_url }}" class="paper-year-form">
         <input type="hidden" name="contest" value="{{ selected_contest }}" />
         <label for="contest-paper-year" class="visually-hidden">Year</label>
@@ -149,11 +149,11 @@
       <button type="button" class="btn btn-outline-secondary btn-sm" id="contest-paper-print"><i class="ti ti-printer" aria-hidden="true"></i><span class="visually-hidden">Print paper</span></button>
     </div>
     {% elif selected_contest %}
-    <div class="app-page-header-actions paper-header-actions">
+    <div class="page-title-actions d-flex flex-wrap align-items-center gap-2 paper-header-actions">
       <a href="{{ latest_paper.url }}" class="btn btn-primary btn-sm paper-open-latest">Open latest paper <span class="opacity-75 ms-1">{{ latest_paper.contest_year }}</span><i class="ti ti-arrow-up-right ms-1" aria-hidden="true"></i></a>
     </div>
     {% else %}
-    <form method="get" action="{{ browser_url }}" role="search" aria-label="Contest papers" class="app-page-header-actions paper-search">
+    <form method="get" action="{{ browser_url }}" role="search" aria-label="Contest papers" class="page-title-actions d-flex flex-wrap align-items-center gap-2 paper-search">
       <div class="paper-search-field">
         <i class="ti ti-search" aria-hidden="true"></i>
         <label for="contest-paper-search" class="visually-hidden">Find a contest</label>

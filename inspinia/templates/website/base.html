@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% load static %}
 {% block title %}{{ seo_title|default:page_title }}{% endblock title %}
-{% block html_attribute %}data-bs-theme="light"{% endblock html_attribute %}
+{% block html_attribute %}data-skin="default" data-bs-theme="light"{% endblock html_attribute %}
 {% block css %}
   <link rel="preload" href="{% static 'fonts/theme/open-sans/open-sans-fc0528d1f755.woff2' %}" as="font" type="font/woff2" crossorigin>
   <link href="{% block public_stylesheet %}{% static 'css/public-site.min.css' %}{% endblock public_stylesheet %}" rel="stylesheet">
@@ -10,7 +10,7 @@
 {% block meta_description %}{{ page_description }}{% endblock meta_description %}
 {% block extra_meta %}
   <link rel="canonical" href="{{ canonical_url }}">
-  <meta name="theme-color" content="#f8f7f2">
+  <meta name="theme-color" content="#ffffff">
   <meta property="og:title" content="{{ seo_title|default:page_title }} | AsterProof">
   <meta property="og:description" content="{{ page_description }}">
   <meta property="og:site_name" content="AsterProof">
@@ -30,48 +30,71 @@
 {% endblock extra_meta %}
 {% block body_attribute %}class="website-body"{% endblock body_attribute %}
 {% block body %}
-  <div class="website">
-    <a class="website-skip" href="#main-content">Skip to content</a>
-    <header class="website-header">
-      <div class="website-container website-header-inner">
-        <a class="website-wordmark" href="{% url 'pages:home' %}" aria-label="AsterProof home">
-          <img src="{% static 'images/asterproof-logo.svg' %}" alt="AsterProof" width="507" height="100">
-        </a>
-        <nav class="website-nav" aria-label="Main navigation">
-          <a href="{% url 'website:library' %}"{% if active_nav == 'library' %} aria-current="page"{% endif %}>Library</a>
-          <a href="{% url 'pages:proof_public_list' %}"{% if active_nav == 'community' %} aria-current="page"{% endif %}>Community proofs</a>
-          <a href="{% url 'website:problem_solving' %}"{% if active_nav == 'problem_solving' %} aria-current="page"{% endif %}>Problem solving</a>
-          <details class="website-tools-menu"><summary>Tools <span aria-hidden="true">⌄</span></summary><div><a href="{% url 'website:solution_preview' %}"{% if active_nav == 'tools' %} aria-current="page"{% endif %}>Solution Writer</a></div></details>
-          <a href="{% url 'website:about' %}"{% if active_nav == 'about' %} aria-current="page"{% endif %}>About</a>
-          <a href="{% url 'website:contact' %}"{% if active_nav == 'contact' %} aria-current="page"{% endif %}>Contact</a>
-        </nav>
-        <a class="website-header-login" href="{% if request.user.is_authenticated %}{% url 'pages:user_activity_dashboard' %}{% else %}{% url 'account_login' %}{% endif %}">
-          {% if request.user.is_authenticated %}Workspace{% else %}Sign in{% endif %}<span aria-hidden="true">↗</span>
-        </a>
-      </div>
+  <div class="website d-flex flex-column min-vh-100 bg-body">
+    <a class="visually-hidden-focusable position-absolute z-3 btn btn-dark m-2" href="#main-content">Skip to content</a>
+    <header id="landing-navbar" class="border-bottom">
+      <nav class="navbar navbar-expand-lg" aria-label="Main navigation">
+        <div class="container">
+          <a class="navbar-brand website-wordmark" href="{% url 'pages:home' %}" aria-label="AsterProof home">
+            <img src="{% static 'images/asterproof-logo.svg' %}" alt="AsterProof" width="507" height="100">
+          </a>
+          <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#website-navigation"
+                  aria-controls="website-navigation" aria-expanded="false" aria-label="Toggle navigation">
+            <span class="navbar-toggler-icon"></span>
+          </button>
+          <div class="collapse navbar-collapse" id="website-navigation">
+            <ul class="navbar-nav mx-auto">
+              <li class="nav-item"><a class="nav-link{% if active_nav == 'library' %} active{% endif %}" href="{% url 'website:library' %}"{% if active_nav == 'library' %} aria-current="page"{% endif %}>Library</a></li>
+              <li class="nav-item"><a class="nav-link{% if active_nav == 'community' %} active{% endif %}" href="{% url 'pages:proof_public_list' %}"{% if active_nav == 'community' %} aria-current="page"{% endif %}>Community proofs</a></li>
+              <li class="nav-item"><a class="nav-link{% if active_nav == 'problem_solving' %} active{% endif %}" href="{% url 'website:problem_solving' %}"{% if active_nav == 'problem_solving' %} aria-current="page"{% endif %}>Problem solving</a></li>
+              <li class="nav-item dropdown">
+                <button type="button" class="nav-link dropdown-toggle{% if active_nav == 'tools' %} active{% endif %}" data-bs-toggle="dropdown" aria-expanded="false">Tools</button>
+                <ul class="dropdown-menu"><li><a class="dropdown-item" href="{% url 'website:solution_preview' %}"{% if active_nav == 'tools' %} aria-current="page"{% endif %}>Solution Writer</a></li></ul>
+              </li>
+              <li class="nav-item"><a class="nav-link{% if active_nav == 'about' %} active{% endif %}" href="{% url 'website:about' %}"{% if active_nav == 'about' %} aria-current="page"{% endif %}>About</a></li>
+              <li class="nav-item"><a class="nav-link{% if active_nav == 'contact' %} active{% endif %}" href="{% url 'website:contact' %}"{% if active_nav == 'contact' %} aria-current="page"{% endif %}>Contact</a></li>
+            </ul>
+            <a class="btn btn-dark my-2 my-lg-0" href="{% if request.user.is_authenticated %}{% url 'pages:user_activity_dashboard' %}{% else %}{% url 'account_login' %}{% endif %}">
+              {% if request.user.is_authenticated %}Workspace{% else %}Sign in{% endif %}
+            </a>
+          </div>
+          <noscript>
+            <style>
+              #website-navigation { display: block; }
+              #website-navigation .dropdown-menu { display: block; position: static; }
+            </style>
+          </noscript>
+        </div>
+      </nav>
     </header>
     <main id="main-content" tabindex="-1">{% block public_content %}{% endblock public_content %}</main>
     {% if not hide_newsletter %}
-      <section class="website-newsletter" aria-labelledby="newsletter-title">
-        <div class="website-container website-newsletter-inner">
-          <div><p class="website-kicker">A note for the curious</p><h2 id="newsletter-title">Keep <em>discovering.</em></h2><p>New lectures, useful ideas, and occasional AsterProof updates.</p></div>
-          <div>{% include "website/partials/newsletter_form.html" %}</div>
+      <section class="bg-light-subtle border-top py-4 py-lg-5" aria-labelledby="newsletter-title">
+        <div class="container">
+          <div class="row align-items-center g-3">
+            <div class="col-lg-6"><h2 id="newsletter-title" class="h3">AsterProof newsletter</h2><p class="text-body-secondary mb-lg-0">New lectures, useful ideas, and occasional AsterProof updates.</p></div>
+            <div class="col-lg-6">{% include "website/partials/newsletter_form.html" %}</div>
+          </div>
         </div>
       </section>
     {% endif %}
-    <footer class="website-footer">
-      <div class="website-container">
-        <div class="website-footer-top">
-          <div><a href="{% url 'pages:home' %}" class="website-wordmark"><img src="{% static 'images/asterproof-logo-light.svg' %}" alt="AsterProof" width="507" height="100"></a><p>A little insight. Infinite possibilities.</p></div>
-          <nav aria-label="Explore"><span>Explore</span><a href="{% url 'website:library' %}">The library</a><a href="{% url 'pages:proof_public_list' %}">Community proofs</a><a href="{% url 'website:about' %}">About AsterProof</a><a href="{% url 'website:contact' %}">Get in touch</a></nav>
-          <nav aria-label="Your workspace"><span>Your workspace</span><a href="{% url 'account_login' %}">Sign in</a>{% if ACCOUNT_ALLOW_REGISTRATION %}<a href="{% url 'account_signup' %}">Create an account</a>{% endif %}<a href="{% url 'account_reset_password' %}">Reset password</a></nav>
+    <footer class="section-footer py-4">
+      <div class="container">
+        <div class="row g-3 mb-4">
+          <div class="col-12 col-md-6"><a href="{% url 'pages:home' %}" class="website-wordmark"><img src="{% static 'images/asterproof-logo-light.svg' %}" alt="AsterProof" width="507" height="100"></a></div>
+          <nav class="col-6 col-md-3 nav flex-column" aria-label="Explore"><span class="text-light fw-semibold mb-1">Explore</span><a class="nav-link p-0" href="{% url 'website:library' %}">The library</a><a class="nav-link p-0" href="{% url 'pages:proof_public_list' %}">Community proofs</a><a class="nav-link p-0" href="{% url 'website:about' %}">About AsterProof</a><a class="nav-link p-0" href="{% url 'website:contact' %}">Get in touch</a></nav>
+          <nav class="col-6 col-md-3 nav flex-column" aria-label="Your workspace"><span class="text-light fw-semibold mb-1">Your workspace</span><a class="nav-link p-0" href="{% url 'account_login' %}">Sign in</a>{% if ACCOUNT_ALLOW_REGISTRATION %}<a class="nav-link p-0" href="{% url 'account_signup' %}">Create an account</a>{% endif %}<a class="nav-link p-0" href="{% url 'account_reset_password' %}">Reset password</a></nav>
         </div>
-        <div class="website-footer-bottom"><span>© {% now "Y" %} AsterProof · Operated by {{ public_operator_name }}</span><nav aria-label="Legal"><a href="{% url 'website:privacy' %}">Privacy Policy</a><a href="{% url 'website:terms' %}">Terms</a></nav></div>
+        <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 border-top border-secondary pt-3">
+          <span>© {% now "Y" %} AsterProof · Operated by {{ public_operator_name }}</span>
+          <nav class="nav gap-2" aria-label="Legal"><a class="nav-link p-0" href="{% url 'website:privacy' %}">Privacy Policy</a><a class="nav-link p-0" href="{% url 'website:terms' %}">Terms</a></nav>
+        </div>
       </div>
     </footer>
   </div>
 {% endblock body %}
 {% block javascript %}
+  <script defer src="{% static 'js/public-nav.bundle.js' %}"></script>
   {% block website_javascript %}{% endblock website_javascript %}
   {% if has_math %}{% include "website/partials/mathjax.html" %}{% endif %}
 {% endblock javascript %}

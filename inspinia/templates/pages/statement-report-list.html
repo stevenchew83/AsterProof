@@ -5,7 +5,7 @@
 {% block extra_css %}
   {{ block.super }}
   <style>
-    .statement-reports { --report-border: var(--ins-border-color); }
+    .statement-reports { --report-border: var(--theme-border-color); }
     .statement-reports .report-inbox { overflow: hidden; }
     .statement-reports .report-toolbar {
       display: flex;
@@ -21,22 +21,22 @@
       align-items: center;
       gap: .5rem;
       padding: .4375rem .625rem;
-      border-radius: var(--ins-border-radius);
-      color: var(--ins-body-color);
+      border-radius: var(--theme-border-radius);
+      color: var(--theme-body-color);
       font-size: .8125rem;
       font-weight: 500;
       transition: background-color 150ms ease, color 150ms ease;
     }
-    .statement-reports .report-tab:hover { background: var(--ins-tertiary-bg); }
+    .statement-reports .report-tab:hover { background: var(--theme-tertiary-bg); }
     .statement-reports .report-tab[aria-current="page"] {
-      background: var(--ins-primary-bg-subtle);
-      color: var(--ins-primary-text-emphasis);
+      background: var(--theme-primary-bg-subtle);
+      color: var(--theme-primary-text-emphasis);
     }
     .statement-reports .report-tab-count { font-size: .6875rem; font-variant-numeric: tabular-nums; opacity: .75; }
     .statement-reports .report-search { flex: 0 1 22rem; margin: 0; }
     .statement-reports .report-search .input-group { flex-wrap: nowrap; }
     .statement-reports .report-search .form-control { min-width: 0; }
-    .statement-reports .report-list-meta { padding: .625rem 1rem; background: var(--ins-tertiary-bg); }
+    .statement-reports .report-list-meta { padding: .625rem 1rem; background: var(--theme-tertiary-bg); }
     .statement-reports .report-item { border-top: 1px solid var(--report-border); }
     .statement-reports .report-summary {
       display: grid;
@@ -50,11 +50,11 @@
       transition: background-color 150ms ease;
     }
     .statement-reports .report-summary::-webkit-details-marker { display: none; }
-    .statement-reports .report-summary:hover { background: var(--ins-tertiary-bg); }
-    .statement-reports .report-item--open > .report-summary { border-inline-start-color: var(--ins-warning); }
-    .statement-reports .report-item[open] > .report-summary { background: var(--ins-primary-bg-subtle); }
+    .statement-reports .report-summary:hover { background: var(--theme-tertiary-bg); }
+    .statement-reports .report-item--open > .report-summary { border-inline-start-color: var(--theme-warning); }
+    .statement-reports .report-item[open] > .report-summary { background: var(--theme-primary-bg-subtle); }
     .statement-reports .report-main { min-width: 0; }
-    .statement-reports .report-title { color: var(--ins-emphasis-color); font-size: .875rem; }
+    .statement-reports .report-title { color: var(--theme-emphasis-color); font-size: .875rem; }
     .statement-reports .report-chevron {
       display: grid;
       place-items: center;
@@ -62,7 +62,7 @@
       height: 1.75rem;
       border: 1px solid var(--report-border);
       border-radius: 50%;
-      color: var(--ins-secondary-color);
+      color: var(--theme-secondary-color);
       transition: transform 150ms ease;
     }
     .statement-reports .report-item[open] .report-chevron { transform: rotate(180deg); }
@@ -75,7 +75,7 @@
     .statement-reports .report-footer { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: .75rem; }
     .statement-reports .report-empty { padding: 3rem 1rem; text-align: center; }
     .statement-reports a:focus-visible,
-    .statement-reports summary:focus-visible { outline: 2px solid var(--ins-primary); outline-offset: -2px; }
+    .statement-reports summary:focus-visible { outline: 2px solid var(--theme-primary); outline-offset: -2px; }
     @media (max-width: 767.98px) {
       .statement-reports .report-search { flex-basis: 100%; }
       .statement-reports .report-summary { grid-template-columns: minmax(0, 1fr) auto 1.75rem; gap: .5rem .75rem; }
@@ -92,9 +92,9 @@
 
 {% block page_content %}
 <div class="container-fluid app-table-page statement-reports">
-  <header class="page-title-head app-page-header">
+  <header class="page-title-head d-flex flex-wrap align-items-center gap-2">
     {% include 'partials/page-header-intro.html' with title='Statement reports' subtitle='Content maintenance' page_icon='ti-flag' only %}
-    <div class="app-page-header-actions">
+    <div class="page-title-actions d-flex flex-wrap align-items-center gap-2">
       <span class="badge bg-warning-subtle text-warning-emphasis px-2 py-2"><i class="ti ti-inbox me-1" aria-hidden="true"></i>{{ open_count }} awaiting review</span>
       <a href="{% url 'pages:problem_statement_editor' %}" class="btn btn-outline-secondary btn-sm"><i class="ti ti-edit me-1" aria-hidden="true"></i>Statement editor</a>
     </div>

@@ -9,9 +9,9 @@
 
 {% block page_content %}
   <div class="container-fluid app-table-page">
-    <header class="page-title-head app-page-header">
+    <header class="page-title-head d-flex flex-wrap align-items-center gap-2">
       {% include 'partials/page-header-intro.html' with title='AI review queue' subtitle='Administration' page_icon='ti-list-details' only %}
-      <div class="app-page-header-actions">
+      <div class="page-title-actions d-flex flex-wrap align-items-center gap-2">
         <a class="btn btn-outline-secondary btn-sm" href="{% url 'solutions:admin_ai_review_settings' %}">Review settings</a>
         <a class="btn btn-outline-primary btn-sm" href="?{{ queue_query }}"><i class="ti ti-refresh me-1" aria-hidden="true"></i>Refresh</a>
       </div>

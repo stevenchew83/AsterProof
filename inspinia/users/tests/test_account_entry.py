@@ -135,8 +135,8 @@ def test_account_entrances_share_the_brand_layout_and_single_heading(client, url
     html = response.content.decode()
 
     assert response.status_code == HTTPStatus.OK
-    assert 'class="auth-login"' in html
-    assert 'class="auth-login-story"' in html
+    assert 'class="auth-box p-0 w-100"' in html
+    assert 'class="card auth-box-form rounded-0 border-0 mb-0"' in html
     assert len(re.findall(r"<h1(?:\s|>)", html)) == 1
     assert "account-login.js" in html
 

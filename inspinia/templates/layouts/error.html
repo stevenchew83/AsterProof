@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% load i18n static %}
+{% block body %}
+  <main class="auth-box d-flex align-items-center px-3">
+    <div class="container">
+      <div class="row justify-content-center">
+        <div class="col-sm-8 col-md-6 col-xxl-4 text-center">
+          {% include "partials/auth-brand.html" %}
+          <p class="display-4 fw-bold text-primary-emphasis mb-2">{% block status_code %}{% endblock %}</p>
+          <h1 class="h3 fw-bold">{% block error_title %}{% endblock %}</h1>
+          <p class="text-body-secondary">{% block error_message %}{% endblock %}</p>
+          <a class="btn btn-dark rounded-pill mt-3" href="{% url 'pages:home' %}">{% trans "Go home" %}</a>
+        </div>
+      </div>
+    </div>
+  </main>
+{% endblock body %}

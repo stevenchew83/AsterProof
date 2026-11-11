@@ -2,7 +2,7 @@
       <div class="col-xl-8">
         <section class="card h-100" aria-labelledby="prompt-heading">
           <div class="card-body">
-            <h2 class="header-title" id="prompt-heading">Hint instructions</h2>
+            <h2 class="card-title" id="prompt-heading">Hint instructions</h2>
             <p class="small text-body-secondary">Saving changes creates a draft version. Only qualified versions can be published.</p>
             <form method="post">
               {% csrf_token %}
@@ -34,7 +34,7 @@
       <div class="col-xl-4">
         <section class="card h-100" aria-labelledby="versions-heading">
           <div class="card-body">
-            <h2 class="header-title" id="versions-heading">Prompt versions</h2>
+            <h2 class="card-title" id="versions-heading">Prompt versions</h2>
             <p class="small text-body-secondary">
               {% if policy.model %}{{ policy.model }} · {% endif %}
               {% if policy.generation_enabled %}Generation enabled in policy{% else %}Generation paused{% endif %}

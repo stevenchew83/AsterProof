@@ -8,7 +8,7 @@
 <link rel="stylesheet" href="{% static 'plugins/datatables/dataTables.bootstrap5.min.css' %}">
 <style>
   .problem-analytics-meta {
-    color: var(--bs-secondary-color);
+    color: var(--theme-secondary-color);
     font-size: 0.78rem;
   }
 
@@ -22,7 +22,7 @@
   }
 
   .problem-analytics-section {
-    border-top: 1px solid var(--bs-border-color);
+    border-top: 1px solid var(--theme-border-color);
     padding-top: 1rem;
   }
 
@@ -43,7 +43,7 @@
 
   #contest-year-mohs-pivot-table thead th,
   #contest-year-mohs-pivot-table tfoot th {
-    background: var(--bs-body-bg);
+    background: var(--theme-body-bg);
     position: sticky;
     z-index: 3;
   }
@@ -58,7 +58,7 @@
 
   #contest-year-mohs-pivot-table th:nth-child(1),
   #contest-year-mohs-pivot-table td:nth-child(1) {
-    background: var(--bs-body-bg);
+    background: var(--theme-body-bg);
     left: 0;
     position: sticky;
     z-index: 4;
@@ -66,7 +66,7 @@
 
   #contest-year-mohs-pivot-table th:nth-child(2),
   #contest-year-mohs-pivot-table td:nth-child(2) {
-    background: var(--bs-body-bg);
+    background: var(--theme-body-bg);
     left: 3.25rem;
     position: sticky;
     z-index: 4;
@@ -79,14 +79,14 @@
     padding: 0.12rem 0.35rem;
   }
 
-  .mohs-heat-1 { background: rgba(13, 110, 253, 0.12); color: var(--bs-primary); }
-  .mohs-heat-2 { background: rgba(25, 135, 84, 0.15); color: var(--bs-success); }
+  .mohs-heat-1 { background: rgba(13, 110, 253, 0.12); color: var(--theme-primary); }
+  .mohs-heat-2 { background: rgba(25, 135, 84, 0.15); color: var(--theme-success); }
   .mohs-heat-3 { background: rgba(255, 193, 7, 0.22); color: #946200; }
   .mohs-heat-4 { background: rgba(253, 126, 20, 0.22); color: #a14f00; }
-  .mohs-heat-5 { background: rgba(220, 53, 69, 0.18); color: var(--bs-danger); }
+  .mohs-heat-5 { background: rgba(220, 53, 69, 0.18); color: var(--theme-danger); }
 
   .mohs-zero {
-    color: var(--bs-secondary-color);
+    color: var(--theme-secondary-color);
     opacity: 0.42;
   }
 
@@ -102,9 +102,9 @@
 <div class="container-fluid app-table-page">
 
   {% url 'pages:user_activity_dashboard' as analytics_home_url %}
-  <header class="page-title-head app-page-header">
+  <header class="page-title-head d-flex flex-wrap align-items-center gap-2">
     {% include 'partials/page-header-intro.html' with title='Problem analytics' subtitle='Admin' page_icon='ti-chart-bar' back_url=analytics_home_url back_label='AsterProof' only %}
-    <div class="app-page-header-description d-flex flex-wrap align-items-center gap-1 gap-sm-2 fs-xs lh-sm problem-analytics-meta">
+    <div class="w-100 text-body-secondary mb-2 d-flex flex-wrap align-items-center gap-1 gap-sm-2 fs-xs lh-sm problem-analytics-meta">
       <span>Updated {{ analytics_summary.last_updated_label }}</span>
       <span class="vr d-none d-sm-inline-block"></span>
       <span>{{ analytics_summary.filtered_statements_label }} / {{ analytics_summary.active_statements_label }} statements</span>
@@ -303,7 +303,7 @@
       <div class="problem-analytics-section">
         <div class="d-flex flex-wrap align-items-end justify-content-between gap-2 mb-2">
           <div>
-            <h4 class="header-title mb-0">Coverage and distribution</h4>
+            <h4 class="card-title mb-0">Coverage and distribution</h4>
             <p class="text-muted fs-xs mb-0">Statement volume, year trend, and linked MOHS coverage.</p>
           </div>
         </div>
@@ -311,7 +311,7 @@
           <div class="col-xxl-7">
             <div class="card h-100">
               <div class="card-header border-0 pb-0">
-                <h4 class="header-title mb-0">Statements by year</h4>
+                <h4 class="card-title mb-0">Statements by year</h4>
               </div>
               <div class="card-body pt-2">
                 <div id="chart-by-year" style="min-height: 300px;"></div>
@@ -321,7 +321,7 @@
           <div class="col-xxl-5">
             <div class="card h-100">
               <div class="card-header border-0 pb-0">
-                <h4 class="header-title mb-0">MOHS distribution</h4>
+                <h4 class="card-title mb-0">MOHS distribution</h4>
               </div>
               <div class="card-body pt-2">
                 <div id="chart-by-mohs" style="min-height: 300px;"></div>
@@ -334,7 +334,7 @@
     <div class="col-xl-4">
       <div class="card h-100 mt-xl-4">
         <div class="card-header border-0 pb-0">
-          <h4 class="header-title mb-0">Data quality</h4>
+          <h4 class="card-title mb-0">Data quality</h4>
         </div>
         <div class="card-body pt-2">
           <div class="d-flex justify-content-between border-bottom py-2">
@@ -370,7 +370,7 @@
   <div class="problem-analytics-section mt-3">
     <div class="d-flex flex-wrap align-items-end justify-content-between gap-2 mb-2">
       <div>
-        <h4 class="header-title mb-0">Ranked views</h4>
+        <h4 class="card-title mb-0">Ranked views</h4>
         <p class="text-muted fs-xs mb-0">Top topics, technique tags, and contests in the current result set.</p>
       </div>
     </div>
@@ -378,7 +378,7 @@
       <div class="col-xl-4">
         <div class="card h-100">
           <div class="card-header border-0 pb-0">
-            <h4 class="header-title mb-0">Top topics</h4>
+            <h4 class="card-title mb-0">Top topics</h4>
           </div>
           <div class="card-body pt-2">
             <div id="chart-by-topic" style="min-height: 320px;"></div>
@@ -388,7 +388,7 @@
       <div class="col-xl-4">
         <div class="card h-100">
           <div class="card-header border-0 pb-0">
-            <h4 class="header-title mb-0">Top technique tags</h4>
+            <h4 class="card-title mb-0">Top technique tags</h4>
           </div>
           <div class="card-body pt-2">
             <div id="chart-techniques" style="min-height: 320px;"></div>
@@ -398,7 +398,7 @@
       <div class="col-xl-4">
         <div class="card h-100">
           <div class="card-header border-0 pb-0">
-            <h4 class="header-title mb-0">Statements by contest</h4>
+            <h4 class="card-title mb-0">Statements by contest</h4>
             <p class="text-muted fs-xs mb-0">Top {{ charts_payload.byContest.labels|length }}</p>
           </div>
           <div class="card-body pt-2">
@@ -415,7 +415,7 @@
         <div class="card-header border-0 pb-0">
           <div class="d-flex flex-wrap align-items-start justify-content-between gap-2">
             <div>
-              <h4 class="header-title mb-0">Contest-year vs MOHS pivot table</h4>
+              <h4 class="card-title mb-0">Contest-year vs MOHS pivot table</h4>
               <p class="text-muted fs-xs mb-0">Problem counts by contest-year and MOHS bucket.</p>
             </div>
             <span class="badge bg-primary-subtle text-primary">Total {{ charts_payload.contestYearMohsPivotTable.grand_total_label }}</span>
@@ -459,7 +459,7 @@
             </div>
           </div>
           <div class="app-table-region table-responsive contest-year-mohs-table-tools contest-year-mohs-table-scroll" tabindex="0" role="region" aria-label="Scrollable results">
-            <table data-paging-type="simple" id="contest-year-mohs-pivot-table" class="app-table-compact table table-striped table-bordered align-middle w-100"></table>
+            <table data-paging-type="simple" id="contest-year-mohs-pivot-table" class="table-sm table table-striped table-bordered align-middle w-100"></table>
           </div>
           {% else %}
           <div class="alert alert-info mb-0" role="alert">
@@ -489,10 +489,10 @@
 
   var charts = JSON.parse(dataEl.textContent);
   var semanticColors = {
-    primary: "#0d6efd",
-    muted: "#6c757d",
-    technique: "#fd7e14",
-    contest: "#d63384"
+    primary: window.getThemeColor("primary"),
+    muted: window.getThemeColor("secondary-color"),
+    technique: window.getThemeColor("warning"),
+    contest: window.getThemeColor("purple")
   };
 
   function formatNumber(value) {

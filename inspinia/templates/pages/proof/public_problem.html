@@ -6,7 +6,7 @@
   {% static 'css/public-community.min.css' %}
 {% endblock public_stylesheet %}
 {% block public_content %}
-  <div class="website-container proof-public">
+  <div class="container proof-public">
     <nav class="proof-breadcrumb" aria-label="Community navigation">
       <a href="{% url 'pages:proof_public_list' %}"><span aria-hidden="true">←</span> Community Proof Library</a>
       <span class="proof-visibility">
@@ -18,7 +18,7 @@
       </span>
     </nav>
     <header class="proof-heading">
-      <p class="website-kicker">{{ snapshot.topic_label|default:snapshot.topic }} · Community problem</p>
+      <p class="small fw-semibold text-uppercase text-primary-emphasis mb-2">{{ snapshot.topic_label|default:snapshot.topic }} · Community problem</p>
       <h1>{{ snapshot.title }}</h1>
       <div class="proof-byline">
         <span class="proof-contributor">Shared by {{ publication.public_credit|default:'Community contributor' }}</span>
@@ -59,11 +59,11 @@
         </div>
       </article>
       <section class="proof-workspace" aria-labelledby="workspace-heading">
-        <p class="website-kicker">Your approach</p>
+        <p class="small fw-semibold text-uppercase text-primary-emphasis mb-2">Your approach</p>
         <h2 id="workspace-heading">Start with a fresh page.</h2>
         <p>Work through the problem in your own private draft.</p>
         <a href="{% url 'pages:proof_attempt' token=token %}"
-           class="website-button">Solve this problem <span aria-hidden="true">↗</span></a>
+           class="btn btn-dark">Solve this problem <span aria-hidden="true">↗</span></a>
         <p class="proof-privacy">Your draft stays private. Sharing is separate.</p>
       </section>
       <div class="proof-explore">
@@ -122,11 +122,11 @@
                 <span class="proof-meta">Page {{ solutions_page.number }} of {{ solutions_page.paginator.num_pages }}</span>
                 <div>
                   {% if solutions_page.has_previous %}
-                    <a class="website-text-link"
+                    <a class="btn btn-link link-body-emphasis p-0"
                        href="?solutions_page={{ solutions_page.previous_page_number }}&amp;historical_page={{ historical_page.number|default:1 }}#community-solutions">Previous solutions</a>
                   {% endif %}
                   {% if solutions_page.has_next %}
-                    <a class="website-text-link"
+                    <a class="btn btn-link link-body-emphasis p-0"
                        href="?solutions_page={{ solutions_page.next_page_number }}&amp;historical_page={{ historical_page.number|default:1 }}#community-solutions">Next solutions</a>
                   {% endif %}
                 </div>
@@ -158,11 +158,11 @@
                       <span class="proof-meta">Page {{ historical_page.number }} of {{ historical_page.paginator.num_pages }}</span>
                       <div>
                         {% if historical_page.has_previous %}
-                          <a class="website-text-link"
+                          <a class="btn btn-link link-body-emphasis p-0"
                              href="?historical_page={{ historical_page.previous_page_number }}&amp;solutions_page={{ solutions_page.number|default:1 }}#community-solutions">Previous earlier proofs</a>
                         {% endif %}
                         {% if historical_page.has_next %}
-                          <a class="website-text-link"
+                          <a class="btn btn-link link-body-emphasis p-0"
                              href="?historical_page={{ historical_page.next_page_number }}&amp;solutions_page={{ solutions_page.number|default:1 }}#community-solutions">Next earlier proofs</a>
                         {% endif %}
                       </div>

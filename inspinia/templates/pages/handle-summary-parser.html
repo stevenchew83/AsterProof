@@ -39,7 +39,7 @@
       <form id="handle-summary-parser-form" method="post" class="card">
         {% csrf_token %}
         <div class="card-header border-0 pb-0">
-          <h4 class="header-title mb-0">Paste repeated Handle blocks and extract archive metadata</h4>
+          <h4 class="card-title mb-0">Paste repeated Handle blocks and extract archive metadata</h4>
           <p class="text-muted fs-xs mb-0">The parser reads each <code>Handle:</code> block and exports a tab-separated table with <code>MOHS</code>, <code>CONFIDENCE</code>, <code>IMO SLOT</code>, <code>TOPICS TAG</code>, <code>CORE IDEAS</code>, <code>RATIONALE</code>, and <code>COMMON PITFALLS</code>. <code>Estimated MOHS</code> accepts a single value like <code>15M</code>, a range like <code>8M-12M</code>, or an open band like <code>50M+</code>; non-singleton forms export their lower bound.</p>
         </div>
         <div class="card-body pt-2">
@@ -68,7 +68,7 @@
     <div class="col-xl-6">
       <div class="card h-100">
         <div class="card-header border-bottom">
-          <h4 class="header-title mb-0">Raw input</h4>
+          <h4 class="card-title mb-0">Raw input</h4>
         </div>
         <div class="card-body">
           <label class="form-label" for="handle-summary-parser-input">Input</label>
@@ -84,7 +84,7 @@
       <div class="card h-100">
         <div class="card-header border-bottom d-flex justify-content-between align-items-center gap-2">
           <div>
-            <h4 class="header-title mb-0">Export-ready TSV</h4>
+            <h4 class="card-title mb-0">Export-ready TSV</h4>
             <p class="text-muted fs-xs mb-0">Header row included. Paste this straight into a spreadsheet.</p>
           </div>
           {% if preview_payload %}
@@ -130,11 +130,11 @@
     <div class="col-12">
       <div class="card">
         <div class="card-header border-bottom">
-          <h4 class="header-title mb-0">Parsed rows</h4>
+          <h4 class="card-title mb-0">Parsed rows</h4>
         </div>
         <div class="card-body p-0">
           <div class="app-table-region table-responsive" tabindex="0" role="region" aria-label="Scrollable results">
-            <table class="app-table-compact table table-striped table-bordered align-middle mb-0">
+            <table class="table-sm table table-striped table-bordered align-middle mb-0">
               <thead class="table-light">
                 <tr>
                   <th scope="col">Handle</th>

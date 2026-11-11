@@ -2,65 +2,27 @@
 {% load i18n static %}
 {% block title %}{% block head_title %}{% trans "Account access" %}{% endblock head_title %}{% endblock title %}
 {% block body %}
-  <main class="auth-login">
-    <section class="auth-login-story" aria-labelledby="auth-story-title">
-      <a href="{% url 'account_login' %}" class="auth-login-story-brand">
-        <img src="{% static 'images/asterproof-logo-light.svg' %}"
-             alt="AsterProof" width="507" height="100">
-      </a>
-      <div class="auth-login-story-content">
-        <p class="auth-login-eyebrow">{% trans "The art of problem solving" %}</p>
-        <h2 id="auth-story-title">{% trans "A little insight." %}<br><em>{% trans "Infinite possibilities." %}</em></h2>
-        <p class="auth-login-story-description">
-          {% trans "Explore olympiad problems, build rigorous solutions, and see your progress take shape." %}
-        </p>
+  <main class="auth-box p-0 w-100">
+    <div class="row g-0 min-vh-100">
+      <div class="col d-none d-md-block" aria-hidden="true">
+        <div class="card-side-img h-100 position-relative">
+          <div class="card-img-overlay auth-overlay"></div>
+        </div>
       </div>
-      <figure class="auth-login-geometry" aria-label="{% trans 'An equilateral triangle with its incircle and circumcircle' %}">
-        <svg viewBox="0 0 580 380" fill="none" aria-hidden="true" focusable="false">
-          <g class="auth-login-construction">
-            <path d="M45 210H535M290 20V365" />
-            <circle cx="290" cy="210" r="165" />
-            <path d="M147.106 292.5 290 210 432.894 292.5M290 45V292.5" stroke-dasharray="4 7" />
-          </g>
-          <path class="auth-login-triangle" d="M290 45 147.106 292.5H432.894Z" />
-          <circle class="auth-login-incircle" cx="290" cy="210" r="82.5" />
-          <path class="auth-login-right-angle" d="M290 281.5H301V292.5" />
-          <g class="auth-login-vertices">
-            <circle cx="290" cy="45" r="4" />
-            <circle cx="147.106" cy="292.5" r="4" />
-            <circle cx="432.894" cy="292.5" r="4" />
-          </g>
-          <circle class="auth-login-center" cx="290" cy="210" r="4" />
-          <g class="auth-login-point-labels">
-            <text x="305" y="40">A</text>
-            <text x="125" y="315">B</text>
-            <text x="444" y="315">C</text>
-            <text x="303" y="205">O</text>
-          </g>
-        </svg>
-        <figcaption><span></span>{% trans "Different angles. Deeper understanding." %}</figcaption>
-      </figure>
-      <p class="auth-login-subjects">
-        {% trans "Algebra" %}<span>·</span>{% trans "Geometry" %}<span>·</span>{% trans "Number theory" %}<span>·</span>{% trans "Combinatorics" %}
-      </p>
-    </section>
-    <section class="auth-login-workspace" aria-label="{% trans 'Account access' %}">
-      <a href="{% url 'account_login' %}" class="auth-brand auth-login-mobile-brand">
-        <img src="{% static 'images/asterproof-logo.svg' %}"
-             class="auth-brand-dark" alt="AsterProof" width="507" height="100">
-        <img src="{% static 'images/asterproof-logo-light.svg' %}"
-             class="auth-brand-light" alt="AsterProof" width="507" height="100">
-      </a>
-      <div class="auth-login-panel">
-        {% if messages %}
-          {% for message in messages %}
-            <div class="alert {% if message.tags %}alert-{{ message.tags }}{% else %}alert-info{% endif %}" role="status">{{ message }}</div>
-          {% endfor %}
-        {% endif %}
-        {% block content %}{% endblock content %}
+      <div class="col-12 col-md-auto">
+        <section class="card auth-box-form rounded-0 border-0 mb-0" aria-label="{% trans 'Account access' %}">
+          <div class="card-body min-vh-100 d-flex flex-column justify-content-center p-3 p-sm-4 p-lg-5">
+            {% include "partials/auth-brand.html" %}
+            {% if messages %}
+              {% for message in messages %}
+                <div class="alert {% if message.tags %}alert-{{ message.tags }}{% else %}alert-info{% endif %}" role="status">{{ message }}</div>
+              {% endfor %}
+            {% endif %}
+            {% block content %}{% endblock content %}
+          </div>
+        </section>
       </div>
-      <p class="auth-login-footer">{% trans "One problem. One insight. One step forward." %}</p>
-    </section>
+    </div>
   </main>
 {% endblock body %}
 {% block extra_javascript %}

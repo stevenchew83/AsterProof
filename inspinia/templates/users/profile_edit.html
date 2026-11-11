@@ -1,51 +1,24 @@
-{% extends "pages/problem-shell.html" %}
+{% extends "layouts/vertical.html" %}
 
 {% load crispy_forms_tags %}
 
 {% block title %}Edit profile{% endblock title %}
 
-{% block extra_css %}
-  {{ block.super }}
-  <style>
-    .profile-edit-card {
-      padding: 1.75rem;
-    }
-
-    .profile-edit-card .form-label {
-      font-weight: 700;
-      color: #21324e;
-    }
-
-    .profile-edit-card .form-control,
-    .profile-edit-card .form-select,
-    .profile-edit-card textarea {
-      border-radius: 1rem;
-      border-color: rgba(17, 32, 59, 0.12);
-      background: #fff;
-      min-height: 3rem;
-    }
-
-    .profile-edit-card textarea {
-      min-height: 7rem;
-    }
-  </style>
-{% endblock extra_css %}
-
-{% block problem_page_content %}
+{% block page_content %}
   <section class="problem-section">
-    <div class="container">
+    <div class="container-fluid">
       {% url 'users:profile' as header_profile_url %}
-      <header class="app-page-header">
+      <header class="page-title-head d-flex flex-wrap align-items-center gap-2">
         {% include 'partials/page-header-intro.html' with title='Edit profile' subtitle=request.user.email page_icon='ti-user-edit' back_url=header_profile_url back_label='Profile' only %}
       </header>
       <div class="row g-4">
         <div class="col-12">
-          <div class="problem-directory-card profile-edit-card">
-            <div class="problem-directory-head">
+          <div class="card card-body">
+            <div class="d-flex flex-wrap align-items-center justify-content-between gap-2">
               <div>
-                <span class="problem-label">Details</span>
+                <span class="text-body-secondary small">Details</span>
                 <h2 class="h3 mt-2 mb-1">Profile fields</h2>
-                <p class="problem-muted mb-0">Save here to return to your standalone profile page instead of the dashboard account screen.</p>
+                <p class="text-body-secondary mb-0">Update your profile details.</p>
               </div>
             </div>
 
@@ -66,4 +39,4 @@
       </div>
     </div>
   </section>
-{% endblock problem_page_content %}
+{% endblock page_content %}

@@ -23,7 +23,7 @@
 }
 
 .completion-progress-advanced-fields {
-  border-top: 1px solid var(--ins-border-color);
+  border-top: 1px solid var(--theme-border-color);
   display: grid;
   gap: .75rem;
   grid-template-columns: repeat(12, minmax(0, 1fr));
@@ -32,7 +32,7 @@
 }
 
 .completion-progress-filter-chips {
-  border-top: 1px solid var(--ins-border-color);
+  border-top: 1px solid var(--theme-border-color);
   margin-top: 1rem;
   padding-top: .75rem;
 }
@@ -43,7 +43,7 @@
 
 .completion-progress-empty-state {
   align-items: center;
-  border: 1px dashed var(--ins-border-color);
+  border: 1px dashed var(--theme-border-color);
   border-radius: .5rem;
   display: flex;
   min-height: 220px;
@@ -61,7 +61,7 @@
 }
 
 .completion-progress-secondary-metric {
-  border-left: 1px solid var(--ins-border-color);
+  border-left: 1px solid var(--theme-border-color);
   padding-left: .75rem;
 }
 
@@ -77,7 +77,7 @@
 }
 
 .completion-progress-insight {
-  border: 1px solid var(--ins-border-color);
+  border: 1px solid var(--theme-border-color);
   border-radius: .5rem;
   padding: .85rem;
 }
@@ -103,25 +103,18 @@
   --completion-progress-yearly-cell-size: 0.86rem;
   --completion-progress-yearly-cell-gap: 0.22rem;
   --completion-progress-yearly-weekday-width: 2.25rem;
-  --completion-progress-yearly-cell-border: rgba(27, 31, 36, 0.06);
-  --completion-progress-yearly-empty: #ebedf0;
-  --completion-progress-yearly-level-1: #9be9a8;
-  --completion-progress-yearly-level-2: #40c463;
-  --completion-progress-yearly-level-3: #30a14e;
-  --completion-progress-yearly-level-4: #216e39;
+  --completion-progress-yearly-cell-border: var(--theme-border-color-translucent);
+  --completion-progress-yearly-empty: var(--theme-tertiary-bg);
+  --completion-progress-yearly-level-1: var(--theme-success-bg-subtle);
+  --completion-progress-yearly-level-2: var(--theme-success-border-subtle);
+  --completion-progress-yearly-level-3: var(--theme-success);
+  --completion-progress-yearly-level-4: var(--theme-success-text-emphasis);
 }
 
-[data-bs-theme="dark"] .completion-progress-yearly-heatmap {
-  --completion-progress-yearly-cell-border: rgba(240, 246, 252, 0.08);
-  --completion-progress-yearly-empty: #161b22;
-  --completion-progress-yearly-level-1: #0e4429;
-  --completion-progress-yearly-level-2: #006d32;
-  --completion-progress-yearly-level-3: #26a641;
-  --completion-progress-yearly-level-4: #39d353;
-}
+
 
 .completion-progress-yearly-section + .completion-progress-yearly-section {
-  border-top: 1px solid var(--ins-border-color);
+  border-top: 1px solid var(--theme-border-color);
   margin-top: 1.25rem;
   padding-top: 1.25rem;
 }
@@ -136,7 +129,7 @@
 }
 
 .completion-progress-yearly-month {
-  color: var(--ins-secondary-color);
+  color: var(--theme-secondary-color);
   font-size: 0.72rem;
   line-height: 1;
   min-height: 0.8rem;
@@ -157,7 +150,7 @@
 
 .completion-progress-yearly-weekday {
   align-items: center;
-  color: var(--ins-secondary-color);
+  color: var(--theme-secondary-color);
   display: flex;
   font-size: 0.68rem;
   line-height: var(--completion-progress-yearly-cell-size);
@@ -215,7 +208,7 @@
 
 .completion-progress-yearly-legend {
   align-items: center;
-  color: var(--ins-secondary-color);
+  color: var(--theme-secondary-color);
   display: flex;
   flex-wrap: wrap;
   font-size: 0.72rem;
@@ -263,7 +256,7 @@
   display: inline-flex;
   align-items: center;
   gap: 0.45rem;
-  color: var(--bs-secondary-color);
+  color: var(--theme-secondary-color);
   font-size: 0.78rem;
 }
 
@@ -277,19 +270,19 @@
 }
 
 .completion-progress-contest-legend-swatch-solved {
-  background: #2fbf71;
+  background: var(--theme-success);
 }
 
 .completion-progress-contest-legend-swatch-partial {
-  background: #f1b44c;
+  background: var(--theme-warning);
 }
 
 .completion-progress-contest-legend-swatch-unsolved {
-  background: #e25563;
+  background: var(--theme-danger);
 }
 
 .completion-progress-contest-legend-swatch-empty {
-  background: #d6d9e0;
+  background: var(--theme-tertiary-bg);
 }
 
 .completion-progress-contest-heatmap-scroll {
@@ -316,7 +309,7 @@
 }
 
 .completion-progress-matrix-wrap {
-  border: 1px solid var(--ins-border-color);
+  border: 1px solid var(--theme-border-color);
   border-radius: .5rem;
   overflow-x: auto;
 }
@@ -340,8 +333,8 @@
 }
 
 .completion-progress-matrix-cell.is-active {
-  background: rgba(var(--bs-primary-rgb), .11);
-  color: var(--bs-primary);
+  background: rgba(var(--theme-primary-rgb), .11);
+  color: var(--theme-primary);
   font-weight: 700;
 }
 
@@ -367,7 +360,7 @@
 
 #completion-progress-table_wrapper .dt-length label,
 #completion-progress-table_wrapper .dt-search label {
-  color: var(--bs-secondary-color);
+  color: var(--theme-secondary-color);
   font-size: .75rem;
   font-weight: 600;
   text-transform: uppercase;
@@ -407,7 +400,7 @@
 
   .completion-progress-secondary-metric {
     border-left: 0;
-    border-top: 1px solid var(--ins-border-color);
+    border-top: 1px solid var(--theme-border-color);
     padding-left: 0;
     padding-top: .75rem;
   }
@@ -422,28 +415,28 @@
 .completion-progress-page {
     padding-bottom: 1.5rem;
 
-    .card { min-width: 0; border: 1px solid var(--ins-border-color); box-shadow: none; margin-bottom: 0; }
+    .card { min-width: 0; border: 1px solid var(--theme-border-color); box-shadow: none; margin-bottom: 0; }
     .card-header { display: block; padding: 1rem 1.25rem .75rem; background: transparent; border: 0; }
     .card-body { min-width: 0; padding: 1rem 1.25rem; }
-    .header-title { margin: 0 0 .25rem; font-size: .9375rem; font-weight: 600; letter-spacing: -.01em; }
+    .card-title { margin: 0 0 .25rem; font-size: .9375rem; font-weight: 600; letter-spacing: -.01em; }
     .row > * { min-width: 0; }
     [id^="completion-progress-"] { scroll-margin-top: 5.5rem; }
     a:focus-visible, button:focus-visible, summary:focus-visible {
-        outline: 2px solid var(--ins-primary);
+        outline: 2px solid var(--theme-primary);
         outline-offset: 3px;
-        border-radius: var(--ins-border-radius-sm);
+        border-radius: var(--theme-border-radius-sm);
     }
 
     .completion-progress-overview { display: flex; flex-wrap: wrap; align-items: start; justify-content: space-between; gap: 1rem; padding: .5rem .25rem 1.25rem; }
     .completion-progress-metrics { display: flex; gap: clamp(1.5rem, 3vw, 3rem); margin: 0; }
-    .completion-progress-metrics dt { color: var(--ins-secondary-color); font-size: .75rem; font-weight: 500; }
+    .completion-progress-metrics dt { color: var(--theme-secondary-color); font-size: .75rem; font-weight: 500; }
     .completion-progress-metrics dd { display: flex; align-items: baseline; gap: .375rem; margin: .125rem 0 0; font-size: 1.625rem; font-weight: 600; line-height: 1.25; font-variant-numeric: tabular-nums; }
-    .completion-progress-metrics dd span, .completion-progress-metrics small { color: var(--ins-secondary-color); font-size: .6875rem; font-weight: 400; }
-    .completion-progress-overview-meta { display: flex; flex-direction: column; align-items: end; gap: .25rem; max-width: 35%; color: var(--ins-secondary-color); font-size: .75rem; overflow-wrap: anywhere; text-align: end; }
-    .completion-progress-subject { color: var(--ins-body-color); font-weight: 600; }
+    .completion-progress-metrics dd span, .completion-progress-metrics small { color: var(--theme-secondary-color); font-size: .6875rem; font-weight: 400; }
+    .completion-progress-overview-meta { display: flex; flex-direction: column; align-items: end; gap: .25rem; max-width: 35%; color: var(--theme-secondary-color); font-size: .75rem; overflow-wrap: anywhere; text-align: end; }
+    .completion-progress-subject { color: var(--theme-body-color); font-weight: 600; }
     .completion-progress-quality { display: flex; flex-wrap: wrap; flex: 1 1 100%; gap: .5rem 1.5rem; margin: -.125rem 0 0; }
     .completion-progress-quality > div { display: flex; align-items: baseline; gap: .375rem; }
-    .completion-progress-quality dt { color: var(--ins-secondary-color); font-size: .75rem; font-weight: 400; }
+    .completion-progress-quality dt { color: var(--theme-secondary-color); font-size: .75rem; font-weight: 400; }
     .completion-progress-quality dd { margin: 0; font-size: .75rem; font-weight: 600; font-variant-numeric: tabular-nums; }
 
     .completion-progress-filter-panel { padding: 1rem 1.25rem .875rem; }
@@ -453,72 +446,72 @@
     .completion-progress-primary-filters .completion-progress-range-field { flex: .7 1 8rem; }
     .completion-progress-primary-filters .completion-progress-search-field { flex: 1.2 1 12rem; }
     .completion-progress-filters {
-        .form-label { color: var(--ins-secondary-color); font-size: .75rem; font-weight: 500; margin-bottom: .375rem; }
+        .form-label { color: var(--theme-secondary-color); font-size: .75rem; font-weight: 500; margin-bottom: .375rem; }
         .form-control, .form-select, .btn { min-height: 2.25rem; }
         .btn { white-space: nowrap; }
     }
     .completion-progress-search-input { position: relative; }
-    .completion-progress-search-input > .ti { position: absolute; top: 50%; left: .75rem; transform: translateY(-50%); color: var(--ins-secondary-color); }
+    .completion-progress-search-input > .ti { position: absolute; top: 50%; left: .75rem; transform: translateY(-50%); color: var(--theme-secondary-color); }
     .completion-progress-search-input input { padding-left: 2.2rem; }
     .completion-progress-filter-actions { display: flex; flex-wrap: wrap; gap: .5rem; margin-top: .875rem; }
     .completion-progress-advanced-fields { grid-template-columns: repeat(6, minmax(0, 1fr)); margin-top: .875rem; padding-top: .875rem; }
-    .completion-progress-filter-chips { display: flex; align-items: center; flex-wrap: wrap; gap: .5rem; margin-top: .875rem; padding-top: .75rem; font-size: .75rem; color: var(--ins-secondary-color); }
+    .completion-progress-filter-chips { display: flex; align-items: center; flex-wrap: wrap; gap: .5rem; margin-top: .875rem; padding-top: .75rem; font-size: .75rem; color: var(--theme-secondary-color); }
     .completion-progress-filter-chips .badge { max-width: 100%; padding: .375rem .5rem; white-space: normal; overflow-wrap: anywhere; font-weight: 500; }
 
     .completion-progress-section-nav { display: flex; flex-wrap: wrap; gap: .375rem 1.5rem; padding: .875rem .25rem; }
-    .completion-progress-section-nav a { color: var(--ins-secondary-color); font-size: .75rem; font-weight: 500; text-decoration: none; }
-    .completion-progress-section-nav a:hover { color: var(--ins-primary-text-emphasis); }
+    .completion-progress-section-nav a { color: var(--theme-secondary-color); font-size: .75rem; font-weight: 500; text-decoration: none; }
+    .completion-progress-section-nav a:hover { color: var(--theme-primary-text-emphasis); }
     .completion-progress-chart { min-height: 260px; }
-    .completion-progress-chart-note { margin: 0; padding: .625rem 1.25rem; color: var(--ins-secondary-color); border-top: 1px solid var(--ins-border-color-translucent); font-size: .6875rem; }
+    .completion-progress-chart-note { margin: 0; padding: .625rem 1.25rem; color: var(--theme-secondary-color); border-top: 1px solid var(--theme-border-color-translucent); font-size: .6875rem; }
     .completion-progress-trends .card { overflow: hidden; }
-    .completion-progress-empty-state { min-height: 180px; padding: 1.25rem; background: var(--ins-tertiary-bg); border: 0; border-radius: var(--ins-border-radius); }
+    .completion-progress-empty-state { min-height: 180px; padding: 1.25rem; background: var(--theme-tertiary-bg); border: 0; border-radius: var(--theme-border-radius); }
     .completion-progress-empty-state.is-compact { min-height: 0; padding: 1rem; }
 
-    .completion-progress-comparison { margin-top: 1rem; border: 1px solid var(--ins-border-color); border-radius: var(--ins-border-radius); }
+    .completion-progress-comparison { margin-top: 1rem; border: 1px solid var(--theme-border-color); border-radius: var(--theme-border-radius); }
     .completion-progress-comparison > summary { display: flex; align-items: center; flex-wrap: wrap; gap: .375rem .875rem; padding: .75rem 1rem; font-size: .8125rem; font-weight: 600; cursor: pointer; list-style: none; }
     .completion-progress-comparison > summary::-webkit-details-marker { display: none; }
-    .completion-progress-comparison > summary > .ti { margin-left: auto; color: var(--ins-secondary-color); transition: transform .15s ease; }
+    .completion-progress-comparison > summary > .ti { margin-left: auto; color: var(--theme-secondary-color); transition: transform .15s ease; }
     .completion-progress-comparison[open] > summary > .ti { transform: rotate(180deg); }
-    .completion-progress-comparison-scope { color: var(--ins-secondary-color); font-size: .6875rem; font-weight: 400; }
-    .completion-progress-insight-strip { grid-template-columns: repeat(auto-fit, minmax(8rem, 1fr)); gap: .75rem; padding: .875rem 1rem; border-top: 1px solid var(--ins-border-color); }
-    .completion-progress-insight { min-width: 0; border: 0; border-inline-start: 1px solid var(--ins-border-color); border-radius: 0; padding: 0 0 0 .75rem; }
+    .completion-progress-comparison-scope { color: var(--theme-secondary-color); font-size: .6875rem; font-weight: 400; }
+    .completion-progress-insight-strip { grid-template-columns: repeat(auto-fit, minmax(8rem, 1fr)); gap: .75rem; padding: .875rem 1rem; border-top: 1px solid var(--theme-border-color); }
+    .completion-progress-insight { min-width: 0; border: 0; border-inline-start: 1px solid var(--theme-border-color); border-radius: 0; padding: 0 0 0 .75rem; }
     .completion-progress-insight:first-child { border: 0; padding: 0; }
     .completion-progress-insight-value { font-size: 1.125rem; font-weight: 600; font-variant-numeric: tabular-nums; margin-bottom: .25rem; }
     .completion-progress-breakdown-header { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: .75rem; }
-    .completion-progress-breakdown-header .header-title { margin-bottom: .75rem; }
+    .completion-progress-breakdown-header .card-title { margin-bottom: .75rem; }
     .completion-progress-breakdown-header .card-header-tabs { gap: .25rem; margin-inline: 0; }
-    .completion-progress-breakdown-header .nav-link { color: var(--ins-secondary-color); font-size: .8125rem; padding: .625rem .875rem; }
-    .completion-progress-breakdown-header .nav-link.active { color: var(--ins-primary-text-emphasis); background: var(--ins-secondary-bg); }
+    .completion-progress-breakdown-header .nav-link { color: var(--theme-secondary-color); font-size: .8125rem; padding: .625rem .875rem; }
+    .completion-progress-breakdown-header .nav-link.active { color: var(--theme-primary-text-emphasis); background: var(--theme-secondary-bg); }
 
     .completion-progress-yearly-heatmap {
-        --completion-progress-yearly-cell-border: var(--ins-border-color-translucent);
-        --completion-progress-yearly-empty: var(--ins-tertiary-bg);
-        --completion-progress-yearly-level-1: var(--ins-primary-bg-subtle);
-        --completion-progress-yearly-level-2: var(--ins-primary-border-subtle);
-        --completion-progress-yearly-level-3: var(--ins-primary);
-        --completion-progress-yearly-level-4: var(--ins-primary-text-emphasis);
+        --completion-progress-yearly-cell-border: var(--theme-border-color-translucent);
+        --completion-progress-yearly-empty: var(--theme-tertiary-bg);
+        --completion-progress-yearly-level-1: var(--theme-primary-bg-subtle);
+        --completion-progress-yearly-level-2: var(--theme-primary-border-subtle);
+        --completion-progress-yearly-level-3: var(--theme-primary);
+        --completion-progress-yearly-level-4: var(--theme-primary-text-emphasis);
     }
-    .completion-progress-yearly-heatmap-wrap { padding: .75rem; background: var(--ins-secondary-bg); border: 1px solid var(--ins-border-color); border-radius: var(--ins-border-radius); }
+    .completion-progress-yearly-heatmap-wrap { padding: .75rem; background: var(--theme-secondary-bg); border: 1px solid var(--theme-border-color); border-radius: var(--theme-border-radius); }
     .completion-progress-yearly-heatmap-canvas { display: block; width: max-content; margin-inline: auto; }
-    .completion-progress-yearly-cell.is-today { box-shadow: 0 0 0 2px rgba(var(--ins-primary-rgb), .4); }
-    .completion-progress-matrix-wrap { border-radius: var(--ins-border-radius); }
-    .completion-progress-matrix-cell.is-active { background: var(--ins-primary-bg-subtle); color: var(--ins-primary-text-emphasis); }
-    .completion-progress-contest-legend-item { color: var(--ins-secondary-color); font-size: .75rem; }
+    .completion-progress-yearly-cell.is-today { box-shadow: 0 0 0 2px rgba(var(--theme-primary-rgb), .4); }
+    .completion-progress-matrix-wrap { border-radius: var(--theme-border-radius); }
+    .completion-progress-matrix-cell.is-active { background: var(--theme-primary-bg-subtle); color: var(--theme-primary-text-emphasis); }
+    .completion-progress-contest-legend-item { color: var(--theme-secondary-color); font-size: .75rem; }
     .completion-progress-contest-export-actions .btn { min-width: 0; }
     .completion-progress-matrix-actions .btn { min-width: 0; }
     .completion-progress-records { margin-top: 1rem; }
     #completion-progress-table { min-width: 780px; }
     #completion-progress-table th { font-size: .6875rem; }
     #completion-progress-table td { font-size: .8125rem; padding: .625rem; }
-    #completion-progress-table a { color: var(--ins-body-color); }
-    #completion-progress-table a:hover { color: var(--ins-primary); }
+    #completion-progress-table a { color: var(--theme-body-color); }
+    #completion-progress-table a:hover { color: var(--theme-primary); }
     #completion-progress-table_wrapper .dt-search label,
     #completion-progress-table_wrapper .dt-length label { font-weight: 400; text-transform: none; }
     #completion-progress-table_wrapper .dt-layout-start:has(.dt-length) { display: flex; flex-wrap: wrap; gap: .5rem 1rem; }
-    .apexcharts-text { fill: var(--ins-secondary-color); }
-    .apexcharts-tooltip, .apexcharts-xaxistooltip { background: var(--ins-secondary-bg); color: var(--ins-body-color); border-color: var(--ins-border-color); }
-    .apexcharts-tooltip-title { background: var(--ins-tertiary-bg); border-color: var(--ins-border-color); }
-    .apexcharts-legend-text { color: var(--ins-secondary-color) !important; }
+    .apexcharts-text { fill: var(--theme-secondary-color); }
+    .apexcharts-tooltip, .apexcharts-xaxistooltip { background: var(--theme-secondary-bg); color: var(--theme-body-color); border-color: var(--theme-border-color); }
+    .apexcharts-tooltip-title { background: var(--theme-tertiary-bg); border-color: var(--theme-border-color); }
+    .apexcharts-legend-text { color: var(--theme-secondary-color) !important; }
 
     @media (max-width: 991.98px) {
         .completion-progress-overview-meta { max-width: 100%; }

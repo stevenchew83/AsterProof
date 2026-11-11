@@ -16,7 +16,7 @@
       <section class="col-lg-7" aria-labelledby="submission-title">
         <div class="card">
           <div class="card-body">
-            <h2 id="submission-title" class="header-title">Choose a submission</h2>
+            <h2 id="submission-title" class="card-title">Choose a submission</h2>
             <form method="get" class="mb-3">
               <label for="preview-case" class="form-label">Preview a synthetic submission</label>
               <div class="d-flex gap-2">
@@ -42,7 +42,7 @@
       <section class="col-lg-5" aria-labelledby="mode-title">
         <div class="card">
           <div class="card-body">
-            <h2 id="mode-title" class="header-title">Create a private report</h2>
+            <h2 id="mode-title" class="card-title">Create a private report</h2>
             <form method="post">
               {% csrf_token %}{{ form.idempotency_key }}
               {% if form.non_field_errors %}
@@ -79,12 +79,12 @@
     </div>
     <section class="card" aria-labelledby="history-title">
       <div class="card-body">
-        <h2 id="history-title" class="header-title">Recent private reports</h2>
+        <h2 id="history-title" class="card-title">Recent private reports</h2>
         <div class="app-table-region table-responsive"
              role="region"
              aria-label="Synthetic report history"
              tabindex="0">
-          <table class="table app-table-compact align-middle">
+          <table class="table table-sm align-middle">
             <thead>
               <tr>
                 <th>Submission</th>

@@ -3,17 +3,17 @@
 {% load static %}
 
 {% block public_content %}
-  <div class="website-container">
+  <div class="container">
     <header class="website-page-hero website-lecture-heading" data-learning-math>
-      <p class="website-kicker">AsterProof mathematics library</p>
+      <p class="small fw-semibold text-uppercase text-primary-emphasis mb-2">AsterProof mathematics library</p>
       <h1>{{ revision.title }}</h1>
       <p>{{ revision.summary }}</p>
-      {% if public_credit %}<p class="website-attribution">By {{ public_credit }}</p>{% endif %}
+      {% if public_credit %}<p class="small text-body-secondary">By {{ public_credit }}</p>{% endif %}
     </header>
     <div class="website-concept-layout">
       <article class="website-prose website-lecture-content" data-learning-math>{{ rendered_content }}</article>
-      <aside class="website-reading-aside">
-        <p class="website-kicker">Keep exploring</p>
+      <aside class="border-top pt-3">
+        <p class="small fw-semibold text-uppercase text-primary-emphasis mb-2">Keep exploring</p>
         <a href="{% url 'website:library' %}">Back to the library →</a><a href="{% url 'learning:read' publication.document_id %}">Study and contribute in Training →</a><a href="{% url 'website:learning_report' publication.document_id %}">Report a mathematical error</a>
         <p>Authors retain their rights. Published with permission to AsterProof.</p>
       </aside>

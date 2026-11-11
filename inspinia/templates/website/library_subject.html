@@ -1,15 +1,15 @@
 {% extends "website/base.html" %}
 {% block public_content %}
-  <div class="website-container">
+  <div class="container">
     {% include "website/partials/breadcrumbs.html" %}
-    <section class="website-page-hero"><p class="website-kicker">Explore a subject</p><h1>{{ subject.title }}<em>.</em></h1><p>{{ subject.description }}</p></section>
+    <section class="website-page-hero"><p class="small fw-semibold text-uppercase text-primary-emphasis mb-2">Explore a subject</p><h1>{{ subject.title }}<em>.</em></h1><p>{{ subject.description }}</p></section>
     {% include "website/partials/approved_notes.html" %}
     {% include "website/partials/learning_pathways.html" %}
     <section class="website-section website-resource-list">
       {% for area in areas %}
-        <a class="website-entry" href="{{ area.get_absolute_url }}"><span>Area · {{ area.concept_count }} concept{{ area.concept_count|pluralize }}</span><h2>{{ area.title }} <span aria-hidden="true">↗</span></h2><p>{{ area.summary }}</p></a>
+        <a class="list-group-item list-group-item-action border rounded p-3 mb-2" href="{{ area.get_absolute_url }}"><span>Area · {{ area.concept_count }} concept{{ area.concept_count|pluralize }}</span><h2>{{ area.title }} <span aria-hidden="true">↗</span></h2><p>{{ area.summary }}</p></a>
       {% empty %}
-        {% if not note_entries and not public_pathways %}<div class="website-empty"><span aria-hidden="true">{{ subject.symbol }}</span><h2>The first chapters are on their way.</h2><p>Areas and concept guides for {{ subject.title|lower }} will appear here as they are published.</p><a class="website-text-link" href="{% url 'website:library' %}">Explore another subject <span aria-hidden="true">↗</span></a></div>{% endif %}
+        {% if not note_entries and not public_pathways %}<div class="alert alert-info mt-3"><span aria-hidden="true">{{ subject.symbol }}</span><h2>The first chapters are on their way.</h2><p>Areas and concept guides for {{ subject.title|lower }} will appear here as they are published.</p><a class="btn btn-link link-body-emphasis p-0" href="{% url 'website:library' %}">Explore another subject <span aria-hidden="true">↗</span></a></div>{% endif %}
       {% endfor %}
     </section>
   </div>

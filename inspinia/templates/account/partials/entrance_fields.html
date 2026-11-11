@@ -1,4 +1,4 @@
-{% load i18n %}
+{% load crispy_forms_field i18n %}
 {% if form.non_field_errors %}
   <div class="alert alert-danger" role="alert">{{ form.non_field_errors }}</div>
 {% endif %}
@@ -6,36 +6,38 @@
   {% if field.is_hidden %}
     {{ field }}
   {% elif field.field.widget.input_type == "checkbox" %}
-    <div class="auth-login-remember">
-      {{ field }}
-      <label for="{{ field.id_for_label }}">{% if field.name == "remember" %}{% trans "Keep me signed in" %}{% else %}{{ field.label }}{% endif %}</label>
+    <div class="form-check mb-3">
+      {% crispy_field field 'class' 'form-check-input' %}
+      <label class="form-check-label" for="{{ field.id_for_label }}">{% if field.name == "remember" %}{% trans "Keep me signed in" %}{% else %}{{ field.label }}{% endif %}</label>
     </div>
-    {% if field.errors %}<div class="auth-login-field-errors" role="alert">{{ field.errors }}</div>{% endif %}
+    {% if field.errors %}<div class="alert alert-danger" role="alert">{{ field.errors }}</div>{% endif %}
   {% else %}
-    <div class="auth-login-field">
-      <div class="auth-login-field-heading">
-        <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+    <div class="mb-3">
+      <div class="d-flex flex-wrap justify-content-between gap-2">
+        <label class="form-label" for="{{ field.id_for_label }}">{{ field.label }}</label>
         {% if field.name == "password" %}
-          <a href="{% url 'account_reset_password' %}" id="{{ field.auto_id }}_helptext">{% trans "Forgot password?" %}</a>
+          <a class="link-body-emphasis link-offset-2" href="{% url 'account_reset_password' %}" id="{{ field.auto_id }}_helptext">{% trans "Forgot password?" %}</a>
         {% endif %}
       </div>
-      <div class="auth-login-control{% if field.field.widget.input_type == 'password' %} auth-login-control--password{% endif %}">
-        {{ field }}
-        {% if field.field.widget.input_type == "password" %}
-          <button type="button" class="auth-login-toggle" hidden
+      {% if field.field.widget.input_type == "password" %}
+        <div class="input-group">
+          {% crispy_field field 'class' 'form-control' %}
+          <button type="button" class="btn btn-outline-secondary auth-login-toggle" hidden
                   aria-controls="{{ field.id_for_label }}" aria-pressed="false"
                   aria-label="{% trans 'Show password' %}"
                   data-show-label="{% trans 'Show password' %}"
                   data-hide-label="{% trans 'Hide password' %}">
             <i class="ti ti-eye" aria-hidden="true"></i>
           </button>
-        {% endif %}
-      </div>
+        </div>
+      {% else %}
+        {% crispy_field field 'class' 'form-control' %}
+      {% endif %}
       {% if field.errors %}
-        <div class="auth-login-field-errors" id="{{ field.auto_id }}_error" role="alert">{{ field.errors }}</div>
+        <div class="alert alert-danger mt-2" id="{{ field.auto_id }}_error" role="alert">{{ field.errors }}</div>
       {% endif %}
       {% if field.help_text and field.name != "password" %}
-        <div class="auth-login-help" id="{{ field.auto_id }}_helptext">{{ field.help_text|safe }}</div>
+        <div class="form-text" id="{{ field.auto_id }}_helptext">{{ field.help_text|safe }}</div>
       {% endif %}
     </div>
   {% endif %}

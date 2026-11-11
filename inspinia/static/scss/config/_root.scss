@@ -1,22 +1,24 @@
-// 
-// _theme-default.scss
+//
+// _root.scss
 //
 
-
+// Google fonts
 
 :root {
+    // Font Family Secondary
+    --#{$prefix}font-family-secondary: "Open Sans", sans-serif;
 
     // Logo
-    --#{$prefix}logo-lg-height:                 26px;
-    --#{$prefix}logo-sm-height:                 26px;
+    --#{$prefix}logo-lg-height: 24px;
+    --#{$prefix}logo-sm-height: 26px;
 
     // Sidebar
     --#{$prefix}sidenav-width:                          235px;
-    --#{$prefix}sidenav-width-md:                       160px;
+    --#{$prefix}sidenav-width-md:                       190px;
     --#{$prefix}sidenav-width-sm:                       75px;
 
     // Topbar
-    --#{$prefix}topbar-height:                           65px;
+    --#{$prefix}topbar-height: 65px;
 
     // Menu items
     --#{$prefix}sidenav-item-icon-size:                  1.125rem;
@@ -33,13 +35,13 @@
     --#{$prefix}sidenav-sub-item-padding-x:              10px;
     --#{$prefix}sidenav-sub-item-padding-y:              7px;
 
-    --#{$prefix}theme-card-border-width:                 1px;
-    --#{$prefix}theme-card-box-shadow:                   none;
-    --#{$prefix}theme-card-border-color:                 var(--#{$prefix}border-color);
+    --#{$prefix}theme-card-border-width: 1px;
+    --#{$prefix}theme-card-box-shadow: none;
+    --#{$prefix}theme-card-border-color: var(--#{$prefix}border-color);
 
-    --#{$prefix}font-weight-medium:                      500;
-    --#{$prefix}font-weight-semibold:                    600;
-    --#{$prefix}font-weight-bold:                        700;
+    --#{$prefix}font-weight-medium: 500;
+    --#{$prefix}font-weight-semibold: 600;
+    --#{$prefix}font-weight-bold: 700;
 
     --#{$prefix}font-size-xxs:                           11px;
     --#{$prefix}font-size-xs:                            12px;
@@ -49,4 +51,41 @@
     --#{$prefix}font-size-lg:                            16px;
     --#{$prefix}font-size-xl:                            18px;
     --#{$prefix}font-size-xxl:                           20px;
+
+     --#{$prefix}link-color: var(--#{$prefix}primary);
+    --#{$prefix}link-hover-color: var(--#{$prefix}primary-text-emphasis);
+
+    // Chart Colors
+    --#{$prefix}chart-primary: #1ab394; // Main Color
+    --#{$prefix}chart-primary-rgb: #{to-rgb(#1ab394)};
+    --#{$prefix}chart-secondary: #1c84c6; // Secondary Color
+    --#{$prefix}chart-secondary-rgb: #{to-rgb(#1c84c6)};
+    --#{$prefix}chart-alpha: #23c6c8; // Success Color
+    --#{$prefix}chart-alpha-rgb: #{to-rgb(#23c6c8)};
+    --#{$prefix}chart-beta: #ed5565; // Danger Color
+    --#{$prefix}chart-beta-rgb: #{to-rgb(#ed5565)};
+    --#{$prefix}chart-gamma: #7b70ef; // Warning Color
+    --#{$prefix}chart-gamma-rgb: #{to-rgb(#7b70ef)};
+    --#{$prefix}chart-delta: #f8ac59; // Info Color
+    --#{$prefix}chart-delta-rgb: #{to-rgb(#f8ac59)};
+    --#{$prefix}chart-zeta: #ff679b; // custom Color
+    --#{$prefix}chart-zeta-rgb: #{to-rgb(#ff679b)};
+    --#{$prefix}chart-gray: #edeff3; // Gray Color
+    --#{$prefix}chart-gray-rgb: #{to-rgb(#edeff3)};
+    --#{$prefix}chart-dark: #1A57A1; // Primary Dark Color
+    --#{$prefix}chart-dark-rgb: #{to-rgb(#1A57A1)};
+    --#{$prefix}chart-border-color: #ecf4fc; // Border Color
+    --#{$prefix}chart-title-color: #bbcae1; // Title Color
+}
+
+[data-bs-theme='dark'] {
+    --#{$prefix}chart-border-color: #242c31;
+    --#{$prefix}chart-gray: #40424f;
+    --#{$prefix}chart-gray-rgb: #{to-rgb(#40424f)};
+
+    --#{$prefix}chart-title-color: #f1f1f1; // Title Color
+
+    .text-dark {
+        color: #dce0fb !important;
+    }
 }

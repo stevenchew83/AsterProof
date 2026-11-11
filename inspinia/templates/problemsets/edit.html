@@ -75,7 +75,7 @@
   #problem-list-search-results-table_wrapper .dt-search label,
   #problem-list-sequence-table_wrapper .dt-length label,
   #problem-list-sequence-table_wrapper .dt-search label {
-    color: var(--bs-secondary-color);
+    color: var(--theme-secondary-color);
     font-size: .75rem;
     font-weight: 600;
     text-transform: uppercase;
@@ -93,15 +93,15 @@
 
   #problem-list-search-results-table thead th,
   #problem-list-sequence-table thead th {
-    background-color: var(--bs-tertiary-bg);
-    color: var(--bs-secondary-color);
+    background-color: var(--theme-tertiary-bg);
+    color: var(--theme-secondary-color);
     font-size: .7rem;
     font-weight: 700;
     text-transform: uppercase;
   }
 
   .problem-list-search-group td {
-    background: var(--bs-light);
+    background: var(--theme-light);
   }
 
   .problem-list-filter-chip {
@@ -186,9 +186,9 @@
   }
 
   .problem-list-draft-notes-panel {
-    background: var(--bs-tertiary-bg);
-    border: 1px solid var(--bs-border-color);
-    border-radius: var(--bs-border-radius);
+    background: var(--theme-tertiary-bg);
+    border: 1px solid var(--theme-border-color);
+    border-radius: var(--theme-border-radius);
     display: grid;
     gap: .5rem;
     grid-template-columns: minmax(0, 1fr) minmax(0, 1.25fr) minmax(0, 1.25fr);
@@ -206,7 +206,7 @@
   .problem-list-draft-notes-panel > div { min-width: 0; }
 
   .problem-list-order-handle {
-    color: var(--bs-secondary-color);
+    color: var(--theme-secondary-color);
   }
 
   .problem-list-note-textarea {
@@ -215,15 +215,15 @@
   }
 
   .problem-list-save-bar {
-    background: var(--bs-tertiary-bg);
-    border: 1px solid var(--bs-border-color);
-    border-radius: var(--bs-border-radius);
+    background: var(--theme-tertiary-bg);
+    border: 1px solid var(--theme-border-color);
+    border-radius: var(--theme-border-radius);
     padding: .75rem;
   }
 
   .problem-list-save-bar.is-dirty {
-    border-color: rgba(var(--bs-warning-rgb), .45);
-    box-shadow: 0 0 0 .15rem rgba(var(--bs-warning-rgb), .08);
+    border-color: rgba(var(--theme-warning-rgb), .45);
+    box-shadow: 0 0 0 .15rem rgba(var(--theme-warning-rgb), .08);
   }
 
   .problem-list-row-added {
@@ -232,7 +232,7 @@
 
   @keyframes problem-list-row-pulse {
     0% {
-      background-color: rgba(var(--bs-success-rgb), .2);
+      background-color: rgba(var(--theme-success-rgb), .2);
     }
     100% {
       background-color: transparent;
@@ -299,7 +299,7 @@
   <div id="problem-list-builder-layout" class="d-grid gap-3 mt-0 problem-list-builder-layout">
       <div id="problem-list-settings-panel" class="card">
         <div class="card-header border-bottom">
-          <h4 class="header-title mb-0">List settings</h4>
+          <h4 class="card-title mb-0">List settings</h4>
           <p class="text-muted fs-xs mb-0">Title, description, and public display controls.</p>
         </div>
         <div class="card-body">
@@ -324,7 +324,7 @@
       </div>
       <div id="problem-list-sharing-panel" class="card">
         <div class="card-header border-bottom">
-          <h4 class="header-title mb-0">Sharing</h4>
+          <h4 class="card-title mb-0">Sharing</h4>
           <p class="text-muted fs-xs mb-0">Publish the list and share the public version.</p>
         </div>
         <div class="card-body">
@@ -369,7 +369,7 @@
       <div class="card" data-problem-search-url="{% url 'problemsets:problem_search' problem_list.list_uuid %}">
         <div class="card-header border-bottom d-flex flex-wrap align-items-start justify-content-between gap-2">
           <div>
-            <h4 class="header-title mb-0">Find problems</h4>
+            <h4 class="card-title mb-0">Find problems</h4>
             <p class="text-muted fs-xs mb-0">Search the active archive by contest, year, topic, notes, MOHS, tag, label, or UUID.</p>
           </div>
           <button class="btn btn-light btn-sm border" type="button" data-bs-toggle="collapse" data-bs-target="#problem-list-advanced-filters" aria-expanded="true" aria-controls="problem-list-advanced-filters">
@@ -429,7 +429,7 @@
           </div>
 
           <div class="app-table-region table-responsive mt-2" tabindex="0" role="region" aria-label="Scrollable results">
-            <table data-paging-type="simple" id="problem-list-search-results-table" class="app-table-compact table table-striped table-hover align-middle problem-list-picker-table w-100 mb-0">
+            <table data-paging-type="simple" id="problem-list-search-results-table" class="table-sm table table-striped table-hover align-middle problem-list-picker-table w-100 mb-0">
               <thead>
                 <tr>
                   <th>Problem</th>
@@ -495,7 +495,7 @@
       <div id="problem-list-sequence-panel" class="card">
         <div class="card-header border-bottom d-flex flex-wrap align-items-center justify-content-between gap-2">
           <div>
-            <h4 class="header-title mb-0">Problem sequence</h4>
+            <h4 class="card-title mb-0">Problem sequence</h4>
             <p class="text-muted fs-xs mb-0">Add problems, reorder rows, then save.</p>
           </div>
           <div class="d-flex flex-wrap align-items-center gap-2">
@@ -510,7 +510,7 @@
             {% csrf_token %}
             <div id="problem-list-hidden-order-fields"></div>
             <div class="app-table-region table-responsive" tabindex="0" role="region" aria-label="Scrollable results">
-              <table data-paging-type="simple" id="problem-list-sequence-table" class="app-table-compact table table-striped table-hover align-middle problem-list-picker-table problem-list-sequence-table w-100 mb-0">
+              <table data-paging-type="simple" id="problem-list-sequence-table" class="table-sm table table-striped table-hover align-middle problem-list-picker-table problem-list-sequence-table w-100 mb-0">
                 <thead>
                   <tr>
                     <th>Order</th>

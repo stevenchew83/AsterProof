@@ -12,10 +12,10 @@
 
 {% block page_content %}
 <div class="container-fluid app-table-page my-solutions" data-my-solutions>
-  <header class="page-title-head app-page-header">
+  <header class="page-title-head d-flex flex-wrap align-items-center gap-2">
     {% include 'partials/page-header-intro.html' with title='My solutions' subtitle='Personal' page_icon='ti-notebook' only %}
     {% if my_solution_rows or not solution_guide.visible %}
-    <div class="app-page-header-actions">
+    <div class="page-title-actions d-flex flex-wrap align-items-center gap-2">
       <a id="create-solution-cta" href="{% url 'solutions:problem_solution_create' %}" class="btn btn-primary btn-sm"><i class="ti ti-plus me-1" aria-hidden="true"></i>New solution</a>
     </div>
     {% endif %}
@@ -40,7 +40,7 @@
         <div class="card h-100 mb-0">
           <div class="card-body my-solutions-chart">
             <div class="my-solutions-chart-heading">
-              <h2 class="header-title mb-0" id="my-solutions-status-heading">Solution status</h2>
+              <h2 class="card-title mb-0" id="my-solutions-status-heading">Solution status</h2>
               <span class="text-muted fs-xs">All time</span>
             </div>
             <p class="my-solutions-total mb-2"><strong>{{ my_solution_stats.total }}</strong> saved solution{{ my_solution_stats.total|pluralize }}</p>
@@ -63,7 +63,7 @@
         <div class="card h-100 mb-0">
           <div class="card-body my-solutions-chart">
             <div class="my-solutions-chart-heading">
-              <h2 class="header-title mb-0" id="my-solutions-activity-heading">Writing activity</h2>
+              <h2 class="card-title mb-0" id="my-solutions-activity-heading">Writing activity</h2>
               <span class="text-muted fs-xs">Last 8 weeks</span>
             </div>
             <p class="text-muted fs-xs mb-1">New solutions per week</p>
@@ -90,7 +90,7 @@
   {% if my_solution_rows or not solution_guide.visible %}
   <section class="card mt-2" aria-labelledby="my-solutions-list-heading">
     <div class="card-header border-bottom d-flex flex-wrap gap-2 align-items-center justify-content-between">
-      <h2 class="header-title mb-0" id="my-solutions-list-heading">Saved solutions</h2>
+      <h2 class="card-title mb-0" id="my-solutions-list-heading">Saved solutions</h2>
       {% if my_solution_rows %}<span class="text-muted fs-xs" role="status" data-solutions-count>{{ my_solution_stats.total }} solution{{ my_solution_stats.total|pluralize }}</span>{% endif %}
     </div>
     {% if my_solution_rows %}

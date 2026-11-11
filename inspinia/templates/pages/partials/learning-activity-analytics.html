@@ -3,7 +3,7 @@
          aria-labelledby="learning-activity-heading">
   <div class="card-header page-view-panel-heading">
     <div>
-      <h2 class="header-title" id="learning-activity-heading">Learning activity</h2>
+      <h2 class="card-title" id="learning-activity-heading">Learning activity</h2>
       <p class="text-muted fs-xs mb-0">Estimated visible time and button clicks · signed-in learning pages</p>
     </div>
     <span class="page-view-panel-label">
@@ -75,12 +75,12 @@
       {% if learning_activity.visits %}
         <div class="row g-3">
           <div class="col-lg-6">
-            <h3 class="header-title">Time by page</h3>
+            <h3 class="card-title">Time by page</h3>
             <div class="app-table-region table-responsive"
                  tabindex="0"
                  role="region"
                  aria-label="Viewing time by page">
-              <table class="table table-sm app-table-compact page-view-learning-table mb-0">
+              <table class="table table-sm page-view-learning-table mb-0">
                 <thead>
                   <tr>
                     <th scope="col">Page</th>
@@ -112,12 +112,12 @@
             </div>
           </div>
           <div class="col-lg-6">
-            <h3 class="header-title">Button activity</h3>
+            <h3 class="card-title">Button activity</h3>
             <div class="app-table-region table-responsive"
                  tabindex="0"
                  role="region"
                  aria-label="Button clicks by page">
-              <table class="table table-sm app-table-compact page-view-learning-table mb-0">
+              <table class="table table-sm page-view-learning-table mb-0">
                 <thead>
                   <tr>
                     <th scope="col">Action / page</th>
@@ -150,7 +150,7 @@
                tabindex="0"
                role="region"
                aria-label="Recent measured learning visits">
-            <table class="table table-sm app-table-compact page-view-learning-table mb-0">
+            <table class="table table-sm page-view-learning-table mb-0">
               <thead>
                 <tr>
                   <th scope="col">Opened</th>

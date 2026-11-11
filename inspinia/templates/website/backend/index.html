@@ -1,25 +1,25 @@
 {% extends 'website/backend/base.html' %}
 
 {% block newsletter_heading %}
-  <header class="page-title-head app-page-header app-page-header--with-stats">
+  <header class="page-title-head d-flex flex-wrap align-items-center gap-2">
     {% include 'partials/page-header-intro.html' with title='Newsletter' subtitle='Administration' page_icon='ti-mail' only %}
-    <div class="app-page-header-actions">
+    <div class="page-title-actions d-flex flex-wrap align-items-center gap-2">
       <a class="btn btn-primary btn-sm"
          href="{% url 'website:newsletter_campaign_new' %}"><i class="ti ti-plus me-1" aria-hidden="true"></i>New draft</a>
     </div>
-    <dl class="app-page-header-stats">
+  </header>
+    <dl class="row row-cols-2 row-cols-lg-4 g-3 mb-3">
       {% include 'partials/page-header-stat.html' with label='Eligible subscribers' value=subscribed accent=True stat_icon='ti-users' only %}
       {% include 'partials/page-header-stat.html' with label='Awaiting confirmation' value=pending only %}
       {% include 'partials/page-header-stat.html' with label='Drafts' value=draft_count only %}
       {% include 'partials/page-header-stat.html' with label='Emails accepted' value=accepted only %}
     </dl>
-  </header>
 {% endblock newsletter_heading %}
 {% block newsletter_content %}
   <div class="card">
     <div class="card-header border-0 d-flex align-items-center justify-content-between py-3">
       <div>
-        <h2 class="header-title mb-1">Campaigns</h2>
+        <h2 class="card-title mb-1">Campaigns</h2>
         <p class="text-muted fs-xs mb-0">Write, test and send to confirmed subscribers.</p>
       </div>
       <span class="text-muted fs-xs">{{ page.paginator.count }} total</span>
@@ -28,7 +28,7 @@
          role="region"
          aria-label="Newsletter results"
          tabindex="0">
-      <table class="table table-hover align-middle mb-0 newsletter-table app-table-compact">
+      <table class="table table-hover align-middle mb-0 newsletter-table table-sm">
         <thead class="table-light">
           <tr>
             <th scope="col">Newsletter</th>

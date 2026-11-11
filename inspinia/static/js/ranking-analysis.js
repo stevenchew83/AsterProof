@@ -57,7 +57,7 @@
     charts.forEach(function (chart) { try { chart.destroy(); } catch (_) { /* Keep exact values. */ } });
     charts.clear();
     var style = getComputedStyle(document.documentElement);
-    function color(name) { return style.getPropertyValue('--ins-' + name).trim(); }
+    function color(name) { return style.getPropertyValue('--theme-' + name).trim(); }
     var dark = document.documentElement.getAttribute('data-bs-theme') === 'dark';
     panels.forEach(function (panel) {
       var target = document.getElementById('analysis-chart-' + panel.id);

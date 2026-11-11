@@ -8,19 +8,19 @@
 <link rel="stylesheet" href="{% static 'plugins/datatables/dataTables.bootstrap5.min.css' %}">
 <style>
   .quick-completion-workspace {
-    --qc-surface: var(--ins-secondary-bg);
-    --qc-line: var(--ins-border-color);
-    --qc-accent-ink: var(--ins-body-color);
+    --qc-surface: var(--theme-secondary-bg);
+    --qc-line: var(--theme-border-color);
+    --qc-accent-ink: var(--theme-body-color);
   }
 
-  .quick-completion-workspace .app-page-header {
+  .quick-completion-workspace .page-title-head {
     margin-bottom: 1rem;
   }
 
   .quick-completion-workspace .card {
     border: 1px solid var(--qc-line);
     margin-bottom: 0;
-    box-shadow: 0 2px 6px rgba(var(--ins-body-color-rgb), .025);
+    box-shadow: 0 2px 6px rgba(var(--theme-body-color-rgb), .025);
   }
 
   .quick-completion-workspace .card-header,
@@ -41,7 +41,7 @@
   }
 
   .quick-completion-search-field > .ti {
-    color: var(--ins-secondary-color);
+    color: var(--theme-secondary-color);
     left: .75rem;
     pointer-events: none;
     position: absolute;
@@ -119,8 +119,8 @@
     align-items: center;
     background: transparent;
     border: 1px solid transparent;
-    border-radius: var(--ins-border-radius);
-    color: var(--ins-secondary-color);
+    border-radius: var(--theme-border-radius);
+    color: var(--theme-secondary-color);
     display: inline-flex;
     font-size: .8125rem;
     gap: .5rem;
@@ -130,21 +130,21 @@
   }
 
   .quick-completion-status-tab:hover {
-    background: var(--ins-tertiary-bg);
-    color: var(--ins-body-color);
+    background: var(--theme-tertiary-bg);
+    color: var(--theme-body-color);
   }
 
   .quick-completion-status-tab[aria-pressed="true"] {
-    background: var(--ins-primary-bg-subtle);
-    border-color: var(--ins-primary-border-subtle);
+    background: var(--theme-primary-bg-subtle);
+    border-color: var(--theme-primary-border-subtle);
     color: var(--qc-accent-ink);
     font-weight: 600;
   }
 
   .quick-completion-status-count {
     background: var(--qc-surface);
-    border-radius: var(--ins-border-radius-sm);
-    color: var(--ins-body-color);
+    border-radius: var(--theme-border-radius-sm);
+    color: var(--theme-body-color);
     font-size: .7rem;
     font-variant-numeric: tabular-nums;
     min-width: 1.25rem;
@@ -180,9 +180,9 @@
   }
 
   #quick-completion-table thead th {
-    background: var(--ins-tertiary-bg);
+    background: var(--theme-tertiary-bg);
     border-bottom: 1px solid var(--qc-line);
-    color: var(--ins-secondary-color);
+    color: var(--theme-secondary-color);
     font-size: .65rem;
     font-weight: 600;
     letter-spacing: .045em;
@@ -208,20 +208,20 @@
   #quick-completion-table .quick-completion-more-cell { width: 7%; }
 
   .quick-completion-problem-cell a {
-    color: var(--ins-emphasis-color);
+    color: var(--theme-emphasis-color);
     overflow-wrap: anywhere;
   }
 
-  .quick-completion-problem-cell a:hover { color: var(--ins-primary); }
+  .quick-completion-problem-cell a:hover { color: var(--theme-primary); }
 
   .quick-completion-day-cell { overflow-wrap: anywhere; }
 
-  .quick-completion-topic-label { color: var(--ins-secondary-color); }
+  .quick-completion-topic-label { color: var(--theme-secondary-color); }
 
   .quick-completion-mohs-value {
-    background: var(--ins-tertiary-bg);
+    background: var(--theme-tertiary-bg);
     border: 1px solid var(--qc-line);
-    border-radius: var(--ins-border-radius-sm);
+    border-radius: var(--theme-border-radius-sm);
     display: inline-block;
     font-size: .75rem;
     font-variant-numeric: tabular-nums;
@@ -249,29 +249,29 @@
   }
 
   .quick-completion-workspace .badge.bg-light.text-dark {
-    background-color: var(--ins-tertiary-bg) !important;
-    color: var(--ins-body-color) !important;
+    background-color: var(--theme-tertiary-bg) !important;
+    color: var(--theme-body-color) !important;
   }
 
-  .quick-completion-workspace .badge.text-success { color: var(--ins-body-color) !important; }
-  .quick-completion-workspace .badge.text-info { color: var(--ins-body-color) !important; }
+  .quick-completion-workspace .badge.text-success { color: var(--theme-body-color) !important; }
+  .quick-completion-workspace .badge.text-info { color: var(--theme-body-color) !important; }
   .quick-completion-workspace .badge.text-primary { color: var(--qc-accent-ink) !important; }
 
   .quick-completion-workspace .js-quick-completion-today {
-    --ins-btn-color: var(--qc-accent-ink);
-    --ins-btn-bg: var(--ins-primary-bg-subtle);
-    --ins-btn-border-color: var(--ins-primary-border-subtle);
-    --ins-btn-hover-color: var(--qc-accent-ink);
-    --ins-btn-hover-bg: var(--ins-primary-bg-subtle);
-    --ins-btn-hover-border-color: var(--ins-primary);
-    --ins-btn-active-color: var(--qc-accent-ink);
-    --ins-btn-active-bg: var(--ins-primary-bg-subtle);
-    --ins-btn-active-border-color: var(--ins-primary);
+    --theme-btn-color: var(--qc-accent-ink);
+    --theme-btn-bg: var(--theme-primary-bg-subtle);
+    --theme-btn-border-color: var(--theme-primary-border-subtle);
+    --theme-btn-hover-color: var(--qc-accent-ink);
+    --theme-btn-hover-bg: var(--theme-primary-bg-subtle);
+    --theme-btn-hover-border-color: var(--theme-primary);
+    --theme-btn-active-color: var(--qc-accent-ink);
+    --theme-btn-active-bg: var(--theme-primary-bg-subtle);
+    --theme-btn-active-border-color: var(--theme-primary);
   }
 
   .quick-completion-taxonomy-trigger {
     align-items: center;
-    color: var(--ins-body-color);
+    color: var(--theme-body-color);
     display: flex;
     flex-wrap: wrap;
     gap: .25rem;
@@ -297,12 +297,12 @@
 
   .quick-completion-taxonomy-trigger:hover .badge,
   .quick-completion-taxonomy-trigger:hover .quick-completion-area-label {
-    color: var(--ins-primary-text-emphasis) !important;
+    color: var(--theme-primary-text-emphasis) !important;
     text-decoration: underline;
   }
 
   .quick-completion-taxonomy-overflow {
-    color: var(--ins-secondary-color);
+    color: var(--theme-secondary-color);
     font-size: .7rem;
     white-space: nowrap;
   }
@@ -310,8 +310,8 @@
 
   .quick-completion-subtopic-link:hover,
   .quick-completion-technique-link:hover {
-    background-color: var(--ins-primary-bg-subtle) !important;
-    border-color: var(--ins-primary-border-subtle) !important;
+    background-color: var(--theme-primary-bg-subtle) !important;
+    border-color: var(--theme-primary-border-subtle) !important;
     color: var(--qc-accent-ink) !important;
   }
 
@@ -334,17 +334,17 @@
   #quick-completion-table tr[aria-busy="true"] { opacity: .6; }
 
   .quick-completion-workspace :is(a, button, input, select):focus-visible {
-    outline: 2px solid var(--ins-primary);
+    outline: 2px solid var(--theme-primary);
     outline-offset: 3px;
   }
 
-  .quick-completion-detail-offcanvas { --ins-offcanvas-width: min(32rem, 100vw); }
+  .quick-completion-detail-offcanvas { --theme-offcanvas-width: min(32rem, 100vw); }
   .quick-completion-detail-offcanvas .offcanvas-title { white-space: normal !important; }
   .quick-completion-detail-offcanvas .offcanvas-body { padding: 0 1.25rem; }
   .quick-completion-detail-form { min-height: 100%; padding-top: 1rem; }
   .quick-completion-detail-actions {
-    background: var(--ins-body-bg);
-    border-top: 1px solid var(--qc-line, var(--ins-border-color));
+    background: var(--theme-body-bg);
+    border-top: 1px solid var(--qc-line, var(--theme-border-color));
     bottom: 0;
     margin: 0 -1.25rem;
     padding: .875rem 1.25rem;
@@ -359,7 +359,7 @@
     text-align: center;
   }
 
-  .quick-completion-empty > .ti { color: var(--ins-secondary-color); font-size: 2rem; }
+  .quick-completion-empty > .ti { color: var(--theme-secondary-color); font-size: 2rem; }
 
   @media (min-width: 768px) and (max-width: 1399.98px) {
     .quick-completion-primary-grid,
@@ -395,7 +395,7 @@
     #quick-completion-table tbody { display: grid; gap: .625rem; }
     #quick-completion-table tbody tr {
       border: 1px solid var(--qc-line);
-      border-radius: var(--ins-border-radius);
+      border-radius: var(--theme-border-radius);
       display: grid;
       gap: .375rem .75rem;
       grid-template-columns: minmax(0, 1fr) auto auto;
@@ -403,13 +403,13 @@
     }
     #quick-completion-table tbody td { border: 0; min-width: 0; padding: 0; width: auto; }
     #quick-completion-table tbody .quick-completion-problem-cell { font-size: .875rem; grid-column: 1 / -1; }
-    #quick-completion-table tbody .quick-completion-day-cell { color: var(--ins-secondary-color); grid-column: 1; grid-row: 2; }
+    #quick-completion-table tbody .quick-completion-day-cell { color: var(--theme-secondary-color); grid-column: 1; grid-row: 2; }
     #quick-completion-table tbody .quick-completion-topic-cell { grid-column: 2; grid-row: 2; text-align: right; }
     #quick-completion-table tbody .quick-completion-area-cell,
     #quick-completion-table tbody .quick-completion-concept-cell { grid-column: 1 / -1; padding: .25rem 0; }
     #quick-completion-table tbody .quick-completion-area-cell::before,
     #quick-completion-table tbody .quick-completion-concept-cell::before {
-      color: var(--ins-secondary-color);
+      color: var(--theme-secondary-color);
       content: attr(data-label);
       display: block;
       font-size: .65rem;
@@ -420,7 +420,7 @@
     #quick-completion-table .quick-completion-taxonomy-trigger { min-height: 44px !important; width: 100%; }
     #quick-completion-table tbody .quick-completion-progress-cell { border-top: 1px solid var(--qc-line); grid-column: 1 / -1; padding-top: .5rem; }
     #quick-completion-table tbody .quick-completion-mohs-cell { grid-column: 3; grid-row: 2; text-align: right; }
-    #quick-completion-table tbody .quick-completion-mohs-cell::before { color: var(--ins-secondary-color); content: "MOHS "; font-size: .7rem; }
+    #quick-completion-table tbody .quick-completion-mohs-cell::before { color: var(--theme-secondary-color); content: "MOHS "; font-size: .7rem; }
     #quick-completion-table tbody .quick-completion-quick-action-cell { grid-column: 1 / 3; padding-top: .125rem; }
     #quick-completion-table .quick-completion-quick-action-cell .btn { width: 100%; }
     #quick-completion-table .quick-completion-more-cell .btn { min-width: 44px; }
@@ -438,9 +438,9 @@
 {% block page_content %}
 <div class="container-fluid quick-completion-workspace">
   {% url 'pages:user_activity_dashboard' as activity_url %}
-  <header class="page-title-head app-page-header">
+  <header class="page-title-head d-flex flex-wrap align-items-center gap-2">
     {% include 'partials/page-header-intro.html' with title='Record completions' subtitle='My work' page_icon='ti-calendar-check' back_url=activity_url back_label='AsterProof' only %}
-    <div class="app-page-header-actions">
+    <div class="page-title-actions d-flex flex-wrap align-items-center gap-2">
       <a href="{{ activity_url }}" class="btn btn-sm btn-light"><i class="ti ti-activity me-1" aria-hidden="true"></i>My activity<i class="ti ti-arrow-up-right ms-1" aria-hidden="true"></i></a>
     </div>
   </header>
@@ -450,7 +450,7 @@
       <div class="card">
         <div class="card-body">
           <div class="quick-completion-filter-heading">
-            <h2 class="header-title fs-sm mb-0">Find a problem</h2>
+            <h2 class="card-title fs-sm mb-0">Find a problem</h2>
             <span class="text-muted fs-xs">Search the full library by contest, area, concept, or keyword.</span>
           </div>
           <form method="get" action="{% url 'pages:completion_quick_update' %}">
@@ -648,7 +648,7 @@
         <div class="card-header border-bottom d-flex flex-wrap align-items-center justify-content-between gap-2">
           <div>
             <div class="d-flex flex-wrap align-items-center gap-2 mb-1">
-              <h2 class="header-title fs-sm mb-0">Completion logger</h2>
+              <h2 class="card-title fs-sm mb-0">Completion logger</h2>
               {% if completion_quick_update_can_select_user %}
               <span class="text-muted fs-xs">Recording for <strong>{{ completion_quick_update_selected_user.name|default:completion_quick_update_selected_user.email }}</strong></span>
               {% endif %}

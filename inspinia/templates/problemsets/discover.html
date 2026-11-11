@@ -14,7 +14,7 @@
 
   #problem-list-discover-table_wrapper .dt-length label,
   #problem-list-discover-table_wrapper .dt-search label {
-    color: var(--bs-secondary-color);
+    color: var(--theme-secondary-color);
     font-size: .75rem;
     font-weight: 600;
     text-transform: uppercase;
@@ -49,7 +49,7 @@
   <div class="card mt-0">
     <div class="card-header border-bottom d-flex flex-wrap align-items-center justify-content-between gap-2">
       <div>
-        <h4 class="header-title mb-0">{% if problem_list_discover_is_admin %}All problem lists{% else %}Public problem lists{% endif %}</h4>
+        <h4 class="card-title mb-0">{% if problem_list_discover_is_admin %}All problem lists{% else %}Public problem lists{% endif %}</h4>
         <p class="text-muted fs-xs mb-0">
           {% if problem_list_discover_is_admin %}
           Review every public and private practice path.
@@ -85,7 +85,7 @@
       {% if problem_list_rows %}
         {% if problem_list_discover_is_admin %}
         <div class="app-table-region table-responsive" tabindex="0" role="region" aria-label="Scrollable results">
-          <table data-paging-type="simple" id="problem-list-discover-table" class="app-table-compact table table-sm table-hover table-striped align-middle w-100 mb-0">
+          <table data-paging-type="simple" id="problem-list-discover-table" class="table-sm table table-hover table-striped align-middle w-100 mb-0">
             <thead>
               <tr>
                 <th>List</th>

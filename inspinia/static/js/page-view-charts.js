@@ -8,7 +8,7 @@
   var charts = [];
   var reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
-  function themeColor(style, name) { return style.getPropertyValue("--ins-" + name).trim(); }
+  function themeColor(style, name) { return style.getPropertyValue("--theme-" + name).trim(); }
   function dateLabel(value) {
     var date = new Date(value + "T00:00:00");
     if (Number.isNaN(date.getTime())) return value;

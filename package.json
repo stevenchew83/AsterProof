@@ -1,6 +1,6 @@
 {
   "name": "inspinia",
-  "version": "4.0.0",
+  "version": "5.2.0",
   "scripts": {
     "dev": "cross-env NODE_OPTIONS=--no-deprecation gulp",
     "build": "cross-env NODE_OPTIONS=--no-deprecation gulp build",

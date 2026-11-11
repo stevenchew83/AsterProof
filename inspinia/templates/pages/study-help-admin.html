@@ -4,7 +4,7 @@
 
 {% block page_content %}
   <div class="container-fluid">
-    <header class="page-title-head app-page-header">
+    <header class="page-title-head d-flex flex-wrap align-items-center gap-2">
       {% url 'solutions:admin_ai_review_settings' as settings_url %}
       {% include 'partials/page-header-intro.html' with title='Hint analytics' subtitle='Track how students use archive assistance.' page_icon='ti-chart-line' back_url=settings_url back_label='AI settings' only %}
     </header>
@@ -16,7 +16,7 @@
       <div class="card-body">
         <div class="d-flex flex-wrap justify-content-between gap-3 align-items-end mb-3">
           <div>
-            <h2 class="header-title" id="study-help-analytics">Student usage</h2>
+            <h2 class="card-title" id="study-help-analytics">Student usage</h2>
             <p class="small text-body-secondary mb-0">Counts by event date in Kuala Lumpur. Browser clicks may be undercounted.</p>
           </div>
           <form class="d-flex flex-wrap align-items-end gap-2" method="get">

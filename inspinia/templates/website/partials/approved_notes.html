@@ -1,9 +1,9 @@
 {% if note_entries %}
   <section class="website-section" aria-labelledby="approved-notes-title">
-    <p class="website-kicker">Reviewed mathematical notes</p>
+    <p class="small fw-semibold text-uppercase text-primary-emphasis mb-2">Reviewed mathematical notes</p>
     <h2 id="approved-notes-title">{% if query %}Notes matching your search{% else %}Ideas to study{% endif %}</h2>
     {% for note in note_entries %}
-      <a class="website-entry" href="{{ note.public_url }}">
+      <a class="list-group-item list-group-item-action border rounded p-3 mb-2" href="{{ note.public_url }}">
         <span>{{ note.document.get_kind_display }}{% if note.document.canonical_area %} · {{ note.document.canonical_area.name }}{% elif note.document.canonical_concept %} · {{ note.document.canonical_concept.name }}{% endif %}</span>
         <h3>{{ note.revision.title }} <span aria-hidden="true">↗</span></h3>
         <p>{{ note.revision.summary }}</p>

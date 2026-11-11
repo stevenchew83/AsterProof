@@ -23,13 +23,13 @@
     <div class="lp-quality">All time · Coverage {% if coverage.technique_progress_catalog_last_refreshed_at %}updated {{ coverage.technique_progress_catalog_last_refreshed_at|timesince }} ago{% else %}not built yet{% endif %}{% if not coverage.technique_progress_catalog_is_current %} <span class="badge bg-warning-subtle text-warning">Awaiting refresh</span>{% endif %}. A problem can appear in several areas or tags.</div>
   </section>
   <section class="card">
-    <div class="card-header"><h2 class="header-title mb-0">Main topics</h2></div>
+    <div class="card-header"><h2 class="card-title mb-0">Main topics</h2></div>
     <div class="card-body pt-1">
       {% include 'pages/partials/shared-coverage-table.html' with rows=coverage.main_topic_rows label='Topic' %}
     </div>
   </section>
   <section class="card">
-    <div class="card-header d-flex flex-wrap align-items-center justify-content-between gap-2"><h2 class="header-title mb-0">Areas &amp; subtopics</h2><span class="text-body-secondary fs-xs">Largest remaining gaps first</span></div>
+    <div class="card-header d-flex flex-wrap align-items-center justify-content-between gap-2"><h2 class="card-title mb-0">Areas &amp; subtopics</h2><span class="text-body-secondary fs-xs">Largest remaining gaps first</span></div>
     <div class="card-body pt-1">
       {% include 'pages/partials/shared-coverage-table.html' with rows=coverage.subtopic_rows label='Area' paginated=True %}
     </div>

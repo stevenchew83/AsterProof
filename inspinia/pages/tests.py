@@ -4608,7 +4608,7 @@ def test_problem_statement_editor_page_renders_tools_for_admin(client):
     assert 'id="statement-editor-table"' in response_html
     assert 'id="statement-editor-modal"' in response_html
     assert 'id="statement-editor-form"' in response_html
-    assert response_html.count('class="app-page-header-title"') == 1
+    assert response_html.count('class="page-main-title m-0"') == 1
     assert "Review imported statement text" in response_html
     assert "Problem code" in response_html
     assert "Topic" in response_html
@@ -6220,13 +6220,13 @@ def test_contest_dashboard_listing_view_filters_selected_contest_and_year_for_ad
     assert grouped_years[0]["problems"][0]["problem_code"] == "P1"
     assert grouped_years[0]["problems"][0]["statement_preview"] == "Statement one"
     response_html = response.content.decode("utf-8")
-    assert '<h1 class="app-page-header-title">USAMO</h1>' in response_html
+    assert '<h1 class="page-main-title m-0">USAMO</h1>' in response_html
     assert "Back to advanced analytics" in response_html
     assert f'href="{response.context["contest_back_url"]}"' in response_html
-    assert '<nav class="app-page-header-context" aria-label="Breadcrumb">' in response_html
-    assert '<dl class="app-page-header-stats" aria-label="Contest overview">' in response_html
-    assert re.search(r"Visible problems\s*</dt>\s*<dd>\s*1\s*</dd>", response_html)
-    assert re.search(r"My solved\s*</dt>\s*<dd>\s*1\s*</dd>", response_html)
+    assert '<nav aria-label="Breadcrumb">' in response_html
+    assert '<dl class="row row-cols-2 row-cols-lg-4 g-3 mb-3" aria-label="Contest overview">' in response_html
+    assert re.search(r"Visible problems\s*</dt>\s*<dd[^>]*>\s*1\s*</dd>", response_html)
+    assert re.search(r"My solved\s*</dt>\s*<dd[^>]*>\s*1\s*</dd>", response_html)
     assert "contest-dashboard-filter-toolbar" in response_html
     assert "contest-dashboard-bulk-bar" in response_html
     assert "Bulk selection" not in response_html
@@ -9794,7 +9794,7 @@ def test_user_solution_record_list_renders_admin_inventory(client):
         assert f"<dt>{label}</dt>" in response_html
     assert "1 problem in loaded results" in response_html
     assert "Latest update" in response_html
-    assert 'class="app-table-compact table table-sm table-hover align-middle w-100 mb-0"' in response_html
+    assert 'class="table-sm table table-hover align-middle w-100 mb-0"' in response_html
     for column in ("Solution / problem", "Author", "Status", "AI review", "Published date", "Updated", "Actions"):
         assert f'title: "{column}"' in response_html
     assert 'title: "Content"' not in response_html
@@ -26243,8 +26243,7 @@ def test_user_activity_dashboard_shows_only_current_users_completion_history(cli
     assert "Current window" in response_html
     assert "excluded from these time-based visuals" in response_html
     assert response_html.index("Completion history") < response_html.index("Completion import")
-    assert "--activity-heatmap-level-4: #216e39;" in response_html
-    assert "--activity-heatmap-level-4: #39d353;" in response_html
+    assert "--activity-heatmap-level-4: var(--theme-success-text-emphasis);" in response_html
     assert 'name="q"' in response_html
     assert "Apply filters" in response_html
     assert "bootstrap.Tooltip.getOrCreateInstance" in response_html

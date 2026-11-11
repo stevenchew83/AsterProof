@@ -1,0 +1,116 @@
+//
+// _authentication.scss
+//
+
+// Authentication
+.auth-box {
+    @extend .position-relative;
+    @extend .min-vh-100;
+    padding: 50px;
+
+    .card {
+        border-radius: 15px;
+        overflow: hidden;
+    }
+
+    .card-body {
+        padding: 50px;
+    }
+}
+
+.auth-card-bg-img {
+    height: auto;
+    width: 100%;
+}
+
+// Auth Brand Logo (Light & Dark Mode)
+.auth-brand {
+    margin-bottom: 2rem;
+
+    .logo-dark {
+        display: block;
+    }
+
+    .logo-light {
+        display: none;
+    }
+
+    .logo-dark,
+    .logo-light {
+        img {
+            height: 30px;
+        }
+    }
+
+    h4 {
+        font-size: 16px;
+    }
+}
+
+// Auth Page Side Image
+.card-side-img {
+    background-position: center;
+    background-repeat: no-repeat;
+    background-size: cover;
+    background-image: url("../images/auth.jpg");
+}
+
+.auth-overlay {
+    background: linear-gradient(to top, #313a46, rgba(49, 58, 70, 0.8), rgba(49, 58, 70, 0.5));
+}
+
+// Dark mode
+html[data-bs-theme='dark'] {
+    .auth-brand {
+        .logo-light {
+            display: block;
+        }
+
+        .logo-dark {
+            display: none;
+        }
+    }
+}
+
+.auth-box-form {
+    h4 {
+        font-size: 16px;
+    }
+}
+
+// Responsive
+@include media-breakpoint-up(md) {
+    .auth-box-form {
+        min-width: 425px;
+        max-width: 475px;
+    }
+    .auth-sub-text {
+        max-width: 300px;
+    }
+}
+
+// Auth Line
+.auth-line {
+    position: relative;
+
+    &::after {
+        content: "";
+        position: absolute;
+        width: 100%;
+        height: 3px;
+        inset-inline-start: 0;
+        inset-inline-end: 0;
+        border-top: 1px dashed var(--#{$prefix}border-color);
+        border-bottom: 1px dashed var(--#{$prefix}border-color);
+        top: 11px;
+    }
+
+    span {
+        display: inline-block;
+        position: relative;
+        z-index: 1;
+        background-color: var(--#{$prefix}secondary-bg);
+        padding: 2px 16px;
+        font-weight: $font-weight-medium;
+    }
+}

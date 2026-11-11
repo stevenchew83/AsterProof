@@ -28,9 +28,11 @@ function startGeometry() {
         resources.add(material);
         return material;
     };
-    const ink = lineMaterial(0x315c53, 0.8);
-    const accent = lineMaterial(0x448f7c, 0.65);
-    const faint = lineMaterial(0x6d9786, 0.22);
+    const theme = getComputedStyle(root);
+    const themeColor = name => theme.getPropertyValue(`--theme-${name}`).trim();
+    const ink = lineMaterial(themeColor("body-color"), 0.8);
+    const accent = lineMaterial(themeColor("primary"), 0.65);
+    const faint = lineMaterial(themeColor("secondary-color"), 0.22);
 
     function line(points, material, parent = construction, loop = false) {
         const geometry = new THREE.BufferGeometry().setFromPoints(points.map(point => new THREE.Vector3(...point)));
@@ -62,11 +64,11 @@ function startGeometry() {
     const edges = new THREE.EdgesGeometry(solid);
     solid.dispose();
     resources.add(edges);
-    const wireframe = new THREE.LineSegments(edges, lineMaterial(0x6c8d7b, 0.15));
+    const wireframe = new THREE.LineSegments(edges, lineMaterial(themeColor("secondary-color"), 0.15));
     orbit.add(wireframe);
 
     const dotGeometry = new THREE.SphereGeometry(0.035, 10, 8);
-    const dotMaterial = new THREE.MeshBasicMaterial({color: 0x26766c});
+    const dotMaterial = new THREE.MeshBasicMaterial({color: themeColor("primary")});
     resources.add(dotGeometry);
     resources.add(dotMaterial);
     [...vertices, [0, 0, 0]].forEach(point => {

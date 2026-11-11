@@ -14,7 +14,7 @@
 {% block page_content %}
   {% url 'pages:community_problem_list' as community_list_url %}
   <div class="container-fluid community-compose">
-    <header class="page-title-head app-page-header">
+    <header class="page-title-head d-flex flex-wrap align-items-center gap-2">
       {% if problem %}
         {% include 'partials/page-header-intro.html' with title='Edit problem' back_url=community_list_url back_label='Community problems' page_icon='ti-pencil' only %}
       {% else %}
@@ -207,7 +207,7 @@
               <div class="card-body">
                 <div class="d-flex align-items-center gap-2 mb-2">
                   <i class="ti ti-send text-primary fs-20" aria-hidden="true"></i>
-                  <h2 class="header-title fs-16 mb-0" id="community-submit-heading">Review and submit</h2>
+                  <h2 class="card-title fs-16 mb-0" id="community-submit-heading">Review and submit</h2>
                 </div>
                 <input type="hidden" name="similarity_token" value="{{ similarity_token }}" />
                 {% if similarity.matches %}

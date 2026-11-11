@@ -2,27 +2,26 @@
 {% load static %}
 {% block public_stylesheet %}{% static 'css/public-writer.min.css' %}{% endblock public_stylesheet %}
 {% block public_content %}
-  <section class="website-hero" aria-labelledby="hero-title">
-    <div class="website-hero-grid" aria-hidden="true"></div>
-    <div class="website-container website-hero-inner">
-      <div class="website-hero-copy"><p class="website-kicker"><span></span> A place for mathematical thinking</p><h1 id="hero-title">A little insight.<br><em>Infinite possibilities.</em></h1><p class="website-hero-description">Explore olympiad mathematics, connect ideas, and understand the proof.</p><a href="{% url 'website:library' %}" class="website-button">Explore the library <span aria-hidden="true">↗</span></a></div>
+  <section class="section-custom bg-light-subtle border-bottom" aria-labelledby="hero-title">
+    <div class="container website-hero-inner">
+      <div class="py-4"><h1 id="hero-title" class="display-6 fw-bold">Olympiad mathematics, <span class="text-primary-emphasis">ideas, and proofs</span></h1><p class="website-hero-description">Explore olympiad mathematics, connect ideas, and understand the proof.</p><a href="{% url 'website:library' %}" class="btn btn-dark">Explore the library <span aria-hidden="true">↗</span></a></div>
       <div class="website-geometry" data-geometry data-geometry-src="{% static 'js/website-geometry.bundle.js' %}">
         <svg class="website-geometry-fallback" viewBox="0 0 600 600" fill="none" aria-hidden="true"><circle cx="300" cy="300" r="205"/><ellipse cx="300" cy="300" rx="205" ry="83" transform="rotate(-25 300 300)"/><path d="M300 95 122.5 402.5H477.5Z"/><circle cx="300" cy="300" r="102.5"/><path d="M70 300H530M300 70V530" stroke-dasharray="3 8"/><circle cx="300" cy="95" r="4"/><circle cx="122.5" cy="402.5" r="4"/><circle cx="477.5" cy="402.5" r="4"/></svg>
-        <canvas aria-hidden="true"></canvas><span class="website-geometry-label website-geometry-label-a" aria-hidden="true">A</span><span class="website-geometry-label website-geometry-label-b" aria-hidden="true">B</span><span class="website-geometry-label website-geometry-label-c" aria-hidden="true">C</span><div class="website-geometry-caption"><span>Different angles. Deeper understanding.</span><button type="button" data-motion-toggle hidden aria-pressed="false">Pause motion</button></div>
+        <canvas aria-hidden="true"></canvas><span class="website-geometry-label website-geometry-label-a" aria-hidden="true">A</span><span class="website-geometry-label website-geometry-label-b" aria-hidden="true">B</span><span class="website-geometry-label website-geometry-label-c" aria-hidden="true">C</span><div class="website-geometry-caption"><button class="btn btn-light btn-sm" type="button" data-motion-toggle hidden aria-pressed="false">Pause motion</button></div>
       </div>
     </div>
   </section>
   <section id="solution-tool" class="public-tool-home">
-    <div class="website-container">
-      <div class="public-tool-home-intro"><div><p class="website-kicker">Solution Writer</p><h2>Write your proof.<br><em>See it take shape.</em></h2><p>Turn LaTeX or plain text into a PDF, with live preview. Try the inequality below or write your own solution. No account required.</p></div><a class="website-text-link" href="{% url 'website:solution_preview' %}">Open Solution Writer <span aria-hidden="true">↗</span></a></div>
+    <div class="container">
+      <div class="public-tool-home-intro"><div><p class="small fw-semibold text-uppercase text-primary-emphasis mb-2">Solution Writer</p><h2>Write your proof.<br><em>See it take shape.</em></h2><p>Turn LaTeX or plain text into a PDF, with live preview. Try the inequality below or write your own solution. No account required.</p></div><a class="btn btn-link link-body-emphasis p-0" href="{% url 'website:solution_preview' %}">Open Solution Writer <span aria-hidden="true">↗</span></a></div>
       {% include 'website/partials/solution_preview.html' %}
     </div>
   </section>
-  <section id="the-library" class="website-section website-container website-library-intro">
-    <div class="website-section-intro"><p class="website-kicker">The AsterProof library</p><h2>Every idea has<br><em>a place to begin.</em></h2><p>Choose a subject. Explore its areas, concepts, and lectures at your own pace.</p><a class="website-text-link" href="{% url 'website:library' %}">Browse the library <span aria-hidden="true">↗</span></a></div>
+  <section id="the-library" class="website-section container website-library-intro">
+    <div class="website-section-intro"><p class="small fw-semibold text-uppercase text-primary-emphasis mb-2">The AsterProof library</p><h2>Every idea has<br><em>a place to begin.</em></h2><p>Choose a subject. Explore its areas, concepts, and lectures at your own pace.</p><a class="btn btn-link link-body-emphasis p-0" href="{% url 'website:library' %}">Browse the library <span aria-hidden="true">↗</span></a></div>
     {% include "website/partials/subjects.html" %}
   </section>
-  <section class="website-process"><div class="website-container"><div class="website-process-heading"><p class="website-kicker">Understanding, one layer deeper</p><h2>Know what works.<br><em>Understand why.</em></h2></div><div class="website-process-grid"><article><span>01 / The idea</span><h3>Notice the structure.</h3><p>Understand the concept and when to use it.</p></article><article><span>02 / The reasoning</span><h3>Follow the proof.</h3><p>Turn a small observation into a rigorous argument.</p></article><article><span>03 / The practice</span><h3>Make it your own.</h3><p>Work through problems and reflect on your progress.</p></article></div><a class="website-text-link" href="{% url 'website:problem_solving' %}">Explore the problem-solving workspace <span aria-hidden="true">↗</span></a></div></section>
-  {% if note_entries or public_pathways %}<div class="website-container">{% include "website/partials/approved_notes.html" %}{% include "website/partials/learning_pathways.html" %}</div>{% endif %}
+  <section class="section-custom bg-light-subtle"><div class="container"><div class="mb-4"><p class="small fw-semibold text-uppercase text-primary-emphasis mb-2">Understanding, one layer deeper</p><h2>Know what works.<br><em>Understand why.</em></h2></div><div class="row g-3 mb-4"><article class="col-md-4"><div class="card h-100"><div class="card-body"><h3 class="h5">Notice the structure</h3><p class="mb-0">Understand the concept and when to use it.</p></div></div></article><article class="col-md-4"><div class="card h-100"><div class="card-body"><h3 class="h5">Follow the proof</h3><p class="mb-0">Turn a small observation into a rigorous argument.</p></div></div></article><article class="col-md-4"><div class="card h-100"><div class="card-body"><h3 class="h5">Practise</h3><p class="mb-0">Work through problems and reflect on your progress.</p></div></div></article></div><a class="btn btn-link link-body-emphasis p-0" href="{% url 'website:problem_solving' %}">Explore the problem-solving workspace <span aria-hidden="true">↗</span></a></div></section>
+  {% if note_entries or public_pathways %}<div class="container">{% include "website/partials/approved_notes.html" %}{% include "website/partials/learning_pathways.html" %}</div>{% endif %}
 {% endblock public_content %}
 {% block website_javascript %}<script defer src="{% static 'js/public-home.bundle.js' %}"></script>{% endblock website_javascript %}

@@ -11,9 +11,15 @@
             color: var(--#{$prefix}primary);
         }
     }
-    +.breadcrumb-item {
+    + .breadcrumb-item {
         &::before {
-            font-family: "tabler-icons";
+            content: '';
+            display: inline-block;
+            width: 1em;
+            height: 1em;
+            margin: 0.25em;
+            background: no-repeat center/contain
+                url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%236b7280' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath stroke='none' d='M0 0h24v24H0z' fill='none'/%3E%3Cpath d='M9 6l6 6l-6 6'/%3E%3C/svg%3E");
         }
     }
 }

@@ -12,7 +12,7 @@
       <div class="card h-100">
         <div class="card-header border-0 pb-0 d-flex justify-content-between align-items-start">
           <div>
-            <h4 class="header-title mb-1">{{ formula.name }} <span class="text-muted">v{{ formula.version }}</span></h4>
+            <h4 class="card-title mb-1">{{ formula.name }} <span class="text-muted">v{{ formula.version }}</span></h4>
             <p class="text-muted fs-xs mb-0">
               {{ formula.season_year }} / {{ formula.division|default:'overall' }} / {{ formula.get_purpose_display }}
             </p>
@@ -27,7 +27,7 @@
             <p class="mb-0"><strong>Notes:</strong> {{ formula.notes|default:'-' }}</p>
           </div>
           <div class="app-table-region table-responsive" tabindex="0" role="region" aria-label="Scrollable results">
-            <table class="app-table-compact table table-sm table-striped mb-0">
+            <table class="table-sm table table-striped mb-0">
               <thead>
                 <tr>
                   <th>#</th>

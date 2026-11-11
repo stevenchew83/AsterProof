@@ -9,7 +9,7 @@
 <link rel="stylesheet" href="{% static 'plugins/datatables/dataTables.bootstrap5.min.css' %}">
 <style>
   .solution-picker-preview {
-    color: var(--ins-secondary-color);
+    color: var(--theme-secondary-color);
     font-size: 0.82rem;
     line-height: 1.6;
   }
@@ -24,7 +24,7 @@
   #solution-problem-picker-table_wrapper .dt-length label,
   #solution-problem-picker-table_wrapper .dt-info {
     margin-bottom: 0;
-    color: var(--ins-secondary-color);
+    color: var(--theme-secondary-color);
     font-size: 0.82rem;
   }
 
@@ -126,7 +126,7 @@
   <div class="card mt-3">
     <div class="card-header border-bottom d-flex flex-wrap align-items-center justify-content-between gap-2">
       <div>
-        <h4 class="header-title mb-0">Pick a problem</h4>
+        <h4 class="card-title mb-0">Pick a problem</h4>
         <p class="text-muted fs-xs mb-0">Choose from the shared problem library, then start your own solution.</p>
       </div>
       <a href="{% url 'solutions:my_solution_list' %}" class="btn btn-outline-secondary btn-sm">Back to my solutions</a>
@@ -138,47 +138,49 @@
       </div>
       {% endif %}
       {% if statement_problem_rows %}
-      <table data-paging-type="simple" id="solution-problem-picker-table" class="app-table-compact table table-striped table-bordered align-middle w-100">
-        <thead>
-          <tr>
-            <th>Problem</th>
-            <th>Statement</th>
-            <th>Your status</th>
-            <th class="text-end">Actions</th>
-          </tr>
-        </thead>
-        <tbody>
-          {% for row in statement_problem_rows %}
-          <tr>
-            <td>
-              <span class="fw-semibold">{{ row.problem_label }}</span>
-              <span class="text-muted fs-12 app-table-meta">{{ row.problem_topic|default:"Uncategorized" }}{% if row.problem_mohs is not None %} · MOHS {{ row.problem_mohs }}{% endif %}</span>
-            </td>
-            <td>
-              <span class="fw-semibold">{{ row.statement_label }}</span>
-              <span class="text-muted fs-12 app-table-meta">Updated {{ row.statement_updated_at_label }}</span>
-              <details class="app-table-details ms-2"><summary>Preview</summary><div class="app-table-details-body">{{ row.statement_preview }}</div></details>
-            </td>
-            <td>
-              <span class="badge {{ row.solution_status_badge_class }}">{{ row.solution_status_label }}</span>
-            </td>
-            <td class="text-end">
-              <div class="app-table-actions d-inline-flex justify-content-end gap-2">
-                {% if row.solution_start_url %}
-                {% include 'solutions/partials/statement-solution-start.html' with solution_start_url=row.solution_start_url problem_label=row.problem_label button_label=row.editor_button_label %}
-                {% else %}
-                <a href="{{ row.editor_url }}" class="btn btn-primary btn-sm">{{ row.editor_button_label }}</a>
-                {% endif %}
-                {% if row.problem_url %}<a href="{{ row.problem_url }}" class="btn btn-outline-secondary btn-sm">Solution page</a>{% endif %}
-                {% if row.contest_archive_url %}
-                <a href="{{ row.contest_archive_url }}" class="btn btn-outline-secondary btn-sm">Library</a>
-                {% endif %}
-              </div>
-            </td>
-          </tr>
-          {% endfor %}
-        </tbody>
-      </table>
+      <div class="app-table-region table-responsive" role="region" aria-label="Choose a problem" tabindex="0">
+        <table data-paging-type="simple" id="solution-problem-picker-table" class="table-sm table table-striped table-bordered align-middle w-100">
+          <thead>
+            <tr>
+              <th>Problem</th>
+              <th>Statement</th>
+              <th>Your status</th>
+              <th class="text-end">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for row in statement_problem_rows %}
+            <tr>
+              <td>
+                <span class="fw-semibold">{{ row.problem_label }}</span>
+                <span class="text-muted fs-12 app-table-meta">{{ row.problem_topic|default:"Uncategorized" }}{% if row.problem_mohs is not None %} · MOHS {{ row.problem_mohs }}{% endif %}</span>
+              </td>
+              <td>
+                <span class="fw-semibold">{{ row.statement_label }}</span>
+                <span class="text-muted fs-12 app-table-meta">Updated {{ row.statement_updated_at_label }}</span>
+                <details class="app-table-details ms-2"><summary>Preview</summary><div class="app-table-details-body">{{ row.statement_preview }}</div></details>
+              </td>
+              <td>
+                <span class="badge {{ row.solution_status_badge_class }}">{{ row.solution_status_label }}</span>
+              </td>
+              <td class="text-end">
+                <div class="app-table-actions d-inline-flex justify-content-end gap-2">
+                  {% if row.solution_start_url %}
+                  {% include 'solutions/partials/statement-solution-start.html' with solution_start_url=row.solution_start_url problem_label=row.problem_label button_label=row.editor_button_label %}
+                  {% else %}
+                  <a href="{{ row.editor_url }}" class="btn btn-primary btn-sm">{{ row.editor_button_label }}</a>
+                  {% endif %}
+                  {% if row.problem_url %}<a href="{{ row.problem_url }}" class="btn btn-outline-secondary btn-sm">Solution page</a>{% endif %}
+                  {% if row.contest_archive_url %}
+                  <a href="{{ row.contest_archive_url }}" class="btn btn-outline-secondary btn-sm">Library</a>
+                  {% endif %}
+                </div>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
       {% else %}
       <div class="alert alert-info mb-0" role="alert">
         No active problems are available yet. Once a problem is added to the library, you can start writing here.

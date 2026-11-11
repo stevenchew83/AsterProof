@@ -85,7 +85,7 @@ def test_homepage_and_tool_are_public_for_anonymous_and_pending_users(client):
             assert "data-workspace-handoff" in html
             assert "data-draft-recovery" in html
             assert 'aria-label="Main navigation"' in html
-            assert 'class="website-tools-menu"' in html
+            assert 'data-bs-toggle="dropdown" aria-expanded="false">Tools</button>' in html
             assert reverse("website:solution_preview") in html
             assert response.context["form"]["body_source"].value()
             assert "data-solution-source" in html

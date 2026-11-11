@@ -1,10 +1,17 @@
-<form method="post" action="{% url 'website:newsletter_subscribe' %}" class="website-newsletter-form">
+{% load crispy_forms_field %}
+<form method="post" action="{% url 'website:newsletter_subscribe' %}">
   {% csrf_token %}
   {{ newsletter_form.company }}
-  <label for="{{ newsletter_form.email.id_for_label }}">Your email address</label>
-  <div class="website-email-row">{{ newsletter_form.email }}<button type="submit" class="website-button">Keep me curious <span aria-hidden="true">↗</span></button></div>
-  {% if newsletter_form.email.errors %}<div class="website-field-error" role="alert">{{ newsletter_form.email.errors }}</div>{% endif %}
-  <label class="website-consent" for="{{ newsletter_form.consent.id_for_label }}">{{ newsletter_form.consent }}<span>{{ newsletter_form.consent.label }} I can unsubscribe at any time.</span></label>
-  {% if newsletter_form.consent.errors %}<div class="website-field-error" role="alert">{{ newsletter_form.consent.errors }}</div>{% endif %}
-  <p class="website-fineprint">Confirm by email to subscribe. Read our <a href="{% url 'website:privacy' %}">Privacy Policy</a>.</p>
+  <label class="form-label" for="{{ newsletter_form.email.id_for_label }}">Your email address</label>
+  <div class="input-group mb-2">
+    {% crispy_field newsletter_form.email 'class' 'form-control' %}
+    <button type="submit" class="btn btn-dark">Subscribe</button>
+  </div>
+  {% if newsletter_form.email.errors %}<div class="alert alert-danger" role="alert">{{ newsletter_form.email.errors }}</div>{% endif %}
+  <div class="form-check">
+    {% crispy_field newsletter_form.consent 'class' 'form-check-input' %}
+    <label class="form-check-label" for="{{ newsletter_form.consent.id_for_label }}">{{ newsletter_form.consent.label }} I can unsubscribe at any time.</label>
+  </div>
+  {% if newsletter_form.consent.errors %}<div class="alert alert-danger" role="alert">{{ newsletter_form.consent.errors }}</div>{% endif %}
+  <p class="form-text mb-0">Confirm by email to subscribe. Read our <a class="link-body-emphasis" href="{% url 'website:privacy' %}">Privacy Policy</a>.</p>
 </form>

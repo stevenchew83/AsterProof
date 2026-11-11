@@ -9,16 +9,16 @@
     background: $topbar-bg;
     box-shadow: $card-box-shadow;
     height: $topbar-height;
-    margin-left: $sidenav-width;
-    transition: margin-left .25s ease-in-out;
+    margin-inline-start: $sidenav-width;
+    transition: margin-left 0.25s ease-in-out;
 
     .topbar-menu {
         display: flex;
         justify-content: space-between;
         position: relative;
         border-bottom: $card-border-width solid $card-border-color;
-        padding-left: $grid-gutter-width;
-        padding-right: $grid-gutter-width;
+        padding-inline-start: $grid-gutter-width;
+        padding-inline-end: $grid-gutter-width;
 
         .topbar-item {
             display: flex;
@@ -37,6 +37,8 @@
                 cursor: pointer;
                 color: $topbar-item-color;
                 position: relative;
+                height: 100%;
+                padding: 0 6px;
 
                 &:hover,
                 &:active,
@@ -44,12 +46,19 @@
                     color: $topbar-item-hover-color;
                 }
 
+                .topbar-link-icon {
+                    font-size: 22px;
+                }
             }
 
             .topbar-badge {
                 position: absolute;
-                top: -10px;
-                right: -1px;
+                top: 9px;
+                inset-inline-end: -1px;
+            }
+
+            .dropdown {
+                height: 100%;
             }
         }
     }
@@ -62,7 +71,7 @@
 
 // Topbar Logo
 .logo-topbar {
-    float: left;
+    float: inline-start;
     display: none;
     line-height: $topbar-height;
     padding: 0 $spacer * 0.5;
@@ -80,8 +89,8 @@
     }
 }
 
-html[data-topbar-color="dark"],
-html[data-bs-theme="dark"] {
+html[data-topbar-color='dark'],
+html[data-bs-theme='dark'] {
     .logo-topbar {
         .logo-light {
             display: block;
@@ -93,48 +102,49 @@ html[data-bs-theme="dark"] {
     }
 }
 
-html[data-topbar-color="dark"],
-html[data-topbar-color="gradient"] {
+html[data-topbar-color='dark'],
+html[data-topbar-color='gradient'] {
     .app-topbar {
-        .btn-primary {
-            background-color: rgba(var(--#{$prefix}white-rgb), 0.1);
-            border-color: transparent !important;
+        .btn-default {
+            background-color: rgba(var(--#{$prefix}white-rgb), 0.1) !important;
         }
     }
 
-        &:not([data-bs-theme="dark"]) {
-            .app-topbar {
-                .app-search {
-                    .app-search-icon {
-                        color: rgba(var(--#{$prefix}white-rgb), 0.5) !important;
-                    }
-    
-                    input::placeholder {
-                        color: rgba(var(--#{$prefix}white-rgb), 0.5) !important;
-                    }
+    &:not([data-bs-theme='dark']) {
+        .app-topbar {
+            .app-search {
+                .app-search-icon {
+                    color: rgba(var(--#{$prefix}white-rgb), 0.5) !important;
+                }
+
+                input::placeholder {
+                    color: rgba(var(--#{$prefix}white-rgb), 0.5) !important;
                 }
             }
         }
+    }
 }
 
-
-// Topbar light/Dark Mode icon 
+// Topbar light/Dark Mode icon
 #light-dark-mode {
     .mode-light-sun {
         display: none;
     }
 }
-html[data-bs-theme="dark"] {
+
+html[data-bs-theme='dark'] {
     #light-dark-mode {
         .mode-light-sun {
             display: block;
         }
+
         .mode-light-moon {
             display: none;
         }
     }
 }
 
+// User
 .nav-user {
     display: flex;
     align-items: center;
@@ -143,14 +153,17 @@ html[data-bs-theme="dark"] {
     transition: none;
 
     &::before {
-        content: "";
+        content: '';
         height: 18px;
         opacity: 0.35;
         width: 1px;
-        border-left: 1px solid $topbar-item-color;
+        border-inline-start: 1px solid $topbar-item-color;
+    }
+
+    .pro-username {
+        font-size: $font-size-sm;
     }
 }
-
 
 @media (max-width: 375px) {
     .logo-topbar {
@@ -160,7 +173,6 @@ html[data-bs-theme="dark"] {
 
 @include media-breakpoint-down(sm) {
     .app-topbar {
-
         .topbar-menu {
             position: initial;
 
@@ -194,6 +206,18 @@ html[data-bs-theme="dark"] {
 }
 
 //
+.sidenav-toggle-button {
+    flex: none;
+    background-color: var(--#{$prefix}primary) !important;
+    color: $white !important;
+    border: none !important;
+
+    i, svg {
+        font-size: 22px;
+    }
+}
+
+//
 // Topbar Search
 //
 .topbar-search {
@@ -219,16 +243,60 @@ html[data-bs-theme="dark"] {
         text-align: center;
         color: $white;
         top: -12px;
-        right: -8px;
+        inset-inline-end: -8px;
         border: 2px solid $card-bg;
         line-height: 18px;
         font-size: 11px;
     }
+
+    .notification-item-icon {
+        font-size: 22px;
+    }
+}
+
+//
+// Theme Setting Btn
+//
+.btn-theme-setting {
+    position: relative;
+
+    &::before {
+        content: "";
+        position: absolute;
+        inset-inline-end: 6px;
+        top: 22px;
+        width: 5px;
+        height: 5px;
+        border-radius: 50%;
+        background-color: var(--#{$prefix}danger);
+        transform: translateY(-50%);
+        animation: blinkDot 1.2s infinite ease-in-out;
+        z-index: 1;
+    }
+
+    i {
+        height: 22px;
+        width: 22px;
+    }
+}
+
+@keyframes blinkDot {
+    0% {
+        box-shadow: 0 0 0 0 rgba(var(--#{$prefix}danger-rgb), 0.6);
+    }
+
+    70% {
+        box-shadow: 0 0 0 6px rgba(var(--#{$prefix}danger-rgb), 0);
+    }
+
+    100% {
+        box-shadow: 0 0 0 0 rgba(var(--#{$prefix}danger-rgb), 0);
+    }
 }
 
 // Manage for light & dark logo
-html[data-menu-color="light"][data-topbar-color="dark"],
-html[data-menu-color="light"][data-topbar-color="gradient"] {
+html[data-menu-color='light'][data-topbar-color='dark'],
+html[data-menu-color='light'][data-topbar-color='gradient'] {
     .sidenav-menu {
         .logo {
             background: $topbar-bg;
@@ -237,6 +305,10 @@ html[data-menu-color="light"][data-topbar-color="gradient"] {
 
         .sidenav-user {
             margin-top: 10px;
+        }
+
+        .button-on-hover {
+            color: $white !important;
         }
     }
 }

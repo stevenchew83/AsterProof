@@ -11,7 +11,7 @@
     <div class="col-md-3 d-flex gap-2"><button class="btn btn-primary" type="submit">Apply</button><a class="btn btn-outline-secondary" href="{% url 'solutions:evaluation_workspace' %}">Reset</a></div>
   </form>
   <div class="app-table-region table-responsive" tabindex="0" role="region" aria-label="Assigned evaluation cases">
-    <table class="table table-striped app-table-compact align-middle"><thead><tr><th>Case</th><th>Domain</th><th>Input version</th><th>Created</th><th>Action</th></tr></thead><tbody>
+    <table class="table table-striped table-sm align-middle"><thead><tr><th>Case</th><th>Domain</th><th>Input version</th><th>Created</th><th>Action</th></tr></thead><tbody>
     {% for item in page_obj %}<tr><td><a class="fw-semibold" href="{% url 'solutions:evaluation_case_detail' item.pk %}">{{ item.pk }}</a></td><td>{{ item.family.domain }}</td><td><code>{{ item.bundle.digest|slice:':12' }}</code></td><td>{{ item.created_at|date:'j M Y, H:i' }}</td><td><a class="btn btn-outline-primary btn-sm" href="{% url 'solutions:evaluation_case_detail' item.pk %}">Open case</a></td></tr>
     {% empty %}<tr><td colspan="5" class="text-muted py-4">No assigned cases match these filters.</td></tr>{% endfor %}
     </tbody></table>

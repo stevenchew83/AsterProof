@@ -1,4 +1,4 @@
-// 
+//
 // Minimal Theme Mode
 //
 
@@ -14,10 +14,10 @@ $theme-minimal-colors: (
 
 @if $theme-minimal ==true {
 
+    html[data-skin='minimal'] {
 
-    html[data-skin="minimal"] {
-
-        --#{$prefix}font-sans-serif:        "IBM Plex Sans", sans-serif;
+        --#{$prefix}font-sans-serif: "IBM Plex Sans", sans-serif;
+        --#{$prefix}font-family-secondary: "IBM Plex Sans", sans-serif;
 
         --#{$prefix}body-font-size:               0.875rem;
         --#{$prefix}body-bg:               #ffffff;
@@ -37,7 +37,7 @@ $theme-minimal-colors: (
         --#{$prefix}font-size-lg:           16px;
         --#{$prefix}font-size-xl:           18px;
         --#{$prefix}font-size-xxl:          20px;
-        
+
         // Menu items
         --#{$prefix}sidenav-item-icon-size:                  1.125rem;
         --#{$prefix}sidenav-item-gap:                        12px;
@@ -69,7 +69,7 @@ $theme-minimal-colors: (
             --#{$prefix}sidenav-bg:                       #f6f8fb;
             --#{$prefix}sidenav-border-color:             #e7e9eb;
             --#{$prefix}sidenav-item-color:               #{$gray-700};
-            --#{$prefix}sidenav-item-hover-color:         #1ab394;
+            --#{$prefix}sidenav-item-hover-color:         #212b29;
             --#{$prefix}sidenav-item-hover-bg:          #f1f0f5;
             --#{$prefix}sidenav-item-active-color:        #212b29;
             --#{$prefix}sidenav-item-active-bg:         #f1f0f5;
@@ -188,25 +188,68 @@ $theme-minimal-colors: (
             --#{$prefix}#{$name}-text-emphasis: #{shade-color($value, 25%)};
         }
 
-        //Custom CSS
-        .sidenav-menu {
-            box-shadow: none;
-        }
+        // Chart Colors
+        --#{$prefix}chart-primary: #1ab394; // Main Color
+        --#{$prefix}chart-primary-rgb: #{to-rgb(#1ab394)};
+        --#{$prefix}chart-secondary: #1c84c6; // Secondary Color
+        --#{$prefix}chart-secondary-rgb: #{to-rgb(#1c84c6)};
+        --#{$prefix}chart-alpha: #0acf97; // Success Color
+        --#{$prefix}chart-alpha-rgb: #{to-rgb(#0acf97)};
+        --#{$prefix}chart-beta: #ed5565; // Danger Color
+        --#{$prefix}chart-beta-rgb: #{to-rgb(#ed5565)};
+        --#{$prefix}chart-gamma: #f8ac59; // Warning Color
+        --#{$prefix}chart-gamma-rgb: #{to-rgb(#f8ac59)};
+        --#{$prefix}chart-delta: #23c6c8; // Info Color
+        --#{$prefix}chart-delta-rgb: #{to-rgb(#23c6c8)};
+        --#{$prefix}chart-zeta: #7b70ef; // Purple or custom Color
+        --#{$prefix}chart-zeta-rgb: #{to-rgb(#7b70ef)};
+        --#{$prefix}chart-gray: #edeff3; // Gray Color
+        --#{$prefix}chart-gray-rgb: #{to-rgb(#edeff3)};
+        --#{$prefix}chart-dark: #396699; // Primary Dark Color
+        --#{$prefix}chart-dark-rgb: #{to-rgb(#396699)};
+        --#{$prefix}chart-border-color: #ecf4fc; // Border Color
+        --#{$prefix}chart-title-color: #bbcae1; // Title Color
     }
 
     @if $enable-dark-mode {
         @include color-mode(dark, true) {
-            &[data-skin="minimal"] {
-                --#{$prefix}body-bg:                     #{#17181e};
-                --#{$prefix}body-bg-rgb:                 #{to-rgb(#17181e)};
+            &[data-skin='minimal'] {
 
-                --#{$prefix}secondary-bg:                #{#1b1c22};
-                --#{$prefix}secondary-bg-rgb:            #{to-rgb(#1b1c22)};
+                --#{$prefix}body-bg: #{#17181e};
+                --#{$prefix}body-bg-rgb: #{to-rgb(#17181e)};
 
-                --#{$prefix}box-shadow:                  #{0px 0px 30px rgba(0, 0, 0, 0.3)};
+                --#{$prefix}secondary-bg: #{#1b1c22};
+                --#{$prefix}secondary-bg-rgb: #{to-rgb(#1b1c22)};
 
-                --#{$prefix}border-color:                 #293036;
+                --#{$prefix}box-shadow: #{0px 0px 30px rgba(0, 0, 0, 0.3)};
+
+                --#{$prefix}border-color: #293036;
+
+                --#{$prefix}chart-gray: #40424f;
+                --#{$prefix}chart-gray-rgb: #{to-rgb(#40424f)};
+
+                --#{$prefix}chart-border-color: #242c31;
+                --#{$prefix}chart-gray: #40424f;
+                --#{$prefix}chart-gray-rgb: #{to-rgb(#40424f)};
             }
+        }
+    }
+}
+
+
+//
+//  Minimal Theme
+//
+html[data-skin='minimal'] {
+
+    .sidenav-menu {
+        box-shadow: none;
+    }
+
+    .app-topbar {
+
+        &.topbar-active {
+            box-shadow: var(--#{$prefix}box-shadow);
         }
     }
 }

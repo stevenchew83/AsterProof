@@ -8,10 +8,10 @@
 {% block page_content %}
   <div class="container-fluid app-table-page page-view-page"
        id="page-view-dashboard">
-    <header class="page-title-head app-page-header">
+    <header class="page-title-head d-flex flex-wrap align-items-center gap-2">
       {% url 'pages:user_activity_dashboard' as page_view_home_url %}
       {% include 'partials/page-header-intro.html' with title='View analytics' subtitle='Admin analytics' page_icon='ti-chart-histogram' back_url=page_view_home_url back_label='AsterProof' only %}
-      <div class="app-page-header-actions">
+      <div class="page-title-actions d-flex flex-wrap align-items-center gap-2">
         <span class="page-view-period"><i class="ti ti-calendar" aria-hidden="true"></i>{{ page_view_date_range.label }}</span>
         <a href="#page-view-learning" class="btn btn-sm btn-outline-secondary"><i class="ti ti-click me-1" aria-hidden="true"></i>Time &amp; clicks</a>
         {% if page_view_stats.total %}
@@ -159,7 +159,7 @@
       {% if not page_view_stats.total %}
         <section class="card page-view-empty" role="status">
           <span class="page-view-empty-icon"><i class="ti ti-chart-histogram" aria-hidden="true"></i></span>
-          <h2 class="header-title">No page views in this range</h2>
+          <h2 class="card-title">No page views in this range</h2>
           <p>Try a wider date range or include another audience.</p>
           <a href="{% url 'pages:page_view_analytics' %}?range=all"
              class="btn btn-sm btn-outline-secondary">Show all time</a>
@@ -171,7 +171,7 @@
                    aria-labelledby="page-view-trend-heading">
             <div class="card-header page-view-panel-heading">
               <div>
-                <h2 class="header-title" id="page-view-trend-heading">Traffic over time</h2>
+                <h2 class="card-title" id="page-view-trend-heading">Traffic over time</h2>
                 <p class="text-muted fs-xs mb-0">{{ page_view_charts.timeline.interval_label }} page views, by page type</p>
               </div>
               <span class="page-view-panel-label"><span class="page-view-dot bg-primary"></span>{{ page_view_stats.total }} views</span>
@@ -189,7 +189,7 @@
                      tabindex="0"
                      role="region"
                      aria-label="Traffic over time data">
-                  <table class="table table-sm app-table-compact mb-0">
+                  <table class="table table-sm mb-0">
                     <thead>
                       <tr>
                         <th scope="col">Period</th>
@@ -212,7 +212,7 @@
           <section class="card page-view-mix-panel"
                    aria-labelledby="page-view-mix-heading">
             <div class="card-header">
-              <h2 class="header-title" id="page-view-mix-heading">Content mix</h2>
+              <h2 class="card-title" id="page-view-mix-heading">Content mix</h2>
               <p class="text-muted fs-xs mb-0">Where your audience spends its visits</p>
             </div>
             <div class="card-body pt-0">
@@ -238,7 +238,7 @@
                    aria-labelledby="page-view-heatmap-heading">
             <div class="card-header page-view-panel-heading">
               <div>
-                <h2 class="header-title" id="page-view-heatmap-heading">When users visit</h2>
+                <h2 class="card-title" id="page-view-heatmap-heading">When users visit</h2>
                 <p class="text-muted fs-xs mb-0">Views by weekday and hour · {{ page_view_charts.timezone }}</p>
               </div>
               <div class="page-view-heat-legend"
@@ -264,7 +264,7 @@
                      tabindex="0"
                      role="region"
                      aria-label="Weekday and hour activity data">
-                  <table class="table table-sm app-table-compact mb-0">
+                  <table class="table table-sm mb-0">
                     <thead>
                       <tr>
                         <th scope="col">Day / hour</th>
@@ -287,7 +287,7 @@
           <section class="card page-view-audience-panel"
                    aria-labelledby="page-view-audience-heading">
             <div class="card-header">
-              <h2 class="header-title" id="page-view-audience-heading">Audience</h2>
+              <h2 class="card-title" id="page-view-audience-heading">Audience</h2>
               <p class="text-muted fs-xs mb-0">Signed-in and anonymous visits</p>
             </div>
             <div class="card-body pt-2">
@@ -321,7 +321,7 @@
                  aria-labelledby="page-view-rankings-heading">
           <div class="card-header page-view-panel-heading">
             <div>
-              <h2 class="header-title" id="page-view-rankings-heading">Top content</h2>
+              <h2 class="card-title" id="page-view-rankings-heading">Top content</h2>
               <p class="text-muted fs-xs mb-0">Up to 10 pages per type · ranked by views</p>
             </div>
             <span class="page-view-panel-label">{{ page_view_date_range.label }}</span>
@@ -356,7 +356,7 @@
                        tabindex="0"
                        role="region"
                        aria-label="{{ group.label }} rankings">
-                    <table class="app-table-compact page-view-ranking-table table table-sm table-hover align-middle mb-0">
+                    <table class="table-sm page-view-ranking-table table table-hover align-middle mb-0">
                       <thead>
                         <tr>
                           <th scope="col" class="page-view-rank-column">#</th>
@@ -413,7 +413,7 @@
           <div class="col-12">
             <div class="card">
               <div class="card-header border-bottom">
-                <h2 class="header-title mb-0">Recent activity</h2>
+                <h2 class="card-title mb-0">Recent activity</h2>
                 <p class="text-muted fs-xs mb-0">Latest {{ page_view_recent_rows|length }} matching page views · up to 50</p>
               </div>
               <div class="card-body">
@@ -487,7 +487,7 @@
                      tabindex="0"
                      role="region"
                      aria-label="Scrollable analytics results">
-                  <table class="app-table-compact page-view-recent-table table table-sm table-hover align-middle mb-0">
+                  <table class="table-sm page-view-recent-table table table-hover align-middle mb-0">
                     <thead>
                       <tr>
                         <th scope="col">Time</th>

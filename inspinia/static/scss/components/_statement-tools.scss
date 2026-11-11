@@ -14,7 +14,7 @@
         overscroll-behavior-x: contain;
 
         &:focus-visible {
-            outline: 2px solid var(--ins-primary);
+            outline: 2px solid var(--theme-primary);
             outline-offset: -2px;
         }
     }
@@ -47,8 +47,8 @@
     position: sticky;
     right: 0;
     z-index: 1;
-    background: var(--ins-secondary-bg) !important;
-    box-shadow: -.25rem 0 .5rem rgba(var(--ins-body-color-rgb), .06);
+    background: var(--theme-secondary-bg) !important;
+    box-shadow: -.25rem 0 .5rem rgba(var(--theme-body-color-rgb), .06);
 }
 
 @media (max-width: 991.98px) {

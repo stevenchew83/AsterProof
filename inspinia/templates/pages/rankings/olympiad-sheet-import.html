@@ -10,7 +10,7 @@
   {% if preview %}
   <div class="card mt-0">
     <div class="card-header border-0 pb-0">
-      <h2 class="header-title mb-1">Review {{ preview.label }}</h2>
+      <h2 class="card-title mb-1">Review {{ preview.label }}</h2>
       <p class="text-muted fs-sm mb-0">{{ preview.student_count }} student{{ preview.student_count|pluralize }} · {{ preview.new_students }} new · {{ preview.result_count }} result{{ preview.result_count|pluralize }} · {{ preview.skipped_rows }} blank or repeated-header rows skipped</p>
     </div>
     <div class="card-body pt-2">
@@ -22,7 +22,7 @@
       </details>
       {% if preview.warnings %}<details class="mb-3"><summary>{{ preview.warnings|length }} source warnings</summary><ul class="mt-2">{% for warning in preview.warnings %}<li>{{ warning }}</li>{% endfor %}</ul></details>{% endif %}
       <div class="app-table-region table-responsive" tabindex="0" role="region" aria-label="Student import preview">
-        <table class="app-table-compact table table-striped align-middle mb-0">
+        <table class="table-sm table table-striped align-middle mb-0">
           <thead><tr><th scope="col">Source row</th><th scope="col">Student</th><th scope="col">Birth year</th><th scope="col">School in list</th><th scope="col">Match</th><th scope="col">Results</th></tr></thead>
           <tbody>{% for row in page_obj %}<tr>
             <td>{{ row.source_row }}{% if row.protection_conflicts %}<span class="badge bg-warning-subtle text-warning-emphasis ms-1">Will be held</span>{% endif %}</td><td>{% if row.student_id %}<a href="{% url 'rankings:student_detail' row.student_id %}">{{ row.name }}</a>{% else %}{{ row.name }}{% endif %}</td>
@@ -42,7 +42,7 @@
   </div>
   {% else %}
   <div class="card mt-0">
-    <div class="card-header border-0 pb-0"><h2 class="header-title mb-1">Preview a history sheet or IMONST2 result list</h2><p class="text-muted fs-sm mb-0">Upload UTF-8 tab-separated text or CSV, or paste directly from your sheet. Keep the original column headers and column order. Maximum 2 MB and 2,000 rows.</p></div>
+    <div class="card-header border-0 pb-0"><h2 class="card-title mb-1">Preview a history sheet or IMONST2 result list</h2><p class="text-muted fs-sm mb-0">Upload UTF-8 tab-separated text or CSV, or paste directly from your sheet. Keep the original column headers and column order. Maximum 2 MB and 2,000 rows.</p></div>
     <div class="card-body pt-2">
       <p class="text-muted fs-sm">The preview saves no student or assessment changes. NRICs and free-form notes are excluded from the stored preview. Existing student information is kept when a source field is empty; a populated school is kept if the new list differs.</p>
       {% if batch %}<div class="alert alert-info">This batch is {{ batch.get_status_display|lower }}. Upload a new sheet for another preview.</div>{% endif %}

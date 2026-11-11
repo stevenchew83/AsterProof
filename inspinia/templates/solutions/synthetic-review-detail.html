@@ -17,7 +17,7 @@
       <section class="col-lg-5" aria-labelledby="source-title">
         <div class="card">
           <div class="card-body">
-            <h2 id="source-title" class="header-title">Reviewed submission</h2>
+            <h2 id="source-title" class="card-title">Reviewed submission</h2>
             <p>{{ packet.package.content.statement }}</p>
             <p class="font-monospace text-break">{{ packet.submission.body_source }}</p>
             <p class="text-muted fs-xs mb-0">
@@ -29,7 +29,7 @@
       <section class="col-lg-7" aria-labelledby="feedback-title">
         <div class="card">
           <div class="card-body">
-            <h2 id="feedback-title" class="header-title">Assessment and feedback</h2>
+            <h2 id="feedback-title" class="card-title">Assessment and feedback</h2>
             <p>{{ report.summary }}</p>
             {% if report.human_review_required %}
               <div class="alert alert-warning" role="status">

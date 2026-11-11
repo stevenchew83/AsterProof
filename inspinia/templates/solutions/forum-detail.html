@@ -7,7 +7,7 @@
 {% endblock title %}
 {% block page_content %}
   <div class="container-fluid solution-forum solution-forum-reader">
-    <header class="page-title-head app-page-header forum-heading">
+    <header class="page-title-head d-flex flex-wrap align-items-center gap-2 forum-heading">
       <div class="forum-heading-content">
         {% if solution.title %}
           {% include 'partials/page-header-intro.html' with title=solution.title subtitle=problem_data.problem_label page_icon='ti-file-text' back_url=problem_data.solutions_url back_label='Problem workspace' only %}
@@ -25,7 +25,7 @@
           <span class="forum-audience"><i class="ti ti-lock" aria-hidden="true"></i>Members only</span>
         </div>
       </div>
-      <div class="app-page-header-actions forum-heading-actions">
+      <div class="page-title-actions d-flex flex-wrap align-items-center gap-2 forum-heading-actions">
         {% if is_author %}
           <a href="{{ solution_row.edit_url }}" class="btn btn-primary btn-sm"><i class="ti ti-pencil me-1" aria-hidden="true"></i>Edit solution</a>
           <a href="{{ solution_row.share_manage_url }}"

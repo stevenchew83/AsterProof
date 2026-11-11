@@ -1,5 +1,5 @@
-// 
-// modern Theme Mode
+//
+// Modern Theme Mode
 //
 
 $theme-modern-colors: (
@@ -14,14 +14,13 @@ $theme-modern-colors: (
 
 @if $theme-modern ==true {
 
+    html[data-skin='modern'] {
+        --#{$prefix}font-sans-serif: "Poppins", sans-serif;
+        --#{$prefix}font-family-secondary: "Poppins", sans-serif;
 
-    html[data-skin="modern"] {
-
-        --#{$prefix}font-sans-serif:        "Poppins", sans-serif;
-
-        --#{$prefix}body-font-size:               13px;
-        --#{$prefix}body-bg:               #f7f6f7;
-        --#{$prefix}secondary-bg:          #fff;
+        --#{$prefix}body-font-size: 13px;
+        --#{$prefix}body-bg: #f7f6f7;
+        --#{$prefix}secondary-bg: #ffffff;
 
         --#{$prefix}theme-card-border-width:                 1px;
         --#{$prefix}theme-card-border-color:                 transparent;
@@ -33,19 +32,19 @@ $theme-modern-colors: (
         --#{$prefix}font-weight-semibold:    500;
         --#{$prefix}font-weight-bold:        600;
 
-        --#{$prefix}font-size-xxs:          11px;
+         --#{$prefix}font-size-xxs:          11px;
         --#{$prefix}font-size-xs:           12px;
         --#{$prefix}font-size-base:         13px;
         --#{$prefix}font-size-md:           14px;
         --#{$prefix}font-size-lg:           16px;
         --#{$prefix}font-size-xl:           18px;
         --#{$prefix}font-size-xxl:          20px;
-        
-        // Menu items
+
+         // Menu items
         --#{$prefix}sidenav-item-icon-size:                  1.125rem;
-        --#{$prefix}sidenav-item-gap:                        12px;
+        --#{$prefix}sidenav-item-gap:                        9px;
         --#{$prefix}sidenav-item-padding-x:                  10px;
-        --#{$prefix}sidenav-item-padding-y:                  10px;
+        --#{$prefix}sidenav-item-padding-y:                  7px;
         --#{$prefix}sidenav-item-font-size:                  0.8125rem;
         --#{$prefix}sidenav-item-font-weight:                500;
 
@@ -95,7 +94,7 @@ $theme-modern-colors: (
             --#{$prefix}sidenav-border-color:             null;
             --#{$prefix}sidenav-item-color:             #799cb7;
             --#{$prefix}sidenav-item-hover-color:       #bccee4;
-            --#{$prefix}sidenav-item-hover-bg:          #2f3742;
+            --#{$prefix}sidenav-item-hover-bg:          #294461;
             --#{$prefix}sidenav-item-active-color:      #cfdff1;
             --#{$prefix}sidenav-item-active-bg:         #294461;
         }
@@ -190,20 +189,85 @@ $theme-modern-colors: (
         @each $name, $value in $theme-modern-colors {
             --#{$prefix}#{$name}-text-emphasis: #{shade-color($value, 25%)};
         }
+
+        // Chart Colors
+        --#{$prefix}chart-primary: #5e6cc1; // Main Color
+        --#{$prefix}chart-primary-rgb: #{to-rgb(#5e6cc1)};
+        --#{$prefix}chart-secondary: #1c8de3; // Secondary Color
+        --#{$prefix}chart-secondary-rgb: #{to-rgb(#1c8de3)};
+        --#{$prefix}chart-alpha: #13ca6d; // Success Color
+        --#{$prefix}chart-alpha-rgb: #{to-rgb(#13ca6d)};
+        --#{$prefix}chart-beta: #fb5858; // Danger Color
+        --#{$prefix}chart-beta-rgb: #{to-rgb(#fb5858)};
+        --#{$prefix}chart-gamma: #f2c24c; // Warning Color
+        --#{$prefix}chart-gamma-rgb: #{to-rgb(#f2c24c)};
+        --#{$prefix}chart-delta: #35b9e1; // Info Color
+        --#{$prefix}chart-delta-rgb: #{to-rgb(#35b9e1)};
+        --#{$prefix}chart-zeta: #6070cc; // Purple or custom Color
+        --#{$prefix}chart-zeta-rgb: #{to-rgb(#6070cc)};
+        --#{$prefix}chart-gray: #edeff3; // Gray Color
+        --#{$prefix}chart-gray-rgb: #{to-rgb(#edeff3)};
+        --#{$prefix}chart-dark: #396699; // Primary Dark Color
+        --#{$prefix}chart-dark-rgb: #{to-rgb(#396699)};
+        --#{$prefix}chart-border-color: #ecf4fc; // Border Color
+        --#{$prefix}chart-title-color: #bbcae1; // Title Color
     }
 
     @if $enable-dark-mode {
         @include color-mode(dark, true) {
-            &[data-skin="modern"] {
-                --#{$prefix}body-bg:                     #{#17181e};
-                --#{$prefix}body-bg-rgb:                 #{to-rgb(#17181e)};
+            &[data-skin='modern'] {
+                --#{$prefix}body-bg: #{#17181e};
+                --#{$prefix}body-bg-rgb: #{to-rgb(#17181e)};
 
-                --#{$prefix}secondary-bg:                #{#1b1c22};
-                --#{$prefix}secondary-bg-rgb:            #{to-rgb(#1b1c22)};
+                --#{$prefix}secondary-bg: #{#1b1c22};
+                --#{$prefix}secondary-bg-rgb: #{to-rgb(#1b1c22)};
 
-                --#{$prefix}box-shadow:                  #{0px 0px 30px rgba(0, 0, 0, 0.3)};
+                --#{$prefix}box-shadow: #{0px 0px 30px rgba(0, 0, 0, 0.3)};
 
-                --#{$prefix}theme-card-border-color:                 #293036;
+                --#{$prefix}theme-card-border-color: #293036;
+
+                --#{$prefix}chart-gray: #40424f;
+                --#{$prefix}chart-gray-rgb: #{to-rgb(#40424f)};
+
+                --#{$prefix}chart-border-color: #242c31;
+                --#{$prefix}chart-gray: #40424f;
+                --#{$prefix}chart-gray-rgb: #{to-rgb(#40424f)};
+
+                // Extra CSS
+                .card, .dropdown-menu {
+                    border-width: 1px !important;
+                }
+            }
+        }
+    }
+}
+
+//
+//  Modern Theme
+//
+html[data-skin="modern"]:not([data-sidenav-size="condensed"]) {
+    .side-nav {
+
+        .side-nav-item {
+            .side-nav-link {
+
+                .menu-icon {
+                    line-height: 26px;
+                    height: 24px;
+                    width: 24px;
+                    border-radius: 50%;
+                    background-color: $sidenav-item-hover-bg;
+                    text-align: center;
+                }
+            }
+        }
+
+        // Multi Level Menu
+        .sub-menu {
+            padding-inline-start: 8px;
+
+            .sub-menu {
+                padding-inline-start: 22px;
             }
         }
     }

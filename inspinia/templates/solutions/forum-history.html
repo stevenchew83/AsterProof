@@ -6,7 +6,7 @@
 {% block page_content %}
   <div class="container-fluid solution-forum">
     {% url 'solutions:solution_detail' solution.pk as detail_url %}
-    <header class="page-title-head app-page-header">
+    <header class="page-title-head d-flex flex-wrap align-items-center gap-2">
       {% include 'partials/page-header-intro.html' with title='Review and moderation history' subtitle='Admin inspection' page_icon='ti-history' back_url=detail_url back_label='Back to solution' only %}
     </header>
     <p class="text-muted">

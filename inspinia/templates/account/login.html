@@ -2,25 +2,25 @@
 {% load i18n %}
 {% block head_title %}{% trans "Sign In" %}{% endblock head_title %}
 {% block content %}
-  <header class="auth-login-heading">
-    <p class="auth-login-eyebrow">{% trans "Your mathematics workspace" %}</p>
-    <h1 id="auth-login-title">{% trans "Welcome back." %}</h1>
+  <header class="text-center mb-4">
+
+    <h1 class="h5 fw-bold" id="auth-login-title">{% trans "Welcome back." %}</h1>
     <p>{% trans "Sign in to return to your problems and progress." %}</p>
   </header>
   {% if not SOCIALACCOUNT_ONLY %}
-    <form method="post" action="{% url 'account_login' %}" class="auth-login-form">
+    <form method="post" action="{% url 'account_login' %}" class="mb-3">
       {% csrf_token %}
       {{ redirect_field }}
       {% include "account/partials/entrance_fields.html" %}
-      <button type="submit" class="btn btn-primary auth-login-submit">
+      <button type="submit" class="btn btn-dark w-100 fw-semibold py-2">
         {% trans "Sign in" %}<i class="ti ti-arrow-right" aria-hidden="true"></i>
       </button>
     </form>
     {% if LOGIN_BY_CODE_ENABLED %}
-      <a class="auth-login-code" href="{{ request_login_code_url }}"><i class="ti ti-mail" aria-hidden="true"></i>{% trans "Email me a sign-in code" %}</a>
+      <a class="btn btn-outline-secondary w-100" href="{{ request_login_code_url }}"><i class="ti ti-mail" aria-hidden="true"></i>{% trans "Email me a sign-in code" %}</a>
     {% endif %}
   {% endif %}
   {% if ACCOUNT_ALLOW_REGISTRATION %}
-    <p class="auth-login-signup">{% trans "New to AsterProof?" %} <a href="{{ signup_url }}">{% trans "Create an account" %}<i class="ti ti-arrow-up-right" aria-hidden="true"></i></a></p>
+    <p class="text-center mt-3 mb-0">{% trans "New to AsterProof?" %} <a href="{{ signup_url }}">{% trans "Create an account" %}<i class="ti ti-arrow-up-right" aria-hidden="true"></i></a></p>
   {% endif %}
 {% endblock content %}

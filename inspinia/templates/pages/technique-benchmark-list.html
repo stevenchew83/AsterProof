@@ -12,7 +12,7 @@
   }
 
   .benchmark-page .card {
-    border: 1px solid var(--ins-border-color);
+    border: 1px solid var(--theme-border-color);
     border-radius: var(--benchmark-radius);
     box-shadow: none;
   }
@@ -21,13 +21,13 @@
   .benchmark-page button:focus-visible,
   .benchmark-page summary:focus-visible,
   .benchmark-page [tabindex="0"]:focus-visible {
-    outline: 3px solid rgba(var(--ins-primary-rgb), .65);
+    outline: 3px solid rgba(var(--theme-primary-rgb), .65);
     outline-offset: 3px;
   }
 
   .benchmark-segmented {
-    background: var(--ins-tertiary-bg);
-    border: 1px solid var(--ins-border-color);
+    background: var(--theme-tertiary-bg);
+    border: 1px solid var(--theme-border-color);
     border-radius: .5rem;
     padding: .2rem;
   }
@@ -40,14 +40,14 @@
   }
 
   .benchmark-segmented .btn[aria-current="page"] {
-    background: var(--ins-body-bg);
-    color: var(--ins-primary);
-    box-shadow: 0 1px 3px rgba(var(--ins-dark-rgb), .1);
+    background: var(--theme-body-bg);
+    color: var(--theme-primary);
+    box-shadow: 0 1px 3px rgba(var(--theme-dark-rgb), .1);
     font-weight: 600;
   }
 
   .benchmark-navigation {
-    border-bottom: 1px solid var(--ins-border-color);
+    border-bottom: 1px solid var(--theme-border-color);
     margin-bottom: 1rem;
   }
 
@@ -60,7 +60,7 @@
 
   .benchmark-subjects a {
     border-bottom: 2px solid transparent;
-    color: var(--ins-secondary-color);
+    color: var(--theme-secondary-color);
     padding: .8rem 0;
     text-decoration: none;
     white-space: nowrap;
@@ -68,8 +68,8 @@
 
   .benchmark-subjects a:hover,
   .benchmark-subjects a[aria-current="page"] {
-    border-bottom-color: var(--ins-primary);
-    color: var(--ins-primary);
+    border-bottom-color: var(--theme-primary);
+    color: var(--theme-primary);
   }
 
   .benchmark-summary {
@@ -82,7 +82,7 @@
   }
 
   .benchmark-stat + .benchmark-stat {
-    border-left: 1px solid var(--ins-border-color);
+    border-left: 1px solid var(--theme-border-color);
   }
 
   .benchmark-stat .avatar-title,
@@ -120,7 +120,7 @@
   }
 
   .benchmark-insights[open] > summary {
-    border-bottom: 1px solid var(--ins-border-color);
+    border-bottom: 1px solid var(--theme-border-color);
   }
 
   .benchmark-map-chart,
@@ -144,7 +144,7 @@
   }
 
   .benchmark-search-field > .ti {
-    color: var(--ins-secondary-color);
+    color: var(--theme-secondary-color);
     left: .75rem;
     pointer-events: none;
     position: absolute;
@@ -173,8 +173,8 @@
   }
 
   #technique-benchmarks-table thead th {
-    background-color: var(--ins-tertiary-bg);
-    color: var(--ins-secondary-color);
+    background-color: var(--theme-tertiary-bg);
+    color: var(--theme-secondary-color);
     font-size: .7rem;
     font-weight: 700;
     letter-spacing: .035em;
@@ -194,7 +194,7 @@
   }
 
   #technique-benchmarks-table tbody tr:has(.benchmark-detail-toggle[aria-expanded="true"]) {
-    background: rgba(var(--ins-primary-rgb), .045);
+    background: rgba(var(--theme-primary-rgb), .045);
   }
 
   .benchmark-technique-title {
@@ -217,9 +217,9 @@
   }
 
   .benchmark-value-score {
-    background: rgba(var(--ins-primary-rgb), .08);
+    background: rgba(var(--theme-primary-rgb), .08);
     border-radius: .35rem;
-    color: var(--ins-primary);
+    color: var(--theme-primary);
     display: inline-block;
     min-width: 2.8rem;
     padding: .25rem .4rem;
@@ -231,7 +231,7 @@
   }
 
   .benchmark-mohs-track {
-    background-color: var(--ins-tertiary-bg);
+    background-color: var(--theme-tertiary-bg);
     border-radius: 999px;
     height: .25rem;
     overflow: hidden;
@@ -239,7 +239,7 @@
   }
 
   .benchmark-mohs-segment {
-    background-color: rgba(var(--ins-primary-rgb), .68);
+    background-color: rgba(var(--theme-primary-rgb), .68);
     border-radius: inherit;
     height: 100%;
     left: var(--mohs-start);
@@ -250,8 +250,8 @@
   }
 
   .benchmark-detail-panel {
-    background-color: var(--ins-tertiary-bg);
-    border: 1px solid var(--ins-border-color);
+    background-color: var(--theme-tertiary-bg);
+    border: 1px solid var(--theme-border-color);
     border-radius: var(--benchmark-radius);
     padding: 1rem;
   }
@@ -276,14 +276,14 @@
   @media (max-width: 1199.98px) {
     .benchmark-summary { grid-template-columns: repeat(3, minmax(0, 1fr)); }
     .benchmark-stat:nth-child(4) { border-left: 0; }
-    .benchmark-stat:nth-child(n+4) { border-top: 1px solid var(--ins-border-color); }
+    .benchmark-stat:nth-child(n+4) { border-top: 1px solid var(--theme-border-color); }
   }
 
   @media (max-width: 767.98px) {
     .benchmark-map-target .benchmark-segmented .btn { padding-inline: .5rem; }
     .benchmark-summary { display: flex; overflow-x: auto; scroll-snap-type: x proximity; }
     .benchmark-stat { flex: 0 0 9.5rem; padding: .75rem; scroll-snap-align: start; }
-    .benchmark-stat + .benchmark-stat { border-left: 1px solid var(--ins-border-color); }
+    .benchmark-stat + .benchmark-stat { border-left: 1px solid var(--theme-border-color); }
     .benchmark-stat:nth-child(n+3) { border-top: 0; }
     .benchmark-subjects { gap: 1rem; }
     .benchmark-toolbar { grid-template-columns: minmax(0, 1fr) auto; }
@@ -291,7 +291,7 @@
     .benchmark-toolbar > .benchmark-reset { grid-column: 1 / -1; justify-self: start; }
     .benchmark-insights-description { display: none; }
     #technique-benchmarks-table tbody > tr > td:first-child:not([colspan]) {
-      background-color: var(--ins-body-bg);
+      background-color: var(--theme-body-bg);
       left: 0;
       position: sticky;
       z-index: 1;
@@ -307,10 +307,10 @@
 
 {% block page_content %}
 <div class="container-fluid app-table-page benchmark-page">
-  <header class="page-title-head app-page-header justify-content-between">
+  <header class="page-title-head d-flex flex-wrap align-items-center gap-2 justify-content-between">
     {% url 'pages:user_activity_dashboard' as benchmark_home_url %}
     {% include 'partials/page-header-intro.html' with title='Benchmark Map' subtitle='Library' page_icon='ti-map' back_url=benchmark_home_url back_label='AsterProof' only %}
-    <div class="app-page-header-actions">
+    <div class="page-title-actions d-flex flex-wrap align-items-center gap-2">
       <div class="benchmark-map-target">
         <span class="text-muted fs-xs d-block mb-1" id="benchmark-target-label">Training target</span>
         <nav class="benchmark-segmented d-inline-flex" aria-labelledby="benchmark-target-label">
@@ -319,7 +319,7 @@
           {% endfor %}
         </nav>
       </div>
-      <a href="{% url 'pages:technique_benchmark_import' %}" class="btn btn-sm btn-outline-secondary app-page-header-action-icon d-inline-flex align-items-center gap-2" aria-label="Benchmark import" title="Benchmark import">
+      <a href="{% url 'pages:technique_benchmark_import' %}" class="btn btn-sm btn-outline-secondary d-inline-flex align-items-center gap-2" aria-label="Benchmark import" title="Benchmark import">
         <i class="ti ti-database-import" aria-hidden="true"></i><span>Benchmark import</span>
       </a>
     </div>
@@ -370,7 +370,7 @@
         <section class="col-xl-6" aria-labelledby="benchmark-matrix-title">
           <div class="d-flex justify-content-between align-items-center mb-2">
             <div>
-              <h2 class="header-title fs-sm mb-1" id="benchmark-matrix-title">Value vs difficulty</h2>
+              <h2 class="card-title fs-sm mb-1" id="benchmark-matrix-title">Value vs difficulty</h2>
               <p class="text-muted fs-xs mb-0">Select a point to explore its benchmark.</p>
             </div>
           </div>
@@ -378,7 +378,7 @@
           <div id="technique-benchmark-matrix" class="benchmark-map-chart benchmark-chart-clickable"></div>
         </section>
         <section class="col-xl-6" aria-labelledby="benchmark-heatmap-title">
-          <h2 class="header-title fs-sm mb-1" id="benchmark-heatmap-title">Area family heatmap</h2>
+          <h2 class="card-title fs-sm mb-1" id="benchmark-heatmap-title">Area family heatmap</h2>
           <p class="text-muted fs-xs mb-2">Average value by family. Select a cell to filter the catalog.</p>
           <div id="technique-benchmark-heatmap-alert" class="alert alert-warning d-none" role="alert"></div>
           <div class="benchmark-map-heatmap" tabindex="0" role="region" aria-label="Scrollable area family heatmap">
@@ -397,7 +397,7 @@
     <div class="card-body p-3">
       <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-3">
         <div class="d-flex flex-wrap align-items-center gap-2">
-          <h2 class="header-title fs-sm fw-semibold mb-0" id="benchmark-catalog-title">Benchmark catalog</h2>
+          <h2 class="card-title fs-sm fw-semibold mb-0" id="benchmark-catalog-title">Benchmark catalog</h2>
           <span class="badge bg-secondary-subtle text-secondary">{{ technique_benchmark_total }} benchmark{{ technique_benchmark_total|pluralize }}</span>
         </div>
         {% if benchmark_scope_options %}
@@ -440,7 +440,7 @@
       <div id="technique-benchmarks-table-alert" class="alert alert-warning d-none" role="alert"></div>
       {% if technique_benchmark_rows %}
       <div class="benchmark-map-table-shell" tabindex="0" role="region" aria-label="Benchmark catalog table, scroll horizontally for more columns">
-        <table data-paging-type="simple" id="technique-benchmarks-table" class="app-table-compact table table-sm table-hover align-middle mb-0">
+        <table data-paging-type="simple" id="technique-benchmarks-table" class="table-sm table table-hover align-middle mb-0">
           <thead>
             <tr>
               {% for column in technique_benchmark_table_columns %}
@@ -574,14 +574,14 @@
   function themeColors() {
     var styles = window.getComputedStyle(document.documentElement);
     return {
-      primary: styles.getPropertyValue("--ins-primary").trim() || "#3b7ddd",
-      success: styles.getPropertyValue("--ins-success").trim() || "#1abc9c",
-      warning: styles.getPropertyValue("--ins-warning").trim() || "#f7b84b",
-      info: styles.getPropertyValue("--ins-info").trim() || "#39afd1",
-      secondary: styles.getPropertyValue("--ins-secondary").trim() || "#6c757d",
-      danger: styles.getPropertyValue("--ins-danger").trim() || "#f1556c",
-      border: styles.getPropertyValue("--ins-border-color").trim() || "rgba(108,117,125,0.2)",
-      body: styles.getPropertyValue("--ins-body-color").trim() || "#495057"
+      primary: styles.getPropertyValue("--theme-primary").trim(),
+      success: styles.getPropertyValue("--theme-success").trim(),
+      warning: styles.getPropertyValue("--theme-warning").trim(),
+      info: styles.getPropertyValue("--theme-info").trim(),
+      secondary: styles.getPropertyValue("--theme-secondary").trim(),
+      danger: styles.getPropertyValue("--theme-danger").trim(),
+      border: styles.getPropertyValue("--theme-border-color").trim() || "rgba(108,117,125,0.2)",
+      body: styles.getPropertyValue("--theme-body-color").trim()
     };
   }
 
@@ -649,7 +649,7 @@
       '<div class="benchmark-detail-panel">',
         '<p class="text-muted fs-xs mb-2">Benchmark reference <code>' + escapeHtml(row.row_key) + '</code></p>',
         row.reference_resolution ? '<p class="fs-xs">' + escapeHtml(row.reference_resolution) + '</p>' : '',
-        profiles ? '<p class="fw-semibold mb-2">One concept; original role profiles retained</p><div class="app-table-region table-responsive" tabindex="0" role="region" aria-label="Scrollable results"><table class="app-table-compact table table-sm table-bordered"><thead><tr><th>Role profile</th><th>Training</th><th>Target</th><th>Value</th><th>Difficulty</th><th>MOHS</th><th>Rationale</th><th>Pitfalls</th><th>Sequence</th></tr></thead><tbody>' + profiles + '</tbody></table></div>' : '',
+        profiles ? '<p class="fw-semibold mb-2">One concept; original role profiles retained</p><div class="app-table-region table-responsive" tabindex="0" role="region" aria-label="Scrollable results"><table class="table-sm table table-bordered"><thead><tr><th>Role profile</th><th>Training</th><th>Target</th><th>Value</th><th>Difficulty</th><th>MOHS</th><th>Rationale</th><th>Pitfalls</th><th>Sequence</th></tr></thead><tbody>' + profiles + '</tbody></table></div>' : '',
         row.profile_conflicts && row.profile_conflicts.length ? '<p class="text-warning fs-xs">Ratings differ across these profiles. No combined rating or chart point has been assigned. The reference components below belong to ' + escapeHtml(row.row_key) + '.</p>' : '',
         '<div class="row g-3">',
           '<div class="col-lg-4">',

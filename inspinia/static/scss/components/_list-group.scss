@@ -15,7 +15,7 @@
 // Border Styles
 .list-group {
     &.border-0 {
-        --ins-list-group-border-width: 0;
+        --theme-list-group-border-width: 0;
     }
     &.border-dashed {
         .list-group-item {

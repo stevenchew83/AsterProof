@@ -42,7 +42,7 @@
   }
 
   mjx-container[display="true"]:focus-visible {
-    outline: 2px solid var(--ins-primary);
+    outline: 2px solid var(--theme-primary);
     outline-offset: 2px;
   }
 
@@ -69,9 +69,9 @@
 
   .latex-pdf-dropzone {
     min-height: 8.5rem;
-    border: 2px dashed var(--ins-border-color);
-    border-radius: var(--ins-border-radius-lg);
-    background: var(--ins-tertiary-bg);
+    border: 2px dashed var(--theme-border-color);
+    border-radius: var(--theme-border-radius-lg);
+    background: var(--theme-tertiary-bg);
     cursor: pointer;
     transition: border-color 160ms ease, background-color 160ms ease, box-shadow 160ms ease;
   }
@@ -79,15 +79,15 @@
   .latex-pdf-dropzone:hover,
   .latex-pdf-dropzone:focus-visible,
   .latex-pdf-dropzone.is-dragging {
-    border-color: var(--ins-primary);
-    background: var(--ins-primary-bg-subtle);
-    box-shadow: 0 0 0 0.2rem rgba(var(--ins-primary-rgb), 0.12);
+    border-color: var(--theme-primary);
+    background: var(--theme-primary-bg-subtle);
+    box-shadow: 0 0 0 0.2rem rgba(var(--theme-primary-rgb), 0.12);
     outline: 0;
   }
 
   .latex-pdf-dropzone.has-files {
     border-style: solid;
-    border-color: var(--ins-primary);
+    border-color: var(--theme-primary);
   }
 
   .latex-pdf-file-list {
@@ -126,7 +126,7 @@
       <form id="latex-preview-form" method="post" enctype="multipart/form-data" class="card">
         {% csrf_token %}
         <div class="card-header border-0 pb-0">
-          <h4 class="header-title mb-0">Fetch, paste, or upload contest text, then parse statement blocks</h4>
+          <h4 class="card-title mb-0">Fetch, paste, or upload contest text, then parse statement blocks</h4>
           <p class="text-muted fs-xs mb-0">The parser extracts contest year, contest name, day labels, numbered problems, and statement text from contest listings.</p>
         </div>
         <div class="card-body pt-2">
@@ -214,7 +214,7 @@
     <div class="col-xl-6">
       <div class="card h-100">
         <div class="card-header border-bottom">
-          <h4 class="header-title mb-0">Raw notation</h4>
+          <h4 class="card-title mb-0">Raw notation</h4>
         </div>
         <div class="card-body">
           <label class="form-label" for="latex-preview-input">Input</label>
@@ -230,7 +230,7 @@
       <div class="card h-100">
         <div class="card-header border-bottom d-flex flex-wrap justify-content-between align-items-center gap-2">
           <div>
-            <h4 class="header-title mb-0">Rendered preview</h4>
+            <h4 class="card-title mb-0">Rendered preview</h4>
             <p class="text-muted fs-xs mb-0">MathJax typesets the current text in place.</p>
           </div>
           <div id="latex-preview-status" class="alert alert-secondary py-2 px-3 mb-0">
@@ -362,7 +362,7 @@
     <div class="col-xl-4">
       <div class="card h-100">
         <div class="card-header border-bottom">
-          <h4 class="header-title mb-0">Day breakdown</h4>
+          <h4 class="card-title mb-0">Day breakdown</h4>
         </div>
         <div class="card-body">
           <div class="app-table-region table-responsive" tabindex="0" role="region" aria-label="Scrollable results">
@@ -394,7 +394,7 @@
     <div class="col-xl-8">
       <div class="card h-100">
         <div class="card-header border-bottom">
-          <h4 class="header-title mb-0">Parsed problem statements</h4>
+          <h4 class="card-title mb-0">Parsed problem statements</h4>
           <p class="text-muted fs-xs mb-0">This preview is generated from the backend parser, not from client-side text splitting.</p>
         </div>
         <div class="card-body" id="latex-parsed-preview-root">
