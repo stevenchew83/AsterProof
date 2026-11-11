@@ -2,6 +2,16 @@
   "format_version": 1,
   "baseline_sha": null,
   "migrations": {
+    "pages.0048_statement_ai_concept_suggestions": {
+      "classification": "backward-compatible-schema",
+      "recovery_required": false,
+      "code_rollback_permitted": true,
+      "data_preconditions": [
+        "ai_concept_suggestions_column_absent",
+        "existing_rows_constraints_triggers_and_sequences_preserved"
+      ],
+      "rationale": "Adds a nullable JSONB evidence column to the existing problem statement table without a default, backfill or index. Older readers ignore the new column and code recovery retains it. Requires the frozen migration allowance and pinned PostgreSQL preservation proof."
+    },
     "solutions.0017_multiple_problem_solutions": {
       "classification": "data-or-non-compatible",
       "recovery_required": true,

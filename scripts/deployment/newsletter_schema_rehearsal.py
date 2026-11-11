@@ -90,7 +90,7 @@ def validate_migration_record(before, after):
         raise ValueError("Newsletter rehearsal changed migration metadata beyond its one approved record")
 
 
-def seed_fixture():
+def seed_fixture(statement_model=None):
     from inspinia.pages.models import ContestProblemStatement
     from inspinia.pages.models import ProblemSolveRecord
     from inspinia.pages.models import StatementTopicTechnique
@@ -105,17 +105,22 @@ def seed_fixture():
         topic="ALG",
         mohs=20,
     )
-    statement = ContestProblemStatement.objects.create(
-        linked_problem=problem,
+    statement_model = statement_model or ContestProblemStatement
+    statement = statement_model.objects.create(
+        linked_problem_id=problem.pk,
+        problem_uuid=problem.problem_uuid,
         contest_name="SCHEMA REHEARSAL",
         contest_year=2026,
+        contest_year_problem="SCHEMA REHEARSAL 2026 P1",
         problem_number=1,
         problem_code="P1",
         topic="A",
         statement_latex="Synthetic AM-GM statement.",
     )
-    StatementTopicTechnique.objects.create(statement=statement, technique="AM-GM", main_topic="ALG", domains=["ALG"])
-    UserProblemCompletion.objects.create(user=user, problem=problem, statement=statement)
+    StatementTopicTechnique.objects.create(
+        statement_id=statement.pk, technique="AM-GM", main_topic="ALG", domains=["ALG"],
+    )
+    UserProblemCompletion.objects.create(user=user, problem=problem, statement_id=statement.pk)
 
 
 def seed_subscribers():

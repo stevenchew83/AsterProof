@@ -420,7 +420,11 @@
           {% if library_has_classification %}
           <p class="text-muted fs-xs mb-2" id="library-classification-help">
             Suggest with AI sends the statement and any existing topic and MOHS to OpenAI.
+            {% if library_saves_classification %}
+            Supported suggestions fill missing fields on the shared problem.
+            {% else %}
             Values marked AI are suggestions for this page.
+            {% endif %}
           </p>
           <p id="library-classification-status" class="visually-hidden" role="status"></p>
           {% endif %}
@@ -436,7 +440,8 @@
               <thead class="table-light">
                 <tr>
                   <th>Problem</th>
-                  <th class="text-nowrap">Topic / MOHS</th>
+                  <th>Topic</th>
+                  <th>MOHS</th>
                   <th class="text-nowrap">{{ library_progress_label }}</th>
                   <th>Area</th>
                   <th title="Canonical concepts covered by the problem">Coverage</th>
@@ -640,6 +645,16 @@
 
   var aiBadge = '<span class="badge bg-info-subtle text-info-emphasis ms-1" title="AI suggestion" aria-label="AI suggestion">AI</span>';
 
+  function aiTaxonomy(row) {
+    if (row.saved_ai_concepts?.length) {
+      return {
+        coverage: row.saved_ai_concepts,
+        area: [...new Set(row.saved_ai_concepts.map(function (concept) { return concept.area; }))].sort(),
+      };
+    }
+    return row.classification?.suggestions;
+  }
+
   function taxonomyCell(row, type, isArea) {
     var labels = isArea ? (row.concept_areas || []) : (row.concept_coverage || []).map(function (c) { return c.display; });
     var review = row.concept_review_labels || [];
@@ -647,7 +662,7 @@
     var status = row.concept_coverage_status || "Untagged";
     if (type === "filter") return labels.concat(review, suggestions.map(function(c) { return c.label; }), row.concept_source_tags || [], [status]).join(" ");
     if (type !== "display") return labels.join(", ") || status;
-    var ai = row.classification?.suggestions;
+    var ai = aiTaxonomy(row);
     var aiLabels = isArea ? ai?.area : ai?.coverage?.map(function (concept) { return concept.label; });
     var showingAi = !labels.length && Boolean(aiLabels?.length);
     if (showingAi) labels = aiLabels;
@@ -689,7 +704,7 @@
     fillList("statement-taxonomy-concepts", (row.concept_coverage || []).map(function (c) {
       return c.display + " \u00b7 " + c.subject + " \u00b7 " + c.area + (c.support_basis ? " · " + c.support_basis : "");
     }));
-    var ai = row.classification?.suggestions;
+    var ai = aiTaxonomy(row);
     var aiEvidence = (ai?.area || []).slice();
     (ai?.coverage || []).forEach(function (concept) {
       aiEvidence.push(concept.label + " · " + concept.subject + " · “" + concept.quote + "” — " + concept.why);
@@ -712,6 +727,7 @@
     var state = row.classification;
     var label = "Suggest with AI";
     if (state?.phase === "pending") label = "Suggesting…";
+    if (state?.phase === "saved") label = "AI saved";
     if (state?.phase === "done") label = Object.keys(state.suggestions).length ? "AI suggested" : "No suggestions";
     if (state?.phase === "error") label = "Try AI again";
     var icon = state?.phase === "pending"
@@ -740,7 +756,7 @@
       lengthMenu: "Show _MENU_ rows",
     },
     searching: false,
-    order: [[7, "desc"]],
+    order: [[8, "desc"]],
     pageLength: 25,
     lengthMenu: [10, 25, 50, 100],
     scrollX: true,
@@ -792,6 +808,7 @@
               "</a>";
           }
 
+          var aiAction = classificationAction(row);
           return (
             '<div class="d-inline-flex align-items-center gap-2 text-nowrap">' +
             '<span class="statement-problem-label fw-semibold text-body" title="' + escapeHtml(label) + '">' +
@@ -800,7 +817,8 @@
             (hasDay ? '<span class="statement-day-label text-muted fs-xs" title="' + escapeHtml(day) + '">\u00b7 ' + escapeHtml(day) + "</span>" : "") +
             (row.has_statement === false ? '<span class="badge text-bg-light border">Statement missing</span>' : "") +
             action +
-            "</div>"
+            "</div>" +
+            (aiAction ? '<div class="mt-1">' + aiAction + "</div>" : "")
           );
         }
       },
@@ -809,43 +827,35 @@
         className: "text-nowrap",
         render: function (_data, type, row) {
           var topic = row.linked_problem_topic || "";
+          if (type === "sort") return topic || "zz";
+          if (type !== "display") return topic;
+          if (topic) return '<span class="badge text-bg-light border">' + escapeHtml(topic) + "</span>";
+
+          var suggestion = row.classification?.suggestions?.topic;
+          return suggestion ? escapeHtml(suggestion) + aiBadge : mutedDash();
+        }
+      },
+      {
+        data: null,
+        className: "text-nowrap",
+        render: function (_data, type, row) {
           var mohs = row.linked_problem_mohs;
           var hasMohs = mohs !== null && mohs !== undefined && mohs !== "";
 
-          if (type === "sort") return (topic || "zz") + " " + (hasMohs ? Number(mohs) : -1);
-          if (type === "filter") return topic + " " + (hasMohs ? String(mohs) : "");
-          if (type !== "display") return topic;
-
-          var ai = row.classification?.suggestions;
-          var topicHtml = topic
-            ? '<span class="badge text-bg-light border">' + escapeHtml(topic) + "</span>"
-            : mutedDash();
-          if (!topic && ai?.topic) topicHtml = '<span>' + escapeHtml(ai.topic) + aiBadge + '</span>';
-          var mohsHtml = mutedDash();
-          if (hasMohs) {
-            mohsHtml = '<span class="fw-semibold">MOHS ' + Number(mohs) + "</span>";
-            if (row.linked_problem_mohs_url) {
-              mohsHtml =
-                '<a class="statement-inline-link fw-semibold" href="' +
-                row.linked_problem_mohs_url +
-                '">MOHS ' +
-                Number(mohs) +
-                "</a>";
-            }
+          if (type === "sort" || type === "type") return hasMohs ? Number(mohs) : -1;
+          if (type !== "display") return hasMohs ? String(mohs) : "";
+          if (!hasMohs) {
+            var suggestion = row.classification?.suggestions?.mohs;
+            return Number.isInteger(suggestion)
+              ? '<span class="fw-semibold">' + suggestion + aiBadge + "</span>"
+              : mutedDash();
           }
 
-          if (!hasMohs && Number.isInteger(ai?.mohs)) {
-            mohsHtml = '<span class="fw-semibold">MOHS ' + ai.mohs + aiBadge + '</span>';
+          if (row.linked_problem_mohs_url) {
+            return '<a class="statement-inline-link" href="' + escapeHtml(row.linked_problem_mohs_url) + '">' +
+              Number(mohs) + "</a>";
           }
-          return (
-            '<span class="d-inline-flex align-items-center gap-2">' +
-            topicHtml +
-            '<span class="fs-xs">' +
-            mohsHtml +
-            "</span>" +
-            classificationAction(row) +
-            "</span>"
-          );
+          return '<span class="fw-semibold">' + Number(mohs) + "</span>";
         }
       },
       {
@@ -996,7 +1006,7 @@
     var oldButton = entry.node()?.querySelector(".library-classification-button");
     var restoreFocus = document.activeElement === oldButton;
     row.classification = state;
-    entry.invalidate("data").draw(false);
+    entry.invalidate("data").draw("page");
     if (restoreFocus) {
       entry.node()?.querySelector(".library-classification-button")?.focus({preventScroll: true});
     }
@@ -1018,9 +1028,12 @@
       });
       var data = response.headers.get("content-type")?.includes("application/json") ? await response.json() : {};
       if (!response.ok || !data.suggestions) throw new Error(data.error || "AI suggestions are unavailable.");
-      updateClassification(row, {phase: "done", suggestions: data.suggestions});
+      if (data.row) Object.assign(row, data.row);
+      updateClassification(row, {phase: data.saved ? "saved" : "done", suggestions: data.suggestions});
       var hasSuggestions = Object.keys(data.suggestions).length > 0;
-      classificationStatus.textContent = hasSuggestions
+      classificationStatus.textContent = data.saved
+        ? "AI suggestions saved to " + label + "."
+        : hasSuggestions
         ? "AI suggestions added to the row for " + label + "."
         : "No supported suggestions for " + label + ".";
     } catch (error) {

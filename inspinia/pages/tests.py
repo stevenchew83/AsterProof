@@ -18608,7 +18608,7 @@ def test_problem_statement_list_shows_statement_rows_and_link_counts(client):
     assert "Number Theory" in response_html
     assert "P2, P5" in response_html
     assert "<th>Problem</th>" in response_html
-    assert "Topic / MOHS</th>" in response_html
+    assert re.search(r"<th>Topic</th>\s*<th>MOHS</th>", response_html)
     assert "Signals</th>" in response_html
     assert "<th>Problem code</th>" not in response_html
     assert "dataTables.bootstrap5.min.css" in response_html
@@ -18619,7 +18619,7 @@ def test_problem_statement_list_shows_statement_rows_and_link_counts(client):
     assert "Within loaded rows..." not in response_html
     assert "problem-statements-table-alert" in response_html
     assert 'aria-describedby="problem-statements-loaded-status"' in response_html
-    assert 'order: [[7, "desc"]]' in response_html
+    assert 'order: [[8, "desc"]]' in response_html
     assert 'topStart: "pageLength"' in response_html
     assert 'aria-label="Statement pages"' not in response_html
     assert "dataTables_filter" not in response_html.lower()

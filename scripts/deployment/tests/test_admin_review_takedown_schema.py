@@ -21,9 +21,10 @@ def test_frozen_candidate_and_rehearsal_delta(tmp_path):
     root = Path.cwd()
     successor = Path("inspinia/solutions/migrations/0017_multiple_problem_solutions.py")
     registration = Path("inspinia/users/migrations/0010_public_registration.py")
+    library_ai = Path("inspinia/pages/migrations/0048_statement_ai_concept_suggestions.py")
     for source in root.glob("inspinia/**/migrations/*"):
         relative = source.relative_to(root)
-        if source.suffix in {".py", ".json"} and relative not in {successor, registration}:
+        if source.suffix in {".py", ".json"} and relative not in {successor, registration, library_ai}:
             staged = tmp_path / relative
             staged.parent.mkdir(parents=True, exist_ok=True)
             staged.write_bytes(source.read_bytes())
