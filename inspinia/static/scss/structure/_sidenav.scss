@@ -178,6 +178,10 @@
         display: block;
         color: $sidenav-item-active-color;
     }
+
+    .sidenav-user-identity {
+        overflow-wrap: anywhere;
+    }
 }
 
 html[data-sidenav-user='true'] {
