@@ -26092,6 +26092,48 @@ def test_user_activity_dashboard_shows_completion_import_errors(client):
     assert 'id="activity-import-submit"' in response_html
 
 
+def _assert_activity_heatmap_and_chart(context, today, recent_date):
+    assert context["activity_heatmap"]["exact_total"] == EXPECTED_USER_ACTIVITY_DATED_TOTAL
+    assert context["activity_heatmap"]["estimated_total"] == EXPECTED_DONE_ONLY_EXACT_TOTAL
+    assert context["activity_heatmap"]["total_in_window"] == EXPECTED_USER_ACTIVITY_VISUAL_TOTAL
+    assert context["activity_heatmap"]["uses_estimated_placements"] is False
+    assert len(context["activity_heatmap_sections"]) == 1
+    assert context["activity_heatmap_sections"][0]["is_latest"] is True
+    assert (
+        context["activity_heatmap_sections"][0]["heatmap"]["exact_total"]
+        == EXPECTED_USER_ACTIVITY_DATED_TOTAL
+    )
+    assert context["activity_heatmap"]["weeks"][0]["month_label"] == (
+        today - timedelta(days=364)
+    ).strftime("%b")
+    assert (
+        sum(context["activity_charts_payload"]["completionsByMonth"]["exact_values"])
+        == EXPECTED_USER_ACTIVITY_DATED_TOTAL
+    )
+    assert (
+        sum(context["activity_charts_payload"]["completionsByMonth"]["estimated_values"])
+        == EXPECTED_DONE_ONLY_EXACT_TOTAL
+    )
+    assert (
+        sum(context["activity_charts_payload"]["completionsByMonth"]["values"])
+        == EXPECTED_USER_ACTIVITY_VISUAL_TOTAL
+    )
+    recent_cell = next(
+        day
+        for week in context["activity_heatmap"]["weeks"]
+        for day in week["days"]
+        if day["date"] == recent_date.isoformat()
+    )
+    assert recent_cell["count"] == 1
+    assert recent_cell["title"].startswith(recent_date.strftime("%a, %d %b %Y"))
+    assert recent_cell["title"].endswith("1 completion")
+    assert all(
+        day["estimated_count"] == 0
+        for week in context["activity_heatmap"]["weeks"]
+        for day in week["days"]
+    )
+
+
 def test_user_activity_dashboard_shows_only_current_users_completion_history(client):
     user = UserFactory()
     other_user = UserFactory()
@@ -26177,45 +26219,7 @@ def test_user_activity_dashboard_shows_only_current_users_completion_history(cli
         "statuses": [{"value": UserProblemCompletion.Status.SOLVED, "label": "Solved"}],
         "topics": ["Algebra", "Geometry", "Number Theory"],
     }
-    assert response.context["activity_heatmap"]["exact_total"] == EXPECTED_USER_ACTIVITY_DATED_TOTAL
-    assert response.context["activity_heatmap"]["estimated_total"] == EXPECTED_DONE_ONLY_EXACT_TOTAL
-    assert response.context["activity_heatmap"]["total_in_window"] == EXPECTED_USER_ACTIVITY_VISUAL_TOTAL
-    assert response.context["activity_heatmap"]["uses_estimated_placements"] is False
-    assert len(response.context["activity_heatmap_sections"]) == 1
-    assert response.context["activity_heatmap_sections"][0]["is_latest"] is True
-    assert (
-        response.context["activity_heatmap_sections"][0]["heatmap"]["exact_total"]
-        == EXPECTED_USER_ACTIVITY_DATED_TOTAL
-    )
-    assert response.context["activity_heatmap"]["weeks"][0]["month_label"] == (
-        today - timedelta(days=364)
-    ).strftime("%b")
-    assert (
-        sum(response.context["activity_charts_payload"]["completionsByMonth"]["exact_values"])
-        == EXPECTED_USER_ACTIVITY_DATED_TOTAL
-    )
-    assert (
-        sum(response.context["activity_charts_payload"]["completionsByMonth"]["estimated_values"])
-        == EXPECTED_DONE_ONLY_EXACT_TOTAL
-    )
-    assert (
-        sum(response.context["activity_charts_payload"]["completionsByMonth"]["values"])
-        == EXPECTED_USER_ACTIVITY_VISUAL_TOTAL
-    )
-    recent_cell = next(
-        day
-        for week in response.context["activity_heatmap"]["weeks"]
-        for day in week["days"]
-        if day["date"] == recent_date.isoformat()
-    )
-    assert recent_cell["count"] == 1
-    assert recent_cell["title"].startswith(recent_date.strftime("%a, %d %b %Y"))
-    assert recent_cell["title"].endswith("1 completion")
-    assert all(
-        day["estimated_count"] == 0
-        for week in response.context["activity_heatmap"]["weeks"]
-        for day in week["days"]
-    )
+    _assert_activity_heatmap_and_chart(response.context, today, recent_date)
     table_rows = response.context["activity_table_rows"]
     assert [row["problem_label"] for row in table_rows] == [
         recent_problem.contest_year_problem,
