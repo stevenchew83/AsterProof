@@ -12,6 +12,7 @@ from django.http import JsonResponse
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from django.views.decorators.cache import never_cache
+from django.views.decorators.debug import sensitive_variables
 from django.views.decorators.http import require_POST
 
 from inspinia.pages.concept_alias_policy import SUBJECT_CODES
@@ -26,6 +27,8 @@ from inspinia.pages.statement_concept_coverage import statement_coverage_payload
 from inspinia.pages.study_help_access import assistance_restricted
 from inspinia.pages.study_help_access import source_problem
 from inspinia.pages.topic_labels import display_topic_label
+from inspinia.solutions.admin_reviews import read_credential
+from inspinia.solutions.admin_reviews import review_settings
 from inspinia.solutions.review_provider import ProviderError
 from inspinia.solutions.review_provider import _report
 from inspinia.users.roles import user_can_access_app_features
@@ -53,13 +56,16 @@ USER_DAILY_LIMIT = 5
 SITE_DAILY_LIMIT = 50
 
 
+def _key_for(user):
+    if not settings.PROBLEM_LIBRARY_AI_SUGGESTIONS_ENABLED or not user.is_active:
+        return ""
+    if not user_can_access_app_features(user):
+        return ""
+    return settings.OPENAI_API_KEY.strip() or read_credential(review_settings())
+
+
 def enabled_for(user):
-    return (
-        settings.PROBLEM_LIBRARY_AI_SUGGESTIONS_ENABLED
-        and bool(settings.OPENAI_API_KEY)
-        and user.is_active
-        and user_can_access_app_features(user)
-    )
+    return bool(_key_for(user))
 
 
 def missing_fields(row):
@@ -102,7 +108,8 @@ def _schema(fields):
     return _object(requested)
 
 
-def generate_suggestions(snapshot, fields):
+@sensitive_variables("api_key", "client", "response")
+def generate_suggestions(snapshot, fields, *, api_key):
     try:
         import openai
     except ImportError as error:
@@ -111,7 +118,9 @@ def generate_suggestions(snapshot, fields):
 
     try:
         with openai.OpenAI(
-            api_key=settings.OPENAI_API_KEY, base_url="https://api.openai.com/v1", timeout=20.0, max_retries=0,
+            api_key=api_key, base_url="https://api.openai.com/v1", timeout=20.0, max_retries=0,
+            admin_api_key="", organization="", project="", webhook_secret="",
+            default_headers={"Authorization": f"Bearer {api_key}"},
         ) as client:
             response = client.responses.create(
                 model=MODEL, store=False, reasoning={"effort": "minimal"}, max_output_tokens=1400,
@@ -215,8 +224,10 @@ def _take_quota(user_id):
 @login_required
 @require_POST
 @never_cache
+@sensitive_variables("api_key")
 def library_classification(request, statement_uuid):
-    if not enabled_for(request.user):
+    api_key = _key_for(request.user)
+    if not api_key:
         return JsonResponse({"error": "AI suggestions are unavailable."}, status=403)
     statement = get_object_or_404(
         ContestProblemStatement.objects.select_related("linked_problem"),
@@ -232,10 +243,11 @@ def library_classification(request, statement_uuid):
     if source_problem(statement):
         return JsonResponse({"error": "Suggestions need a complete text statement without diagrams."}, status=422)
 
-    return _preview(statement, request.user.pk)
+    return _preview(statement, request.user.pk, api_key=api_key)
 
 
-def _preview(statement, user_id):
+@sensitive_variables("api_key")
+def _preview(statement, user_id, *, api_key):
     topic, mohs = display_topic_label(effective_topic(statement)), effective_mohs(statement)
     fields = missing_fields({
         "linked_problem_topic": topic,
@@ -251,7 +263,7 @@ def _preview(statement, user_id):
 
     snapshot = {"statement": statement.statement_latex.strip(), "existing_topic": topic, "existing_mohs": mohs}
     try:
-        report = generate_suggestions(snapshot, fields)
+        report = generate_suggestions(snapshot, fields, api_key=api_key)
     except ProviderError:
         return JsonResponse({"error": "OpenAI could not return suggestions for this problem."}, status=502)
     return JsonResponse({"suggestions": validated_suggestions(report, fields, snapshot)})
