@@ -9,3 +9,18 @@ Area shows one value plus an additional-value count. Coverage shows two concepts
 Library search resolves canonical names and areas before the latest-100 limit. The loaded-row filter includes concepts hidden behind the additional-value count. Existing source-caption search remains available. Copy loaded rows includes complete Area, Coverage, mapping status, review labels and original tags for every loaded row, independently of the client-side filter; values preserve one TSV line per problem.
 
 The existing Inspinia shell remains. Long labels truncate, metadata stays inline, and small screens scroll the table horizontally. Regression coverage is in `test_statement_concept_coverage.py` and the statement-list tests.
+
+**Suggest with AI** fills missing topic, MOHS, Area, Coverage and Signals in the
+current table row for active problems with a usable text statement. Each suggested
+value is marked AI and lasts for the current page. The request uses only the
+statement and any existing topic/MOHS. Coverage suggestions need a statement
+excerpt, a brief explanation and an unambiguous canonical concept match. Areas
+come from those concept mappings. Suggestions do not update the library or
+count toward concept coverage.
+
+Production enables the action by default. Other environments can opt in with
+`PROBLEM_LIBRARY_AI_SUGGESTIONS_ENABLED`. The action requires `OPENAI_API_KEY`
+and an approved account. It follows existing AI assistance
+restrictions and uses the shared cache to limit attempts to five per account
+and fifty per site per UTC day. Local verification can replace the provider
+with a synthetic response; there is no automatic generation on page load.

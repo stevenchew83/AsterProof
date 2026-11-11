@@ -19,6 +19,7 @@ from inspinia.pages.contest_papers import contest_papers_view
 from inspinia.pages.contest_progress import contest_progress_learner_options_view
 from inspinia.pages.inventory_ai_reviews import user_solution_record_review_view
 from inspinia.pages.learning_activity import learning_activity_collect
+from inspinia.pages.library_classification import library_classification
 from inspinia.pages.shared_progress_views import shared_progress_comparison_view
 from inspinia.pages.shared_progress_views import shared_progress_view
 from inspinia.pages.statement_reports import statement_report_create
@@ -228,6 +229,11 @@ urlpatterns = [
         name="problem_statement_contest_year_master",
     ),
     path("dashboard/problem-statements/", problem_statement_list_view, name="problem_statement_list"),
+    path(
+        "dashboard/problem-statements/<uuid:statement_uuid>/ai-suggestions/",
+        library_classification,
+        name="library_classification",
+    ),
     path(
         "dashboard/problem-statements/<uuid:statement_uuid>/",
         problem_statement_detail_view,

@@ -417,6 +417,13 @@
           </div>
 
           {% if statement_filtered_total > 0 %}
+          {% if library_has_classification %}
+          <p class="text-muted fs-xs mb-2" id="library-classification-help">
+            Suggest with AI sends the statement and any existing topic and MOHS to OpenAI.
+            Values marked AI are suggestions for this page.
+          </p>
+          <p id="library-classification-status" class="visually-hidden" role="status"></p>
+          {% endif %}
           {{ statement_datatable_rows|json_script:"problem-statements-table-data" }}
           <div id="problem-statements-table-alert" class="alert alert-warning d-none" role="alert">
             Statement table data could not be loaded.
@@ -476,6 +483,10 @@
         <h6>Areas</h6><p id="statement-taxonomy-areas"></p>
         <h6 id="statement-taxonomy-concepts-heading">Covered concepts</h6><ul id="statement-taxonomy-concepts" class="mb-3"></ul>
         <section id="statement-taxonomy-suggestions-section" hidden><h6>Suggestions · not counted</h6><ul id="statement-taxonomy-suggestions" class="mb-3"></ul></section>
+        <section id="statement-taxonomy-ai-section" hidden>
+          <h6>AI suggestions</h6>
+          <ul id="statement-taxonomy-ai" class="mb-3"></ul>
+        </section>
         <div id="statement-taxonomy-review-section" hidden>
           <h6>Needs review</h6><ul id="statement-taxonomy-review" class="mb-3"></ul>
         </div>
@@ -627,6 +638,8 @@
     return row.contest_year_problem || fallback || "Problem statement";
   }
 
+  var aiBadge = '<span class="badge bg-info-subtle text-info-emphasis ms-1" title="AI suggestion" aria-label="AI suggestion">AI</span>';
+
   function taxonomyCell(row, type, isArea) {
     var labels = isArea ? (row.concept_areas || []) : (row.concept_coverage || []).map(function (c) { return c.display; });
     var review = row.concept_review_labels || [];
@@ -634,6 +647,10 @@
     var status = row.concept_coverage_status || "Untagged";
     if (type === "filter") return labels.concat(review, suggestions.map(function(c) { return c.label; }), row.concept_source_tags || [], [status]).join(" ");
     if (type !== "display") return labels.join(", ") || status;
+    var ai = row.classification?.suggestions;
+    var aiLabels = isArea ? ai?.area : ai?.coverage?.map(function (concept) { return concept.label; });
+    var showingAi = !labels.length && Boolean(aiLabels?.length);
+    if (showingAi) labels = aiLabels;
     var limit = isArea ? 1 : 2;
     var visible = labels.slice(0, limit).join(", ") || (status === "Mapped" ? "\u2014" : status);
     var more = labels.length > limit ? '<span class="ms-1 fw-semibold">+' + (labels.length - limit) + '</span>' : '';
@@ -644,7 +661,8 @@
       'aria-haspopup="dialog" aria-controls="statement-taxonomy-modal" data-problem-uuid="' +
       escapeHtml(row.problem_uuid) + '" aria-label="View all areas, concepts and original tags for ' +
       escapeHtml(problemLabel(row)) + '" title="' + escapeHtml(labels.join(", ") || status) + '">' +
-      '<span class="statement-taxonomy-label">' + escapeHtml(visible) + '</span>' + more + held + '</button>';
+      '<span class="statement-taxonomy-label">' + escapeHtml(visible) + '</span>' +
+      more + (showingAi ? aiBadge : "") + held + '</button>';
   }
 
   var rowsByUuid = new Map(rows.map(function (row) { return [row.problem_uuid, row]; }));
@@ -671,6 +689,13 @@
     fillList("statement-taxonomy-concepts", (row.concept_coverage || []).map(function (c) {
       return c.display + " \u00b7 " + c.subject + " \u00b7 " + c.area + (c.support_basis ? " · " + c.support_basis : "");
     }));
+    var ai = row.classification?.suggestions;
+    var aiEvidence = (ai?.area || []).slice();
+    (ai?.coverage || []).forEach(function (concept) {
+      aiEvidence.push(concept.label + " · " + concept.subject + " · “" + concept.quote + "” — " + concept.why);
+    });
+    fillList("statement-taxonomy-ai", aiEvidence);
+    document.getElementById("statement-taxonomy-ai-section").hidden = !aiEvidence.length;
     fillList("statement-taxonomy-review", row.concept_review_labels || []);
     document.getElementById("statement-taxonomy-review-section").hidden = !(row.concept_review_labels || []).length;
     fillList("statement-taxonomy-sources", row.concept_source_tags || []);
@@ -682,7 +707,25 @@
     button.addEventListener("click", function () { taxonomyModal.close(); });
   });
 
-  new DataTable("#problem-statements-table", {
+  function classificationAction(row) {
+    if (!row.classification_url) return "";
+    var state = row.classification;
+    var label = "Suggest with AI";
+    if (state?.phase === "pending") label = "Suggesting…";
+    if (state?.phase === "done") label = Object.keys(state.suggestions).length ? "AI suggested" : "No suggestions";
+    if (state?.phase === "error") label = "Try AI again";
+    var icon = state?.phase === "pending"
+      ? '<span class="spinner-border spinner-border-sm me-1" aria-hidden="true"></span>'
+      : '<i class="ti ti-sparkles me-1" aria-hidden="true"></i>';
+    return '<button type="button" class="btn btn-outline-secondary btn-sm library-classification-button" ' +
+      'aria-label="' + escapeHtml(label + " for " + problemLabel(row)) + '" ' +
+      'aria-describedby="library-classification-help" ' +
+      (state && state.phase !== "error" ? 'aria-disabled="true" ' : '') +
+      (state?.error ? 'title="' + escapeHtml(state.error) + '" ' : '') +
+      'data-problem-uuid="' + escapeHtml(row.problem_uuid) + '">' + icon + label + '</button>';
+  }
+
+  var table = new DataTable("#problem-statements-table", {
     data: rows,
     layout: {
       topStart: "pageLength",
@@ -773,9 +816,11 @@
           if (type === "filter") return topic + " " + (hasMohs ? String(mohs) : "");
           if (type !== "display") return topic;
 
+          var ai = row.classification?.suggestions;
           var topicHtml = topic
             ? '<span class="badge text-bg-light border">' + escapeHtml(topic) + "</span>"
             : mutedDash();
+          if (!topic && ai?.topic) topicHtml = '<span>' + escapeHtml(ai.topic) + aiBadge + '</span>';
           var mohsHtml = mutedDash();
           if (hasMohs) {
             mohsHtml = '<span class="fw-semibold">MOHS ' + Number(mohs) + "</span>";
@@ -789,12 +834,16 @@
             }
           }
 
+          if (!hasMohs && Number.isInteger(ai?.mohs)) {
+            mohsHtml = '<span class="fw-semibold">MOHS ' + ai.mohs + aiBadge + '</span>';
+          }
           return (
             '<span class="d-inline-flex align-items-center gap-2">' +
             topicHtml +
             '<span class="fs-xs">' +
             mohsHtml +
             "</span>" +
+            classificationAction(row) +
             "</span>"
           );
         }
@@ -845,7 +894,9 @@
           var raw = row.linked_problem_imo_slot_guess_value || "";
           if (type === "sort" || type === "filter") return confidence + " " + slot + " " + raw;
           if (type !== "display") return confidence + " " + slot;
-          if (!confidence && !slot) return mutedDash();
+          var ai = row.classification?.suggestions;
+          var aiSlots = !raw && ai?.imo_slots?.map(function (value) { return "P" + value; }).join(", ");
+          if (!confidence && !slot && !ai?.confidence && !aiSlots) return mutedDash();
 
           var confidenceHtml = mutedDash();
           if (confidence) {
@@ -863,6 +914,8 @@
             }
           }
 
+          if (!confidence && ai?.confidence) confidenceHtml = escapeHtml(ai.confidence) + aiBadge;
+
           var slotHtml = mutedDash();
           if (slot) {
             slotHtml = '<span title="' + escapeHtml(slot) + '">' + escapeHtml(slot) + "</span>";
@@ -878,6 +931,7 @@
             }
           }
 
+          if (!slot && aiSlots) slotHtml = escapeHtml(aiSlots) + aiBadge;
           return (
             '<span class="statement-signals">' +
             '<span><span class="text-muted">Confidence:</span> ' +
@@ -934,6 +988,47 @@
     ]
   });
 
+  {% if library_has_classification %}
+  var classificationStatus = document.getElementById("library-classification-status");
+
+  function updateClassification(row, state) {
+    var entry = table.row(function (_index, data) { return data === row; });
+    var oldButton = entry.node()?.querySelector(".library-classification-button");
+    var restoreFocus = document.activeElement === oldButton;
+    row.classification = state;
+    entry.invalidate("data").draw(false);
+    if (restoreFocus) {
+      entry.node()?.querySelector(".library-classification-button")?.focus({preventScroll: true});
+    }
+  }
+
+  table.table().node().addEventListener("click", async function (event) {
+    var button = event.target.closest(".library-classification-button");
+    if (!button || button.getAttribute("aria-disabled") === "true") return;
+    var row = rowsByUuid.get(button.dataset.problemUuid);
+    if (!row?.classification_url) return;
+
+    var label = problemLabel(row);
+    updateClassification(row, {phase: "pending"});
+    classificationStatus.textContent = "Requesting AI suggestions for " + label + ".";
+    try {
+      var response = await fetch(row.classification_url, {
+        method: "POST",
+        headers: {"X-CSRFToken": csrfToken, "Accept": "application/json"},
+      });
+      var data = response.headers.get("content-type")?.includes("application/json") ? await response.json() : {};
+      if (!response.ok || !data.suggestions) throw new Error(data.error || "AI suggestions are unavailable.");
+      updateClassification(row, {phase: "done", suggestions: data.suggestions});
+      var hasSuggestions = Object.keys(data.suggestions).length > 0;
+      classificationStatus.textContent = hasSuggestions
+        ? "AI suggestions added to the row for " + label + "."
+        : "No supported suggestions for " + label + ".";
+    } catch (error) {
+      updateClassification(row, {phase: "error", error: error.message});
+      classificationStatus.textContent = label + ". " + error.message;
+    }
+  });
+  {% endif %}
 })();
 </script>
 {% endif %}
