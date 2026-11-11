@@ -8,6 +8,7 @@ from unittest.mock import MagicMock
 from unittest.mock import Mock
 
 import pytest
+from cryptography.fernet import Fernet
 from django.core.cache import cache
 from django.test import Client
 from django.urls import reverse
@@ -17,6 +18,7 @@ from inspinia.pages import library_classification as classification
 from inspinia.pages.models import ContestProblemStatement
 from inspinia.pages.models import ProblemSolveRecord
 from inspinia.pages.models import StatementTopicTechnique
+from inspinia.solutions.admin_review_models import AdminSolutionReviewSettings
 from inspinia.solutions.evaluation_models import AssistancePolicy
 from inspinia.users.tests.factories import UserFactory
 
@@ -99,12 +101,47 @@ def test_preview_uses_effective_values_and_requires_canonical_evidence(client, p
     provider.assert_called_once_with(
         {"statement": STATEMENT, "existing_topic": "Algebra", "existing_mohs": 0},
         ("area", "coverage", "imo_slots"),
+        api_key="synthetic-key",
     )
     row.refresh_from_db()
     assert row.linked_problem_id is None
     assert row.topic is None
     assert row.mohs is None
     assert not StatementTopicTechnique.objects.exists()
+
+
+def test_library_uses_saved_ai_key_and_respects_the_override(client, provider, settings):
+    settings.OPENAI_API_KEY = ""
+    fernet_key = Fernet.generate_key()
+    settings.ADMIN_SOLUTION_REVIEW_ENCRYPTION_KEY = fernet_key.decode()
+    saved_key = b"synthetic-saved-review-key"
+    AdminSolutionReviewSettings.objects.create(encrypted_key=Fernet(fernet_key).encrypt(saved_key))
+
+    user = UserFactory()
+    client.force_login(user)
+    row = make_statement()
+    library_url = reverse("pages:problem_statement_list")
+    library = client.get(library_url)
+    assert library.context["statement_table_rows"][0]["classification_url"] == url(row)
+    assert saved_key not in library.content
+    provider.assert_not_called()
+
+    provider.return_value = {"mohs": 20}
+    result = client.post(url(row))
+    assert result.status_code == HTTPStatus.OK
+    assert result.json() == {"suggestions": {"mohs": 20}}
+    assert provider.call_args.kwargs["api_key"] == saved_key.decode()
+    assert saved_key not in result.content
+
+    settings.PROBLEM_LIBRARY_AI_SUGGESTIONS_ENABLED = False
+    assert "classification_url" not in client.get(library_url).context["statement_table_rows"][0]
+    assert client.post(url(row)).status_code == HTTPStatus.FORBIDDEN
+    assert provider.call_count == 1
+
+    client.force_login(UserFactory(is_superuser=True))
+    admin_page = client.get(reverse("solutions:admin_ai_review_settings"))
+    assert b"Disabled by configuration" in admin_page.content
+    assert saved_key not in admin_page.content
 
 
 def test_paid_post_requires_login_csrf_and_feature_flag(provider, settings):
@@ -152,15 +189,14 @@ def test_site_and_account_limits_prevent_dispatch(client, provider, monkeypatch)
     assert provider.call_count == 2  # noqa: PLR2004
 
 
-def test_openai_request_uses_short_instructions_and_only_missing_fields(settings, monkeypatch):
-    settings.OPENAI_API_KEY = "synthetic-key"
+def test_openai_request_uses_short_instructions_and_only_missing_fields(monkeypatch):
     transport = MagicMock()
     generate = transport.return_value.__enter__.return_value.responses.create
     generate.return_value = SimpleNamespace(status="completed", output=[], output_text='{"mohs": 0}')
     monkeypatch.setattr("openai.OpenAI", transport)
 
     snapshot = {"statement": STATEMENT, "existing_topic": "Algebra", "existing_mohs": None}
-    assert classification.generate_suggestions(snapshot, ("mohs",)) == {"mohs": 0}
+    assert classification.generate_suggestions(snapshot, ("mohs",), api_key="synthetic-key") == {"mohs": 0}
 
     request = generate.call_args.kwargs
     assert request["store"] is False

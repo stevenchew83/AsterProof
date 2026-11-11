@@ -19,8 +19,10 @@ come from those concept mappings. Suggestions do not update the library or
 count toward concept coverage.
 
 Production enables the action by default. Other environments can opt in with
-`PROBLEM_LIBRARY_AI_SUGGESTIONS_ENABLED`. The action requires `OPENAI_API_KEY`
-and an approved account. It follows existing AI assistance
+`PROBLEM_LIBRARY_AI_SUGGESTIONS_ENABLED`. The action requires an approved
+account and uses `OPENAI_API_KEY` when configured. Otherwise it uses the
+encrypted key already saved in AI Settings. Administrators can check the
+effective flag and connection status there. The action follows existing AI assistance
 restrictions and uses the shared cache to limit attempts to five per account
 and fifty per site per UTC day. Local verification can replace the provider
 with a synthetic response; there is no automatic generation on page load.
