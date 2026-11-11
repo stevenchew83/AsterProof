@@ -110,6 +110,58 @@ def test_preview_uses_effective_values_and_requires_canonical_evidence(client, p
     assert not StatementTopicTechnique.objects.exists()
 
 
+def test_memo_p1_returns_canonical_composition_from_the_statement(client, provider):
+    client.force_login(UserFactory())
+    row = make_statement(statement_latex=(
+        r"Determine all functions $f: \mathbb{R} \to \mathbb{R}$ such that "
+        r"$$f(x+yf(x+y))=f(x)f(y)+y^2$$for all $x,y \in \mathbb{R}$"
+    ))
+    provider.return_value = {
+        "topic": ["Algebra"],
+        "concepts": [{
+            "subject": "Algebra", "kind": "method", "label": "Functional equation",
+            "quote": "Determine all functions", "why": "This is a functional equation.",
+        }],
+    }
+
+    response = client.post(url(row))
+
+    assert response.status_code == HTTPStatus.OK
+    suggestions = response.json()["suggestions"]
+    assert suggestions["area"] == ["Functions and functional equations"]
+    assert suggestions["coverage"] == [{
+        "id": "function-composition", "label": "Function composition", "subject": "Algebra",
+        "area": "Functions and functional equations", "quote": "f(x+yf(x+y))",
+        "why": "The argument of the outer function call contains another call to the same function.",
+    }]
+
+
+def test_canonical_label_can_be_given_under_another_role():
+    source = "Evaluate the composition of the given functions."
+    report = {"concepts": [{
+        "subject": "Algebra", "kind": "method", "label": "Function composition",
+        "quote": "composition of the given functions", "why": "The problem asks to compose functions.",
+    }]}
+
+    suggestions = classification.validated_suggestions(report, ("coverage",), {
+        "statement": source, "existing_topic": "Algebra",
+    })
+
+    assert [concept["id"] for concept in suggestions["coverage"]] == ["function-composition"]
+
+
+def test_separate_calls_and_generic_equation_label_do_not_infer_a_concept():
+    source = r"Find $f: \mathbb{R} \to \mathbb{R}$ satisfying $f(x)+f(y)=x+y$."
+    report = {"concepts": [{
+        "subject": "Algebra", "kind": "method", "label": "Functional equation",
+        "quote": "f(x)+f(y)=x+y", "why": "This is a functional equation.",
+    }]}
+
+    assert classification.validated_suggestions(report, ("area", "coverage"), {
+        "statement": source, "existing_topic": "Algebra",
+    }) == {}
+
+
 def test_library_uses_saved_ai_key_and_respects_the_override(client, provider, settings):
     settings.OPENAI_API_KEY = ""
     fernet_key = Fernet.generate_key()
