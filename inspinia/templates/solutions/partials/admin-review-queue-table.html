@@ -1,7 +1,7 @@
 <section class="card" aria-labelledby="ai-queue-heading">
   <div class="card-header d-flex align-items-start justify-content-between flex-wrap gap-2">
     <div>
-      <h2 id="ai-queue-heading" class="header-title fs-lg mb-1">Review requests</h2>
+      <h2 id="ai-queue-heading" class="card-title fs-lg mb-1">Review requests</h2>
       <p class="text-muted fs-sm mb-0">Each row is one model request. The table loads all active requests and up to {{ history_page.paginator.per_page }} past requests per history page.</p>
     </div>
     <div class="d-flex flex-wrap gap-2" data-ai-queue-counts>
@@ -36,7 +36,7 @@
       </div>
     </div>
     <div class="app-table-region table-responsive" tabindex="0" role="region" aria-label="AI review requests">
-      <table id="ai-review-queue-table" class="table table-striped app-table-compact align-middle w-100 mb-0"
+      <table id="ai-review-queue-table" class="table table-striped table-sm align-middle w-100 mb-0"
              aria-label="AI review requests" data-paging-type="simple">
         <thead>
           <tr>

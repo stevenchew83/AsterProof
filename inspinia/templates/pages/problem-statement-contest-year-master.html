@@ -27,7 +27,7 @@
   }
 
   .statement-master-inline-link:hover {
-    color: var(--ins-primary);
+    color: var(--theme-primary);
   }
 
   #problem-statement-contest-year-master-table tbody td {
@@ -116,7 +116,7 @@
       <div class="card">
         <div class="card-header border-bottom d-flex flex-wrap align-items-center gap-2">
           <div class="flex-grow-1">
-            <h4 class="header-title mb-0">{{ master_contest_name }} {{ master_contest_year }}</h4>
+            <h4 class="card-title mb-0">{{ master_contest_name }} {{ master_contest_year }}</h4>
             <p class="text-muted fs-xs mb-0">Complete statement-row list for this contest-year.</p>
           </div>
           <a href="{{ master_back_url }}" class="btn btn-outline-secondary btn-sm">
@@ -128,7 +128,7 @@
           <div class="statement-master-table-shell">
             <table data-paging-type="simple"
               id="problem-statement-contest-year-master-table"
-              class="app-table-compact table table-striped table-bordered align-middle w-100"
+              class="table-sm table table-striped table-bordered align-middle w-100"
             >
               <thead class="table-light">
                 <tr>

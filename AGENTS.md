@@ -4,7 +4,7 @@
 
 For the paths being changed, use the applicable nested `AGENTS.md` files under `config/` and `inspinia/` (including `pages/`, `users/`, `solutions/`, `templates/`, and `static/`).
 
-- Dashboard/admin UI: use [the dashboard style contract](docs/inspinia-dashboard-style.md). Keep the bundled Inspinia/Bootstrap 5 shell; do not introduce a parallel UI framework.
+- Browser UI: follow [the INSPINIA 5.2.0 Bootstrap reference](docs/inspinia-dashboard-style.md) for public, account, workspace, and administration pages.
 - Full compilable olympiad LaTeX/PDF solutions: follow [the Evan Chen layout rule](.cursor/rules/evan-chen-latex-pdf.mdc).
 - Historical plans under `docs/plans/` and `docs/superpowers/` provide task context, not standing workflow authorization. Their commit, worktree, and deployment steps require explicit user authorization; skill references do not mandate invocation.
 

@@ -49,14 +49,14 @@
 
 // avatar group
 .avatar-group {
-    padding-left: 0.75rem;
+    padding-inline-start: 0.75rem;
     @extend .d-flex;
     @extend .flex-wrap;
     @extend .align-items-center;
     line-height: 1;
 
     .avatar {
-        margin-left: -0.75rem;
+        margin-inline-start: -0.75rem;
         transition: all 0.2s;
         line-height: 1;
 
@@ -68,18 +68,18 @@
     }
 
     &.avatar-group-sm {
-        padding-left: 0.5rem;
+        padding-inline-start: 0.5rem;
 
         .avatar {
-            margin-left: -0.5rem;
+            margin-inline-start: -0.5rem;
         }
     }
 
     &.avatar-group-xs {
-        padding-left: 0.35rem;
+        padding-inline-start: 0.35rem;
 
         .avatar {
-            margin-left: -0.35rem;
+            margin-inline-start: -0.35rem;
         }
     }
 }

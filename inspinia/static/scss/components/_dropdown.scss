@@ -4,6 +4,7 @@
 
 .dropdown-menu {
     box-shadow: var(--#{$prefix}dropdown-box-shadow);
+    border-radius: var(--#{$prefix}border-radius);
     animation-name: DropDownSlideUp;
     animation-duration: 0.3s;
     animation-fill-mode: both;
@@ -11,8 +12,8 @@
     position: absolute;
     z-index: 1000;
 
-    &[data-popper-placement="top-start"],
-    &[data-popper-placement="top"] {
+    &[data-popper-placement='top-start'],
+    &[data-popper-placement='top'] {
         animation-name: DropDownSlideDown;
     }
 }
@@ -38,7 +39,6 @@
     }
 }
 
-
 //Custom Dropdown Sizes
 $dropdown-menu-xxl-width: 740px;
 $dropdown-menu-xl-width: 600px;
@@ -52,7 +52,7 @@ $dropdown-menu-md-width: 250px;
 
     .dropdown-menu-xl {
         width: $dropdown-menu-xl-width;
-    }   
+    }
 }
 
 @include media-breakpoint-up(sm) {
@@ -68,8 +68,8 @@ $dropdown-menu-md-width: 250px;
         // width: 100vw;
         width: auto;
         position: fixed !important;
-        left: 10px !important;
-        right: 10px !important;
+        inset-inline-start: 10px !important;
+        inset-inline-end: 10px !important;
     }
 }
 
@@ -83,13 +83,13 @@ $dropdown-menu-md-width: 250px;
 // Dropdown Split Style
 .dropdown-toggle-split {
     &:before {
-        content: "";
+        content: '';
         position: absolute;
         background-color: rgba($white, 0.12);
         top: calc(#{$btn-border-width} * -1);
         bottom: calc(#{$btn-border-width} * -1);
-        right: calc(#{$btn-border-width} * -1);
-        left: 0;
+        inset-inline-end: calc(#{$btn-border-width} * -1);
+        inset-inline-start: 0;
         border-radius: 0 $btn-border-radius $btn-border-radius 0;
     }
 }
@@ -104,17 +104,17 @@ $dropdown-menu-md-width: 250px;
         }
 
         &::after {
-            content: "";
+            content: '';
             display: inline-block;
             position: absolute;
             background-color: rgba($dark, 0.1);
             top: 0;
             bottom: 0;
-            right: 0;
-            left: 0;
+            inset-inline-end: 0;
+            inset-inline-start: 0;
             border-radius: $btn-border-radius 0 0 $btn-border-radius;
             border: none;
-            margin-left: 0;
+            margin-inline-start: 0;
         }
     }
 }

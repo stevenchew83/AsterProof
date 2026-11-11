@@ -9,9 +9,9 @@
 <link rel="stylesheet" href="{% static 'plugins/datatables/dataTables.bootstrap5.min.css' %}">
 <style>
   .training-material-status {
-    border: 1px solid var(--bs-border-color);
-    border-radius: var(--bs-border-radius);
-    background: var(--bs-body-bg);
+    border: 1px solid var(--theme-border-color);
+    border-radius: var(--theme-border-radius);
+    background: var(--theme-body-bg);
   }
 
   .training-material-status-item {
@@ -19,16 +19,16 @@
   }
 
   .training-editor-shell {
-    border: 1px solid var(--bs-border-color);
-    border-radius: var(--bs-border-radius);
+    border: 1px solid var(--theme-border-color);
+    border-radius: var(--theme-border-radius);
     overflow: hidden;
-    background: var(--bs-body-bg);
+    background: var(--theme-body-bg);
   }
 
   .training-editor-toolbar {
     align-items: center;
-    background: var(--bs-tertiary-bg);
-    border-bottom: 1px solid var(--bs-border-color);
+    background: var(--theme-tertiary-bg);
+    border-bottom: 1px solid var(--theme-border-color);
     display: flex;
     flex-wrap: wrap;
     gap: .5rem;
@@ -37,7 +37,7 @@
 
   .training-editor-toolbar-group {
     align-items: center;
-    border-right: 1px solid var(--bs-border-color);
+    border-right: 1px solid var(--theme-border-color);
     display: inline-flex;
     gap: .35rem;
     padding-right: .5rem;
@@ -80,8 +80,8 @@
   }
 
   .training-preview-pane {
-    background: var(--bs-secondary-bg);
-    border-left: 1px solid var(--bs-border-color);
+    background: var(--theme-secondary-bg);
+    border-left: 1px solid var(--theme-border-color);
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -96,11 +96,11 @@
   }
 
   .training-material-preview {
-    background: var(--bs-body-bg);
-    border: 1px solid var(--bs-border-color);
-    border-radius: var(--bs-border-radius);
-    box-shadow: var(--bs-box-shadow-sm);
-    color: var(--bs-body-color);
+    background: var(--theme-body-bg);
+    border: 1px solid var(--theme-border-color);
+    border-radius: var(--theme-border-radius);
+    box-shadow: var(--theme-box-shadow-sm);
+    color: var(--theme-body-color);
     font-size: .94rem;
     line-height: 1.7;
     max-width: 72ch;
@@ -117,15 +117,15 @@
   }
 
   .training-material-preview h1 {
-    color: var(--bs-primary);
+    color: var(--theme-primary);
     font-size: 1.45rem;
     line-height: 1.25;
     margin: 0 0 1rem;
   }
 
   .training-material-preview h2 {
-    border-left: 3px solid var(--bs-primary);
-    color: var(--bs-body-color);
+    border-left: 3px solid var(--theme-primary);
+    color: var(--theme-body-color);
     font-size: 1.15rem;
     line-height: 1.35;
     margin: 1.5rem 0 .75rem;
@@ -133,7 +133,7 @@
   }
 
   .training-material-preview h3 {
-    color: var(--bs-info);
+    color: var(--theme-info);
     font-size: 1rem;
     line-height: 1.4;
     margin: 1.25rem 0 .5rem;
@@ -158,15 +158,15 @@
   }
 
   .training-material-preview li::marker {
-    color: var(--bs-primary);
+    color: var(--theme-primary);
     font-weight: 600;
   }
 
   .training-material-preview blockquote {
-    background: var(--bs-primary-bg-subtle);
-    border-left: .25rem solid var(--bs-primary);
-    border-radius: 0 var(--bs-border-radius) var(--bs-border-radius) 0;
-    color: var(--bs-body-color);
+    background: var(--theme-primary-bg-subtle);
+    border-left: .25rem solid var(--theme-primary);
+    border-radius: 0 var(--theme-border-radius) var(--theme-border-radius) 0;
+    color: var(--theme-body-color);
     padding: .85rem 1rem;
   }
 
@@ -175,19 +175,19 @@
   }
 
   .training-material-preview code {
-    background: var(--bs-tertiary-bg);
-    border: 1px solid var(--bs-border-color);
+    background: var(--theme-tertiary-bg);
+    border: 1px solid var(--theme-border-color);
     border-radius: .25rem;
-    color: var(--bs-code-color);
+    color: var(--theme-code-color);
     font-size: .85em;
     padding: .1rem .3rem;
   }
 
   .training-material-preview pre {
-    background: var(--bs-tertiary-bg);
-    border: 1px solid var(--bs-border-color);
-    border-radius: var(--bs-border-radius);
-    color: var(--bs-body-color);
+    background: var(--theme-tertiary-bg);
+    border: 1px solid var(--theme-border-color);
+    border-radius: var(--theme-border-radius);
+    color: var(--theme-body-color);
     font-size: .86rem;
     line-height: 1.55;
     overflow-x: auto;
@@ -213,7 +213,7 @@
 
   .training-material-preview hr {
     border: 0;
-    border-top: 1px solid var(--bs-border-color);
+    border-top: 1px solid var(--theme-border-color);
     margin: 1.5rem 0;
     opacity: 1;
   }
@@ -226,20 +226,20 @@
 
   .training-material-preview th,
   .training-material-preview td {
-    border: 1px solid var(--bs-border-color);
+    border: 1px solid var(--theme-border-color);
     padding: .45rem .6rem;
     vertical-align: top;
   }
 
   .training-material-preview thead th {
-    background: var(--bs-tertiary-bg);
-    color: var(--bs-secondary-color);
+    background: var(--theme-tertiary-bg);
+    color: var(--theme-secondary-color);
     font-weight: 600;
   }
 
   .training-material-row-active {
-    --bs-table-bg: var(--bs-primary-bg-subtle);
-    --bs-table-color: var(--bs-primary-text-emphasis);
+    --theme-table-bg: var(--theme-primary-bg-subtle);
+    --theme-table-color: var(--theme-primary-text-emphasis);
   }
 
   .training-save-state {
@@ -252,7 +252,7 @@
 
   #training-materials-table_wrapper .dt-length label,
   #training-materials-table_wrapper .dt-search label {
-    color: var(--bs-secondary-color);
+    color: var(--theme-secondary-color);
     font-size: .75rem;
     font-weight: 600;
     text-transform: uppercase;
@@ -273,7 +273,7 @@
 
     .training-preview-pane {
       border-left: 0;
-      border-top: 1px solid var(--bs-border-color);
+      border-top: 1px solid var(--theme-border-color);
       min-height: 320px;
     }
   }
@@ -334,7 +334,7 @@
         <div class="card">
           <div class="card-header border-0 pb-0 d-flex flex-wrap align-items-center justify-content-between gap-2">
             <div>
-              <h4 class="header-title mb-1">{% if selected_material %}Edit material{% else %}Create material{% endif %}</h4>
+              <h4 class="card-title mb-1">{% if selected_material %}Edit material{% else %}Create material{% endif %}</h4>
               <p class="text-muted fs-xs mb-0">Markdown, LaTeX, examples, and lesson notes.</p>
             </div>
             <div class="btn-group btn-group-sm" role="group" aria-label="Editor view mode">
@@ -424,7 +424,7 @@
       <div class="col-xxl-4">
         <div class="card">
           <div class="card-header border-0 pb-0">
-            <h4 class="header-title mb-1">Settings</h4>
+            <h4 class="card-title mb-1">Settings</h4>
             <p class="text-muted fs-xs mb-0">Publishing, ordering, and completion metadata.</p>
           </div>
           <div class="card-body pt-2">
@@ -452,7 +452,7 @@
       <div class="card">
         <div class="card-header border-0 pb-0 d-flex flex-wrap align-items-center justify-content-between gap-2">
           <div>
-            <h4 class="header-title mb-1">Checkpoint problems</h4>
+            <h4 class="card-title mb-1">Checkpoint problems</h4>
             <p class="text-muted fs-xs mb-0">
               {% if selected_material %}
                 For {{ selected_material.subtopic.topic.title }} · {{ selected_material.subtopic.title }}.
@@ -517,7 +517,7 @@
       <div class="card">
         <div class="card-header border-0 pb-0 d-flex flex-wrap align-items-center justify-content-between gap-2">
           <div>
-            <h4 class="header-title mb-1">Materials</h4>
+            <h4 class="card-title mb-1">Materials</h4>
             <p class="text-muted fs-xs mb-0">
               {% if selected_subtopic %}
                 Filtered to {{ selected_subtopic.topic.title }} · {{ selected_subtopic.title }}.
@@ -533,7 +533,7 @@
         <div class="card-body pt-2">
           {% if materials %}
           <div class="app-table-region table-responsive" tabindex="0" role="region" aria-label="Scrollable results">
-            <table data-paging-type="simple" id="training-materials-table" class="app-table-compact table table-sm table-hover align-middle mb-0">
+            <table data-paging-type="simple" id="training-materials-table" class="table-sm table table-hover align-middle mb-0">
               <thead>
                 <tr>
                   <th>Material</th>

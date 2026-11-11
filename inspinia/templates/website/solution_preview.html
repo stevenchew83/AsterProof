@@ -2,8 +2,8 @@
 {% load static %}
 {% block public_stylesheet %}{% static 'css/public-writer.min.css' %}{% endblock public_stylesheet %}
 {% block public_content %}
-  <div class="website-container public-tool-page">
-    <header class="website-page-hero"><p class="website-kicker">Tools / Solution Writer</p><h1>Solution <em>Writer.</em></h1><p>Write your whole argument in one document, complete commands as you type, and convert LaTeX to PDF. Start with the example or make it your own, and download a formatted solution without signing in.</p></header>
+  <div class="container public-tool-page">
+    <header class="website-page-hero"><p class="small fw-semibold text-uppercase text-primary-emphasis mb-2">Tools / Solution Writer</p><h1>Solution <em>Writer.</em></h1><p>Write your whole argument in one document, complete commands as you type, and convert LaTeX to PDF. Start with the example or make it your own, and download a formatted solution without signing in.</p></header>
     {% include 'website/partials/solution_preview.html' %}
   </div>
 {% endblock public_content %}

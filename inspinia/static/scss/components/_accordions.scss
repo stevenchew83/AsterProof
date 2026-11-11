@@ -20,8 +20,8 @@
             border-radius: $accordion-border-radius;
 
             &:not(.collapsed) {
-                border-bottom-left-radius: 0;
-                border-bottom-right-radius: 0;
+                border-end-start-radius: 0;
+                border-end-end-radius: 0;
             }
         }
     }
@@ -40,15 +40,15 @@
 .accordion-custom-icon {
     .accordion-icon {
         position: absolute;
-        right: $accordion-padding-x;
+        inset-inline-end: $accordion-padding-x;
         font-size: 18px;
     }
-    
+
     .accordion-icon-off {
         display: none;
     }
 
-    [aria-expanded="true"] {
+    [aria-expanded='true'] {
         .accordion-icon-off {
             display: block;
         }

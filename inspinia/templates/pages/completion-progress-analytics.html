@@ -12,10 +12,10 @@
 {% block page_content %}
   <div class="container-fluid app-table-page completion-progress-page"
        id="completion-progress-dashboard">
-    <header class="page-title-head app-page-header">
+    <header class="page-title-head d-flex flex-wrap align-items-center gap-2">
       {% url 'pages:user_activity_dashboard' as progress_home_url %}
       {% include 'partials/page-header-intro.html' with title=completion_progress_page_title subtitle=completion_progress_page_subtitle page_icon='ti-chart-line' back_url=progress_home_url back_label='AsterProof' only %}
-      <div class="app-page-header-actions">
+      <div class="page-title-actions d-flex flex-wrap align-items-center gap-2">
         <a href="{{ completion_progress_quick_update_url }}"
            class="btn btn-sm btn-outline-primary"><i class="ti ti-plus me-1" aria-hidden="true"></i>Record progress</a>
       </div>
@@ -263,7 +263,7 @@
     {% if not completion_progress_selected_user %}
       <div class="completion-progress-empty-state" role="status">
         <div>
-          <h2 class="header-title">No completion rows yet</h2>
+          <h2 class="card-title">No completion rows yet</h2>
           <p class="text-muted fs-xs mb-0">This page will populate after at least one user completion is saved.</p>
         </div>
       </div>
@@ -277,7 +277,7 @@
         <div class="{% if completion_progress_stats.known_date_total %}col-xl-6{% else %}col-12{% endif %}">
           <section class="card h-100" aria-labelledby="completion-progress-daily-title">
             <div class="card-header">
-              <h2 class="header-title" id="completion-progress-daily-title">Daily completions</h2>
+              <h2 class="card-title" id="completion-progress-daily-title">Daily completions</h2>
               <p class="text-muted fs-xs mb-0">Exact completions by date.</p>
             </div>
             <div class="card-body pt-0">
@@ -288,7 +288,7 @@
               {% else %}
                 <div class="completion-progress-empty-state">
                   <div>
-                    <h3 class="header-title">No completions in this range.</h3>
+                    <h3 class="card-title">No completions in this range.</h3>
                     <p class="text-muted fs-xs mb-3">Try a wider date range or add completions from the quick update page.</p>
                     <div class="d-flex flex-wrap gap-2">
                       <a href="{{ completion_progress_reset_url }}"
@@ -310,7 +310,7 @@
           <div class="col-xl-6">
             <section class="card h-100" aria-labelledby="completion-progress-mohs-title">
               <div class="card-header">
-                <h2 class="header-title" id="completion-progress-mohs-title">MOHS trend</h2>
+                <h2 class="card-title" id="completion-progress-mohs-title">MOHS trend</h2>
                 <p class="text-muted fs-xs mb-0">Total and average MOHS by completion date.</p>
               </div>
               <div class="card-body pt-0">
@@ -373,7 +373,7 @@
              aria-labelledby="completion-progress-records-title">
       <div class="card-header d-flex flex-wrap align-items-center justify-content-between gap-2">
         <div>
-          <h2 class="header-title" id="completion-progress-records-title">Filtered completion rows</h2>
+          <h2 class="card-title" id="completion-progress-records-title">Filtered completion rows</h2>
           <p class="text-muted fs-xs mb-0">The table and CSV export use the same filters. Charts count each problem once.</p>
         </div>
         <span class="text-muted fs-xs">{{ completion_progress_rows|length }} loaded</span>
@@ -386,7 +386,7 @@
                aria-label="Scrollable completion results">
             <table data-paging-type="simple"
                    id="completion-progress-table"
-                   class="app-table-compact table table-sm table-hover align-middle w-100 mb-0"
+                   class="table-sm table table-hover align-middle w-100 mb-0"
                    data-can-edit-difficulty="{% if completion_progress_can_edit_difficulty %}true{% else %}false{% endif %}"
                    data-show-difficulty="{% if completion_progress_show_difficulty %}true{% else %}false{% endif %}"
                    data-difficulty-rating-save-url="{{ completion_progress_difficulty_save_url }}">
@@ -471,9 +471,9 @@
   }
 
   function primaryChartColor() {
-    if (!sharedDashboard && !progressDashboard) return "#0d6efd";
+    if (!sharedDashboard && !progressDashboard) return window.getThemeColor("primary");
     var style = getComputedStyle(sharedDashboard || progressDashboard);
-    return style.getPropertyValue("--ins-primary-text-emphasis").trim() || style.getPropertyValue("--ins-primary").trim();
+    return style.getPropertyValue("--theme-primary-text-emphasis").trim() || style.getPropertyValue("--theme-primary").trim();
   }
 
   function renderBar(selector, labels, series, colors, stacked) {
@@ -559,7 +559,7 @@
 
     var chart = new ApexCharts(el, {
       chart: { type: "line", height: chartHeight(el), animations: { enabled: !sharedDashboard }, toolbar: { show: false }, fontFamily: "inherit" },
-      colors: ["#20c997", "#ffc107"],
+      colors: [window.getThemeColor("success"), window.getThemeColor("warning")],
       dataLabels: { enabled: false },
       grid: { borderColor: "rgba(108,117,125,0.15)", strokeDashArray: 4 },
       legend: { position: "bottom" },
@@ -607,16 +607,16 @@
   }
 
   function heatmapRanges(maxValue) {
-    if (!maxValue) return [{ from: 0, to: 0, name: "0", color: "#eef2f7" }];
+    if (!maxValue) return [{ from: 0, to: 0, name: "0", color: window.getThemeColor("tertiary-bg") }];
     var firstUpper = Math.max(1, Math.ceil(maxValue / 4));
     var secondUpper = Math.max(firstUpper + 1, Math.ceil(maxValue / 2));
     var thirdUpper = Math.max(secondUpper + 1, Math.ceil((maxValue * 3) / 4));
     return [
-      { from: 0, to: 0, name: "0", color: "#eef2f7" },
-      { from: 1, to: firstUpper, name: "1-" + firstUpper, color: "#dbeafe" },
-      { from: firstUpper + 1, to: secondUpper, name: (firstUpper + 1) + "-" + secondUpper, color: "#93c5fd" },
-      { from: secondUpper + 1, to: thirdUpper, name: (secondUpper + 1) + "-" + thirdUpper, color: "#3b82f6" },
-      { from: thirdUpper + 1, to: maxValue, name: (thirdUpper + 1) + "+", color: "#1d4ed8" }
+      { from: 0, to: 0, name: "0", color: window.getThemeColor("tertiary-bg") },
+      { from: 1, to: firstUpper, name: "1-" + firstUpper, color: window.getThemeColor("primary-bg-subtle") },
+      { from: firstUpper + 1, to: secondUpper, name: (firstUpper + 1) + "-" + secondUpper, color: window.getThemeColor("primary-border-subtle") },
+      { from: secondUpper + 1, to: thirdUpper, name: (secondUpper + 1) + "-" + thirdUpper, color: window.getThemeColor("primary") },
+      { from: thirdUpper + 1, to: maxValue, name: (thirdUpper + 1) + "+", color: window.getThemeColor("primary-text-emphasis") }
     ].filter(function (range) { return range.from <= range.to; });
   }
 
@@ -633,7 +633,7 @@
       dataLabels: {
         enabled: true,
         formatter: function (value) { return value ? String(value) : ""; },
-        style: { colors: ["#11203b"], fontSize: "11px", fontWeight: 600 }
+        style: { colors: [window.getThemeColor("body-color")], fontSize: "11px", fontWeight: 600 }
       },
       grid: { borderColor: "rgba(108,117,125,0.15)" },
       legend: { show: true, position: "top", horizontalAlign: "left" },
@@ -715,7 +715,7 @@
         style: {
           fontSize: "9px",
           fontWeight: 700,
-          colors: ["#11203b"]
+          colors: [window.getThemeColor("body-color")]
         },
         formatter: function (_value, opts) {
           var point = opts.w.config.series[opts.seriesIndex].data[opts.dataPointIndex];
@@ -733,10 +733,10 @@
           useFillColorAsStroke: false,
           colorScale: {
             ranges: [
-              { from: 0, to: 0, color: "#d6d9e0", name: "Empty" },
-              { from: 1, to: 1, color: "#e25563", name: "Unsolved" },
-              { from: 2, to: 2, color: "#f1b44c", name: "Partial" },
-              { from: 3, to: 3, color: "#2fbf71", name: "Solved" }
+              { from: 0, to: 0, color: window.getThemeColor("tertiary-bg"), name: "Empty" },
+              { from: 1, to: 1, color: window.getThemeColor("danger"), name: "Unsolved" },
+              { from: 2, to: 2, color: window.getThemeColor("warning"), name: "Partial" },
+              { from: 3, to: 3, color: window.getThemeColor("success"), name: "Solved" }
             ]
           }
         }
@@ -882,10 +882,10 @@
       summary ? '<span class="badge">' + summary + "</span>" : "",
       "</div>",
       '<div class="legend" aria-label="Legend">',
-      "<span>" + contestHeatmapLegendSwatch("#2fbf71") + "Your completions</span>",
-      "<span>" + contestHeatmapLegendSwatch("#e25563") + "No completion yet</span>",
-      "<span>" + contestHeatmapLegendSwatch("#f1b44c") + "Mixed coverage</span>",
-      "<span>" + contestHeatmapLegendSwatch("#d6d9e0") + "No statement row</span>",
+      "<span>" + contestHeatmapLegendSwatch(window.getThemeColor("success")) + "Your completions</span>",
+      "<span>" + contestHeatmapLegendSwatch(window.getThemeColor("danger")) + "No completion yet</span>",
+      "<span>" + contestHeatmapLegendSwatch(window.getThemeColor("warning")) + "Mixed coverage</span>",
+      "<span>" + contestHeatmapLegendSwatch(window.getThemeColor("tertiary-bg")) + "No statement row</span>",
       "</div>",
       '<div class="chart"><img src="' + escapeHtml(dataUri) + '" alt="' + title + ' chart"></div>',
       '<p style="margin-top:12px;">' + String(seriesTotal) + ' year row' + (seriesTotal === 1 ? "" : "s") + " exported.</p>",
@@ -1061,17 +1061,17 @@
         "#chart-completion-progress-topic-mix",
         charts.dailyTopicMix.labels,
         charts.dailyTopicMix.series,
-        ["#0d6efd", "#20c997", "#ffc107", "#dc3545", "#6f42c1"],
+        [window.getThemeColor("primary"), window.getThemeColor("success"), window.getThemeColor("warning"), window.getThemeColor("danger"), "#6f42c1"],
         true
       );
       renderBar("#chart-completion-progress-topic-totals", charts.topicTotals.labels, [
         { name: "Completions", data: charts.topicTotals.values }
-      ], ["#20c997"], false);
+      ], [window.getThemeColor("success")], false);
     }
     if (group === "difficulty") {
       renderBar("#chart-completion-progress-mohs-distribution", charts.mohsDistribution.labels, [
         { name: "Completions", data: charts.mohsDistribution.values }
-      ], ["#ffc107"], false);
+      ], [window.getThemeColor("warning")], false);
       renderHeatmap("#chart-completion-progress-topic-mohs", charts.topicMohsHeatmap);
     }
     if (group === "solutions") {

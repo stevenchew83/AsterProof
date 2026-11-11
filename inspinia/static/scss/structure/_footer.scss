@@ -1,4 +1,4 @@
-// 
+//
 // _footer.scss
 //
 
@@ -6,9 +6,9 @@
     margin-top: auto;
     display: flex;
     align-items: center;
-    padding: calc($grid-gutter-width * .5);
+    padding: calc($grid-gutter-width * 0.5);
     color: var(--#{$prefix}emphasis-color);
-    transition: margin-left .25s ease-in-out;
+    transition: margin-left 0.25s ease-in-out;
     background-color: $card-bg;
     border-top: 1px solid $card-border-color;
     margin: auto calc($grid-gutter-width * -0.5) 0;

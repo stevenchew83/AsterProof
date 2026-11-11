@@ -2,19 +2,19 @@
 {% load i18n %}
 {% block head_title %}{% trans "Email sign-in" %}{% endblock head_title %}
 {% block content %}
-  <header class="auth-login-heading">
-    <p class="auth-login-eyebrow">{% trans "A different way in" %}</p>
-    <h1 id="auth-login-title">{% trans "Sign in by email." %}</h1>
+  <header class="text-center mb-4">
+
+    <h1 class="h5 fw-bold" id="auth-login-title">{% trans "Sign in by email." %}</h1>
     <p>{% trans "Get a one-time code for your AsterProof account." %}</p>
   </header>
-  <form method="post" action="{% url 'account_request_login_code' %}" class="auth-login-form">
+  <form method="post" action="{% url 'account_request_login_code' %}" class="mb-3">
     {% csrf_token %}
     {{ redirect_field }}
     {% include "account/partials/entrance_fields.html" %}
-    <button type="submit" class="btn btn-primary auth-login-submit">
+    <button type="submit" class="btn btn-dark w-100 fw-semibold py-2">
       {% trans "Send sign-in code" %}<i class="ti ti-mail" aria-hidden="true"></i>
     </button>
   </form>
-  <p class="auth-login-note">{% trans "Your code expires in 3 minutes. You can request a new code once a minute." %}</p>
-  <p class="auth-login-signup"><a href="{% url 'account_login' %}">{% trans "Use my password instead" %}</a></p>
+  <p class="text-body-secondary mt-3">{% trans "Your code expires in 3 minutes. You can request a new code once a minute." %}</p>
+  <p class="text-center mt-3 mb-0"><a href="{% url 'account_login' %}">{% trans "Use my password instead" %}</a></p>
 {% endblock content %}

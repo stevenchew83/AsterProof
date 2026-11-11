@@ -9,7 +9,7 @@
 {% block page_content %}
   <div class="container-fluid">
     {% url 'pages:community_problem_detail' problem_id=problem.pk as detail_url %}
-    <header class="page-title-head app-page-header">
+    <header class="page-title-head d-flex flex-wrap align-items-center gap-2">
       {% include 'partials/page-header-intro.html' with title='Share & invite solutions' subtitle='Community Proof Library' back_url=detail_url back_label='Your problem' page_icon='ti-share' only %}
     </header>
     {% include 'pages/proof/partials/messages.html' %}
@@ -36,7 +36,7 @@
         </section>
         <section class="card mt-3">
           <div class="card-body">
-            <h2 class="header-title fs-16 mb-3">Choose your audience</h2>
+            <h2 class="card-title fs-16 mb-3">Choose your audience</h2>
             {% if not can_publish %}
               <div class="alert alert-info" role="status">
                 Sharing becomes available after this statement version passes publication review. Your problem remains private until you explicitly share it.
@@ -63,7 +63,7 @@
       <aside class="col-lg-4">
         <section class="card">
           <div class="card-body">
-            <h2 class="header-title fs-16 mb-3">Sharing controls</h2>
+            <h2 class="card-title fs-16 mb-3">Sharing controls</h2>
             <dl class="fs-sm">
               <dt>Private</dt>
               <dd>

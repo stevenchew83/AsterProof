@@ -43,13 +43,13 @@
             {% if problem.status != 'approved' %}
               <div class="alert alert-warning py-2">This version has not been approved by an admin.</div>
             {% endif %}
-            <h2 class="header-title fs-16">Problem statement</h2>
+            <h2 class="card-title fs-16">Problem statement</h2>
             <div class="community-problem-text lh-lg" data-community-math>{{ problem.statement_latex }}</div>
           </div>
         </article>
         <section class="card mt-3">
           <div class="card-body">
-            <h2 class="header-title fs-16">Problem details</h2>
+            <h2 class="card-title fs-16">Problem details</h2>
             <dl class="row mb-0">
               <dt class="col-sm-3">Tags</dt>
               <dd class="col-sm-9 text-break">
@@ -89,7 +89,7 @@
         {% if show_private and problem.solution_outline %}
           <section class="card mt-3">
             <div class="card-body">
-              <h2 class="header-title fs-16">Private solution outline</h2>
+              <h2 class="card-title fs-16">Private solution outline</h2>
               <p class="text-muted fs-xs">Visible only to the author and admins.</p>
               <div class="community-problem-text" data-community-math>{{ problem.solution_outline }}</div>
             </div>
@@ -100,7 +100,7 @@
       <aside class="col-xl-4">
         <section class="card">
           <div class="card-body">
-            <h2 class="header-title fs-16">Admin review</h2>
+            <h2 class="card-title fs-16">Admin review</h2>
             <p>{% include 'pages/partials/community-status.html' %}</p>
             {% if problem.reviewed_at %}
               <p class="text-muted fs-sm">
@@ -131,7 +131,7 @@
         </section>
         <section class="card mt-3">
           <div class="card-body">
-            <h2 class="header-title fs-16">Private work &amp; contributions</h2>
+            <h2 class="card-title fs-16">Private work &amp; contributions</h2>
             {% for attempt in own_attempts %}
               <p class="mb-2">
                 <a href="{% url 'pages:proof_attempt_edit' attempt_id=attempt.pk %}">Private attempt · Statement version {{ attempt.statement_revision.number }}</a>

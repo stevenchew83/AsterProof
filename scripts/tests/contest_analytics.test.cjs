@@ -65,7 +65,7 @@ function dashboard({rows = [row(1),row(2)], clipboard = true, rejectCopy = false
     document:{getElementById:id=>elements[id],documentElement:{getAttribute:()=> 'light'},
       createElement:()=>element(),body:{appendChild(){},removeChild(){removed++;}},execCommand:()=>fallbackCopy},
     navigator:clipboard?{clipboard:{writeText:text=>{copied.push(text);return rejectCopy?Promise.reject(new Error('Denied')):Promise.resolve();}}}:{},
-    window:{matchMedia:()=>({matches:false}),isSecureContext:true,location,setTimeout:fn=>{timers.push(fn);return timers.length;}},
+    window:{getThemeColor:key => ({secondary:'#1c84c6',warning:'#f8ac59',purple:'#6b5eae','secondary-color':'#6c757d'})[key],matchMedia:()=>({matches:false}),isSecureContext:true,location,setTimeout:fn=>{timers.push(fn);return timers.length;}},
     clearTimeout(){},getComputedStyle:()=>({getPropertyValue:()=>''}),
     DataTable:tableAvailable?Table:undefined,ApexCharts:chartsAvailable?Charts:undefined,
   });
@@ -119,6 +119,7 @@ test('charts initialize on native expansion and MOHS rankings use MOHS sample si
   assert.equal(app.charts.length,0);
   const panel=app.elements['contest-insights-panel'];panel.open=true;panel.handlers.toggle();
   assert.equal(app.charts.length,2);
+  assert.equal(app.charts.find(chart => chart.el === app.elements['contest-topic-composition-chart']).config.colors[1], '#1c84c6');
   app.elements['contest-ranked-metric'].value='avg_mohs';app.elements['contest-ranked-metric'].handlers.change();
   assert.deepEqual([...app.charts[0].config.xaxis.categories],['Reliable']);
   app.charts[0].config.chart.events.dataPointSelection(null,null,{dataPointIndex:0});

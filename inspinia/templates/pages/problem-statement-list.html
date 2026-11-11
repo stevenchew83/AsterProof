@@ -34,7 +34,7 @@
 
   .statement-filter-chip:hover,
   .statement-inline-link:hover {
-    color: var(--ins-primary);
+    color: var(--theme-primary);
   }
 
   .statement-filter-chip,
@@ -46,9 +46,9 @@
   .statement-inline-link:focus-visible,
   #problem-statements-table .btn:focus-visible,
   #problem-statements-copy:focus-visible {
-    outline: 2px solid rgba(var(--bs-primary-rgb), .45);
+    outline: 2px solid rgba(var(--theme-primary-rgb), .45);
     outline-offset: 2px;
-    box-shadow: 0 0 0 .18rem rgba(var(--bs-primary-rgb), .18);
+    box-shadow: 0 0 0 .18rem rgba(var(--theme-primary-rgb), .18);
   }
 
   .statement-loaded-strip {
@@ -58,8 +58,8 @@
     justify-content: space-between;
     gap: .75rem 1rem;
     padding: .75rem 0;
-    border-top: 1px solid var(--ins-border-color);
-    border-bottom: 1px solid var(--ins-border-color);
+    border-top: 1px solid var(--theme-border-color);
+    border-bottom: 1px solid var(--theme-border-color);
   }
 
   .statement-table-shell {
@@ -69,7 +69,7 @@
 
   .statement-table-meta {
     font-size: .82rem;
-    color: var(--ins-secondary-color);
+    color: var(--theme-secondary-color);
   }
 
   #problem-statements-table_wrapper .dt-layout-row {
@@ -80,7 +80,7 @@
 
   #problem-statements-table_wrapper .dt-length label,
   #problem-statements-table_wrapper .dt-search label {
-    color: var(--bs-secondary-color);
+    color: var(--theme-secondary-color);
     font-size: .75rem;
     font-weight: 600;
     text-transform: uppercase;
@@ -95,8 +95,8 @@
   }
 
   #problem-statements-table thead th {
-    background-color: var(--bs-tertiary-bg);
-    color: var(--bs-secondary-color);
+    background-color: var(--theme-tertiary-bg);
+    color: var(--theme-secondary-color);
     font-size: .7rem;
     font-weight: 700;
     text-transform: uppercase;
@@ -140,14 +140,14 @@
     width: min(48rem, calc(100% - 2rem));
     max-height: 90vh;
     padding: 0;
-    border: 1px solid var(--ins-border-color);
-    border-radius: var(--ins-border-radius);
-    background: var(--ins-secondary-bg);
-    color: var(--ins-body-color);
+    border: 1px solid var(--theme-border-color);
+    border-radius: var(--theme-border-radius);
+    background: var(--theme-secondary-bg);
+    color: var(--theme-body-color);
   }
 
   .statement-taxonomy-dialog::backdrop {
-    background: rgba(var(--ins-body-color-rgb), .35);
+    background: rgba(var(--theme-body-color-rgb), .35);
   }
 
   .statement-taxonomy-content {
@@ -163,13 +163,13 @@
     position: sticky;
     left: 0;
     z-index: 2;
-    background: var(--ins-secondary-bg) !important;
-    box-shadow: .35rem 0 .7rem rgba(var(--bs-body-color-rgb), .07);
+    background: var(--theme-secondary-bg) !important;
+    box-shadow: .35rem 0 .7rem rgba(var(--theme-body-color-rgb), .07);
   }
 
   #problem-statements-table thead .statement-sticky-col {
     z-index: 5;
-    background: var(--ins-tertiary-bg) !important;
+    background: var(--theme-tertiary-bg) !important;
   }
 
   [data-bs-theme="dark"] .statement-sticky-col {
@@ -475,7 +475,7 @@
 <dialog class="statement-taxonomy-dialog" id="statement-taxonomy-modal" aria-labelledby="statement-taxonomy-title">
     <div class="card m-0 statement-taxonomy-content">
       <div class="card-header d-flex align-items-center justify-content-between flex-shrink-0">
-        <h5 class="header-title mb-0" id="statement-taxonomy-title">Problem coverage</h5>
+        <h5 class="card-title mb-0" id="statement-taxonomy-title">Problem coverage</h5>
         <button type="button" class="btn-close" data-taxonomy-close aria-label="Close"></button>
       </div>
       <div class="card-body statement-taxonomy-body">

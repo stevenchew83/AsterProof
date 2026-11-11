@@ -1,0 +1,306 @@
+//
+// Neon Theme Mode
+//
+
+$theme-neon-colors: (
+    'primary': #3f5098,
+    'secondary': #b66f55,
+    'success': #7fb898,
+    'info': #5fc4be,
+    'warning': #f5a02e,
+    'danger': #d94a38,
+    'purple': #5f3760,
+);
+
+@if $theme-neon ==true {
+
+    html[data-skin='neon'] {
+
+        --#{$prefix}font-sans-serif: "Hanken Grotesk", sans-serif;
+        --#{$prefix}font-family-secondary: "Hanken Grotesk", sans-serif;
+
+        --#{$prefix}body-font-size: 0.875rem;
+        --#{$prefix}body-bg: #f2f2f7;
+        --#{$prefix}secondary-bg: #ffffff;
+
+        --#{$prefix}theme-card-border-width: 0;
+        --#{$prefix}border-radius: 10px;
+
+        --#{$prefix}font-weight-medium: 500;
+        --#{$prefix}font-weight-semibold: 500;
+        --#{$prefix}font-weight-bold: 700;
+
+        --#{$prefix}font-size-xxs: 12px;
+        --#{$prefix}font-size-xs: 13px;
+        --#{$prefix}font-size-base: 0.875rem;
+        --#{$prefix}font-size-md: 15px;
+        --#{$prefix}font-size-lg: 16px;
+        --#{$prefix}font-size-xl: 18px;
+        --#{$prefix}font-size-xxl: 20px;
+
+        // Menu items
+        --#{$prefix}sidenav-item-icon-size: 1.125rem;
+        --#{$prefix}sidenav-item-gap: 10px;
+        --#{$prefix}sidenav-item-padding-x: 12px;
+        --#{$prefix}sidenav-item-padding-y: 8px;
+        --#{$prefix}sidenav-item-font-size: 0.875rem;
+        --#{$prefix}sidenav-item-font-weight: 500;
+
+        // Sub Menu Items
+        --#{$prefix}sidenav-sub-item-font-size: 0.875rem;
+        --#{$prefix}sidenav-sub-item-font-weight: 400;
+        --#{$prefix}sidenav-sub-item-gap: 4px;
+        --#{$prefix}sidenav-sub-item-padding-x: 10px;
+        --#{$prefix}sidenav-sub-item-padding-y: 7px;
+
+        // Light left-sidebar
+        &[data-menu-color='light'] {
+            --#{$prefix}sidenav-bg: #{$white};
+            --#{$prefix}sidenav-border-color: #ffffff;
+            --#{$prefix}sidenav-item-color: #{$gray-700};
+            --#{$prefix}sidenav-item-hover-color: #3f5098;
+            --#{$prefix}sidenav-item-hover-bg: #3f5098;
+            --#{$prefix}sidenav-item-active-color: #3f5098;
+            --#{$prefix}sidenav-item-active-bg: #f6f7fa;
+        }
+
+        // Gray left-sidebar
+        &[data-menu-color='gray'] {
+            --#{$prefix}sidenav-bg: #f2f2f7;
+            --#{$prefix}sidenav-border-color: #dce0e3;
+            --#{$prefix}sidenav-item-color: #526270;
+            --#{$prefix}sidenav-item-hover-color: #3f5098;
+            --#{$prefix}sidenav-item-hover-bg: transparent;
+            --#{$prefix}sidenav-item-active-color: #3f5098;
+            --#{$prefix}sidenav-item-active-bg: transparent;
+        }
+
+        // Dark Left Sidebar
+        &[data-menu-color='dark'] {
+            --#{$prefix}sidenav-bg: #1b2e4a;
+            --#{$prefix}sidenav-border-color: #1b2e4a;
+            --#{$prefix}sidenav-item-color: #8495ab;
+            --#{$prefix}sidenav-item-hover-color: #bccee4;
+            --#{$prefix}sidenav-item-hover-bg: #2f3742;
+            --#{$prefix}sidenav-item-active-color: #ced6df;
+            --#{$prefix}sidenav-item-active-bg: #243754;
+        }
+
+        // Gradient Menu
+        &[data-menu-color='gradient'] {
+            --#{$prefix}sidenav-bg: #{linear-gradient(135deg, #195274, #3b215c)};
+            --#{$prefix}sidenav-border-color: null;
+            --#{$prefix}sidenav-item-color: #799cb7;
+            --#{$prefix}sidenav-item-hover-color: #bccee4;
+            --#{$prefix}sidenav-item-hover-bg: #2f3742;
+            --#{$prefix}sidenav-item-active-color: #cfdff1;
+            --#{$prefix}sidenav-item-active-bg: rgba(219, 236, 255, 0.05);
+        }
+
+        // Image Menu
+        &[data-menu-color='image'] {
+            --#{$prefix}sidenav-bg: #{linear-gradient(to bottom right, rgba(16, 16, 30, 0.85), #183c52), url('../images/sidenav-bg.jpg') center/cover no-repeat};
+            --#{$prefix}sidenav-border-color: null;
+            --#{$prefix}sidenav-item-color: #799cb7;
+            --#{$prefix}sidenav-item-hover-color: #bccee4;
+            --#{$prefix}sidenav-item-hover-bg: #2f3742;
+            --#{$prefix}sidenav-item-active-color: #cfdff1;
+            --#{$prefix}sidenav-item-active-bg: rgba(219, 236, 255, 0.05);
+        }
+
+        // Dark Left Sidebar
+        &[data-bs-theme='dark'][data-menu-color='dark'],
+        &[data-bs-theme='dark'][data-menu-color='gray'],
+        &[data-bs-theme='dark'][data-menu-color='light'] {
+            --#{$prefix}sidenav-bg: #1e1f27;
+            --#{$prefix}sidenav-border-color: #2c2d38;
+            --#{$prefix}sidenav-item-color: #8495ab;
+            --#{$prefix}sidenav-item-hover-color: #bccee4;
+            --#{$prefix}sidenav-item-hover-bg: #2f3742;
+            --#{$prefix}sidenav-item-active-color: #ced6df;
+            --#{$prefix}sidenav-item-active-bg: #22232c;
+        }
+
+        // Light Topbar
+        &[data-topbar-color='light'] {
+            --#{$prefix}topbar-bg: #ffffff;
+            --#{$prefix}topbar-item-color: #{$gray-700};
+            --#{$prefix}topbar-item-hover-color: #3f5098;
+            --#{$prefix}topbar-search-bg: transparent;
+            --#{$prefix}topbar-search-border: #e7e9eb;
+        }
+
+        // Gray Topbar
+        &[data-topbar-color='gray'] {
+            --#{$prefix}topbar-bg: #f2f2f7;
+            --#{$prefix}topbar-item-color: #{$gray-700};
+            --#{$prefix}topbar-item-hover-color: #3f5098;
+            --#{$prefix}topbar-search-bg: #f7f8fd;
+            --#{$prefix}topbar-search-border: #e8e9ef;
+        }
+
+        // Dark Topbar
+        &[data-topbar-color='dark'] {
+            --#{$prefix}topbar-bg: #1b2e4a;
+            --#{$prefix}topbar-item-color: #adb5bf;
+            --#{$prefix}topbar-item-hover-color: #e0eeff;
+            --#{$prefix}topbar-search-bg: #32435c;
+            --#{$prefix}topbar-search-border: #32435c;
+        }
+
+        // Topbar (Dark Mode)
+        &[data-bs-theme='dark'][data-topbar-color='dark'],
+        &[data-bs-theme='dark'][data-topbar-color='light'],
+        &[data-bs-theme='dark'][data-topbar-color='gray'] {
+            --#{$prefix}topbar-bg: #252630;
+            --#{$prefix}topbar-item-color: #adb5bf;
+            --#{$prefix}topbar-item-hover-color: #e0eeff;
+            --#{$prefix}topbar-search-bg: #2d2e3c;
+            --#{$prefix}topbar-search-border: #2d2e3c;
+        }
+
+        @each $name, $value in $theme-neon-colors {
+            --#{$prefix}#{$name}: #{$value};
+        }
+
+        @each $name, $value in $theme-neon-colors {
+            --#{$prefix}#{$name}-rgb: #{to-rgb($value)};
+        }
+
+        @each $name, $value in $theme-neon-colors {
+            --#{$prefix}#{$name}-bg-subtle: #{rgba($value, 0.15)};
+        }
+
+        @each $name, $value in $theme-neon-colors {
+            --#{$prefix}#{$name}-border-subtle: #{rgba($value, 0.3)};
+        }
+
+        @each $name, $value in $theme-neon-colors {
+            --#{$prefix}#{$name}-text-emphasis: #{shade-color($value, 25%)};
+        }
+
+        // Chart Colors
+        --#{$prefix}chart-primary: #3f5098; // Main Color
+        --#{$prefix}chart-primary-rgb: #{to-rgb(#3f5098)};
+        --#{$prefix}chart-secondary: #b66f55; // Secondary Color
+        --#{$prefix}chart-secondary-rgb: #{to-rgb(#b66f55)};
+        --#{$prefix}chart-alpha: #7fb898; // Success Color
+        --#{$prefix}chart-alpha-rgb: #{to-rgb(#7fb898)};
+        --#{$prefix}chart-beta: #d94a38; // Danger Color
+        --#{$prefix}chart-beta-rgb: #{to-rgb(#d94a38)};
+        --#{$prefix}chart-gamma: #f5a02e; // Warning Color
+        --#{$prefix}chart-gamma-rgb: #{to-rgb(#f5a02e)};
+        --#{$prefix}chart-delta: #5fc4be; // Info Color
+        --#{$prefix}chart-delta-rgb: #{to-rgb(#5fc4be)};
+        --#{$prefix}chart-zeta: #5f3760; // Purple or custom Color
+        --#{$prefix}chart-zeta-rgb: #{to-rgb(#5f3760)};
+        --#{$prefix}chart-gray: #edeff3; // Gray Color
+        --#{$prefix}chart-gray-rgb: #{to-rgb(#edeff3)};
+        --#{$prefix}chart-dark: #396699; // Primary Dark Color
+        --#{$prefix}chart-dark-rgb: #{to-rgb(#396699)};
+        --#{$prefix}chart-border-color: #ecf4fc; // Border Color
+        --#{$prefix}chart-title-color: #bbcae1; // Title Color
+    }
+
+    @if $enable-dark-mode {
+        @include color-mode(dark, true) {
+            &[data-skin='neon'] {
+
+                --#{$prefix}body-bg: #{#17181e};
+                --#{$prefix}body-bg-rgb: #{to-rgb(#17181e)};
+
+                --#{$prefix}secondary-bg: #{#1b1c22};
+                --#{$prefix}secondary-bg-rgb: #{to-rgb(#1b1c22)};
+
+                --#{$prefix}box-shadow: #{0px 0px 30px rgba(0, 0, 0, 0.3)};
+
+                --#{$prefix}border-color: #293036;
+
+                --#{$prefix}chart-gray: #40424f;
+                --#{$prefix}chart-gray-rgb: #{to-rgb(#40424f)};
+
+                --#{$prefix}chart-border-color: #242c31;
+                --#{$prefix}chart-gray: #40424f;
+                --#{$prefix}chart-gray-rgb: #{to-rgb(#40424f)};
+            }
+        }
+    }
+}
+
+//
+//  Neon Theme
+//
+html[data-skin='neon'] {
+
+    .sidenav-menu,
+    .app-topbar,
+    .card {
+        box-shadow: none;
+    }
+
+    .app-topbar {
+
+        &.topbar-active {
+            box-shadow: var(--#{$prefix}box-shadow-sm);
+        }
+    }
+
+    .sidenav-menu {
+        border-inline-end: 1px dashed $sidenav-border-color;
+    }
+
+    .row:not([class*="g-"]) {
+        --#{$prefix}gutter-x: 0.75rem;
+    }
+
+    .container,
+    .container-fluid,
+    .container-lg,
+    .container-md,
+    .container-sm,
+    .container-xl,
+    .container-xxl {
+        --#{$prefix}gutter-x: 0.75rem;
+    }
+
+    .card {
+        margin-bottom: 0.75rem;
+
+        .card-title {
+            font-size: 16px;
+            font-weight: 600;
+        }
+    }
+
+    .card-h-100 {
+        height: calc(100% - 0.75rem);
+    }
+
+    .footer {
+        background-color: transparent;
+        border: none;
+    }
+
+    .page-title-head {
+        min-height: 10px;
+        margin: 0;
+        padding: 0.5rem 0.75rem;
+        margin-bottom: 0.75rem;
+        margin-top: 0.75rem;
+        border-radius: 10px;
+        background-color: #e9e9ef;
+    }
+
+    &[data-topbar-color='gray']:not([data-bs-theme='dark']) {
+        .page-title-head {
+            margin-top: 0;
+        }
+    }
+
+    &[data-bs-theme='dark'] {
+        .page-title-head {
+            background-color: transparent;
+            border: none;
+        }
+    }
+}

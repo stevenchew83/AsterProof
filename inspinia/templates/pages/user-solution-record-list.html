@@ -33,7 +33,7 @@
   <section class="card user-solution-workspace" aria-label="User solution listing">
     <div class="card-header user-solution-workspace-header">
       <div>
-        <h2 class="header-title mb-0">Solution library</h2>
+        <h2 class="card-title mb-0">Solution library</h2>
       </div>
       <span class="user-solution-admin-note"><i class="ti ti-shield-lock" aria-hidden="true"></i> Admin inventory</span>
     </div>
@@ -118,7 +118,7 @@
       <div id="user-solution-review-feedback" role="status" class="text-muted fs-xs mb-0" data-csrf-token="{{ csrf_token }}"></div>
       {% endif %}
       <div class="app-table-region table-responsive" tabindex="0" role="region" aria-label="Solution records" aria-describedby="user-solution-result-description">
-        <table data-paging-type="simple" id="user-solution-record-table" class="app-table-compact table table-sm table-hover align-middle w-100 mb-0"><caption class="visually-hidden">Saved user solutions, topics, MOHS scores, authors, publication status{% if user_solution_record_show_ai_reviews %}, latest AI review{% endif %}, publication date and last update</caption></table>
+        <table data-paging-type="simple" id="user-solution-record-table" class="table-sm table table-hover align-middle w-100 mb-0"><caption class="visually-hidden">Saved user solutions, topics, MOHS scores, authors, publication status{% if user_solution_record_show_ai_reviews %}, latest AI review{% endif %}, publication date and last update</caption></table>
       </div>
       {% else %}
       <div class="user-solution-empty" role="status">

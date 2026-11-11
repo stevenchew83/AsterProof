@@ -6,14 +6,14 @@
   {% static 'css/public-community.min.css' %}
 {% endblock public_stylesheet %}
 {% block public_content %}
-  <div class="website-container proof-public proof-directory">
+  <div class="container proof-public proof-directory">
     <header class="proof-directory-heading">
       <div>
-        <p class="website-kicker">Made for mathematical curiosity</p>
+        <p class="small fw-semibold text-uppercase text-primary-emphasis mb-2">Made for mathematical curiosity</p>
         <h1>Community Proof Library</h1>
         <p>Find a question. Try your approach. Discover a different proof.</p>
       </div>
-      <a class="website-button proof-button-secondary"
+      <a class="btn btn-outline-secondary"
          href="{% url 'pages:community_problem_create' %}">Contribute a problem <span aria-hidden="true">↗</span></a>
     </header>
     <div class="proof-directory-toolbar">
@@ -26,7 +26,7 @@
            href="{% url 'pages:proof_public_problem' token=publication.token %}">
           <span class="proof-entry-number" aria-hidden="true">{{ forloop.counter|stringformat:'02d' }}</span>
           <div class="proof-entry-copy">
-            <p class="website-kicker">
+            <p class="small fw-semibold text-uppercase text-primary-emphasis mb-2">
               {{ publication.statement_revision.snapshot.topic_label|default:publication.statement_revision.snapshot.topic }}
             </p>
             <h2>{{ publication.statement_revision.snapshot.title }}</h2>
@@ -40,7 +40,7 @@
           <span class="proof-empty-mark" aria-hidden="true">∴</span>
           <h2>A new collection is taking shape.</h2>
           <p>Share a question worth thinking about. Publicly shared, moderated problems will appear here.</p>
-          <a class="website-text-link"
+          <a class="btn btn-link link-body-emphasis p-0"
              href="{% url 'pages:community_problem_create' %}">Contribute the first problem <span aria-hidden="true">↗</span></a>
         </section>
       {% endfor %}
@@ -50,11 +50,11 @@
         <span class="proof-meta">Page {{ publications.number }} of {{ publications.paginator.num_pages }}</span>
         <div>
           {% if publications.has_previous %}
-            <a class="website-text-link"
+            <a class="btn btn-link link-body-emphasis p-0"
                href="?page={{ publications.previous_page_number }}">Previous</a>
           {% endif %}
           {% if publications.has_next %}
-            <a class="website-text-link"
+            <a class="btn btn-link link-body-emphasis p-0"
                href="?page={{ publications.next_page_number }}">Next</a>
           {% endif %}
         </div>

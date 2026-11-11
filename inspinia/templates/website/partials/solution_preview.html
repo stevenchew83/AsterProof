@@ -1,38 +1,39 @@
+{% load crispy_forms_field %}
 <div class="public-solution-tool" data-pdf-document data-pdf-date="{{ pdf_date_label }}" data-solution-preview data-solution-document-editor data-owner="{% if request.user.is_authenticated %}{{ request.user.pk }}{% else %}anonymous{% endif %}" data-login-url="{% url 'account_login' %}"{% if ACCOUNT_ALLOW_REGISTRATION %} data-signup-url="{% url 'account_signup' %}"{% endif %} data-writer-resumed="{{ writer_draft_resumed|yesno:'true,false' }}">
   <form action="{% url 'website:solution_preview' %}" method="post" id="solution-preview-form" novalidate>
     {% csrf_token %}
-    {% if form.non_field_errors %}<div class="public-tool-errors" role="alert"><strong>Please check your document.</strong>{{ form.non_field_errors }}</div>{% endif %}
+    {% if form.non_field_errors %}<div class="alert alert-danger" role="alert"><strong>Please check your document.</strong>{{ form.non_field_errors }}</div>{% endif %}
     <div class="public-tool-toolbar">
       <p>No sign-in needed. Download a PDF, or continue in your workspace to save your whole argument privately.</p>
-      <div><a href="{% url 'website:solution_preview' %}" class="website-text-link">Reset example ↺</a><button type="submit" name="action" value="continue_workspace" class="website-text-link" data-workspace-handoff>Continue in workspace ↗</button><button type="submit" name="action" value="download_pdf" class="website-button">Download PDF <span aria-hidden="true">↓</span></button></div>
+      <div><a href="{% url 'website:solution_preview' %}" class="btn btn-link link-body-emphasis p-0">Reset example ↺</a><button type="submit" name="action" value="continue_workspace" class="btn btn-link link-body-emphasis p-0" data-workspace-handoff>Continue in workspace ↗</button><button type="submit" name="action" value="download_pdf" class="btn btn-dark">Download PDF <span aria-hidden="true">↓</span></button></div>
     </div>
-    <div class="solution-view-switch public-tool-view-switch" data-document-views role="group" aria-label="Workspace view" hidden>
-      <button type="button" data-editor-view="write" aria-pressed="false">Write</button>
-      <button type="button" data-editor-view="preview" aria-pressed="false">Preview</button>
-      <button type="button" class="solution-split-toggle" data-editor-view="split" aria-pressed="true">Split</button>
+    <div class="solution-view-switch public-tool-view-switch btn-group mb-3" data-document-views role="group" aria-label="Workspace view" hidden>
+      <button type="button" class="btn btn-outline-secondary btn-sm" data-editor-view="write" aria-pressed="false">Write</button>
+      <button type="button" class="btn btn-outline-secondary btn-sm" data-editor-view="preview" aria-pressed="false">Preview</button>
+      <button type="button" class="solution-split-toggle btn btn-outline-secondary btn-sm" data-editor-view="split" aria-pressed="true">Split</button>
     </div>
     {% include 'solutions/partials/solution-document-recovery.html' %}
-    <p class="website-fineprint" data-pdf-status role="status"></p>
+    <p class="form-text" data-pdf-status role="status"></p>
     <div class="public-tool-grid" data-editor-workspace data-view="write">
       <section class="public-tool-writing solution-write-pane" aria-labelledby="converter-writing-title">
         <div class="public-tool-pane-title"><h2 id="converter-writing-title">Your solution</h2><span data-writing-stats></span></div>
         <div class="public-tool-document">
-          <label for="{{ form.title.id_for_label }}">{{ form.title.label }}</label>{{ form.title }}{{ form.title.errors }}
+          <label for="{{ form.title.id_for_label }}">{{ form.title.label }}</label>{% crispy_field form.title 'class' 'form-control' %}{{ form.title.errors }}
           <details{% if form.problem_statement.errors %} open{% endif %}>
             <summary>Problem statement (optional)</summary>
-            <label class="visually-hidden" for="{{ form.problem_statement.id_for_label }}">{{ form.problem_statement.label }}</label>{{ form.problem_statement }}{{ form.problem_statement.errors }}
+            <label class="visually-hidden" for="{{ form.problem_statement.id_for_label }}">{{ form.problem_statement.label }}</label>{% crispy_field form.problem_statement 'class' 'form-control' %}{{ form.problem_statement.errors }}
           </details>
         </div>
         {% include 'solutions/partials/pdf-display-options.html' %}
         <div class="solution-document-source-surface">{% include 'solutions/partials/solution-source-controls.html' %}</div>
-        <p class="website-fineprint public-tool-tips">The PDF supplies the document layout. Mathematical commands, claims, proofs, headings, and lists are supported. Images can be uploaded after continuing in your workspace.</p>
-        <noscript><p class="website-fineprint">You can write and download a PDF without JavaScript. Enable JavaScript for autocomplete and live preview.</p></noscript>
+        <p class="form-text public-tool-tips">The PDF supplies the document layout. Mathematical commands, claims, proofs, headings, and lists are supported. Images can be uploaded after continuing in your workspace.</p>
+        <noscript><p class="form-text">You can write and download a PDF without JavaScript. Enable JavaScript for autocomplete and live preview.</p></noscript>
       </section>
       <section class="public-tool-preview solution-preview-pane" aria-labelledby="converter-preview-title">
         <div class="public-tool-pane-title"><h2 id="converter-preview-title">Live preview</h2><span id="converter-preview-status" data-preview-status role="status">Updates as you write</span></div>
-        <p class="website-fineprint public-tool-tips">Your PDF includes a framed problem statement, styled claims, and proofs.{% if not request.user.is_authenticated and ACCOUNT_ALLOW_REGISTRATION %} To keep this writing in your workspace, <button type="submit" name="action" value="continue_signup" class="website-text-link" data-signup-handoff>create an account</button>.{% endif %}</p>
+        <p class="form-text public-tool-tips">Your PDF includes a framed problem statement, styled claims, and proofs.{% if not request.user.is_authenticated and ACCOUNT_ALLOW_REGISTRATION %} To keep this writing in your workspace, <button type="submit" name="action" value="continue_signup" class="btn btn-link link-body-emphasis p-0" data-signup-handoff>create an account</button>.{% endif %}</p>
         <article class="public-tool-paper" aria-labelledby="converter-document-title">
-          <p class="website-kicker">Your solution</p><h2 id="converter-document-title" class="tex2jax_ignore" data-preview-title>{{ form.title.value|default:'My solution' }}</h2>
+          <p class="small fw-semibold text-uppercase text-primary-emphasis mb-2">Your solution</p><h2 id="converter-document-title" class="tex2jax_ignore" data-preview-title>{{ form.title.value|default:'My solution' }}</h2>
           {% include 'solutions/partials/pdf-preview-metadata.html' %}
           <div id="converter-statement" class="converter-statement" data-preview-statement{% if not form.problem_statement.value %} hidden{% endif %}>{{ form.problem_statement.value|default:'' }}</div>
           <div id="converter-block-preview" data-document-preview></div>

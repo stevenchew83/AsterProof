@@ -23,6 +23,7 @@ const publicScriptGroups = {
     "website-math.min.js": ["website-math.js"],
 };
 const moduleScriptEntries = {
+    "public-nav.bundle.js": "public-nav-entry.js",
     "public-writer.bundle.js": "public-writer-entry.js",
     "public-home.bundle.js": "public-home-entry.js",
     "solution-document-editor.bundle.js": "solution-document-editor.js",

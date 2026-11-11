@@ -1,41 +1,173 @@
-// 
-// galaxy Theme Mode
+//
+// Galaxy Theme Mode
 //
 
 $theme-galaxy-colors: (
-    "primary":   #387ce4,
-    "secondary": #1c84c6,
-    "success":   #0acf97,
-    "info":      #23c6c8,
-    "warning":   #f8ac59,
-    "danger":    #ed5565,
-    "purple":    #7b70ef,
+    'primary': #6575f5,
+    'secondary': #a59b7a,
+    'success': #36dcb8,
+    'info': #47c6f2,
+    'warning': #f2ad45,
+    'danger': #f25583
 );
 
 @if $theme-galaxy ==true {
 
+    html[data-skin='galaxy'] {
+        --#{$prefix}font-sans-serif: "Play", sans-serif;
+        --#{$prefix}font-family-secondary: "Play", sans-serif;
 
-    html[data-theme="galaxy"] {
+        --#{$prefix}body-font-size: 13px;
+        --#{$prefix}body-bg: #fdfdfd;
+        --#{$prefix}secondary-bg: #fff;
 
-        --#{$prefix}font-sans-serif:        "Nunito", sans-serif;
+        --#{$prefix}theme-card-border-width: 1px;
+        --#{$prefix}theme-card-border-color: #edf2f9;
+        --#{$prefix}theme-card-box-shadow: 2px 8px 16px rgba(57, 62, 80, 0.07);
+        --#{$prefix}box-shadow: 2px 8px 16px rgba(57, 62, 80, 0.07);
+        --#{$prefix}border-radius: 2px;
 
-        --#{$prefix}body-bg:               #fff;
-        --#{$prefix}secondary-bg:          #fff;
+        --#{$prefix}font-weight-medium: 700;
+        --#{$prefix}font-weight-semibold: 700;
+        --#{$prefix}font-weight-bold: 700;
 
-        --#{$prefix}box-shadow: none;
+        --#{$prefix}font-size-xxs: 11px;
+        --#{$prefix}font-size-xs: 12px;
+        --#{$prefix}font-size-base: 13px;
+        --#{$prefix}font-size-md: 14px;
+        --#{$prefix}font-size-lg: 16px;
+        --#{$prefix}font-size-xl: 18px;
+        --#{$prefix}font-size-xxl: 20px;
 
-        --#{$prefix}font-weight-medium:      400;
-        --#{$prefix}font-weight-semibold:    500;
-        --#{$prefix}font-weight-bold:        600;
+        // Menu items
+        --#{$prefix}sidenav-item-icon-size: 1.125rem;
+        --#{$prefix}sidenav-item-gap: 10px;
+        --#{$prefix}sidenav-item-padding-x: 12px;
+        --#{$prefix}sidenav-item-padding-y: 8px;
+        --#{$prefix}sidenav-item-font-size: 0.9125rem;
+        --#{$prefix}sidenav-item-font-weight: 400;
 
-        --#{$prefix}font-size-xxs:          11px;
-        --#{$prefix}font-size-xs:           12px;
-        --#{$prefix}font-size-base:         13px;
-        --#{$prefix}font-size-md:           14px;
-        --#{$prefix}font-size-lg:           16px;
-        --#{$prefix}font-size-xl:           18px;
-        --#{$prefix}font-size-xxl:          20px;
+        // Sub Menu Items
+        --#{$prefix}sidenav-sub-item-font-size: 0.8125rem;
+        --#{$prefix}sidenav-sub-item-font-weight: 400;
+        --#{$prefix}sidenav-sub-item-gap: 4px;
+        --#{$prefix}sidenav-sub-item-padding-x: 10px;
+        --#{$prefix}sidenav-sub-item-padding-y: 7px;
 
+        // Light left-sidebar
+        &[data-menu-color='light'] {
+            --#{$prefix}sidenav-bg: #{$white};
+            --#{$prefix}sidenav-border-color: #edf2f9;
+            --#{$prefix}sidenav-item-color: #{$gray-700};
+            --#{$prefix}sidenav-item-hover-color: #6575f5;
+            --#{$prefix}sidenav-item-hover-bg: #eaf2ff;
+            --#{$prefix}sidenav-item-active-color: #6575f5;
+            --#{$prefix}sidenav-item-active-bg: #f3f5ff;
+        }
+
+        // Gray left-sidebar
+        &[data-menu-color='gray'] {
+            --#{$prefix}sidenav-bg: #f1f2f7;
+            --#{$prefix}sidenav-border-color: #e7e9eb;
+            --#{$prefix}sidenav-item-color: #{$gray-700};
+            --#{$prefix}sidenav-item-hover-color: #6575f5;
+            --#{$prefix}sidenav-item-hover-bg: #e8f7f4;
+            --#{$prefix}sidenav-item-active-color: #212b29;
+            --#{$prefix}sidenav-item-active-bg: #e8e8ed;
+        }
+
+        // Dark Left Sidebar
+        &[data-menu-color='dark'] {
+            --#{$prefix}sidenav-bg: #1a2b41;
+            --#{$prefix}sidenav-border-color: #1a2b41;
+            --#{$prefix}sidenav-item-color: #8495ab;
+            --#{$prefix}sidenav-item-hover-color: #bccee4;
+            --#{$prefix}sidenav-item-hover-bg: #1f3149;
+            --#{$prefix}sidenav-item-active-color: #ced6df;
+            --#{$prefix}sidenav-item-active-bg: #1f3149;
+        }
+
+        // Gradient Menu
+        &[data-menu-color='gradient'] {
+            --#{$prefix}sidenav-bg: #{linear-gradient(to right, #193146, #1e5262)};
+            --#{$prefix}sidenav-border-color: null;
+            --#{$prefix}sidenav-item-color: #7e92a3;
+            --#{$prefix}sidenav-item-hover-color: #aac4cf;
+            --#{$prefix}sidenav-item-hover-bg: rgba(219,236,255,0.05);
+            --#{$prefix}sidenav-item-active-color: #aac4cf;
+            --#{$prefix}sidenav-item-active-bg: rgba(219,236,255,0.05);
+        }
+
+        // Image Menu
+        &[data-menu-color='image'] {
+            --#{$prefix}sidenav-bg: #{linear-gradient(to bottom right, rgba(16, 16, 30, 0.85), #262c3a), url('../images/sidenav-bg.jpg') center/cover no-repeat};
+            --#{$prefix}sidenav-border-color: null;
+            --#{$prefix}sidenav-item-color: #799cb7;
+            --#{$prefix}sidenav-item-hover-color: #bccee4;
+            --#{$prefix}sidenav-item-hover-bg: #2f3742;
+            --#{$prefix}sidenav-item-active-color: #cfdff1;
+            --#{$prefix}sidenav-item-active-bg: rgba(219,236,255,0.05);
+        }
+
+        // Dark Mode
+        &[data-bs-theme='dark'][data-menu-color='dark'],
+        &[data-bs-theme='dark'][data-menu-color='gray'],
+        &[data-bs-theme='dark'][data-menu-color='light'] {
+            --#{$prefix}sidenav-bg: #1a1c2e;
+            --#{$prefix}sidenav-border-color: rgba(255, 255, 255, 0.03);
+            --#{$prefix}sidenav-item-color: #8495ab;
+            --#{$prefix}sidenav-item-hover-color: #bccee4;
+            --#{$prefix}sidenav-item-hover-bg: rgba(255, 255, 255, 0.02);
+            --#{$prefix}sidenav-item-active-color: #ced6df;
+            --#{$prefix}sidenav-item-active-bg: rgba(255, 255, 255, 0.02);
+        }
+
+        // Light Topbar
+        &[data-topbar-color='light'] {
+            --#{$prefix}topbar-bg: #ffffff;
+            --#{$prefix}topbar-item-color: #{$gray-700};
+            --#{$prefix}topbar-item-hover-color: #6575f5;
+            --#{$prefix}topbar-search-bg: transparent;
+            --#{$prefix}topbar-search-border: #e7e9eb;
+        }
+
+        // Gray Topbar
+        &[data-topbar-color='gray'] {
+            --#{$prefix}topbar-bg: #f3eff3;
+            --#{$prefix}topbar-item-color: #{$gray-700};
+            --#{$prefix}topbar-item-hover-color: #6575f5;
+            --#{$prefix}topbar-search-bg: #ebe7eb;
+            --#{$prefix}topbar-search-border: #ebe7eb;
+        }
+
+        // Dark Topbar
+        &[data-topbar-color='dark'] {
+            --#{$prefix}topbar-bg: #0f2139;
+            --#{$prefix}topbar-item-color: #adb5bf;
+            --#{$prefix}topbar-item-hover-color: #e0eeff;
+            --#{$prefix}topbar-search-bg: #1b2c42;
+            --#{$prefix}topbar-search-border: #1b2c42;
+        }
+
+        // Gradient Topbar
+        &[data-topbar-color='gradient'] {
+            --#{$prefix}topbar-bg: #{linear-gradient(to bottom, #193146, #1e5262)};
+            --#{$prefix}topbar-item-color: rgba(255, 255, 255, 0.7);
+            --#{$prefix}topbar-item-hover-color: #ffffff;
+            --#{$prefix}topbar-search-bg: rgba(255, 255, 255, 0.1);
+            --#{$prefix}topbar-search-border: rgba(255, 255, 255, 0.1);
+        }
+
+        // Topbar (Dark Mode)
+        &[data-bs-theme='dark'][data-topbar-color='dark'],
+        &[data-bs-theme='dark'][data-topbar-color='light'],
+        &[data-bs-theme='dark'][data-topbar-color='gray'] {
+            --#{$prefix}topbar-bg: rgba(16, 18, 20, 0.1);
+            --#{$prefix}topbar-item-color: #adb5bf;
+            --#{$prefix}topbar-item-hover-color: #e0eeff;
+            --#{$prefix}topbar-search-bg: rgba(255, 255, 255, 0.05);
+            --#{$prefix}topbar-search-border: rgba(229, 243, 255, 0.1);
+        }
 
         @each $name, $value in $theme-galaxy-colors {
             --#{$prefix}#{$name}: #{$value};
@@ -57,112 +189,107 @@ $theme-galaxy-colors: (
             --#{$prefix}#{$name}-text-emphasis: #{shade-color($value, 25%)};
         }
 
-        // Background Light left-sidebar
-        &[data-menu-color="light"] {
-            --#{$prefix}sidenav-bg:                       #{$white};
-            --#{$prefix}sidenav-border-color:             #{$gray-300};
-            --#{$prefix}sidenav-item-color:               #{$gray-700};
-            --#{$prefix}sidenav-item-hover-color:         #{$primary};
-            --#{$prefix}sidenav-item-hover-bg:          #e8f7f4;
-            --#{$prefix}sidenav-item-active-color:        #{$primary};
-            --#{$prefix}sidenav-item-active-bg:         #e8f7f4;
-        }
+        // Chart Colors
+        --#{$prefix}chart-primary: #6575f5; // Main Color
+        --#{$prefix}chart-primary-rgb: #{to-rgb(#6575f5)};
+        --#{$prefix}chart-secondary: #36dcb8; // Secondary Color
+        --#{$prefix}chart-secondary-rgb: #{to-rgb(#36dcb8)};
+        --#{$prefix}chart-alpha: #a59b7a; // Success Color
+        --#{$prefix}chart-alpha-rgb: #{to-rgb(#a59b7a)};
+        --#{$prefix}chart-beta: #f25583; // Danger Color
+        --#{$prefix}chart-beta-rgb: #{to-rgb(#f25583)};
+        --#{$prefix}chart-gamma: #a8998a; // Warning Color
+        --#{$prefix}chart-gamma-rgb: #{to-rgb(#a8998a)};
+        --#{$prefix}chart-delta: #f2ad45; // Info Color
+        --#{$prefix}chart-delta-rgb: #{to-rgb(#f2ad45)};
+        --#{$prefix}chart-zeta: #c17b52; // Purple or custom Color
+        --#{$prefix}chart-zeta-rgb: #{to-rgb(#c17b52)};
+        --#{$prefix}chart-gray: #edeff3; // Gray Color
+        --#{$prefix}chart-gray-rgb: #{to-rgb(#edeff3)};
+        --#{$prefix}chart-dark: #396699; // Primary Dark Color
+        --#{$prefix}chart-dark-rgb: #{to-rgb(#396699)};
+        --#{$prefix}chart-border-color: #ecf4fc; // Border Color
+        --#{$prefix}chart-title-color: #bbcae1; // Title Color
 
-        // Dark Left Sidebar
-        &[data-menu-color="dark"] {
-            --#{$prefix}sidenav-bg:                     #23303c;
-            --#{$prefix}sidenav-border-color:           #23303c;
-            --#{$prefix}sidenav-item-color:             #8495ab;
-            --#{$prefix}sidenav-item-hover-color:       #bccee4;
-            --#{$prefix}sidenav-item-hover-bg:          #2f3742;
-            --#{$prefix}sidenav-item-active-color:      #ced6df;
-            --#{$prefix}sidenav-item-active-bg:         #1c262f;
-        }
-
-        // Gradient Menu
-        &[data-menu-color="gradient"] {
-            --#{$prefix}sidenav-bg:                       #{linear-gradient(135deg, #1a455f, #262549)};
-            --#{$prefix}sidenav-border-color:             null;
-            --#{$prefix}sidenav-item-color:             #799cb7;
-            --#{$prefix}sidenav-item-hover-color:       #bccee4;
-            --#{$prefix}sidenav-item-hover-bg:          #2f3742;
-            --#{$prefix}sidenav-item-active-color:      #cfdff1;
-            --#{$prefix}sidenav-item-active-bg:         #ffffff0d;
-        }
-
-        // Image Menu
-        &[data-menu-color="image"] {
-            --#{$prefix}sidenav-bg:                       #{linear-gradient(to bottom right, rgba(16,16,30,0.85), #183c52), url('../images/sidenav-bg.jpg') center/cover no-repeat};
-            --#{$prefix}sidenav-border-color:             null;
-            --#{$prefix}sidenav-item-color:             #799cb7;
-            --#{$prefix}sidenav-item-hover-color:       #bccee4;
-            --#{$prefix}sidenav-item-hover-bg:          #2f3742;
-            --#{$prefix}sidenav-item-active-color:      #cfdff1;
-            --#{$prefix}sidenav-item-active-bg:         #ffffff0d;
-        }
-
-        // Dark Left Sidebar
-        &[data-bs-theme="dark"][data-menu-color="dark"],
-        &[data-bs-theme="dark"][data-menu-color="light"] {
-            --#{$prefix}sidenav-bg:                     #1e1f27;
-            --#{$prefix}sidenav-border-color:           #2c2d38;
-            --#{$prefix}sidenav-item-color:             #8495ab;
-            --#{$prefix}sidenav-item-hover-color:       #bccee4;
-            --#{$prefix}sidenav-item-hover-bg:          #2f3742;
-            --#{$prefix}sidenav-item-active-color:      #ced6df;
-            --#{$prefix}sidenav-item-active-bg:         #22232c;
-        }
-
-        // Light Topbar
-        &[data-topbar-color="light"] {
-            --#{$prefix}topbar-bg:                      #ffffff;
-            --#{$prefix}topbar-item-color:                #{$gray-700};
-            --#{$prefix}topbar-item-hover-color:          #{$primary};
-            --#{$prefix}topbar-search-bg:                 transparent;
-            --#{$prefix}topbar-search-border:           #e7e9eb;
-        }
-
-        // Gray Topbar
-        &[data-topbar-color="gray"] {
-            --#{$prefix}topbar-bg:                      #f1f2f7;
-            --#{$prefix}topbar-item-color:                #{$gray-700};
-            --#{$prefix}topbar-item-hover-color:          #{$primary};
-            --#{$prefix}topbar-search-bg:               #e8e9ef;
-            --#{$prefix}topbar-search-border:           #e8e9ef;
-        }
-
-        // Dark Topbar
-        &[data-topbar-color="dark"],
-        &[data-bs-theme="dark"][data-topbar-color="light"],
-        &[data-bs-theme="dark"][data-topbar-color="gray"] {
-            --#{$prefix}topbar-bg:                      #252630;
-            --#{$prefix}topbar-item-color:              #adb5bf;
-            --#{$prefix}topbar-item-hover-color:        #e0eeff;
-            --#{$prefix}topbar-search-bg:               #2d2e3c;
-            --#{$prefix}topbar-search-border:           #2d2e3c;
-        }
-
-        // Gradient Topbar
-        &[data-topbar-color="gradient"] {
-            --#{$prefix}topbar-bg:                        #{linear-gradient(to bottom, #1a455f, #262549)};
-            --#{$prefix}topbar-item-color:              rgba(255, 255, 255, 0.7);
-            --#{$prefix}topbar-item-hover-color:        #ffffff;
-            --#{$prefix}topbar-search-bg:               rgba(255, 255, 255, 0.1);
-            --#{$prefix}topbar-search-border:           rgba(255, 255, 255, 0.1);
+        // Extra CSS
+        .btn {
+            font-weight: normal;
         }
     }
 
     @if $enable-dark-mode {
         @include color-mode(dark, true) {
-            &[data-theme="galaxy"] {
-                --#{$prefix}body-bg:                     #{#17181e};
-                --#{$prefix}body-bg-rgb:                 #{to-rgb(#17181e)};
+            &[data-skin='galaxy'] {
+                --#{$prefix}body-bg: #{#17181e};
+                --#{$prefix}body-bg-rgb: #{to-rgb(#17181e)};
 
-                --#{$prefix}secondary-bg:                #{#1b1c22};
-                --#{$prefix}secondary-bg-rgb:            #{to-rgb(#1b1c22)};
+                --#{$prefix}light: #283046;
+                --#{$prefix}light-rgb: #{to-rgb(#283046)};
+                --#{$prefix}light-bg-subtle: rgba(229, 243, 255, 0.05);
 
-                --#{$prefix}box-shadow:                  #{0px 0px 30px rgba(0, 0, 0, 0.3)};
+                --#{$prefix}dark: #59667e;
+                --#{$prefix}dark-rgb: #{to-rgb(#59667e)};
+
+                --#{$prefix}secondary-bg: #{#1f2538};
+                --#{$prefix}secondary-bg-rgb: #{to-rgb(#1f2538)};
+
+                --#{$prefix}tertiary-bg: rgba(229, 243, 255, 0.05);
+
+                --#{$prefix}box-shadow: #{0px 0px 30px rgba(0, 0, 0, 0.3)};
+
+                --#{$prefix}theme-card-border-color: rgba(229, 243, 255, 0.07);
+                --#{$prefix}border-color: rgba(229, 243, 255, 0.07);
+
+                --#{$prefix}chart-gray: #40424f;
+                --#{$prefix}chart-gray-rgb: #{to-rgb(#40424f)};
+
+                --#{$prefix}chart-border-color: #242c31;
+                --#{$prefix}chart-gray: #40424f;
+                --#{$prefix}chart-gray-rgb: #{to-rgb(#40424f)};
             }
+        }
+    }
+}
+
+//
+//  Galaxy Theme
+//
+html[data-skin='galaxy'] {
+
+    .card-header-tabs .nav-link.active {
+        background-color: transparent !important;
+    }
+
+    .list-group-item {
+        background-color: transparent;
+    }
+}
+
+html[data-skin='galaxy'][data-bs-theme='dark'] {
+    body {
+        background: #{linear-gradient(180deg, rgba(10, 13, 30, 0.85) 0%, rgba(10, 13, 30, 0.9) 100%), url('../images/galaxy.jpg') center/cover no-repeat};
+        background-attachment: fixed;
+    }
+
+    .card, .footer, .form-control, .form-select, .card-bg, .choices__inner, .select2-container .select2-selection--single, .select2-container .select2-selection--multiple, .dropzone, .filepond--panel-root {
+        background-color: rgba(255, 255, 255, 0.05);
+    }
+
+    .card {
+        border-style: dashed;
+    }
+
+    .app-topbar {
+
+        &.topbar-active {
+            background-color: #24293c;
+        }
+    }
+
+    &[data-sidenav-size="default"] {
+        .sidenav-menu {
+            border-inline-end: 1px dashed rgba(255, 255, 255, 0.05);
+            background-color: rgba(255, 255, 255, 0.05);
         }
     }
 }

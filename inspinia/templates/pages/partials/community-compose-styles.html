@@ -1,6 +1,6 @@
 <style>
   .community-compose {
-    --ins-secondary-color: color-mix(in srgb, var(--ins-body-color) 80%, var(--ins-body-bg));
+    --theme-secondary-color: color-mix(in srgb, var(--theme-body-color) 80%, var(--theme-body-bg));
     max-width: 1240px;
     padding-bottom: 1.5rem;
   }
@@ -26,7 +26,7 @@
     margin: 0;
     list-style: none;
     font-size: .75rem;
-    color: var(--ins-secondary-color);
+    color: var(--theme-secondary-color);
   }
 
   .community-compose-flow li {
@@ -41,25 +41,25 @@
     place-items: center;
     width: 1.4rem;
     height: 1.4rem;
-    border: 1px solid var(--ins-border-color);
+    border: 1px solid var(--theme-border-color);
     border-radius: 50%;
     font-size: .6875rem;
   }
 
   .community-compose-flow .is-current,
   .community-compose-flow .is-complete {
-    color: var(--ins-body-color);
+    color: var(--theme-body-color);
     font-weight: 600;
   }
 
   .community-compose-flow .is-current>span,
   .community-compose-flow .is-complete>span {
-    background: var(--ins-primary-bg-subtle);
+    background: var(--theme-primary-bg-subtle);
     border-color: transparent;
   }
 
   .community-compose-paper {
-    border: 1px solid var(--ins-border-color);
+    border: 1px solid var(--theme-border-color);
     overflow: hidden;
   }
 
@@ -69,7 +69,7 @@
   }
 
   .community-form-section+.community-form-section {
-    border-top: 1px solid var(--ins-border-color);
+    border-top: 1px solid var(--theme-border-color);
   }
 
   .community-section-heading {
@@ -83,9 +83,9 @@
     font-size: .6875rem;
     font-weight: 600;
     letter-spacing: .04em;
-    color: var(--ins-primary);
-    background: var(--ins-primary-bg-subtle);
-    border-radius: var(--ins-border-radius);
+    color: var(--theme-primary);
+    background: var(--theme-primary-bg-subtle);
+    border-radius: var(--theme-border-radius);
     padding: .35rem .45rem;
     line-height: 1;
     margin-top: .1rem;
@@ -100,14 +100,14 @@
 
   .community-section-heading p {
     font-size: .75rem;
-    color: var(--ins-secondary-color);
+    color: var(--theme-secondary-color);
     margin: 0;
   }
 
   .community-required-note {
     margin-left: auto;
     font-size: .6875rem;
-    color: var(--ins-secondary-color);
+    color: var(--theme-secondary-color);
     white-space: nowrap;
     padding-top: .2rem;
   }
@@ -129,7 +129,7 @@
   }
 
   .community-field .form-control::placeholder {
-    color: var(--ins-secondary-color);
+    color: var(--theme-secondary-color);
     opacity: 1;
   }
 
@@ -140,10 +140,10 @@
   }
 
   .community-statement-field textarea {
-    font-family: var(--ins-font-monospace);
+    font-family: var(--theme-font-monospace);
     font-size: .8125rem;
     min-height: 11rem;
-    background: var(--ins-tertiary-bg);
+    background: var(--theme-tertiary-bg);
   }
 
   .community-field .form-text {
@@ -155,11 +155,11 @@
   .community-field-note {
     font-size: .6875rem;
     line-height: 1.5;
-    color: var(--ins-secondary-color);
+    color: var(--theme-secondary-color);
   }
 
   .community-field-errors {
-    color: var(--ins-danger);
+    color: var(--theme-danger);
     font-size: .75rem;
     margin-top: .3rem;
   }
@@ -170,11 +170,11 @@
 
   .community-field--invalid .form-control,
   .community-field--invalid .form-select {
-    border-color: var(--ins-danger);
+    border-color: var(--theme-danger);
   }
 
   .community-form-extra {
-    border-top: 1px solid var(--ins-border-color);
+    border-top: 1px solid var(--theme-border-color);
     margin-top: 1.1rem;
     padding-top: .9rem;
   }
@@ -202,7 +202,7 @@
 
   .community-disclosure-chevron {
     transition: transform .18s ease;
-    color: var(--ins-secondary-color);
+    color: var(--theme-secondary-color);
   }
 
   details[open]>summary>.community-disclosure-chevron {
@@ -212,15 +212,15 @@
   .community-form-extra>summary:focus-visible,
   .community-statement-preview>summary:focus-visible,
   .community-compose-checklist a:focus-visible {
-    outline: 2px solid var(--ins-primary);
+    outline: 2px solid var(--theme-primary);
     outline-offset: 4px;
-    border-radius: var(--ins-border-radius);
+    border-radius: var(--theme-border-radius);
   }
 
   .community-compose-footer {
     padding: 1.25rem 1.5rem;
-    border-top: 1px solid var(--ins-border-color);
-    background: var(--ins-tertiary-bg);
+    border-top: 1px solid var(--theme-border-color);
+    background: var(--theme-tertiary-bg);
   }
 
   .community-sharing {
@@ -240,17 +240,17 @@
 
   .community-compose>.row>aside {
     position: sticky;
-    top: calc(var(--ins-topbar-height, 70px) + 1rem);
+    top: calc(var(--theme-topbar-height, 70px) + 1rem);
   }
 
   .community-readiness-card {
-    border: 1px solid var(--ins-border-color);
+    border: 1px solid var(--theme-border-color);
   }
 
   .community-guide-eyebrow {
     font-size: .625rem;
     letter-spacing: .1em;
-    color: var(--ins-secondary-color);
+    color: var(--theme-secondary-color);
     font-weight: 600;
   }
 
@@ -266,20 +266,20 @@
     border: 0;
     border-radius: 1rem;
     overflow: hidden;
-    background: var(--ins-border-color);
+    background: var(--theme-border-color);
   }
 
   .community-readiness progress::-webkit-progress-bar {
-    background: var(--ins-border-color);
+    background: var(--theme-border-color);
   }
 
   .community-readiness progress::-webkit-progress-value {
-    background: var(--ins-primary);
+    background: var(--theme-primary);
     transition: width .2s ease;
   }
 
   .community-readiness progress::-moz-progress-bar {
-    background: var(--ins-primary);
+    background: var(--theme-primary);
   }
 
   .community-compose-checklist {
@@ -291,40 +291,40 @@
     gap: .65rem;
     align-items: center;
     padding: .8rem 0;
-    color: var(--ins-body-color);
+    color: var(--theme-body-color);
     font-size: .75rem;
     font-weight: 600;
   }
 
   .community-compose-checklist a+a {
-    border-top: 1px solid var(--ins-border-color);
+    border-top: 1px solid var(--theme-border-color);
   }
 
   .community-compose-checklist small {
     display: block;
     font-size: .6875rem;
     font-weight: 400;
-    color: var(--ins-secondary-color);
+    color: var(--theme-secondary-color);
     margin-top: .15rem;
   }
 
   .community-check-icon {
     font-size: 1rem;
-    color: var(--ins-secondary-color);
+    color: var(--theme-secondary-color);
   }
 
   .community-check-status {
     margin-left: auto;
     font-size: .625rem;
-    color: var(--ins-secondary-color);
+    color: var(--theme-secondary-color);
   }
 
   .community-compose-checklist .is-complete .community-check-icon {
-    color: var(--ins-primary);
+    color: var(--theme-primary);
   }
 
   .community-compose-checklist .is-complete .community-check-status {
-    color: var(--ins-body-color);
+    color: var(--theme-body-color);
     font-weight: 600;
   }
 
@@ -335,7 +335,7 @@
   }
 
   .community-compose-note>i {
-    color: var(--ins-primary);
+    color: var(--theme-primary);
     font-size: 1.125rem;
   }
 
@@ -345,7 +345,7 @@
   }
 
   .community-compose-note p {
-    color: var(--ins-secondary-color);
+    color: var(--theme-secondary-color);
     font-size: .6875rem;
     line-height: 1.7;
     margin: .3rem 0 0;
@@ -353,7 +353,7 @@
 
   .community-back-link {
     font-size: .75rem;
-    color: var(--ins-secondary-color);
+    color: var(--theme-secondary-color);
     display: inline-flex;
     align-items: center;
     gap: .4rem;

@@ -11,7 +11,7 @@
   <div class="row g-3 mt-0">
     <div class="col-xl-5">
       <div class="card">
-        <div class="card-header border-0 pb-0"><h4 class="header-title mb-0">{% if selected_problem %}Edit problem{% else %}Create problem{% endif %}</h4></div>
+        <div class="card-header border-0 pb-0"><h4 class="card-title mb-0">{% if selected_problem %}Edit problem{% else %}Create problem{% endif %}</h4></div>
         <div class="card-body pt-2">
           <form method="post">
             {% csrf_token %}
@@ -23,7 +23,7 @@
       </div>
       {% if selected_problem %}
       <div class="card">
-        <div class="card-header border-0 pb-0"><h4 class="header-title mb-0">Statement preview</h4></div>
+        <div class="card-header border-0 pb-0"><h4 class="card-title mb-0">Statement preview</h4></div>
         <div class="card-body pt-2">
           <div data-mathjax-scope class="lh-lg">{{ rendered_statement_preview }}</div>
           {% if selected_problem.official_solution_markdown %}
@@ -37,7 +37,7 @@
     </div>
     <div class="col-xl-7">
       <div class="card">
-        <div class="card-header border-0 pb-0"><h4 class="header-title mb-0">Problems</h4></div>
+        <div class="card-header border-0 pb-0"><h4 class="card-title mb-0">Problems</h4></div>
         <div class="card-body pt-2">
           {% for problem in problems %}
           <div class="d-flex justify-content-between border-bottom py-2 gap-3">

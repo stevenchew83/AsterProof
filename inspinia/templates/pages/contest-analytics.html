@@ -13,9 +13,9 @@
   <div class="container-fluid app-table-page contest-workspace contest-analytics-page"
        id="contest-analytics-dashboard">
     {% url 'pages:archive_hub' as header_archive_url %}
-    <header class="page-title-head app-page-header">
+    <header class="page-title-head d-flex flex-wrap align-items-center gap-2">
       {% include 'partials/page-header-intro.html' with title='Contest analytics' subtitle='Admin analytics' page_icon='ti-chart-bar' back_url=header_archive_url back_label='Archive' only %}
-      <nav class="app-page-header-actions" aria-label="Related contest tools">
+      <nav class="page-title-actions d-flex flex-wrap align-items-center gap-2" aria-label="Related contest tools">
         <a href="{% url 'pages:contest_mohs_summary' %}"
            class="btn btn-sm btn-outline-secondary"
            aria-label="MOHS summary"><i class="ti ti-chart-dots me-1" aria-hidden="true"></i>MOHS</a>
@@ -96,7 +96,7 @@
     {% if contest_total == 0 %}
       <section class="contest-analytics-empty" role="status">
         <span class="contest-analytics-empty-icon"><i class="ti ti-trophy" aria-hidden="true"></i></span>
-        <h2 class="header-title">No contest data yet.</h2>
+        <h2 class="card-title">No contest data yet.</h2>
         <p>Import problems to start exploring the contest archive.</p>
         <a href="{% url 'pages:problem_import' %}"
            class="btn btn-primary btn-sm">Import problems</a>
@@ -107,7 +107,7 @@
                aria-labelledby="contest-directory-title">
         <div class="card-header contest-directory-header">
           <div>
-            <h2 id="contest-directory-title" class="header-title mb-0">Contest directory</h2>
+            <h2 id="contest-directory-title" class="card-title mb-0">Contest directory</h2>
             <p class="text-muted fs-xs mb-0">Difficulty, volume, and metadata across the archive</p>
           </div>
           <div class="contest-directory-actions contest-directory-js">
@@ -181,13 +181,13 @@
                role="alert">
             The interactive directory could not be loaded. The first 25 contests are available below.
           </div>
-          <div class="app-table-region contest-table-wrap contest-directory-js"
+          <div class="app-table-region table-responsive contest-table-wrap contest-directory-js"
                role="region"
                aria-label="Scrollable contest directory"
                tabindex="0">
             <table data-paging-type="simple"
                    id="contest-analytics-table"
-                   class="app-table-compact contest-directory-table table table-sm table-hover align-middle w-100">
+                   class="table-sm contest-directory-table table table-hover align-middle w-100">
               <caption class="visually-hidden">Contest difficulty, archive size, and metadata coverage. Select a contest for detailed analytics.</caption>
             </table>
           </div>
@@ -199,7 +199,7 @@
                  tabindex="0"
                  role="region"
                  aria-label="Contest directory fallback">
-              <table class="app-table-compact table table-sm align-middle mb-0">
+              <table class="table-sm table align-middle mb-0">
                 <thead>
                   <tr>
                     <th scope="col">Contest</th>
@@ -249,7 +249,7 @@
           </noscript>
           <div class="row g-3 contest-insight-js">
             <section class="col-xl-6" aria-labelledby="contest-ranking-title">
-              <h2 id="contest-ranking-title" class="header-title mb-0">Ranked contests</h2>
+              <h2 id="contest-ranking-title" class="card-title mb-0">Ranked contests</h2>
               <div id="contest-ranked-metric-controls" class="contest-chart-toolbar">
                 <div>
                   <label class="form-label" for="contest-ranked-metric">Ranking metric</label>
@@ -285,7 +285,7 @@
               </div>
             </section>
             <section class="col-xl-6" aria-labelledby="contest-topics-title">
-              <h2 id="contest-topics-title" class="header-title mb-0">Topic mix by contest</h2>
+              <h2 id="contest-topics-title" class="card-title mb-0">Topic mix by contest</h2>
               <p class="text-muted fs-xs mt-2 mb-0">Top {{ contest_analytics_chart_limit }} by statement count</p>
               <div class="contest-chart-frame"
                    tabindex="0"
@@ -299,7 +299,7 @@
                    class="contest-quality-watchlist"
                    aria-labelledby="contest-quality-title">
             <div class="contest-quality-header">
-              <h2 id="contest-quality-title" class="header-title mb-0">Metadata to review</h2>
+              <h2 id="contest-quality-title" class="card-title mb-0">Metadata to review</h2>
               <button id="contest-directory-review"
                       type="button"
                       class="btn btn-sm btn-outline-secondary contest-directory-js">
@@ -353,9 +353,9 @@
         var rankedRows = [];
         var topicChart = null;
         var chartStyles = getComputedStyle(document.documentElement);
-        var accentColor = chartStyles.getPropertyValue("--ins-primary").trim() || "#1ab394";
-        var textColor = chartStyles.getPropertyValue("--ins-body-color").trim();
-        var borderColor = chartStyles.getPropertyValue("--ins-border-color").trim();
+        var accentColor = chartStyles.getPropertyValue("--theme-primary").trim();
+        var textColor = chartStyles.getPropertyValue("--theme-body-color").trim();
+        var borderColor = chartStyles.getPropertyValue("--theme-border-color").trim();
         var reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
         var rankedLimit = Number("{{ contest_analytics_chart_limit }}") || 12;
 
@@ -552,7 +552,7 @@
           var labels = payload.labels || [];
           var series = payload.series || [];
           if (!chartEl || topicChart || !labels.length || !series.length || typeof ApexCharts === "undefined") return;
-          var palette = [accentColor, "#6689a5", "#caa56b", "#8c81a7", "#adb5bd"];
+          var palette = [accentColor, window.getThemeColor("secondary"), window.getThemeColor("warning"), window.getThemeColor("purple"), window.getThemeColor("secondary-color")];
           topicChart = new ApexCharts(chartEl, {
             chart: {
               type: "bar",
@@ -708,8 +708,8 @@
               return;
             }
             chartStyles = getComputedStyle(document.documentElement);
-            textColor = chartStyles.getPropertyValue("--ins-body-color").trim();
-            borderColor = chartStyles.getPropertyValue("--ins-border-color").trim();
+            textColor = chartStyles.getPropertyValue("--theme-body-color").trim();
+            borderColor = chartStyles.getPropertyValue("--theme-border-color").trim();
             renderRankedChart();
             renderTopicComposition();
           });

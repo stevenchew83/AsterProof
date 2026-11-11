@@ -31,7 +31,7 @@
         </div>
       </div>
       <div class="card">
-        <div class="card-header border-0 pb-0"><h4 class="header-title mb-0">Comments</h4></div>
+        <div class="card-header border-0 pb-0"><h4 class="card-title mb-0">Comments</h4></div>
         <div class="card-body pt-2">
           {% for row in comments %}
           <div class="border-bottom py-2">
@@ -50,7 +50,7 @@
     <div class="col-xl-4">
       {% if reviewer_view %}
       <div class="card">
-        <div class="card-header border-0 pb-0"><h4 class="header-title mb-0">Trainer review</h4></div>
+        <div class="card-header border-0 pb-0"><h4 class="card-title mb-0">Trainer review</h4></div>
         <div class="card-body pt-2">
           <form method="post">
             {% csrf_token %}

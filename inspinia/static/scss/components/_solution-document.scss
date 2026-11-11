@@ -1,25 +1,25 @@
 // Shared source surface; reader typography remains independently loadable.
 @import "solution-document-reader";
 [data-solution-document-editor] {
-  --document-surface: var(--ins-secondary-bg, #fff);
-  --document-ink: var(--ins-body-color, #24332d);
-  --document-muted: var(--ins-secondary-color, #68746e);
-  --document-line: var(--ins-border-color, #d8dfda);
-  --document-soft: var(--ins-tertiary-bg, #edf0e8);
-  --document-accent: var(--ins-primary, #27624b);
+  --document-surface: var(--theme-secondary-bg, #fff);
+  --document-ink: var(--theme-body-color, #24332d);
+  --document-muted: var(--theme-secondary-color, #68746e);
+  --document-line: var(--theme-border-color, #d8dfda);
+  --document-soft: var(--theme-tertiary-bg, #edf0e8);
+  --document-accent: var(--theme-primary, #27624b);
   --document-selection: rgba(82, 142, 114, .24);
 }
-.solution-document-source-surface { border: 1px solid var(--document-line); border-radius: var(--ins-border-radius, 3px); background: var(--document-surface); overflow: visible; }
+.solution-document-source-surface { border: 1px solid var(--document-line); border-radius: var(--theme-border-radius, 3px); background: var(--document-surface); overflow: visible; }
 .solution-source-tools { display: flex; align-items: center; flex-wrap: wrap; gap: .2rem; padding: .6rem .75rem; border-bottom: 1px solid var(--document-line); }
 .solution-source-tools[hidden], [data-document-views][hidden] { display: none; }
-.solution-source-tools button { padding: .25rem .5rem; border: 1px solid transparent; border-radius: 3px; background: transparent; color: var(--document-muted); font: 500 .75rem/1.4 var(--ins-body-font-family, sans-serif); }
+.solution-source-tools button { padding: .25rem .5rem; border: 1px solid transparent; border-radius: 3px; background: transparent; color: var(--document-muted); font: 500 .75rem/1.4 var(--theme-body-font-family, sans-serif); }
 .solution-source-tools button:hover { color: var(--document-accent); background: var(--document-soft); }
 .solution-source-tools button:focus-visible, .solution-document-recovery button:focus-visible { outline: 2px solid var(--document-accent); outline-offset: 2px; }
-.solution-document-source-surface textarea { display: block; width: 100%; min-height: 28rem; padding: 1rem; border: 0; border-radius: 0; background: var(--document-surface); color: var(--document-ink); font: .875rem/1.8 var(--ins-font-monospace, monospace); tab-size: 2; resize: vertical; }
+.solution-document-source-surface textarea { display: block; width: 100%; min-height: 28rem; padding: 1rem; border: 0; border-radius: 0; background: var(--document-surface); color: var(--document-ink); font: .875rem/1.8 var(--theme-font-monospace, monospace); tab-size: 2; resize: vertical; }
 .solution-document-source-surface textarea[hidden] { display: none; }
 .solution-source-editor { min-width: 0; }
 .solution-source-editor .cm-scroller { max-height: 72dvh; }
-.solution-source-editor .cm-tooltip-autocomplete ul { font-family: var(--ins-font-monospace, monospace); font-size: .8rem; }
+.solution-source-editor .cm-tooltip-autocomplete ul { font-family: var(--theme-font-monospace, monospace); font-size: .8rem; }
 .solution-source-editor .cm-completionDetail { color: inherit; opacity: .7; font-size: .7rem; }
 .solution-source-editor .cm-search { display: flex; align-items: center; flex-wrap: wrap; gap: .35rem; padding: .5rem; }
 .solution-source-editor .cm-search input { min-width: 0; width: 8rem; background: var(--document-surface); border: 1px solid var(--document-line); color: var(--document-ink); }

@@ -9,7 +9,7 @@
 {% block page_content %}
   <div class="container-fluid">
     {% url 'pages:community_problem_detail' problem_id=problem.pk as detail_url %}
-    <header class="page-title-head app-page-header">
+    <header class="page-title-head d-flex flex-wrap align-items-center gap-2">
       {% include 'partials/page-header-intro.html' with title='Publication moderation' subtitle='Community Proof Library · Admin' back_url=detail_url back_label='Problem details' page_icon='ti-shield-check' only %}
     </header>
     {% include 'pages/proof/partials/messages.html' %}
@@ -48,7 +48,7 @@
         {% if reports %}
           <section class="card mt-3">
             <div class="card-body">
-              <h2 class="header-title fs-16">Private reports</h2>
+              <h2 class="card-title fs-16">Private reports</h2>
               <p class="text-muted fs-sm">Reporter details and report text are not public.</p>
               {% for report in reports %}
                 <article class="border-top pt-3 mt-3">
@@ -85,7 +85,7 @@
         {% if pending_solutions %}
           <section class="card mt-3">
             <div class="card-body">
-              <h2 class="header-title fs-16 mb-3">Proofs awaiting publication review</h2>
+              <h2 class="card-title fs-16 mb-3">Proofs awaiting publication review</h2>
               {% for pending in pending_solutions %}
                 <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 border-top pt-2 mt-2">
                   <div>
@@ -104,7 +104,7 @@
         {% if events %}
           <section class="card mt-3">
             <div class="card-body">
-              <h2 class="header-title fs-16">Moderation history</h2>
+              <h2 class="card-title fs-16">Moderation history</h2>
               {% for event in events %}
                 <div class="border-top mt-2 pt-2">
                   <p class="fs-sm mb-1">
@@ -120,7 +120,7 @@
       <aside class="col-lg-4">
         <section class="card">
           <div class="card-body">
-            <h2 class="header-title fs-16 mb-3">Publication decision</h2>
+            <h2 class="card-title fs-16 mb-3">Publication decision</h2>
             <p class="text-muted fs-sm">
               Check completeness, appropriate content, attribution and permission, and any competition embargo. Approval permits the contributor to share this exact version; it does not verify a mathematical proof.
             </p>
@@ -134,7 +134,7 @@
         </section>
         <section class="card mt-3">
           <div class="card-body">
-            <h2 class="header-title fs-16">External access controls</h2>
+            <h2 class="card-title fs-16">External access controls</h2>
             <p class="text-muted fs-sm">A hold disables external access while preserving private work and history.</p>
             <form method="post">
               {% csrf_token %}

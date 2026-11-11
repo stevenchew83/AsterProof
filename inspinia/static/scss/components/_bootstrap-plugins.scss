@@ -1,0 +1,13 @@
+// DataTables and Tom Select ship with Bootstrap's default variable prefix.
+.dt-container,
+.ts-wrapper,
+.ts-dropdown {
+    @each $token in (
+        body-bg, body-color, border-color, border-color-translucent, border-radius,
+        border-radius-lg, border-radius-sm, border-width, box-shadow-inset,
+        form-invalid-color, form-valid-color, gutter-y, secondary-bg,
+        secondary-color, table-bg, tertiary-bg
+    ) {
+        --bs-#{$token}: var(--theme-#{$token});
+    }
+}

@@ -9,13 +9,13 @@
 {% endblock title %}
 {% block page_content %}
   <div class="container-fluid solution-forum">
-    <header class="page-title-head app-page-header">
+    <header class="page-title-head d-flex flex-wrap align-items-center gap-2">
       {% if is_admin_queue %}
         {% include 'partials/page-header-intro.html' with title='Solution verification' subtitle='Admin queue' page_icon='ti-shield-check' only %}
       {% else %}
         {% include 'partials/page-header-intro.html' with title='Solution reviews' subtitle='Trainer queue' page_icon='ti-user-check' only %}
       {% endif %}
-      <div class="app-page-header-actions">
+      <div class="page-title-actions d-flex flex-wrap align-items-center gap-2">
         <a href="{% url 'solutions:my_solution_list' %}"
            class="btn btn-outline-secondary btn-sm">My solutions</a>
       </div>

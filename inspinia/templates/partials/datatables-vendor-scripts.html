@@ -55,7 +55,7 @@ sync window.DataTable from jQuery.fn.dataTable if the global is still missing.
   if (jq) {
     jq(document).off("init.dt.asterproofCompactTables").on("init.dt.asterproofCompactTables", function (event, settings) {
       var table = settings.nTable;
-      if (!table || !table.classList.contains("app-table-compact")) return;
+      if (!table || !table.classList.contains("table-sm")) return;
       var layout = table.closest(".dt-layout-table");
       var region = table.closest(".dt-scroll-body") || (layout && layout.firstElementChild);
       if (!region) return;

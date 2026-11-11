@@ -21,21 +21,13 @@
     --activity-heatmap-gap: 0.22rem;
     --activity-heatmap-weekday-width: 2rem;
     --activity-heatmap-border: rgba(27, 31, 35, 0.06);
-    --activity-heatmap-empty: #ebedf0;
-    --activity-heatmap-level-1: #9be9a8;
-    --activity-heatmap-level-2: #40c463;
-    --activity-heatmap-level-3: #30a14e;
-    --activity-heatmap-level-4: #216e39;
+    --activity-heatmap-empty: var(--theme-tertiary-bg);
+    --activity-heatmap-level-1: var(--theme-success-bg-subtle);
+    --activity-heatmap-level-2: var(--theme-success-border-subtle);
+    --activity-heatmap-level-3: var(--theme-success);
+    --activity-heatmap-level-4: var(--theme-success-text-emphasis);
   }
 
-  [data-bs-theme="dark"] .activity-heatmap {
-    --activity-heatmap-border: rgba(240, 246, 252, 0.08);
-    --activity-heatmap-empty: #161b22;
-    --activity-heatmap-level-1: #0e4429;
-    --activity-heatmap-level-2: #006d32;
-    --activity-heatmap-level-3: #26a641;
-    --activity-heatmap-level-4: #39d353;
-  }
 
   .activity-heatmap-months {
     display: grid;
@@ -44,7 +36,7 @@
     gap: var(--activity-heatmap-gap);
     margin-left: calc(var(--activity-heatmap-weekday-width) + 0.45rem);
     margin-bottom: 0.45rem;
-    color: var(--ins-secondary-color);
+    color: var(--theme-secondary-color);
     font-size: 0.72rem;
     line-height: 1;
   }
@@ -65,7 +57,7 @@
     grid-template-rows: repeat(7, var(--activity-heatmap-cell-size));
     gap: var(--activity-heatmap-gap);
     width: var(--activity-heatmap-weekday-width);
-    color: var(--ins-secondary-color);
+    color: var(--theme-secondary-color);
     font-size: 0.72rem;
     line-height: var(--activity-heatmap-cell-size);
     text-align: right;
@@ -131,7 +123,7 @@
     display: inline-flex;
     align-items: center;
     gap: 0.45rem;
-    color: var(--ins-secondary-color);
+    color: var(--theme-secondary-color);
     font-size: 0.82rem;
     margin-top: 0.9rem;
   }
@@ -159,7 +151,7 @@
   }
 
   .activity-heatmap-section + .activity-heatmap-section {
-    border-top: 1px solid var(--ins-border-color);
+    border-top: 1px solid var(--theme-border-color);
     margin-top: 1.25rem;
     padding-top: 1.25rem;
   }
@@ -172,7 +164,7 @@
     gap: 1rem 1.25rem;
     padding-bottom: 1rem;
     margin-bottom: 1rem;
-    border-bottom: 1px solid var(--ins-border-color);
+    border-bottom: 1px solid var(--theme-border-color);
   }
 
   .activity-toolbar-copy {
@@ -317,7 +309,7 @@
     <div class="col-12">
       <div class="card">
         <div class="card-header border-0 pb-0">
-          <h4 class="header-title mb-0">Completion heatmaps</h4>
+          <h4 class="card-title mb-0">Completion heatmaps</h4>
           <p class="text-muted fs-xs mb-0">GitHub-style view of your exact completion history in stacked 365-day windows. Rows marked <code>Done</code> without a date stay in the table below and are excluded from these time-based visuals.</p>
         </div>
         <div class="card-body pt-2">
@@ -400,7 +392,7 @@
     <div class="col-12">
       <div class="card">
         <div class="card-header border-0 pb-0">
-          <h4 class="header-title mb-0">Completion count by month</h4>
+          <h4 class="card-title mb-0">Completion count by month</h4>
           <p class="text-muted fs-xs mb-0">Monthly totals across the most recent heatmap window with exact dates from {{ activity_month_window_label }}. Rows marked <code>Done</code> without a date are excluded.</p>
           {% if activity_charts_payload.completionsByMonth.forecast %}
           <p class="text-muted fs-xs mb-0 mt-1">
@@ -420,7 +412,7 @@
     <div class="col-12">
       <div class="card">
         <div class="card-header border-0 pb-0">
-          <h4 class="header-title mb-0">Contest-year statement completion heatmap</h4>
+          <h4 class="card-title mb-0">Contest-year statement completion heatmap</h4>
           <p class="text-muted fs-xs mb-0">
             Each cell shows how many statement-backed problems you have completed in one contest-year.
             {% if activity_statement_completion_stats.statement_backed_completion_total %}
@@ -447,7 +439,7 @@
     <div class="col-12">
       <div class="card">
         <div class="card-header border-0 pb-0">
-          <h4 class="header-title mb-0">Main topic vs MOHS completion heatmap</h4>
+          <h4 class="card-title mb-0">Main topic vs MOHS completion heatmap</h4>
           <p class="text-muted fs-xs mb-0">
             Each cell shows how many completed problems land in one main topic bucket and one MOHS value.
             {% if activity_topic_mohs_completion_stats.completion_total %}
@@ -475,7 +467,7 @@
       <div class="card">
         <div class="card-header border-bottom d-flex flex-wrap align-items-center gap-2">
           <div class="flex-grow-1">
-            <h4 class="header-title mb-0">Completion history</h4>
+            <h4 class="card-title mb-0">Completion history</h4>
             <p class="text-muted fs-xs mb-0">Use the filters below to narrow your saved completion rows without loading the full history into the browser at once.</p>
           </div>
           {% if activity_stats.latest_completion_date %}
@@ -569,7 +561,7 @@
             </form>
           </div>
           <div class="app-table-region table-responsive" tabindex="0" role="region" aria-label="Scrollable results">
-            <table id="user-activity-table" class="app-table-compact table table-striped table-bordered align-middle w-100">
+            <table id="user-activity-table" class="table-sm table table-striped table-bordered align-middle w-100">
               <thead class="table-light">
                 <tr>
                   <th scope="col" class="text-nowrap">Completion date</th>
@@ -659,7 +651,7 @@
       <div class="card">
         <div class="card-header border-bottom d-flex flex-wrap align-items-center gap-2">
           <div class="flex-grow-1">
-            <h4 class="header-title mb-0">Completion import</h4>
+            <h4 class="card-title mb-0">Completion import</h4>
             <p class="text-muted fs-xs mb-0">Paste your <code>STATEMENT UUID + Date</code> rows here. Legacy <code>PROBLEM UUID</code> rows still work, and you can use <code>Done</code> when the exact date is unknown.</p>
           </div>
           <div class="d-flex flex-wrap gap-2">
@@ -742,7 +734,7 @@
     function heatmapRanges(maxValue) {
       if (!maxValue) {
         return [
-          { from: 0, to: 0, name: "0", color: "#eef2f7" }
+          { from: 0, to: 0, name: "0", color: window.getThemeColor("tertiary-bg") }
         ];
       }
 
@@ -751,11 +743,11 @@
       var thirdUpper = Math.max(secondUpper + 1, Math.ceil((maxValue * 3) / 4));
 
       return [
-        { from: 0, to: 0, name: "0", color: "#eef2f7" },
-        { from: 1, to: firstUpper, name: "1-" + firstUpper, color: "#dbeafe" },
-        { from: firstUpper + 1, to: secondUpper, name: (firstUpper + 1) + "-" + secondUpper, color: "#93c5fd" },
-        { from: secondUpper + 1, to: thirdUpper, name: (secondUpper + 1) + "-" + thirdUpper, color: "#3b82f6" },
-        { from: thirdUpper + 1, to: maxValue, name: (thirdUpper + 1) + "+", color: "#1d4ed8" }
+        { from: 0, to: 0, name: "0", color: window.getThemeColor("tertiary-bg") },
+        { from: 1, to: firstUpper, name: "1-" + firstUpper, color: window.getThemeColor("primary-bg-subtle") },
+        { from: firstUpper + 1, to: secondUpper, name: (firstUpper + 1) + "-" + secondUpper, color: window.getThemeColor("primary-border-subtle") },
+        { from: secondUpper + 1, to: thirdUpper, name: (secondUpper + 1) + "-" + thirdUpper, color: window.getThemeColor("primary") },
+        { from: thirdUpper + 1, to: maxValue, name: (thirdUpper + 1) + "+", color: window.getThemeColor("primary-text-emphasis") }
       ].filter(function (range) {
         return range.from <= range.to;
       });
@@ -787,7 +779,7 @@
           style: {
             fontSize: "11px",
             fontWeight: 600,
-            colors: ["#11203b"]
+            colors: [window.getThemeColor("body-color")]
           },
           formatter: function (value) {
             return value ? String(value) : "";
@@ -873,7 +865,7 @@
           },
           series: [{ name: "Completions", data: monthValues }],
           colors: [function (options) {
-            return isForecastMonth(options.dataPointIndex) ? "#f59f00" : "#0d6efd";
+            return isForecastMonth(options.dataPointIndex) ? window.getThemeColor("warning") : window.getThemeColor("primary");
           }],
           plotOptions: {
             bar: {

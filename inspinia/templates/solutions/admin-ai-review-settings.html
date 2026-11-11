@@ -3,10 +3,10 @@
 {% block title %}AI settings{% endblock title %}
 {% block page_content %}
   <div class="container-fluid">
-    <header class="page-title-head app-page-header">
+    <header class="page-title-head d-flex flex-wrap align-items-center gap-2">
       {% url 'solutions:forum_admin_queue' as verification_url %}
       {% include 'partials/page-header-intro.html' with title='AI settings' subtitle='Configure proof reviews and problem hints.' page_icon='ti-sparkles' back_url=verification_url back_label='Solution verification' only %}
-      <div class="app-page-header-actions">
+      <div class="page-title-actions d-flex flex-wrap align-items-center gap-2">
         <a class="btn btn-outline-secondary btn-sm" href="#hint-settings">Hint settings</a>
         <a class="btn btn-outline-secondary btn-sm" href="{% url 'solutions:admin_ai_review_queue' %}">AI review queue</a>
         {% if generation_enabled and key_ready %}
@@ -29,7 +29,7 @@
         <div class="col-xl-5">
           <section class="card mb-3" aria-labelledby="review-provider-heading">
             <div class="card-header border-0 pb-0 d-flex align-items-center justify-content-between gap-2">
-              <h2 class="header-title fs-lg mb-0" id="review-provider-heading"><i class="ti ti-key me-2 text-primary" aria-hidden="true"></i>OpenAI connection</h2>
+              <h2 class="card-title fs-lg mb-0" id="review-provider-heading"><i class="ti ti-key me-2 text-primary" aria-hidden="true"></i>OpenAI connection</h2>
               {% if key_ready %}
                 <span class="badge bg-success-subtle text-success">Key saved</span>
               {% elif key_saved %}
@@ -71,7 +71,7 @@
           </section>
           <section class="card mb-0" aria-labelledby="review-models-heading">
             <div class="card-header border-0 pb-0">
-              <h2 class="header-title fs-lg mb-0" id="review-models-heading"><i class="ti ti-adjustments me-2 text-primary" aria-hidden="true"></i>Model settings</h2>
+              <h2 class="card-title fs-lg mb-0" id="review-models-heading"><i class="ti ti-adjustments me-2 text-primary" aria-hidden="true"></i>Model settings</h2>
             </div>
             <div class="card-body pt-3">
               <fieldset class="mb-3">
@@ -105,7 +105,7 @@
         <div class="col-xl-7">
           <section class="card mb-0" aria-labelledby="review-prompt-heading">
             <div class="card-header border-0 pb-0 d-flex flex-wrap align-items-center justify-content-between gap-2">
-              <h2 class="header-title fs-lg mb-0" id="review-prompt-heading"><i class="ti ti-file-pencil me-2 text-primary" aria-hidden="true"></i>Review instructions</h2>
+              <h2 class="card-title fs-lg mb-0" id="review-prompt-heading"><i class="ti ti-file-pencil me-2 text-primary" aria-hidden="true"></i>Review instructions</h2>
               <span class="badge bg-primary-subtle text-primary">7-point rubric</span>
             </div>
             <div class="card-body pt-3">

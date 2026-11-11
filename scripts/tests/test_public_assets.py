@@ -19,17 +19,14 @@ def test_public_fonts_preserve_every_existing_open_sans_style_and_unicode_range(
 
 
 @pytest.mark.parametrize("name", ["site", "writer", "solving", "shared"])
-def test_public_stylesheets_keep_shared_controls_and_exclude_unused_assets(name):
+def test_public_stylesheets_keep_reference_controls_and_page_specific_assets(name):
     css = (STATIC / f"css/public-{name}.css").read_text()
     assert 'font-family: "Open Sans"' in css or "font-family: 'Open Sans'" in css
-    for control in (".form-control", ".form-check-input", ".form-select", ".website-tools-menu > div"):
+    for control in (".form-control", ".form-check-input", ".form-select", ".dropdown-menu", ".dropdown-item"):
         assert control in css
-    # Validation references these widgets, but their component styles are absent.
-    for unused in (
-        "[data-bs-theme=dark]", ".form-range", ".form-floating > .form-control",
-        ".input-group-text", 'font-family: "Poppins"',
-    ):
-        assert unused not in css
+    assert "--theme-primary:" in css
+    assert ".website-tools-menu" not in css
+    assert 'font-family: "Poppins"' not in css
     assert (".public-tool-grid" in css) == (name == "writer")
     assert (".solving-hero" in css) == (name == "solving")
     assert (".public-shared-paper" in css) == (name == "shared")

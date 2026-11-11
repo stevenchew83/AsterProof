@@ -74,7 +74,9 @@ def test_public_pages_load_only_the_public_asset_bundle(client):
         )
     assert not any("cdn.jsdelivr.net/npm/mathjax" in src for src in scripts)
     assert 'rel="preconnect"' not in homepage
-    assert [src.rsplit("/", 1)[-1] for src in scripts] == ["public-home.bundle.js", "website-math.min.js"]
+    assert [src.rsplit("/", 1)[-1] for src in scripts] == [
+        "public-nav.bundle.js", "public-home.bundle.js", "website-math.min.js",
+    ]
     writer = client.get("/tools/solution-preview/").content.decode()
     assert "js/public-writer.bundle.js" in writer
     assert "js/website-math.min.js" in writer

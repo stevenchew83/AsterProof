@@ -3,8 +3,7 @@
 //
 
 // Tooltips Colors
-@each $color,
-$value in $theme-colors {
+@each $color, $value in $theme-colors {
     .tooltip-#{$color} {
         --#{$prefix}tooltip-bg: var(--#{$prefix}#{$color});
     }

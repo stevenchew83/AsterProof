@@ -4,7 +4,7 @@
 
 {% block page_content %}
   <div class="container-fluid app-table-page">
-    <header class="page-title-head app-page-header">
+    <header class="page-title-head d-flex flex-wrap align-items-center gap-2">
       {% url 'pages:ai_user_usage' as usage_url %}
       {% if is_hint %}
         {% include 'partials/page-header-intro.html' with title=page_title subtitle='Saved hints by problem and learner.' page_icon='ti-bulb' back_url=usage_url back_label='User AI usage' only %}
@@ -27,7 +27,7 @@
           {% endif %}
         </form>
         <div class="app-table-region table-responsive" role="region" aria-label="{{ page_title }}" tabindex="0">
-          <table class="table app-table-compact align-middle mb-0">
+          <table class="table table-sm align-middle mb-0">
             <thead>
               <tr><th scope="col">Problem</th><th scope="col">User</th><th scope="col">Model</th><th scope="col">Date</th><th scope="col">{% if is_hint %}Hint{% else %}Review{% endif %}</th></tr>
             </thead>

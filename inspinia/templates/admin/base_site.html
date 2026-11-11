@@ -1,0 +1,12 @@
+{% extends "admin/base_site.html" %}
+{% load static %}
+{% block dark-mode-vars %}
+  {{ block.super }}
+  <script src="{% static 'js/django-admin-theme.js' %}"></script>
+  <link rel="stylesheet" href="{% static 'css/app.min.css' %}">
+  <link rel="stylesheet" href="{% static 'css/django-admin.min.css' %}">
+{% endblock dark-mode-vars %}
+{% block bodyclass %}{{ block.super }} asterproof-admin{% endblock bodyclass %}
+{% block content_title %}
+  {% if title %}<header class="page-title-head d-flex align-items-center"><h1 class="page-main-title m-0">{{ title }}</h1></header>{% endif %}
+{% endblock content_title %}

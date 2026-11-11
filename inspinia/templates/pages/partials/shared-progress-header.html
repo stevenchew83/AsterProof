@@ -1,10 +1,10 @@
-<header class="page-title-head app-page-header">
+<header class="page-title-head d-flex flex-wrap align-items-center gap-2">
   {% if shared_progress_is_comparison %}
     {% include 'partials/page-header-intro.html' with title='Alex & Ben' subtitle='Read-only progress' page_icon='ti-chart-dots-3' only %}
   {% else %}
     {% include 'partials/page-header-intro.html' with title=shared_progress_label|add:"'s progress" subtitle='Read-only progress' page_icon='ti-chart-dots-3' only %}
   {% endif %}
-  <div class="app-page-header-actions">
+  <div class="page-title-actions d-flex flex-wrap align-items-center gap-2">
   <nav class="btn-group" aria-label="Choose progress view">
     {% for learner in shared_progress_learners %}
     <a href="{{ learner.url }}" class="btn btn-sm {% if learner.slug == shared_progress_learner %}btn-primary{% else %}btn-outline-primary{% endif %}"{% if learner.slug == shared_progress_learner %} aria-current="page"{% endif %}>{{ learner.label }}</a>

@@ -1,5 +1,8 @@
-<div class="website-subject-list">
+<div class="list-group">
   {% for subject in public_subjects %}
-    <a class="website-subject" href="{{ subject.url }}"><span class="website-subject-number">0{{ forloop.counter }}</span><div><h3>{{ subject.title }}</h3><p>{{ subject.description }}</p></div><span class="website-subject-symbol" aria-hidden="true">{% if subject.slug == 'geometry' %}△{% elif subject.slug == 'algebra' %}ƒ{% elif subject.slug == 'number-theory' %}ℕ{% else %}∑{% endif %}</span><span class="website-arrow" aria-hidden="true">↗</span></a>
+    <a class="list-group-item list-group-item-action d-flex justify-content-between align-items-center gap-2 py-3" href="{{ subject.url }}">
+      <div><h3 class="h5 mb-1">{{ subject.title }}</h3><p class="text-body-secondary mb-0">{{ subject.description }}</p></div>
+      <span class="fs-xl text-primary-emphasis" aria-hidden="true">{% if subject.slug == 'geometry' %}△{% elif subject.slug == 'algebra' %}ƒ{% elif subject.slug == 'number-theory' %}ℕ{% else %}∑{% endif %}</span>
+    </a>
   {% endfor %}
 </div>

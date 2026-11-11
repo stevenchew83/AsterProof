@@ -91,7 +91,7 @@
     <div class="col-lg-8">
       <section class="card h-100">
         <div class="card-header d-flex align-items-center justify-content-between gap-2">
-          <h2 class="header-title mb-0">Recorded activity</h2>
+          <h2 class="card-title mb-0">Recorded activity</h2>
           <ul class="nav nav-pills gap-1" role="tablist" aria-label="Activity chart">
             <li class="nav-item" role="presentation"><button class="nav-link active py-1 px-2 fs-xs" id="completion-progress-activity-tab" data-bs-toggle="tab" data-bs-target="#completion-progress-activity-pane" type="button" role="tab" aria-controls="completion-progress-activity-pane" aria-selected="true">Problems</button></li>
             <li class="nav-item" role="presentation"><button class="nav-link py-1 px-2 fs-xs" id="completion-progress-trend-tab" data-bs-toggle="tab" data-bs-target="#completion-progress-trend-pane" type="button" role="tab" aria-controls="completion-progress-trend-pane" aria-selected="false">Difficulty</button></li>
@@ -111,7 +111,7 @@
     </div>
     <div class="col-lg-4">
       <section class="card h-100">
-        <div class="card-header d-flex justify-content-between align-items-center"><h2 class="header-title mb-0">Topic balance</h2><span class="text-body-secondary fs-xs">This period</span></div>
+        <div class="card-header d-flex justify-content-between align-items-center"><h2 class="card-title mb-0">Topic balance</h2><span class="text-body-secondary fs-xs">This period</span></div>
         <div class="card-body py-2">
           {% if shared_progress_topics %}
           <div class="lp-topic-grid text-body-secondary fs-xs mb-1" aria-hidden="true"><span>Topic</span><span class="text-end">Recorded</span><span class="text-end" title="Median MOHS of unique dated problems with a recorded difficulty in this topic.">Median MOHS</span></div>
@@ -133,7 +133,7 @@
 
   <section class="card mt-3" aria-labelledby="shared-progress-history-title">
     <div class="card-header d-flex flex-wrap align-items-center justify-content-between gap-2">
-      <div><h2 class="header-title mb-1" id="shared-progress-history-title">Completion history</h2><p class="text-body-secondary fs-xs mb-0">{{ completion_progress_rows|length }} record{{ completion_progress_rows|length|pluralize }} · {{ completion_progress_stats.solved_total }} unique problem{{ completion_progress_stats.solved_total|pluralize }}{% if completion_progress_stats.missing_date_total %} · Includes undated history{% endif %}</p></div>
+      <div><h2 class="card-title mb-1" id="shared-progress-history-title">Completion history</h2><p class="text-body-secondary fs-xs mb-0">{{ completion_progress_rows|length }} record{{ completion_progress_rows|length|pluralize }} · {{ completion_progress_stats.solved_total }} unique problem{{ completion_progress_stats.solved_total|pluralize }}{% if completion_progress_stats.missing_date_total %} · Includes undated history{% endif %}</p></div>
       {% if completion_progress_rows %}<button type="button" class="btn btn-sm btn-outline-secondary" id="shared-progress-record-details" aria-pressed="false"><i class="ti ti-columns-3 me-1" aria-hidden="true"></i>More columns</button>{% endif %}
     </div>
     <div class="card-body pt-1">

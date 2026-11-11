@@ -1,4 +1,4 @@
-// 
+//
 // SaaS Theme Mode
 //
 
@@ -14,10 +14,9 @@ $theme-saas-colors: (
 
 @if $theme-saas ==true {
 
-
-    html[data-skin="saas"] {
-
-        --#{$prefix}font-sans-serif:        "Inter", sans-serif;
+    html[data-skin='saas'] {
+        --#{$prefix}font-sans-serif: "Inter", sans-serif;
+        --#{$prefix}font-family-secondary: "Inter", sans-serif;
 
         --#{$prefix}body-font-size:               13px;
         --#{$prefix}body-bg:               #f9fbfd;
@@ -188,20 +187,49 @@ $theme-saas-colors: (
         @each $name, $value in $theme-saas-colors {
             --#{$prefix}#{$name}-text-emphasis: #{shade-color($value, 25%)};
         }
+
+        // Chart Colors
+        --#{$prefix}chart-primary: #7754f6; // Main Color
+        --#{$prefix}chart-primary-rgb: #{to-rgb(#7754f6)};
+        --#{$prefix}chart-secondary: #0070ff; // Secondary Color
+        --#{$prefix}chart-secondary-rgb: #{to-rgb(#0070ff)};
+        --#{$prefix}chart-alpha: #7dd420; // Success Color
+        --#{$prefix}chart-alpha-rgb: #{to-rgb(#7dd420)};
+        --#{$prefix}chart-beta: #f5315d; // Danger Color
+        --#{$prefix}chart-beta-rgb: #{to-rgb(#f5315d)};
+        --#{$prefix}chart-gamma: #ff8600; // Warning Color
+        --#{$prefix}chart-gamma-rgb: #{to-rgb(#ff8600)};
+        --#{$prefix}chart-delta: #13a4ee; // Info Color
+        --#{$prefix}chart-delta-rgb: #{to-rgb(#13a4ee)};
+        --#{$prefix}chart-zeta: #8768cd; // Purple or custom Color
+        --#{$prefix}chart-zeta-rgb: #{to-rgb(#8768cd)};
+        --#{$prefix}chart-gray: #edeff3; // Gray Color
+        --#{$prefix}chart-gray-rgb: #{to-rgb(#edeff3)};
+        --#{$prefix}chart-dark: #396699; // Primary Dark Color
+        --#{$prefix}chart-dark-rgb: #{to-rgb(#396699)};
+        --#{$prefix}chart-border-color: #ecf4fc; // Border Color
+        --#{$prefix}chart-title-color: #bbcae1; // Title Color
     }
 
     @if $enable-dark-mode {
         @include color-mode(dark, true) {
-            &[data-skin="saas"] {
-                --#{$prefix}body-bg:                     #{#17181e};
-                --#{$prefix}body-bg-rgb:                 #{to-rgb(#17181e)};
+            &[data-skin='saas'] {
+                --#{$prefix}body-bg: #{#17181e};
+                --#{$prefix}body-bg-rgb: #{to-rgb(#17181e)};
 
-                --#{$prefix}secondary-bg:                #{#1b1c22};
-                --#{$prefix}secondary-bg-rgb:            #{to-rgb(#1b1c22)};
+                --#{$prefix}secondary-bg: #{#1b1c22};
+                --#{$prefix}secondary-bg-rgb: #{to-rgb(#1b1c22)};
 
-                --#{$prefix}box-shadow:                  #{0px 0px 30px rgba(0, 0, 0, 0.3)};
+                --#{$prefix}box-shadow: #{0px 0px 30px rgba(0, 0, 0, 0.3)};
 
-                --#{$prefix}border-color:                 #293036;
+                --#{$prefix}border-color: #293036;
+
+                --#{$prefix}chart-gray: #40424f;
+                --#{$prefix}chart-gray-rgb: #{to-rgb(#40424f)};
+
+                --#{$prefix}chart-border-color: #242c31;
+                --#{$prefix}chart-gray: #40424f;
+                --#{$prefix}chart-gray-rgb: #{to-rgb(#40424f)};
             }
         }
     }

@@ -9,7 +9,7 @@
 {% block page_content %}
   <div class="container-fluid">
     {% url 'pages:proof_attempt_edit' attempt_id=attempt.pk as attempt_url %}
-    <header class="page-title-head app-page-header">
+    <header class="page-title-head d-flex flex-wrap align-items-center gap-2">
       {% include 'partials/page-header-intro.html' with title='Publish a community solution' subtitle='A separate public contribution' back_url=attempt_url back_label='Private attempt' page_icon='ti-send' only %}
     </header>
     {% include 'pages/proof/partials/messages.html' %}
@@ -41,7 +41,7 @@
       <aside class="col-lg-4">
         <section class="card">
           <div class="card-body">
-            <h2 class="header-title fs-16 mb-3">Review your public copy</h2>
+            <h2 class="card-title fs-16 mb-3">Review your public copy</h2>
             <p class="text-muted fs-sm">
               Only the saved proof shown here and selected images are included. Your private attempt and review feedback stay private. Publication requires basic moderation.
             </p>

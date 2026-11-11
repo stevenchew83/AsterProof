@@ -6,12 +6,11 @@ This directory contains project templates for pages, users, account/allauth flow
 
 - Dashboard and authenticated app pages should usually extend `layouts/vertical.html`.
 - Shared chrome lives in `partials/topbar.html`, `partials/sidenav.html`, `partials/footer.html`, and `partials/page-title.html`.
-- Account/allauth templates should continue using the existing `allauth/layouts/*` and `account/*` structure instead of inventing parallel auth shells.
+- Use the shared `allauth/layouts/*` and `account/*` templates to implement the reference's authentication layouts.
 
 ## Style and assets
 
-- Read [`docs/inspinia-dashboard-style.md`](../../docs/inspinia-dashboard-style.md) before editing dashboard-facing templates.
-- Prefer Bootstrap/Inspinia classes and existing component patterns.
+- Follow [the INSPINIA 5.2.0 Bootstrap reference](../../docs/inspinia-dashboard-style.md) for every browser-facing template.
 - Keep page-specific CSS and JS in `extra_css` and `extra_javascript` blocks.
 - Do not duplicate CSS/JS libraries that `base.html` already loads.
 

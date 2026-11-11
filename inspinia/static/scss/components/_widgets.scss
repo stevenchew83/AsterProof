@@ -7,11 +7,12 @@
     position: relative;
 
     .form-control {
-        padding-left: 40px;
+        padding-inline-start: 40px;
     }
 
     .app-search-icon {
         width: 40px;
+        font-size: 18px;
         @extend .translate-middle-y;
         @extend .d-flex;
         @extend .position-absolute;
@@ -25,14 +26,17 @@
     }
 
     &.app-search-sm {
+        font-family: $font-family-secondary;
+
         .form-control {
-            padding-left: 30px;
+            padding-inline-start: 30px;
         }
-    
+
         .app-search-icon {
             width: 30px;
+            font-size: 16px;
         }
-    
+
         svg {
             height: 16px;
         }
@@ -40,13 +44,14 @@
 
     &.app-search-lg {
         .form-control {
-            padding-left: 50px;
+            padding-inline-start: 50px;
         }
-    
+
         .app-search-icon {
             width: 50px;
+            font-size: 24px;
         }
-    
+
         svg {
             height: 24px;
         }
@@ -54,13 +59,115 @@
 
     &.app-search-pill {
         .form-control {
-            border-top-left-radius: 50rem; 
-            border-bottom-left-radius: 50rem;
+            border-start-start-radius: 50rem;
+            border-end-start-radius: 50rem;
         }
 
         .btn {
-            border-top-right-radius: 50rem; 
-            border-bottom-right-radius: 50rem;
+            border-start-end-radius: 50rem;
+            border-end-end-radius: 50rem;
         }
     }
+}
+
+// Dashboard widgets
+.dash-item-overlay {
+    position: absolute;
+    text-align: start;
+    inset-inline-start: 8%;
+    max-width: 350px;
+    padding: 20px;
+    z-index: 1;
+}
+
+//
+// Custom Progress Style::: Please check again
+//
+.custom-progress {
+    position: relative;
+    height: 2.5rem;
+    background-color: var(--#{$prefix}tertiary-bg);
+
+    .progress-info {
+        position: absolute;
+        width: 100%;
+        height: 100%;
+        padding: 0 15px;
+        z-index: 1;
+    }
+
+    .progress-data {
+        position: absolute;
+        top: 0;
+        display: flex;
+        height: 100%;
+        flex-direction: column;
+        justify-content: center;
+        overflow: hidden;
+        color: var(--#{$prefix}progress-bar-color);
+        text-align: center;
+        white-space: nowrap;
+    }
+}
+
+@each $color,
+$value in $theme-colors {
+    .custom-progress:has(.bg-#{$color}) {
+        background-color: rgba(var(--#{$prefix}#{$color}-rgb),0.1);
+    }
+    .progress-data {
+        &.bg-#{$color} {
+            background-color: rgba(var(--#{$prefix}#{$color}-rgb),0.2) !important;
+        }
+    }
+}
+
+// Card Calendar
+.card-calendar-widget {
+    + .flatpickr-calendar {
+        width: 100%;
+        box-shadow: none;
+        border-style: dashed;
+
+        .flatpickr-innerContainer {
+            justify-content: center;
+        }
+
+        .flatpickr-weekdays {
+            margin: 10px 0;
+        }
+
+        .flatpickr-days {
+            margin-bottom: 10px;
+        }
+
+        .dayContainer,.flatpickr-days {
+            width: 100%;
+            min-width: 100%;
+        }
+        .flatpickr-months {
+            margin-top: 10px;
+
+            .flatpickr-prev-month, .flatpickr-next-month {
+                top: 10px;
+            }
+
+            .flatpickr-prev-month {
+                inset-inline-start: 10px;
+            }
+            .flatpickr-next-month {
+                inset-inline-end: 10px;
+            }
+        }
+    }
+}
+
+.avatar-label img {
+    cursor: pointer;
+    transition: .3s;
+}
+
+.btn-check:checked + .avatar-label img {
+    border: 1px solid var(--#{$prefix}primary) !important;
+    box-shadow: 0 0 3px rgba(var(--#{$prefix}primary-rgb), 0.2);
 }

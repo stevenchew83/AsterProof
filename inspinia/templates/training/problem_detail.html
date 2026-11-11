@@ -27,7 +27,7 @@
 
       {% if can_view_official_solution and problem.official_solution_markdown %}
       <div class="card">
-        <div class="card-header border-0 pb-0"><h4 class="header-title mb-0">Official solution</h4></div>
+        <div class="card-header border-0 pb-0"><h4 class="card-title mb-0">Official solution</h4></div>
         <div class="card-body pt-2">
           <div data-mathjax-scope class="lh-lg">{{ rendered_official_solution }}</div>
         </div>
@@ -36,7 +36,7 @@
     </div>
     <div class="col-xl-4">
       <div class="card">
-        <div class="card-header border-0 pb-0"><h4 class="header-title mb-0">Your solution</h4></div>
+        <div class="card-header border-0 pb-0"><h4 class="card-title mb-0">Your solution</h4></div>
         <div class="card-body pt-2">
           {% if accepted_submission %}
           <div class="alert alert-success">Accepted solutions are locked for trainer review history.</div>
@@ -54,7 +54,7 @@
         </div>
       </div>
       <div class="card">
-        <div class="card-header border-0 pb-0"><h4 class="header-title mb-0">Submission history</h4></div>
+        <div class="card-header border-0 pb-0"><h4 class="card-title mb-0">Submission history</h4></div>
         <div class="card-body pt-2">
           {% for submission in submissions %}
           <div class="border-bottom py-2">

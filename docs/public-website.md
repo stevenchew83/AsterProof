@@ -119,15 +119,12 @@ honours reduced motion, pauses when hidden or outside the viewport, and falls
 back to SVG without WebGL2 or JavaScript.
 Other public pages do not load the Three.js bundle.
 
-Each public page loads one Bootstrap/Inspinia stylesheet: `public-site` for
-general pages, or `public-writer`, `public-solving`, and `public-shared` for their
-respective tools. These include the common styles and only the relevant page
-partial. Public CSS retains the existing Open Sans faces, weights, italics,
-Unicode ranges, and swap behavior; unused theme families, dark-mode overrides,
-and form widgets are excluded. The normal Latin variable font is preloaded.
-Dashboard assets and typography are unchanged. Public browser scripts are
-minified; the homepage and writer each use one controller bundle plus the shared
-math loader. Homepage MathJax loads when the editor is used or its preview
+Each public page loads one stylesheet built from the INSPINIA Bootstrap
+variables and components, with the relevant page partial. The Open Sans fonts
+are self-hosted and the normal Latin variable font is preloaded. A shared
+public navigation bundle loads Bootstrap collapse and dropdown behavior.
+The homepage and writer use their respective controller bundles and the
+shared math loader. Homepage MathJax loads when the editor is used or its preview
 enters the viewport; other mathematics pages load it immediately.
 The interactive writer loads MathJax 3.2.2's TeX, CommonHTML, and menu
 components separately so the combined engine does not execute as one large task.

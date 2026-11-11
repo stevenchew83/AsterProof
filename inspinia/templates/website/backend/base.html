@@ -13,7 +13,7 @@
     {% block newsletter_heading %}
       {% include 'partials/page-title.html' with title='Newsletter' subtitle='Administration' page_icon='ti-mail' %}
     {% endblock newsletter_heading %}
-    <nav class="nav nav-underline newsletter-tabs mb-3"
+    <nav class="nav nav-underline flex-wrap gap-3 border-bottom mb-3"
          aria-label="Newsletter">
       <a class="nav-link{% if newsletter_tab == 'campaigns' %} active{% endif %}"
          href="{% url 'website:newsletter_dashboard' %}"

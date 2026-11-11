@@ -157,7 +157,7 @@ function setup(root) {
   const theme = EditorView.theme({
     "&": {fontSize: "14px", color: "var(--document-ink)", backgroundColor: "var(--document-surface)"},
     "&.cm-focused": {outline: "2px solid var(--document-accent)", outlineOffset: "2px"},
-    ".cm-scroller": {fontFamily: "var(--ins-font-monospace, ui-monospace, monospace)", lineHeight: "1.8", overflow: "auto"},
+    ".cm-scroller": {fontFamily: "var(--theme-font-monospace, ui-monospace, monospace)", lineHeight: "1.8", overflow: "auto"},
     ".cm-content": {minHeight: "28rem", padding: "16px 0", caretColor: "var(--document-ink)"},
     ".cm-line": {padding: "0 16px 0 10px"},
     ".cm-gutters": {backgroundColor: "var(--document-surface)", color: "var(--document-muted)", borderRight: "1px solid var(--document-line)"},

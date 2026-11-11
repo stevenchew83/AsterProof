@@ -1,0 +1,282 @@
+//
+// Pixel Theme Mode
+//
+
+$theme-pixel-colors: (
+    'primary': #8e7fe0,
+    'secondary': #5769c3,
+    'success': #69c397,
+    'info': #7dddd0,
+    'warning': #fea667,
+    'danger': #e57c7c,
+    'purple': #9b92fd
+);
+
+@if $theme-pixel ==true {
+
+    html[data-skin='pixel'] {
+        --#{$prefix}font-sans-serif: "Momo Trust Sans", sans-serif;
+        --#{$prefix}font-family-secondary: "Momo Trust Sans", sans-serif;
+
+        --#{$prefix}body-font-size: 13px;
+        --#{$prefix}body-bg: #f5f6fa;
+        --#{$prefix}secondary-bg: #ffffff;
+
+        --#{$prefix}theme-card-border-width: 0;
+        --#{$prefix}theme-card-border-color: #edf2f9;
+        --#{$prefix}theme-card-box-shadow: 0 1px 9px rgba(34, 7, 31, 0.05);
+        --#{$prefix}box-shadow: 0 1px 9px rgba(34, 7, 31, 0.05);
+        --#{$prefix}border-radius: 12px;
+
+        --#{$prefix}font-weight-medium: 500;
+        --#{$prefix}font-weight-semibold: 500;
+        --#{$prefix}font-weight-bold: 600;
+
+        --#{$prefix}font-size-xxs: 11px;
+        --#{$prefix}font-size-xs: 12px;
+        --#{$prefix}font-size-sm: 13px;
+        --#{$prefix}font-size-base: 13px;
+        --#{$prefix}font-size-md: 14px;
+        --#{$prefix}font-size-lg: 16px;
+        --#{$prefix}font-size-xl: 18px;
+        --#{$prefix}font-size-xxl: 20px;
+
+        // Menu items
+        --#{$prefix}sidenav-item-icon-size: 1rem;
+        --#{$prefix}sidenav-item-gap: 10px;
+        --#{$prefix}sidenav-item-padding-x: 12px;
+        --#{$prefix}sidenav-item-padding-y: 8px;
+        --#{$prefix}sidenav-item-font-size: 0.8125rem;
+        --#{$prefix}sidenav-item-font-weight: 400;
+
+        // Sub Menu Items
+        --#{$prefix}sidenav-sub-item-font-size: 0.8125rem;
+        --#{$prefix}sidenav-sub-item-font-weight: 400;
+        --#{$prefix}sidenav-sub-item-gap: 4px;
+        --#{$prefix}sidenav-sub-item-padding-x: 10px;
+        --#{$prefix}sidenav-sub-item-padding-y: 7px;
+
+        // Light left-sidebar
+        &[data-menu-color='light'] {
+            --#{$prefix}sidenav-bg: #{$white};
+            --#{$prefix}sidenav-border-color: #edf2f9;
+            --#{$prefix}sidenav-item-color: #{$gray-700};
+            --#{$prefix}sidenav-item-hover-color: #8e7fe0;
+            --#{$prefix}sidenav-item-hover-bg: #f3f4f8;
+            --#{$prefix}sidenav-item-active-color: #4b545c;
+            --#{$prefix}sidenav-item-active-bg: #f3f4f8;
+        }
+
+        // Gray left-sidebar
+        &[data-menu-color='gray'] {
+            --#{$prefix}sidenav-bg: #f1eded;
+            --#{$prefix}sidenav-border-color: #e7e9eb;
+            --#{$prefix}sidenav-item-color: #{$gray-700};
+            --#{$prefix}sidenav-item-hover-color: #8e7fe0;
+            --#{$prefix}sidenav-item-hover-bg: #e9e2e2;
+            --#{$prefix}sidenav-item-active-color: #212b29;
+            --#{$prefix}sidenav-item-active-bg: #e9e2e2;
+        }
+
+        // Dark Left Sidebar
+        &[data-menu-color='dark'] {
+            --#{$prefix}sidenav-bg: #8e7fe0;
+            --#{$prefix}sidenav-border-color: #8e7fe0;
+            --#{$prefix}sidenav-item-color: #d6d8ff;
+            --#{$prefix}sidenav-item-hover-color: #ffffff;
+            --#{$prefix}sidenav-item-hover-bg: rgba(219, 236, 255, 0.1);
+            --#{$prefix}sidenav-item-active-color: #ffffff;
+            --#{$prefix}sidenav-item-active-bg: rgba(219, 236, 255, 0.1);
+        }
+
+        // Gradient Menu
+        &[data-menu-color='gradient'] {
+            --#{$prefix}sidenav-bg: #{linear-gradient(to right, #625997, #465a85)};
+            --#{$prefix}sidenav-border-color: null;
+            --#{$prefix}sidenav-item-color: #afb1db;
+            --#{$prefix}sidenav-item-hover-color: #d6d8ff;
+            --#{$prefix}sidenav-item-hover-bg: rgba(219, 236, 255, 0.05);
+            --#{$prefix}sidenav-item-active-color: #d6d8ff;
+            --#{$prefix}sidenav-item-active-bg: rgba(219, 236, 255, 0.05);
+        }
+
+        // Image Menu
+        &[data-menu-color='image'] {
+            --#{$prefix}sidenav-bg: #{linear-gradient(to bottom right, rgba(16, 16, 30, 0.85), #8e7fe0), url('../images/sidenav-bg.jpg') center/cover no-repeat};
+            --#{$prefix}sidenav-border-color: null;
+            --#{$prefix}sidenav-item-color: #799cb7;
+            --#{$prefix}sidenav-item-hover-color: #bccee4;
+            --#{$prefix}sidenav-item-hover-bg: #2f3742;
+            --#{$prefix}sidenav-item-active-color: #cfdff1;
+            --#{$prefix}sidenav-item-active-bg: rgba(219, 236, 255, 0.05);
+        }
+
+        // Dark Mode
+        &[data-bs-theme='dark'][data-menu-color='dark'],
+        &[data-bs-theme='dark'][data-menu-color='gray'],
+        &[data-bs-theme='dark'][data-menu-color='light'] {
+            --#{$prefix}sidenav-bg: #1e1f27;
+            --#{$prefix}sidenav-border-color: #2c2d38;
+            --#{$prefix}sidenav-item-color: #8495ab;
+            --#{$prefix}sidenav-item-hover-color: #bccee4;
+            --#{$prefix}sidenav-item-hover-bg: #2f3742;
+            --#{$prefix}sidenav-item-active-color: #ced6df;
+            --#{$prefix}sidenav-item-active-bg: #22232c;
+        }
+
+        // Light Topbar
+        &[data-topbar-color='light'] {
+            --#{$prefix}topbar-bg: #ffffff;
+            --#{$prefix}topbar-item-color: #{$gray-700};
+            --#{$prefix}topbar-item-hover-color: #8e7fe0;
+            --#{$prefix}topbar-search-bg: #f4f5f9;
+            --#{$prefix}topbar-search-border: #f4f5f9;
+        }
+
+        // Gray Topbar
+        &[data-topbar-color='gray'] {
+            --#{$prefix}topbar-bg: #ebe9e1;
+            --#{$prefix}topbar-item-color: #{$gray-700};
+            --#{$prefix}topbar-item-hover-color: #8e7fe0;
+            --#{$prefix}topbar-search-bg: #e1e0d9;
+            --#{$prefix}topbar-search-border: #e1e0d9;
+        }
+
+        // Dark Topbar
+        &[data-topbar-color='dark'] {
+            --#{$prefix}topbar-bg: #8e7fe0;
+            --#{$prefix}topbar-item-color: #d8d9f1;
+            --#{$prefix}topbar-item-hover-color: #ffffff;
+            --#{$prefix}topbar-search-bg: #9a8de1;
+            --#{$prefix}topbar-search-border: #9a8de1;
+        }
+
+        // Gradient Topbar
+        &[data-topbar-color='gradient'] {
+            --#{$prefix}topbar-bg: #{linear-gradient(to bottom, #8e7fe0, #262549)};
+            --#{$prefix}topbar-item-color: rgba(255, 255, 255, 0.7);
+            --#{$prefix}topbar-item-hover-color: #ffffff;
+            --#{$prefix}topbar-search-bg: rgba(255, 255, 255, 0.1);
+            --#{$prefix}topbar-search-border: rgba(255, 255, 255, 0.1);
+        }
+
+        // Topbar (Dark Mode)
+        &[data-bs-theme='dark'][data-topbar-color='dark'],
+        &[data-bs-theme='dark'][data-topbar-color='light'],
+        &[data-bs-theme='dark'][data-topbar-color='gray'] {
+            --#{$prefix}topbar-bg: #252630;
+            --#{$prefix}topbar-item-color: #adb5bf;
+            --#{$prefix}topbar-item-hover-color: #e0eeff;
+            --#{$prefix}topbar-search-bg: #2d2e3c;
+            --#{$prefix}topbar-search-border: #2d2e3c;
+        }
+
+        @each $name, $value in $theme-pixel-colors {
+            --#{$prefix}#{$name}: #{$value};
+        }
+
+        @each $name, $value in $theme-pixel-colors {
+            --#{$prefix}#{$name}-rgb: #{to-rgb($value)};
+        }
+
+        @each $name, $value in $theme-pixel-colors {
+            --#{$prefix}#{$name}-bg-subtle: #{rgba($value, 0.15)};
+        }
+
+        @each $name, $value in $theme-pixel-colors {
+            --#{$prefix}#{$name}-border-subtle: #{rgba($value, 0.3)};
+        }
+
+        @each $name, $value in $theme-pixel-colors {
+            --#{$prefix}#{$name}-text-emphasis: #{shade-color($value, 25%)};
+        }
+
+        // Chart Colors
+        --#{$prefix}chart-primary: #8e7fe0; // Main Color
+        --#{$prefix}chart-primary-rgb: #{to-rgb(#8e7fe0)};
+        --#{$prefix}chart-secondary: #fea667; // Secondary Color
+        --#{$prefix}chart-secondary-rgb: #{to-rgb(#fea667)};
+        --#{$prefix}chart-alpha: #69c397; // Success Color
+        --#{$prefix}chart-alpha-rgb: #{to-rgb(#69c397)};
+        --#{$prefix}chart-beta: #e57c7c; // Danger Color
+        --#{$prefix}chart-beta-rgb: #{to-rgb(#e57c7c)};
+        --#{$prefix}chart-gamma: #5769c3; // Warning Color
+        --#{$prefix}chart-gamma-rgb: #{to-rgb(#5769c3)};
+        --#{$prefix}chart-delta: #7dddd0; // Info Color
+        --#{$prefix}chart-delta-rgb: #{to-rgb(#7dddd0)};
+        --#{$prefix}chart-zeta: #9b92fd; // Purple or custom Color
+        --#{$prefix}chart-zeta-rgb: #{to-rgb(#9b92fd)};
+        --#{$prefix}chart-gray: #edeff3; // Gray Color
+        --#{$prefix}chart-gray-rgb: #{to-rgb(#edeff3)};
+        --#{$prefix}chart-dark: #396699; // Primary Dark Color
+        --#{$prefix}chart-dark-rgb: #{to-rgb(#396699)};
+        --#{$prefix}chart-border-color: #ecf4fc; // Border Color
+        --#{$prefix}chart-title-color: #bbcae1; // Title Color
+    }
+
+    @if $enable-dark-mode {
+        @include color-mode(dark, true) {
+            &[data-skin='pixel'] {
+                --#{$prefix}body-bg: #{#17181e};
+                --#{$prefix}body-bg-rgb: #{to-rgb(#17181e)};
+
+                --#{$prefix}secondary-bg: #{#1b1c22};
+                --#{$prefix}secondary-bg-rgb: #{to-rgb(#1b1c22)};
+
+                --#{$prefix}box-shadow: #{0px 0px 30px rgba(0, 0, 0, 0.3)};
+
+                --#{$prefix}theme-card-border-color: #293036;
+
+                --#{$prefix}tertiary-bg: #252630;
+
+                --#{$prefix}chart-gray: #40424f;
+                --#{$prefix}chart-gray-rgb: #{to-rgb(#40424f)};
+
+                --#{$prefix}chart-border-color: #242c31;
+                --#{$prefix}chart-gray: #40424f;
+                --#{$prefix}chart-gray-rgb: #{to-rgb(#40424f)};
+
+                // Extra CSS
+                .card,
+                .dropdown-menu {
+                    border-width: 1px !important;
+                }
+            }
+        }
+    }
+}
+
+//
+//  Pixel Theme
+//
+html[data-skin='pixel'] {
+
+    .pro-username {
+        font-size: 13px;
+    }
+
+    .app-topbar {
+        .topbar-menu {
+            .topbar-item {
+                .topbar-link {
+                    padding: 0;
+
+                    .topbar-link-icon {
+                        font-size: 18px;
+                        height: 32px;
+                        width: 32px;
+                        background-color: var(--#{$prefix}topbar-search-bg);
+                        border-radius: 50rem;
+                        line-height: 32px;
+                    }
+                }
+            }
+        }
+    }
+
+    .card {
+        .card-title {
+            font-weight: 600;
+        }
+    }
+}

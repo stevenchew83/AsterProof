@@ -12,10 +12,10 @@
 {% block page_content %}
 <div class="container-fluid app-table-page completion-record-page">
 
-  <header class="page-title-head app-page-header">
+  <header class="page-title-head d-flex flex-wrap align-items-center gap-2">
     {% url 'pages:user_activity_dashboard' as header_home_url %}
     {% include 'partials/page-header-intro.html' with title='Completion records' subtitle='Admin inventory' page_icon='ti-checklist' back_url=header_home_url back_label='AsterProof' only %}
-    <div class="app-page-header-actions">
+    <div class="page-title-actions d-flex flex-wrap align-items-center gap-2">
       <a href="{% url 'pages:completion_quick_update' %}" class="btn btn-sm btn-outline-primary d-inline-flex align-items-center gap-1" aria-label="Record progress" title="Record progress"><i class="ti ti-plus" aria-hidden="true"></i><span class="d-sm-none">Record</span><span class="d-none d-sm-inline">Record progress</span></a>
     </div>
   </header>
@@ -178,7 +178,7 @@
     <div class="card-body completion-record-results">
       {% if completion_record_rows %}
       <div class="app-table-region table-responsive" tabindex="0" role="region" aria-label="Completion records" aria-describedby="completion-record-search-scope">
-        <table data-paging-type="simple" id="completion-record-table"{% if completion_record_show_ai_reviews %} data-ai-reviews{% endif %} class="app-table-compact table table-sm table-hover align-middle w-100 mb-0"><caption class="visually-hidden">Completion records with topic, canonical areas, status and solution details{% if completion_record_show_ai_reviews %}, including AI reviews{% endif %}</caption></table>
+        <table data-paging-type="simple" id="completion-record-table"{% if completion_record_show_ai_reviews %} data-ai-reviews{% endif %} class="table-sm table table-hover align-middle w-100 mb-0"><caption class="visually-hidden">Completion records with topic, canonical areas, status and solution details{% if completion_record_show_ai_reviews %}, including AI reviews{% endif %}</caption></table>
       </div>
       <p id="completion-record-search-scope" class="completion-record-scope-note mb-0">Quick find searches the {{ completion_record_visible_total }} loaded records, including all mapped areas. Use the top filters to search the full inventory.</p>
       {% else %}

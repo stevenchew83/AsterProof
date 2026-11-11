@@ -1,7 +1,7 @@
             <div class="tab-pane fade{% if not shared_progress_subject or not completion_progress_filters.contest %} show active{% endif %}" id="completion-progress-topics-pane" role="tabpanel" aria-labelledby="completion-progress-topics-tab" tabindex="0">
               <div class="row g-3">
                 <div class="{% if shared_progress_subject %}col-12{% else %}col-xl-7{% endif %}">
-                  <h4 class="header-title mb-0">Topic mix</h4>
+                  <h4 class="card-title mb-0">Topic mix</h4>
                   <p class="text-muted fs-xs mb-2">{% if shared_progress_subject %}Dated recorded problems by main topic.{% else %}Daily exact completions by main topic.{% endif %}</p>
                   {% if completion_progress_stats.known_date_total %}
                   <div id="chart-completion-progress-topic-mix" class="completion-progress-chart" data-completion-progress-chart="topicMix"></div>
@@ -16,7 +16,7 @@
                 </div>
                 {% if not shared_progress_subject %}
                 <div class="col-xl-5">
-                  <h4 class="header-title mb-0">Topic totals</h4>
+                  <h4 class="card-title mb-0">Topic totals</h4>
                   <p class="text-muted fs-xs mb-2">Filtered completions by topic.</p>
                   {% if completion_progress_charts_payload.topicTotals.values %}
                   <div id="chart-completion-progress-topic-totals" class="completion-progress-chart" data-completion-progress-chart="topicTotals"></div>
@@ -35,7 +35,7 @@
             <div class="tab-pane fade" id="completion-progress-difficulty-pane" role="tabpanel" aria-labelledby="completion-progress-difficulty-tab" tabindex="0">
               <div class="row g-3">
                 <div class="col-xl-5">
-                  <h4 class="header-title mb-0">Difficulty mix</h4>
+                  <h4 class="card-title mb-0">Difficulty mix</h4>
                   <p class="text-muted fs-xs mb-2">Filtered completions by MOHS value.</p>
                   {% if completion_progress_charts_payload.mohsDistribution.values %}
                   <div id="chart-completion-progress-mohs-distribution" class="completion-progress-chart" data-completion-progress-chart="mohsDistribution"></div>
@@ -49,7 +49,7 @@
                   {% endif %}
                 </div>
                 <div class="col-xl-7">
-                  <h4 class="header-title mb-0">Topic x MOHS</h4>
+                  <h4 class="card-title mb-0">Topic x MOHS</h4>
                   <p class="text-muted fs-xs mb-2">Filtered topic and difficulty cells.</p>
                   {% if completion_progress_charts_payload.topicMohsHeatmap.series %}
                   <div id="chart-completion-progress-topic-mohs" class="completion-progress-chart" data-completion-progress-chart="topicMohs"></div>
@@ -65,7 +65,7 @@
                 <div class="col-12">
                   <div class="d-flex flex-wrap align-items-center justify-content-between gap-2">
                     <div>
-                      <h4 class="header-title mb-0">Topic x MOHS matrix</h4>
+                      <h4 class="card-title mb-0">Topic x MOHS matrix</h4>
                       <p class="text-muted fs-xs mb-2">{% if shared_progress_subject %}Dated recorded problems by topic and MOHS.{% else %}Number of completed problem statements by topic and MOHS.{% endif %}</p>
                     </div>
                     {% if completion_progress_topic_mohs_matrix.rows %}
@@ -82,7 +82,7 @@
                   {% if completion_progress_topic_mohs_matrix.rows %}
                   <p id="completion-progress-topic-mohs-export-status" class="completion-progress-matrix-status text-muted fs-xs mb-2 d-none" role="status" aria-live="polite"></p>
                   <div class="completion-progress-matrix-wrap">
-                    <table id="completion-progress-topic-mohs-matrix" class="app-table-compact table table-sm table-hover align-middle mb-0">
+                    <table id="completion-progress-topic-mohs-matrix" class="table-sm table table-hover align-middle mb-0">
                       <thead>
                         <tr>
                           <th scope="col" class="completion-progress-matrix-topic">Topic</th>
@@ -129,7 +129,7 @@
               </div>
             </div>
             <div class="tab-pane fade" id="completion-progress-solutions-pane" role="tabpanel" aria-labelledby="completion-progress-solutions-tab" tabindex="0">
-              <h4 class="header-title mb-0">Solution status</h4>
+              <h4 class="card-title mb-0">Solution status</h4>
               <p class="text-muted fs-xs mb-2">Filtered completions by solution follow-through.</p>
               {% if completion_progress_charts_payload.solutionStatus.values %}
               <div id="chart-completion-progress-solutions" class="completion-progress-chart" data-completion-progress-chart="solutions"></div>

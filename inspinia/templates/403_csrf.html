@@ -1,13 +1,6 @@
-{% extends "base.html" %}
-
-{% block title %}Forbidden (403){% endblock title %}
-{% block content %}
-  <h1>Forbidden (403)</h1>
-  <p>
-    {% if exception %}
-      {{ exception }}
-    {% else %}
-      You're not allowed to access this page.
-    {% endif %}
-  </p>
-{% endblock content %}
+{% extends "layouts/error.html" %}
+{% load i18n %}
+{% block title %}{% trans "Request could not be verified" %}{% endblock %}
+{% block status_code %}403{% endblock %}
+{% block error_title %}{% trans "Request could not be verified" %}{% endblock %}
+{% block error_message %}{% trans "Return to the page and try again." %}{% endblock %}

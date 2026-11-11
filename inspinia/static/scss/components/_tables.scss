@@ -4,30 +4,36 @@
 
 // Custom table Small head
 .thead-sm {
-    > * > * {
+    >*>* {
         padding: $table-cell-padding-y-sm $table-cell-padding-x-sm !important;
     }
 }
 
 // Custom Table
 .table-custom {
-    tfoot > tr > th:first-child, 
-    thead > tr > th:first-child, 
-    tr th:first-child, 
+
+    tfoot>tr>th:first-child,
+    thead>tr>th:first-child,
+    tr th:first-child,
     tr td:first-child {
-        padding-left: calc($table-cell-padding-y * 1.5) !important;
+        padding-inline-start: calc($table-cell-padding-y * 1.5) !important;
     }
 
-    tfoot > tr > th:last-child, 
-    thead > tr > th:last-child, 
-    tr th:last-child, 
+    tfoot>tr>th:last-child,
+    thead>tr>th:last-child,
+    tr th:last-child,
     tr td:last-child {
-        padding-right: calc($table-cell-padding-y * 1.5) !important;
+        padding-inline-end: calc($table-cell-padding-y * 1.5) !important;
+    }
+
+    th {
+        white-space: nowrap;
     }
 }
 
 // Tables fluid
 .table-nowrap {
+
     th,
     td {
         white-space: nowrap;
@@ -35,10 +41,8 @@
 }
 
 // Table select
-.table-select:has(.form-check-input:checked) {
-    tr:has(.form-check-input:checked) {
-        background-color: rgba(var(--#{$prefix}warning-rgb), 0.1);
-    }
+.table-select tbody tr:has(input[type="checkbox"]:checked:not(.form-switch > input)) {
+    background-color: rgba(var(--#{$prefix}warning-rgb), 0.1);
 }
 
 // Table with Dropdown

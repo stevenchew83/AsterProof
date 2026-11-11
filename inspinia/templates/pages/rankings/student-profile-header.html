@@ -1,8 +1,8 @@
 {% url 'rankings:students_list' as students_url %}
 <header class="student-profile" data-student-header>
-  <div class="page-title-head app-page-header">
+  <div class="page-title-head d-flex flex-wrap align-items-center gap-2">
     {% include 'partials/page-header-intro.html' with title=student.full_name back_url=students_url back_label='Students' subtitle='Student profile' page_icon='ti-user' only %}
-    {% if can_import_achievements %}<div class="app-page-header-actions"><a class="btn btn-outline-primary btn-sm" href="{% url 'rankings:achievement_text_import' student.pk %}"><i class="ti ti-clipboard-text me-1" aria-hidden="true"></i>Paste achievements</a></div>{% endif %}
+    {% if can_import_achievements %}<div class="page-title-actions d-flex flex-wrap align-items-center gap-2"><a class="btn btn-outline-primary btn-sm" href="{% url 'rankings:achievement_text_import' student.pk %}"><i class="ti ti-clipboard-text me-1" aria-hidden="true"></i>Paste achievements</a></div>{% endif %}
   </div>
   <div class="student-profile-meta">
     <span class="badge {% if student.active %}bg-primary-subtle text-primary{% else %}bg-secondary-subtle text-secondary{% endif %}">{{ student.active|yesno:'Active,Inactive' }}</span>

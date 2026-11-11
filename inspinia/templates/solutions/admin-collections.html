@@ -16,7 +16,7 @@
       <div class="col-md-3 d-flex gap-2"><button class="btn btn-primary">Apply</button><a href="{% url 'solutions:admin_collections' %}" class="btn btn-outline-secondary">Reset</a></div>
     </form>
     <div class="app-table-region table-responsive" tabindex="0" role="region" aria-label="Curated collections">
-      <table class="table app-table-compact table-striped align-middle"><thead><tr><th>Collection</th><th>Status</th><th>Available / total</th><th>Last updated</th><th>Actions</th></tr></thead><tbody>
+      <table class="table table-sm table-striped align-middle"><thead><tr><th>Collection</th><th>Status</th><th>Available / total</th><th>Last updated</th><th>Actions</th></tr></thead><tbody>
       {% for item in page_obj %}<tr>
         <td><a class="fw-semibold" href="{% url 'solutions:admin_collection_edit' item.pk %}">{{ item.title }}</a></td>
         <td>{% if item.is_active %}<span class="badge bg-success-subtle text-success">Active</span>{% else %}<span class="badge bg-secondary-subtle text-secondary">Stopped</span>{% endif %}</td>

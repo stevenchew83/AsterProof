@@ -4,7 +4,7 @@
 
 {% block page_content %}
   <div class="container-fluid app-table-page">
-    <header class="page-title-head app-page-header">
+    <header class="page-title-head d-flex flex-wrap align-items-center gap-2">
       {% include 'partials/page-header-intro.html' with title='User AI usage' subtitle='Track credits, pending requests, and results by account.' page_icon='ti-chart-bar' only %}
     </header>
     <section class="card">
@@ -22,7 +22,7 @@
           </form>
         {% endif %}
         <div class="app-table-region table-responsive" role="region" aria-label="AI usage by account" tabindex="0">
-          <table class="table app-table-compact align-middle mb-0">
+          <table class="table table-sm align-middle mb-0">
             <thead>
               <tr><th scope="col">User</th><th scope="col">Saved hints</th><th scope="col">Author reviews</th><th scope="col">Admin reviews received</th><th scope="col">Credits left</th><th scope="col">Pending</th><th scope="col">Finished without charge</th><th scope="col">History</th></tr>
             </thead>

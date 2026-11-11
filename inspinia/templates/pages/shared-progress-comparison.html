@@ -15,7 +15,7 @@
   {% include 'pages/partials/comparison-completion-filters.html' %}
   <section class="card cp-summary" aria-labelledby="comparison-summary-title">
     <div class="card-header cp-section-heading">
-      <h2 class="header-title mb-0" id="comparison-summary-title">Problem completions</h2>
+      <h2 class="card-title mb-0" id="comparison-summary-title">Problem completions</h2>
       <span class="text-body-secondary fs-xs">{{ comparison_date_range.label }}</span>
     </div>
     {% if not comparison_completion_stats.alex.solved_total and not comparison_completion_stats.ben.solved_total %}
@@ -42,7 +42,7 @@
   <section class="card" aria-labelledby="comparison-topics-title">
     <div class="card-header cp-section-heading">
       <div>
-        <h2 class="header-title mb-1" id="comparison-topics-title">Recorded problems by topic</h2>
+        <h2 class="card-title mb-1" id="comparison-topics-title">Recorded problems by topic</h2>
         <p class="text-body-secondary fs-xs mb-0" id="comparison-topic-scale" role="status">Count of recorded problems · shared scale</p>
       </div>
       {% if comparison_topic_rows %}
@@ -72,12 +72,12 @@
 
   <details class="card lp-analysis cp-details" id="comparison-details">
     <summary class="card-header lp-analysis-toggle">
-      <span class="header-title">More details <span class="text-body-secondary fs-xs fw-normal ms-1">Streaks, record quality &amp; counting rules</span></span>
+      <span class="card-title">More details <span class="text-body-secondary fs-xs fw-normal ms-1">Streaks, record quality &amp; counting rules</span></span>
       <i class="ti ti-chevron-down lp-analysis-chevron" aria-hidden="true"></i>
     </summary>
     <div class="card-body pt-2">
       <div class="app-table-region table-responsive" tabindex="0" role="region" aria-label="Scrollable results">
-        <table class="app-table-compact table table-sm align-middle mb-0">
+        <table class="table-sm table align-middle mb-0">
           <caption class="visually-hidden">Alex and Ben additional completion metrics with the same filters</caption>
           <thead><tr><th scope="col" class="w-50">Metric</th><th scope="col" class="w-25">Alex</th><th scope="col" class="w-25">Ben</th></tr></thead>
           <tbody>
@@ -95,7 +95,7 @@
   {% elif shared_progress_section == 'techniques' %}
   <div class="card">
     <div class="card-header border-0 pb-0">
-      <h4 class="header-title mb-1">Areas &amp; Concepts · All time</h4>
+      <h4 class="card-title mb-1">Areas &amp; Concepts · All time</h4>
       <p class="text-muted fs-sm mb-0">Solved or later completion statuses count toward coverage. A tagged problem can appear under several topics or techniques.</p>
       <p class="text-muted fs-xs mt-1 mb-0">Coverage updated: {% if comparison_coverage.alex.technique_progress_catalog_last_refreshed_at %}{{ comparison_coverage.alex.technique_progress_catalog_last_refreshed_at|timesince }} ago{% else %}not built yet{% endif %}</p>
     </div>
@@ -109,7 +109,7 @@
   {% for group in comparison_coverage_groups %}
   <details class="card"{% if forloop.first %} open{% endif %}>
     <summary class="card-header border-0 d-flex justify-content-between align-items-center gap-2">
-      <h4 class="header-title mb-0">{{ group.label }}</h4>
+      <h4 class="card-title mb-0">{{ group.label }}</h4>
       <i class="ti ti-chevron-down" aria-hidden="true"></i>
     </summary>
     <div class="card-body pt-2">
@@ -128,7 +128,7 @@
   </div>
   <div class="card mt-3">
     <div class="card-header border-0 pb-0">
-      <h4 class="header-title mb-1">Training roadmap · All time</h4>
+      <h4 class="card-title mb-1">Training roadmap · All time</h4>
       <p class="text-muted fs-sm mb-0">Progress counts published materials and distinct training problems with an accepted or partially accepted submission. Problem completions are tracked separately.</p>
     </div>
     <div class="card-body pt-2">
@@ -138,7 +138,7 @@
   {% for topic in comparison_training_topics %}
   <details class="card"{% if topic.alex.total or topic.ben.total %} open{% endif %}>
     <summary class="card-header border-0 d-flex justify-content-between align-items-center gap-2">
-      <h4 class="header-title mb-0">{{ topic.title }}</h4>
+      <h4 class="card-title mb-0">{{ topic.title }}</h4>
       <i class="ti ti-chevron-down" aria-hidden="true"></i>
     </summary>
     <div class="card-body pt-2">

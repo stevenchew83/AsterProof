@@ -14,10 +14,10 @@
 {% block page_content %}
 <div class="container-fluid app-table-page contest-progress-page">
   {% url 'pages:user_activity_dashboard' as header_home_url %}
-  <header class="page-title-head app-page-header">
+  <header class="page-title-head d-flex flex-wrap align-items-center gap-2">
     {% include 'partials/page-header-intro.html' with title=selected_contest|default:'Contest progress' subtitle='Contest progress' page_icon='ti-chart-grid-dots' back_url=header_home_url back_label='AsterProof' only %}
     {% if has_contests and not learner_unavailable %}
-    <div class="app-page-header-actions">
+    <div class="page-title-actions d-flex flex-wrap align-items-center gap-2">
       <a href="{{ contest_archive_url }}" class="btn btn-sm btn-outline-secondary"><i class="ti ti-books me-1" aria-hidden="true"></i>Browse contest</a>
       {% if contest_quick_update_url and not is_other_learner %}
       <a href="{{ contest_quick_update_url }}" class="btn btn-sm btn-outline-primary"><i class="ti ti-calendar-check me-1" aria-hidden="true"></i>Quick completions</a>

@@ -5,7 +5,7 @@
 // Bordered Alerts Style
 .alert-bordered {
     &.border-start {
-        border-left-width: 3px !important;
+        border-inline-start-width: 3px !important;
     }
     &.border-bottom {
         border-bottom-width: 2px !important;

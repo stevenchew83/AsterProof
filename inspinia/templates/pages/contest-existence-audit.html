@@ -37,7 +37,7 @@
       <form id="contest-existence-audit-form" method="post" class="card h-100">
         {% csrf_token %}
         <div class="card-header border-bottom">
-          <h4 class="header-title mb-0">AoPS source</h4>
+          <h4 class="card-title mb-0">AoPS source</h4>
           <p class="text-muted fs-xs mb-0">Fetch or paste a contest index and check exact contest-year existence.</p>
         </div>
         <div class="card-body">
@@ -81,7 +81,7 @@
     <div class="col-xl-6">
       <div class="card h-100">
         <div class="card-header border-bottom">
-          <h4 class="header-title mb-0">Audit summary</h4>
+          <h4 class="card-title mb-0">Audit summary</h4>
           <p class="text-muted fs-xs mb-0">Exact matches across statement and analytics data.</p>
         </div>
         <div class="card-body">
@@ -125,7 +125,7 @@
       <div class="card">
         <div class="card-header border-bottom d-flex flex-wrap align-items-center justify-content-between gap-2">
           <div>
-            <h4 class="header-title mb-0">Parsed contests</h4>
+            <h4 class="card-title mb-0">Parsed contests</h4>
             <p class="text-muted fs-xs mb-0">Status is based on exact normalized contest-year matches.</p>
           </div>
           <div class="d-flex flex-wrap align-items-center gap-2">
@@ -146,7 +146,7 @@
         </div>
         <div class="card-body p-0">
           <div class="app-table-region table-responsive" tabindex="0" role="region" aria-label="Scrollable results">
-            <table id="contest-existence-audit-results-table" class="app-table-compact table table-striped table-bordered align-middle mb-0">
+            <table id="contest-existence-audit-results-table" class="table-sm table table-striped table-bordered align-middle mb-0">
               <thead class="table-light">
                 <tr>
                   <th scope="col">Line</th>

@@ -1,8 +1,3 @@
-.my-solutions {
-  --ins-secondary-color: color-mix(in srgb, var(--ins-body-color) 85%, var(--ins-secondary-bg));
-  --my-solutions-accent-text: color-mix(in srgb, var(--ins-primary-text-emphasis) 58%, var(--ins-body-color));
-}
-
 .my-solutions [hidden] {
   display: none !important;
 }
@@ -21,7 +16,7 @@
   gap: .5rem;
 }
 
-.my-solutions .header-title {
+.my-solutions .card-title {
   font-size: 1rem;
   font-weight: 600;
   line-height: 1.35;
@@ -32,28 +27,28 @@
 }
 
 .my-solutions-total {
-  color: var(--ins-secondary-color);
+  color: var(--theme-secondary-color);
 }
 
 .my-solutions-total strong {
-  color: var(--ins-emphasis-color);
+  color: var(--theme-emphasis-color);
   font-size: 1.65rem;
   font-variant-numeric: tabular-nums;
   letter-spacing: -.04em;
 }
 
-.my-solutions-status-draft { --solution-status-color: var(--ins-warning); }
-.my-solutions-status-submitted { --solution-status-color: var(--ins-info); }
-.my-solutions-status-published { --solution-status-color: var(--ins-success); }
-.my-solutions-status-archived { --solution-status-color: var(--ins-secondary-color); }
+.my-solutions-status-draft { --solution-status-color: var(--theme-warning); }
+.my-solutions-status-submitted { --solution-status-color: var(--theme-info); }
+.my-solutions-status-published { --solution-status-color: var(--theme-success); }
+.my-solutions-status-archived { --solution-status-color: var(--theme-secondary-color); }
 
 .my-solutions-status-bar {
   display: flex;
   gap: 2px;
   min-height: .5rem;
   overflow: hidden;
-  border-radius: var(--ins-border-radius-pill);
-  background: var(--ins-tertiary-bg);
+  border-radius: var(--theme-border-radius-pill);
+  background: var(--theme-tertiary-bg);
 }
 
 .my-solutions-status-bar span {
@@ -74,7 +69,7 @@
   gap: .25rem;
   padding-inline: .3rem;
   border-color: transparent;
-  color: var(--ins-body-color);
+  color: var(--theme-body-color);
 }
 
 .my-solutions-status-dot {
@@ -83,7 +78,7 @@
   height: .44rem;
   margin-inline-end: .375rem;
   border-radius: 50%;
-  background: var(--solution-status-color, var(--ins-secondary-color));
+  background: var(--solution-status-color, var(--theme-secondary-color));
   flex: none;
 }
 
@@ -104,21 +99,21 @@
   min-width: 0;
   padding: 0 .125rem .2rem;
   border-color: transparent;
-  color: var(--ins-body-color);
+  color: var(--theme-body-color);
   font-size: .75rem;
   font-variant-numeric: tabular-nums;
 }
 
 .my-solutions-status-legend .btn:hover,
 .my-solutions-week:hover {
-  background-color: var(--ins-tertiary-bg);
+  background-color: var(--theme-tertiary-bg);
 }
 
 .my-solutions .my-solutions-status-legend .btn[aria-pressed="true"],
 .my-solutions .my-solutions-week[aria-pressed="true"] {
-  background-color: var(--ins-primary-bg-subtle);
-  border-color: var(--ins-primary);
-  color: var(--ins-primary-text-emphasis);
+  background-color: var(--theme-primary-bg-subtle);
+  border-color: var(--theme-primary);
+  color: var(--theme-primary-text-emphasis);
 }
 
 .my-solutions-week-plot {
@@ -127,20 +122,20 @@
   flex-direction: column;
   align-items: center;
   justify-content: flex-end;
-  border-bottom: 1px solid var(--ins-border-color);
+  border-bottom: 1px solid var(--theme-border-color);
 }
 
 .my-solutions-week-bar {
   width: min(72%, 1.65rem);
   height: calc(var(--week-height) * .65);
   border-radius: .18rem .18rem 0 0;
-  background-color: var(--ins-primary);
+  background-color: var(--theme-primary);
   flex: none;
 }
 
 .my-solutions-week time {
   display: block;
-  color: var(--ins-secondary-color);
+  color: var(--theme-secondary-color);
   line-height: 1.2;
 }
 
@@ -170,8 +165,8 @@
 }
 
 .my-solutions-table thead th {
-  background-color: var(--ins-tertiary-bg);
-  color: var(--ins-secondary-color);
+  background-color: var(--theme-tertiary-bg);
+  color: var(--theme-secondary-color);
   font-size: .75rem;
   font-weight: 600;
 }
@@ -200,13 +195,7 @@
 }
 
 .my-solutions .my-solutions-review a {
-  color: var(--my-solutions-accent-text);
-}
-
-.my-solutions .my-solutions-actions a.btn {
-  --ins-btn-color: var(--my-solutions-accent-text);
-  --ins-btn-hover-bg: var(--ins-primary-bg-subtle);
-  --ins-btn-hover-color: var(--my-solutions-accent-text);
+  color: var(--theme-primary-text-emphasis);
 }
 
 .my-solutions-updated,
@@ -216,14 +205,14 @@
 
 .my-solutions .my-solutions-menu {
   padding-inline: .45rem;
-  color: var(--ins-secondary-color);
-  border-color: var(--ins-border-color);
+  color: var(--theme-secondary-color);
+  border-color: var(--theme-border-color);
 }
 
 .my-solutions .my-solutions-menu:hover,
 .my-solutions .my-solutions-menu.show {
-  background: var(--ins-tertiary-bg);
-  color: var(--ins-body-color);
+  background: var(--theme-tertiary-bg);
+  color: var(--theme-body-color);
 }
 
 .my-solutions-mobile-label {
@@ -256,11 +245,11 @@
     align-items: start;
     gap: .22rem .55rem;
     padding: .65rem .75rem;
-    border-top: 1px solid var(--ins-border-color);
+    border-top: 1px solid var(--theme-border-color);
   }
 
   .my-solutions-table tbody tr:last-child {
-    border-bottom: 1px solid var(--ins-border-color);
+    border-bottom: 1px solid var(--theme-border-color);
   }
 
   .my-solutions .my-solutions-table tbody td {
@@ -300,11 +289,11 @@
 }
 
 @media (max-width: 767px) {
-  .my-solutions .app-page-header {
+  .my-solutions .page-title-head {
     gap: .5rem;
   }
 
-  .my-solutions .app-page-header-intro {
+  .my-solutions .page-title-head-intro {
     flex-basis: 9.25rem;
   }
 

@@ -58,8 +58,7 @@ changing the application's unrelated login destinations.
 The public reading view pairs a compact statement with a private-workspace action,
 then optional hints and proofs. Sharing and reporting sit alongside it on desktop
 and follow the reading flow on phones. The directory uses full-row problem links.
-These surfaces use the compiled `public-community` stylesheet and the existing
-public website typography and colors.
+Follow [the INSPINIA 5.2.0 Bootstrap reference](inspinia-dashboard-style.md) for typography, colors, and UI components.
 
 The private editor reuses the existing CodeMirror LaTeX editor and safe document
 renderer. Saving does not publish a proof or change canonical completion/progress.
