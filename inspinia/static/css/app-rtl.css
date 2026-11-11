@@ -18668,6 +18668,9 @@ html[data-menu-color=light][data-topbar-color=gradient] .sidenav-menu .button-on
   display: block;
   color: var(--theme-sidenav-item-active-color);
 }
+.sidenav-user .sidenav-user-identity {
+  overflow-wrap: anywhere;
+}
 
 html[data-sidenav-user=true] .sidenav-user {
   display: block;

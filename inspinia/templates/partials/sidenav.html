@@ -25,25 +25,23 @@
     <div class="scrollbar" data-simplebar>
         <div class="sidenav-user">
             {% if request.user.is_authenticated %}
-            <div class="d-flex align-items-center gap-3">
-                <span class="avatar-md flex-shrink-0">
-                    <span class="avatar-title bg-primary-subtle text-primary rounded-circle fs-22">
-                        {{ request.user.email|first|upper }}
-                    </span>
+            <span class="avatar-md d-block mb-2">
+                <span class="avatar-title bg-primary-subtle text-primary rounded-circle fs-22">
+                    {{ request.user.email|first|upper }}
                 </span>
-                <div class="min-w-0">
-                    {% if is_app_approved %}
-                    <a href="{% url 'users:detail' request.user.pk %}" class="link-reset d-block fw-bold text-truncate">
-                        {{ request.user.name|default:request.user.email }}
-                    </a>
-                    {% else %}
-                    <span class="d-block fw-bold text-truncate">{{ request.user.name|default:request.user.email }}</span>
-                    {% endif %}
-                    <span class="fs-12 fw-semibold text-body-secondary d-block text-truncate">
-                        {{ request.user.email }}
-                    </span>
-                    <span class="fs-12 text-uppercase text-muted">{{ request.user.get_role_display }}</span>
-                </div>
+            </span>
+            <div class="sidenav-user-identity">
+                {% if is_app_approved %}
+                <a href="{% url 'users:detail' request.user.pk %}" class="link-reset sidenav-user-name fw-bold text-wrap">
+                    {{ request.user.name|default:request.user.email }}
+                </a>
+                {% else %}
+                <span class="sidenav-user-name fw-bold text-wrap">{{ request.user.name|default:request.user.email }}</span>
+                {% endif %}
+                {% if request.user.name and request.user.name != request.user.email %}
+                <span class="fs-12 fw-semibold text-body-secondary d-block">{{ request.user.email }}</span>
+                {% endif %}
+                <span class="fs-12 text-uppercase text-muted">{{ request.user.get_role_display }}</span>
             </div>
             {% else %}
             <div class="d-flex align-items-center gap-3">
