@@ -16,6 +16,8 @@ from django.utils import timezone
 
 from inspinia.pages.algebra_tag_search import tag_token_query
 from inspinia.pages.completion_record_fields import SOLVED_STATUSES
+from inspinia.pages.library_classification import enabled_for as classification_enabled_for
+from inspinia.pages.library_classification import missing_fields
 from inspinia.pages.models import ContestProblemStatement
 from inspinia.pages.models import ProblemSolveRecord
 from inspinia.pages.models import ProblemTopicTechnique
@@ -25,6 +27,7 @@ from inspinia.pages.statement_analytics import annotate_effective_statement_anal
 from inspinia.pages.statement_concept_coverage import problem_concept_search
 from inspinia.pages.statement_concept_coverage import problem_coverage_payloads
 from inspinia.pages.statement_concept_coverage import statement_concept_search
+from inspinia.pages.study_help_access import source_problem
 from inspinia.pages.topic_labels import display_topic_label
 from inspinia.solutions.models import ProblemSolution
 
@@ -220,7 +223,7 @@ def problem_rows(problems, *, viewer, progress_user):
     return rows
 
 
-def library_rows(statements, problems, *, viewer, progress_user, limit):
+def library_rows(statements, problems, *, viewer, progress_user, limit, include_classification=False):  # noqa: PLR0913
     from inspinia.pages.views import _statement_table_rows
 
     statements = list(statements.select_related("linked_problem").order_by("-updated_at", "-pk")[:limit])
@@ -241,7 +244,14 @@ def library_rows(statements, problems, *, viewer, progress_user, limit):
     rows.extend(problem_rows(
         problems.order_by("-created_at", "-pk")[:limit], viewer=viewer, progress_user=progress_user,
     ))
-    return sorted(rows, key=lambda row: row["updated_at_sort"], reverse=True)[:limit]
+    rows = sorted(rows, key=lambda row: row["updated_at_sort"], reverse=True)[:limit]
+    if include_classification:
+        by_uuid = {str(statement.statement_uuid): statement for statement in statements}
+        for row in rows:
+            statement = by_uuid.get(row["statement_uuid"])
+            if statement and missing_fields(row) and not source_problem(statement):
+                row["classification_url"] = reverse("pages:library_classification", args=[statement.statement_uuid])
+    return rows
 
 
 def shared_library_context(request):
@@ -263,10 +273,13 @@ def shared_library_context(request):
     statement_total, problem_total = statements.count(), problems.count()
     total = statement_total + problem_total
     filtered_total = selected_statements.count() + selected_problems.count()
-    rows = _json_script_safe(library_rows(
+    rows = library_rows(
         selected_statements, selected_problems, viewer=request.user, progress_user=subject["user"],
         limit=ADMIN_TABLE_LATEST_LIMIT,
-    ))
+        include_classification=classification_enabled_for(request.user),
+    )
+    has_classification = any(row.get("classification_url") for row in rows)
+    rows = _json_script_safe(rows)
     statement_stats = annotate_effective_statement_analytics(statements).aggregate(
         linked_total=Count("pk", filter=Q(linked_problem__isnull=False)),
         needs_metadata=Count("pk", filter=Q(_eff_topic="") | Q(_eff_topic__isnull=True) | Q(_eff_mohs__isnull=True)),
@@ -317,6 +330,7 @@ def shared_library_context(request):
         "library_progress_label": subject["label"], "library_progress_user": subject["user"],
         "library_progress_selection": subject["value"], "library_progress_options": options,
         "library_clear_url": clear_url,
+        "library_has_classification": has_classification,
         "statement_table_rows": rows, "statement_datatable_rows": rows,
         "statement_filtered_total": filtered_total, "statement_visible_total": len(rows),
         "statement_result_limit": ADMIN_TABLE_LATEST_LIMIT, "statement_is_capped": filtered_total > len(rows),

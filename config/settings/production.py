@@ -11,6 +11,7 @@ from .base import env
 
 REQUEST_TIMING_LOG = env.bool("DJANGO_REQUEST_TIMING_LOG", default=True)
 PREPARE_FIRST_REQUEST = env.bool("DJANGO_PREPARE_FIRST_REQUEST", default=True)
+PROBLEM_LIBRARY_AI_SUGGESTIONS_ENABLED = env.bool("PROBLEM_LIBRARY_AI_SUGGESTIONS_ENABLED", default=True)
 # Availability for the one-time administrator pilot. It still requires a database authorization.
 STUDY_HELP_DRAFT_HINT_PILOT_ENABLED = env.bool(
     "DJANGO_STUDY_HELP_DRAFT_HINT_PILOT_ENABLED", default=not STUDY_HELP_ENABLED and not STUDY_HELP_EVALUATION_ENABLED,
