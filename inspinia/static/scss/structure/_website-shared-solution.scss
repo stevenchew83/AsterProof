@@ -29,3 +29,8 @@
   .public-collection-header { padding-bottom: 24px; }
 }
 @media print { .public-collection-contents, .public-collection-entry-links { display: none; } .public-collection-layout { display: block; } .public-collection-entry { break-before: page; } }
+
+.public-collection-page {
+  .website-text-link { @extend .btn, .btn-link, .link-body-emphasis, .p-0; }
+  .website-fineprint { @extend .form-text; }
+}

@@ -1,0 +1,27 @@
+// The deployment reader pins these templates. Adapt their existing hooks to INSPINIA.
+.solution-workspace-page > .app-page-header,
+.solution-problem-page > .app-page-header,
+.solution-workspace-page .app-page-header-actions,
+.solution-problem-page .app-page-header-actions {
+    @extend .d-flex, .flex-wrap, .align-items-center, .gap-2;
+}
+
+.solution-workspace-page .app-page-header-description {
+    @extend .w-100, .text-body-secondary, .mb-2;
+}
+
+.solution-problem-page {
+    --ins-border-color: var(--theme-border-color);
+    --ins-border-radius: var(--theme-border-radius);
+    --ins-emphasis-color: var(--theme-emphasis-color);
+    --ins-primary: var(--theme-primary);
+    --ins-primary-bg-subtle: var(--theme-primary-bg-subtle);
+    --ins-primary-text-emphasis: var(--theme-primary-text-emphasis);
+    --ins-secondary-color: var(--theme-secondary-color);
+    --ins-tertiary-bg: var(--theme-tertiary-bg);
+    --ins-topbar-height: var(--theme-topbar-height);
+}
+
+[data-curated-builder] .app-table-compact {
+    @extend .table-sm;
+}

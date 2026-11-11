@@ -36,8 +36,8 @@ function dashboard({shared = false, editable = false} = {}) {
       querySelector: selector => selector.startsWith('#') ? elements.get(selector.slice(1)) ?? null : null,
       querySelectorAll: () => [],
     },
-    window: {bootstrap: {Collapse: {getOrCreateInstance: () => ({show() { expanded = true; }})}}},
-    getComputedStyle: () => ({getPropertyValue: key => key === '--ins-primary-text-emphasis' ? '#13795b' : ''}),
+    window: {getThemeColor: key => ({success: '#1ab394', warning: '#f8ac59'})[key], bootstrap: {Collapse: {getOrCreateInstance: () => ({show() { expanded = true; }})}}},
+    getComputedStyle: () => ({getPropertyValue: key => key === '--theme-primary-text-emphasis' ? '#16987e' : ''}),
     ApexCharts: function (el, config) { chartConfigs.push({id:el.id, ...config}); this.render = () => Promise.resolve(); },
     DataTable: function (_selector, config) { tableOptions = config; },
   });
@@ -64,7 +64,8 @@ test('compact charts retain their original series, zero values and theme color',
   const daily = app.chartConfigs.find(chart => chart.id.endsWith('-daily'));
   const mohs = app.chartConfigs.find(chart => chart.id.endsWith('-mohs'));
   assert.equal(daily.chart.height, 260);
-  assert.equal(daily.colors[0], '#13795b');
+  assert.equal(daily.colors[0], '#16987e');
+  assert.deepEqual(Array.from(mohs.colors), ['#1ab394', '#f8ac59']);
   assert.deepEqual(Array.from(daily.series[0].data), [1, 2]);
   assert.deepEqual(Array.from(mohs.series[0].data), [0, 30]);
   assert.equal(mohs.yaxis.length, 2);

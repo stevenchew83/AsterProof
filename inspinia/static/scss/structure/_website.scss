@@ -94,3 +94,9 @@
     .website-geometry { height: 190px; aspect-ratio: auto; }
     .website-geometry:not(.is-live) .website-geometry-label { display: none; }
 }
+
+// Preserve the markup pinned by the deployment reader while using reference utilities.
+.website-container { @extend .container; }
+.website-kicker { @extend .small, .fw-semibold, .text-uppercase, .text-primary-emphasis, .mb-2; }
+.website-attribution { @extend .small, .text-body-secondary; }
+.website-reading-aside { @extend .border-top, .pt-3; }

@@ -27,7 +27,9 @@ routes, permissions, and data contracts. Compose application-specific controls
 using the reference's tokens and components. Retain keyboard access, accessible
 names, visible focus, validation messages, and access to overflowing tables
 and mathematical content. Keep third-party integration styles scoped to their
-widgets.
+widgets. Where deployment integrity checks pin a template's exact bytes,
+style its existing markup with scoped selectors that reuse reference utilities
+and tokens.
 
 After changing shared SCSS or frontend assets, run `npm run build`. Verify the
 affected pages against the matching reference examples at desktop and phone

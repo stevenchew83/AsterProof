@@ -2,17 +2,17 @@
 {% load static %}
 {% block public_stylesheet %}{% static 'css/public-shared.min.css' %}{% endblock public_stylesheet %}
 {% block public_content %}
-<div class="container public-shared-page public-collection-page">
+<div class="website-container public-shared-page public-collection-page">
   <div class="public-shared-toolbar">
     <p>{% if collection.kind == 'admin_curated' %}A curated collection{% else %}A solution collection{% endif %} · Read without an account</p>
     <div>
-      <button type="button" class="btn btn-link link-body-emphasis p-0" data-copy-public-link="{{ canonical_url }}">Copy collection link</button>
-      <a href="{{ whatsapp_url }}" target="_blank" rel="noopener noreferrer" class="btn btn-link link-body-emphasis p-0">Share on WhatsApp ↗</a>
+      <button type="button" class="website-text-link" data-copy-public-link="{{ canonical_url }}">Copy collection link</button>
+      <a href="{{ whatsapp_url }}" target="_blank" rel="noopener noreferrer" class="website-text-link">Share on WhatsApp ↗</a>
     </div>
   </div>
-  <p class="form-text" data-copy-feedback role="status"></p>
+  <p class="website-fineprint" data-copy-feedback role="status"></p>
   <header class="public-collection-header">
-    <p class="small fw-semibold text-uppercase text-primary-emphasis mb-2">{{ collection_rows|length }} solution{{ collection_rows|length|pluralize }}</p>
+    <p class="website-kicker">{{ collection_rows|length }} solution{{ collection_rows|length|pluralize }}</p>
     <h1>{{ collection.title }}</h1>
     {% if collection.introduction %}<p class="public-collection-introduction">{{ collection.introduction }}</p>{% endif %}
   </header>
