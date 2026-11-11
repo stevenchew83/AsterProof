@@ -196,11 +196,14 @@ def settings_view(request):
     if form.is_bound and form.is_valid() and _save_settings(form):
         messages.success(request, "AI review settings saved.")
         return redirect("solutions:admin_ai_review_settings")
+    key_ready = bool(admin_reviews.read_credential(config))
     return render(request, "solutions/admin-ai-review-settings.html", {
         **study_help_prompt_context(request),
         "form": form,
         "key_saved": bool(config.encrypted_key),
-        "key_ready": bool(admin_reviews.read_credential(config)),
+        "key_ready": key_ready,
+        "library_suggestions_enabled": settings.PROBLEM_LIBRARY_AI_SUGGESTIONS_ENABLED,
+        "library_suggestions_ready": bool(settings.OPENAI_API_KEY.strip()) or key_ready,
         "encryption_ready": bool(admin_reviews.credential_cipher()),
         "generation_enabled": settings.ADMIN_SOLUTION_REVIEW_ENABLED,
         "review_rules": admin_reviews.REVIEW_RULES,

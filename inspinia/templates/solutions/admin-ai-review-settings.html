@@ -39,6 +39,16 @@
               {% endif %}
             </div>
             <div class="card-body pt-3">
+              <p class="small mb-3">
+                <span class="fw-semibold">Problem Library suggestions</span>
+                {% if not library_suggestions_enabled %}
+                  <span class="badge bg-secondary-subtle text-secondary">Disabled by configuration</span>
+                {% elif library_suggestions_ready %}
+                  <span class="badge bg-success-subtle text-success">Ready</span>
+                {% else %}
+                  <span class="badge bg-warning-subtle text-warning">OpenAI key needed</span>
+                {% endif %}
+              </p>
               <label class="form-label" for="{{ form.api_key.id_for_label }}">{{ form.api_key.label }}</label>
               {{ form.api_key }}
               {% include 'solutions/partials/admin-review-field-errors.html' with field=form.api_key only %}
