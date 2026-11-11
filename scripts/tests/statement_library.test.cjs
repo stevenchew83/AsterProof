@@ -42,14 +42,40 @@ test('linked rows retain their existing solution destination', () => {
   assert.ok(!html.includes('<form'));
 });
 
+test('Topic and MOHS sort independently and use suggestions only for missing values', () => {
+  const problem = config.columns[0].render;
+  const topic = config.columns[1].render;
+  const mohs = config.columns[2].render;
+  const row = {
+    ...statement, problem_uuid: 'problem-id',
+    classification_url: '/problems/problem-id/ai-suggestions/',
+    linked_problem_topic: 'Geometry', linked_problem_mohs: 0,
+    linked_problem_mohs_url: '/contest/?year=1991&mohs=0',
+  };
+  assert.equal(topic(null, 'sort', row), 'Geometry');
+  assert.equal(mohs(null, 'sort', row), 0);
+  assert.equal(mohs(null, 'sort', {...row, linked_problem_mohs: '10'}), 10);
+  assert.equal(mohs(null, 'sort', {...row, linked_problem_mohs: null}), -1);
+  assert.match(problem(null, 'display', row), /Suggest with AI/);
+
+  const classification = {phase: 'done', suggestions: {topic: 'Algebra', mohs: 15}};
+  const missingTopic = {...row, linked_problem_topic: '', classification};
+  assert.match(topic(null, 'display', missingTopic), /Algebra.*>AI</);
+  assert.match(mohs(null, 'display', missingTopic), /href="\/contest\/\?year=1991&amp;mohs=0">0<\/a>/);
+
+  const missingMohs = {...row, linked_problem_mohs: null, classification};
+  assert.match(topic(null, 'display', missingMohs), />Geometry<\/span>$/);
+  assert.match(mohs(null, 'display', missingMohs), />15.*>AI</);
+});
+
 test('unlinked statement completion shows unsolved, solved or unknown-date status', () => {
-  const render = row => config.columns[2].render(null, 'display', row);
+  const render = row => config.columns[3].render(null, 'display', row);
   assert.ok(render(statement).includes('Unsolved'));
   assert.ok(!render(statement).includes('Not linked'));
   const row = {...statement, user_completion_state_kind: 'unknown',
     user_completion_display: 'Unknown date', user_completion_sort: '1'};
   assert.ok(render(row).includes('Unknown date'));
-  assert.equal(config.columns[2].render(null, 'sort', row), '1');
+  assert.equal(config.columns[3].render(null, 'sort', row), '1');
   assert.ok(render({...row, user_completion_state_kind: 'solved',
     user_completion_display: '2026-11-01'}).includes('2026-11-01'));
 });
@@ -89,7 +115,7 @@ test('record-only problems retain distinct taxonomy dialogs across table redraws
   });
   for (const row of rows) {
     for (let draw = 0; draw < 2; draw++) {
-      const html = table.columns[3].render(null, 'display', row);
+      const html = table.columns[4].render(null, 'display', row);
       assert.ok(html.includes(`data-problem-uuid="${row.problem_uuid}"`));
       dialogOpened = false;
       clickHandler({target: {closest: () => ({getAttribute: () => row.problem_uuid})}});

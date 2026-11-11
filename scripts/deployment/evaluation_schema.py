@@ -129,7 +129,7 @@ def seed_legacy(executor, targets, connection) -> None:
     from scripts.deployment.solution_document_schema_rehearsal import seed_collections
 
     apps = executor.loader.project_state(targets).apps
-    seed_fixture()
+    seed_fixture(apps.get_model("pages", "ContestProblemStatement"))
     seed_subscribers()
     seed_solution(apps)
     seed_shared_snapshots(apps)

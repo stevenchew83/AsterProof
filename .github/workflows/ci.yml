@@ -161,7 +161,10 @@ jobs:
           print('true' if successor else 'false')
           PY
           )
-          if ! git diff --quiet "$BASE_SHA" HEAD -- scripts/deployment/admin_review_takedown_schema.py scripts/deployment/admin_review_takedown_schema_rehearsal.py scripts/deployment/tests/fixtures/admin-review-takedown-schema-delta.json inspinia/solutions/migrations/0016_admin_review_takedown.py; then
+          if ! git diff --quiet "$BASE_SHA" HEAD -- scripts/deployment/library_ai_schema.py scripts/deployment/library_ai_schema_rehearsal.py inspinia/pages/migrations/0048_statement_ai_concept_suggestions.py; then
+            rehearsal=scripts.deployment.library_ai_schema_rehearsal
+            active_sha="$BASE_SHA"
+          elif ! git diff --quiet "$BASE_SHA" HEAD -- scripts/deployment/admin_review_takedown_schema.py scripts/deployment/admin_review_takedown_schema_rehearsal.py scripts/deployment/tests/fixtures/admin-review-takedown-schema-delta.json inspinia/solutions/migrations/0016_admin_review_takedown.py; then
             rehearsal=scripts.deployment.admin_review_takedown_schema_rehearsal
             active_sha="$BASE_SHA"
           elif ! git diff --quiet "$BASE_SHA" HEAD -- scripts/deployment/self_solution_review_schema.py scripts/deployment/self_solution_review_schema_rehearsal.py scripts/deployment/tests/fixtures/self-solution-review-schema-delta.json inspinia/solutions/migrations/0015_self_solution_review_usage.py; then

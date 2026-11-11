@@ -44,8 +44,22 @@ def disclosure(active_sha):
     }
 
 
-def test_frozen_source_and_delta():
-    schema.validate_candidate(ROOT)
+@pytest.fixture
+def frozen_candidate(tmp_path):
+    library_ai = Path("inspinia/pages/migrations/0048_statement_ai_concept_suggestions.py")
+    files = [
+        path.relative_to(ROOT) for path in ROOT.glob("inspinia/**/migrations/*")
+        if path.suffix in {".py", ".json"}
+    ]
+    for relative in {*files, schema.DELTA_PATH} - {library_ai}:
+        staged = tmp_path / relative
+        staged.parent.mkdir(parents=True, exist_ok=True)
+        staged.write_bytes((ROOT / relative).read_bytes())
+    return tmp_path
+
+
+def test_frozen_source_and_delta(frozen_candidate):
+    schema.validate_candidate(frozen_candidate)
     delta = schema.frozen_delta(ROOT)
     assert [item["column"] for item in delta["add"]["columns"]] == [schema.NEW_COLUMN]
     assert {item["name"] for item in delta["add"]["indexes"]} == schema.NEW_INDEXES
@@ -101,7 +115,7 @@ def test_exact_postgresql_evidence_must_be_packaged(tmp_path):
         maintenance_schema.validate_build_evidence(tmp_path, value)
 
 
-def test_dispatch_requires_exact_migration_and_active_baseline(monkeypatch):
+def test_dispatch_requires_exact_migration_and_active_baseline(monkeypatch, frozen_candidate):
     changes = ["A\t" + schema.MIGRATION_PATH.as_posix()]
 
     def git(arguments, **kwargs):
@@ -111,7 +125,7 @@ def test_dispatch_requires_exact_migration_and_active_baseline(monkeypatch):
 
     monkeypatch.setattr(validate_dispatch.subprocess, "run", git)
     args = {
-        "repository": ROOT, "active_sha": schema.ACTIVE_SHA, "target_sha": NEW_SHA,
+        "repository": frozen_candidate, "active_sha": schema.ACTIVE_SHA, "target_sha": NEW_SHA,
         "registry_path": ROOT / "deployment/migration-classifications.yml", "declared_class": "data-or-non-compatible",
     }
     assert validate_dispatch.build_migration_disclosure(**args)["migrations"] == [
@@ -197,12 +211,12 @@ def test_worker_verifies_recovery_and_original_records_before_activation(tmp_pat
         assert read_json(contract.registry_dir / f"releases/{NEW_SHA}.json")["rollback_eligible"] is False
 
 
-def test_worker_preflight_is_read_only_and_apply_is_bounded(monkeypatch):
+def test_worker_preflight_is_read_only_and_apply_is_bounded(monkeypatch, frozen_candidate):
     calls = []
     monkeypatch.setattr(WorkerBackend, "_run_candidate", lambda *args, **kwargs: calls.append((args[-1], kwargs)))
     backend = WorkerBackend()
-    backend.check_multiple_solutions_schema(None, ROOT)
-    backend.migrate_multiple_solutions_schema(None, ROOT)
+    backend.check_multiple_solutions_schema(None, frozen_candidate)
+    backend.migrate_multiple_solutions_schema(None, frozen_candidate)
     assert calls == [
         (["shell", "--command", schema.PLAN_CHECK], {"read_only": True}),
         (["shell", "--command", schema.MIGRATION_APPLY], {"migration": True}),

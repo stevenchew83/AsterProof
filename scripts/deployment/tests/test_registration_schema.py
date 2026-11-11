@@ -43,9 +43,10 @@ def frozen_delta():
 
 def test_exact_migration_tree_and_catalog_delta(tmp_path):
     successor = Path("inspinia/solutions/migrations/0017_multiple_problem_solutions.py")
+    library_ai = Path("inspinia/pages/migrations/0048_statement_ai_concept_suggestions.py")
     for source in ROOT.glob("inspinia/**/migrations/*"):
         relative = source.relative_to(ROOT)
-        if source.suffix in {".py", ".json"} and relative != successor:
+        if source.suffix in {".py", ".json"} and relative not in {successor, library_ai}:
             staged = tmp_path / relative
             staged.parent.mkdir(parents=True, exist_ok=True)
             staged.write_bytes(source.read_bytes())

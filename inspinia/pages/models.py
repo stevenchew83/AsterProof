@@ -241,6 +241,7 @@ class ContestProblemStatement(models.Model):
     # Analytics / workbook metadata (canonical on the statement row).
     topic = models.CharField(max_length=32, null=True, blank=True)
     mohs = models.IntegerField(null=True, blank=True)
+    ai_concept_suggestions = models.JSONField(null=True, blank=True, editable=False)
     source_contest = models.CharField(max_length=64, null=True, blank=True)
     source_problem = models.CharField(max_length=64, null=True, blank=True)
     workbook_contest_year_problem = models.CharField(max_length=128, null=True, blank=True)

@@ -24,6 +24,7 @@ from scripts.deployment import curated_collections_schema
 from scripts.deployment import learning_activity_schema
 from scripts.deployment import learning_bridge
 from scripts.deployment import learning_schema
+from scripts.deployment import library_ai_schema
 from scripts.deployment import maintenance_schema
 from scripts.deployment import multiple_solutions_schema
 from scripts.deployment import newsletter_automation_schema
@@ -461,6 +462,15 @@ class WorkerBackend:
     def check_study_help_schema(self, contract: TargetContract, release: Path) -> None:
         study_help_schema.validate_candidate(release)
         self._run_candidate(contract, release, ["shell", "--command", study_help_schema.PLAN_CHECK])
+
+    def check_library_ai_schema(self, contract: TargetContract, release: Path) -> None:
+        library_ai_schema.validate_candidate(release)
+        self._run_candidate(contract, release, ["shell", "--command", library_ai_schema.PLAN_CHECK], read_only=True)
+
+    def migrate_library_ai_schema(self, contract: TargetContract, release: Path) -> None:
+        self._run_candidate(
+            contract, release, ["shell", "--command", library_ai_schema.MIGRATION_APPLY], migration=True,
+        )
 
     def migrate_study_help_schema(self, contract: TargetContract, release: Path) -> None:
         self._run_candidate(
@@ -1314,6 +1324,9 @@ def _deploy(
                 elif disclosure["migration"] == study_help_schema.MIGRATION:
                     study_help_schema.validate_build_evidence(release, disclosure)
                     backend.check_study_help_schema(contract, release)
+                elif disclosure["migration"] == library_ai_schema.MIGRATION:
+                    library_ai_schema.validate_build_evidence(release, disclosure)
+                    backend.check_library_ai_schema(contract, release)
                 elif disclosure["migration"] == self_solution_review_schema.MIGRATION:
                     self_solution_review_schema.validate_build_evidence(release, disclosure)
                     backend.check_self_solution_review_schema(contract, release)
@@ -1400,6 +1413,8 @@ def _deploy(
                 backend.migrate_admin_solution_review_schema(contract, release)
             elif disclosure["migration"] == study_help_schema.MIGRATION:
                 backend.migrate_study_help_schema(contract, release)
+            elif disclosure["migration"] == library_ai_schema.MIGRATION:
+                backend.migrate_library_ai_schema(contract, release)
             elif disclosure["migration"] == self_solution_review_schema.MIGRATION:
                 backend.migrate_self_solution_review_schema(contract, release)
             elif disclosure["migration"] == admin_review_takedown_schema.MIGRATION:

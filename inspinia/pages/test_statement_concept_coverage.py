@@ -97,7 +97,7 @@ def test_roles_merge_into_one_concept_and_full_coverage_survives_export(client):
     html = response.content.decode()
     assert "<th>Area</th>" in html
     assert ">Coverage</th>" in html
-    assert 'order: [[7, "desc"]]' in html
+    assert 'order: [[8, "desc"]]' in html
     assert "statement-taxonomy-modal" in html
     assert "statement-signal-stack" not in html
     assert "flex-column flex-xl-row" not in html
