@@ -112,6 +112,26 @@ def assistance_restricted(user, problem_uuids, *, statement_uuid=None):
     return active_assistance_restrictions(user).filter(scope).exists()
 
 
+def restricted_statement_uuids(user, statements):
+    identities = {
+        statement.statement_uuid: {statement.problem_uuid, getattr(statement.linked_problem, "problem_uuid", None)}
+        for statement in statements
+    }
+    if not identities:
+        return set()
+    problem_uuids = set().union(*identities.values()) - {None}
+    policies = active_assistance_restrictions(user)
+    restricted = set(policies.filter(
+        Q(problem_uuid__isnull=True) | Q(problem_uuid__in=problem_uuids),
+    ).values_list("problem_uuid", flat=True))
+    if None in restricted:
+        return set(identities)
+    bound = StudyHelpRestriction.objects.filter(
+        policy__in=policies, statement_uuid__in=identities,
+    ).values_list("statement_uuid", flat=True)
+    return set(bound) | {uuid for uuid, problems in identities.items() if problems & restricted}
+
+
 def bind_statement_restrictions(statement_uuid, problem_uuids):
     """Called under the shared lock before changing identity, including scheduled rules."""
     ids = AssistancePolicy.objects.filter(

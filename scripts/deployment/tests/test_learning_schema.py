@@ -90,6 +90,7 @@ def copy_candidate(destination):
                 ROOT / "inspinia/users/migrations/0010_public_registration.py",
                 ROOT / "inspinia/solutions/migrations/0017_multiple_problem_solutions.py",
                 ROOT / "inspinia/pages/migrations/0047_study_help.py",
+                ROOT / "inspinia/pages/migrations/0048_statement_ai_concept_suggestions.py",
                 ROOT / "inspinia/rankings/migrations/0005_ranking_analysis_review.py",
                 ROOT / "inspinia/rankings/migrations/0006_student_achievement_profiles.py",
             }
@@ -130,6 +131,7 @@ def test_actual_learning_migration_bundle_and_entire_history_are_hash_bound(tmp_
     ("users", "0010_public_registration"),
     ("solutions", "0017_multiple_problem_solutions"),
     ("pages", "0047_study_help"),
+    ("pages", "0048_statement_ai_concept_suggestions"),
 ])
 def test_successors_are_not_part_of_the_historical_learning_allowance(tmp_path, app, migration):
     copy_candidate(tmp_path)

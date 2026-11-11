@@ -18,6 +18,7 @@ from inspinia.pages.algebra_tag_search import tag_token_query
 from inspinia.pages.completion_record_fields import SOLVED_STATUSES
 from inspinia.pages.library_classification import enabled_for as classification_enabled_for
 from inspinia.pages.library_classification import missing_fields
+from inspinia.pages.library_classification import saved_concepts
 from inspinia.pages.models import ContestProblemStatement
 from inspinia.pages.models import ProblemSolveRecord
 from inspinia.pages.models import ProblemTopicTechnique
@@ -27,9 +28,11 @@ from inspinia.pages.statement_analytics import annotate_effective_statement_anal
 from inspinia.pages.statement_concept_coverage import problem_concept_search
 from inspinia.pages.statement_concept_coverage import problem_coverage_payloads
 from inspinia.pages.statement_concept_coverage import statement_concept_search
+from inspinia.pages.study_help_access import restricted_statement_uuids
 from inspinia.pages.study_help_access import source_problem
 from inspinia.pages.topic_labels import display_topic_label
 from inspinia.solutions.models import ProblemSolution
+from inspinia.users.roles import user_has_admin_role
 
 FILTER_KEYS = ("q", "year", "topic", "confidence", "mohs_min", "mohs_max", "concept")
 
@@ -245,12 +248,18 @@ def library_rows(statements, problems, *, viewer, progress_user, limit, include_
         problems.order_by("-created_at", "-pk")[:limit], viewer=viewer, progress_user=progress_user,
     ))
     rows = sorted(rows, key=lambda row: row["updated_at_sort"], reverse=True)[:limit]
-    if include_classification:
-        by_uuid = {str(statement.statement_uuid): statement for statement in statements}
-        for row in rows:
-            statement = by_uuid.get(row["statement_uuid"])
-            if statement and missing_fields(row) and not source_problem(statement):
-                row["classification_url"] = reverse("pages:library_classification", args=[statement.statement_uuid])
+    by_uuid = {str(statement.statement_uuid): statement for statement in statements}
+    restricted = restricted_statement_uuids(viewer, [
+        statement for statement in statements if statement.ai_concept_suggestions
+    ])
+    for row in rows:
+        statement = by_uuid.get(row["statement_uuid"])
+        if statement is None or statement.statement_uuid in restricted:
+            continue
+        if concepts := saved_concepts(statement, row):
+            row["saved_ai_concepts"] = concepts
+        if include_classification and missing_fields(row, statement) and not source_problem(statement):
+            row["classification_url"] = reverse("pages:library_classification", args=[statement.statement_uuid])
     return rows
 
 
@@ -331,6 +340,7 @@ def shared_library_context(request):
         "library_progress_selection": subject["value"], "library_progress_options": options,
         "library_clear_url": clear_url,
         "library_has_classification": has_classification,
+        "library_saves_classification": user_has_admin_role(request.user),
         "statement_table_rows": rows, "statement_datatable_rows": rows,
         "statement_filtered_total": filtered_total, "statement_visible_total": len(rows),
         "statement_result_limit": ADMIN_TABLE_LATEST_LIMIT, "statement_is_capped": filtered_total > len(rows),

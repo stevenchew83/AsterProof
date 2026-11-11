@@ -1,4 +1,4 @@
-"""The library may preview missing metadata without changing shared records."""
+"""The library previews missing metadata and allows administrators to save it."""
 
 import json
 from datetime import timedelta
@@ -18,8 +18,10 @@ from inspinia.pages import library_classification as classification
 from inspinia.pages.models import ContestProblemStatement
 from inspinia.pages.models import ProblemSolveRecord
 from inspinia.pages.models import StatementTopicTechnique
+from inspinia.pages.study_help_access import statement_revision
 from inspinia.solutions.admin_review_models import AdminSolutionReviewSettings
 from inspinia.solutions.evaluation_models import AssistancePolicy
+from inspinia.users.models import User
 from inspinia.users.tests.factories import UserFactory
 
 pytestmark = pytest.mark.django_db
@@ -107,7 +109,108 @@ def test_preview_uses_effective_values_and_requires_canonical_evidence(client, p
     assert row.linked_problem_id is None
     assert row.topic is None
     assert row.mohs is None
+    assert row.imo_slot_guess is None
+    assert row.ai_concept_suggestions is None
     assert not StatementTopicTechnique.objects.exists()
+
+
+def test_admin_saves_fields_and_supported_concept_evidence_for_the_shared_row(client, provider, settings):
+    admin = UserFactory(role=User.Role.ADMIN)
+    client.force_login(admin)
+    row = make_statement(statement_latex=(
+        r"Determine all functions $f: \mathbb{R} \to \mathbb{R}$ such that "
+        r"$$f(x+yf(x+y))=f(x)f(y)+y^2$$for all $x,y \in \mathbb{R}$"
+    ))
+    provider.return_value = {
+        "topic": ["Algebra"], "mohs": 0, "confidence": "High", "imo_slots": [4, 1],
+        "concepts": [{
+            "subject": "Algebra", "kind": "lemma", "label": "AM-GM",
+            "quote": "Quote absent from the statement", "why": "An unsupported reason.",
+        }],
+    }
+
+    response = client.post(url(row))
+
+    assert response.status_code == HTTPStatus.OK
+    payload = response.json()
+    assert payload["saved"] is True
+    assert payload["suggestions"] == {}
+    assert payload["row"]["linked_problem_topic"] == "Algebra"
+    assert payload["row"]["linked_problem_mohs"] == 0
+    assert payload["row"]["linked_problem_imo_slot_display"] == "P1, P4"
+    row.refresh_from_db()
+    assert (row.topic, row.mohs, row.confidence, row.imo_slot_guess_value) == ("Algebra", 0, "High", "1,4")
+    assert row.ai_concept_suggestions["saved_by"] == admin.pk
+    assert row.ai_concept_suggestions["statement_revision"] == statement_revision(row)
+    saved, = row.ai_concept_suggestions["concepts"]
+    assert saved["id"] == "function-composition"
+    assert saved["area"] == "Functions and functional equations"
+    assert saved["quote"] == "f(x+yf(x+y))"
+    assert saved["why"]
+    assert payload["row"]["saved_ai_concepts"][0]["id"] == saved["id"]
+    assert payload["row"]["concept_coverage"] == []
+    assert client.post(url(row)).json()["saved"] is False
+    provider.assert_called_once()
+
+    settings.PROBLEM_LIBRARY_AI_SUGGESTIONS_ENABLED = False
+    client.force_login(UserFactory())
+    library_url = reverse("pages:problem_statement_list")
+    reloaded, = client.get(library_url).context["statement_table_rows"]
+    assert reloaded["linked_problem_mohs"] == 0
+    assert reloaded["saved_ai_concepts"] == payload["row"]["saved_ai_concepts"]
+    assert "classification_url" not in reloaded
+    assert not StatementTopicTechnique.objects.exists()
+
+    original_text = row.statement_latex
+    ContestProblemStatement.objects.filter(pk=row.pk).update(statement_latex="A revised problem.")
+    assert "saved_ai_concepts" not in client.get(library_url).context["statement_table_rows"][0]
+    ContestProblemStatement.objects.filter(pk=row.pk).update(statement_latex=original_text)
+
+    now = timezone.now()
+    AssistancePolicy.objects.create(
+        problem_uuid=row.problem_uuid, mode="restricted_assessment", starts_at=now - timedelta(minutes=1),
+        ends_at=now + timedelta(minutes=1), reason="Fixture restricted problem",
+    )
+    assert "saved_ai_concepts" not in client.get(library_url).context["statement_table_rows"][0]
+
+
+def test_admin_save_keeps_existing_and_concurrently_filled_metadata(client, provider):
+    client.force_login(UserFactory(is_superuser=True))
+    legacy = ProblemSolveRecord.objects.create(
+        year=2026, contest="Classification fixtures", problem="P1", topic="A", mohs=0,
+    )
+    row = make_statement(problem_uuid=legacy.problem_uuid, imo_slot_guess="Prior workbook annotation")
+
+    def fill_confidence(*args, **kwargs):
+        ContestProblemStatement.objects.filter(pk=row.pk).update(confidence="High")
+        return {"topic": ["Geometry"], "mohs": 30, "confidence": "Low", "imo_slots": [3]}
+
+    provider.side_effect = fill_confidence
+    response = client.post(url(row))
+
+    assert response.status_code == HTTPStatus.OK
+    assert response.json()["saved"] is False
+    assert response.json()["row"]["linked_problem_confidence"] == "High"
+    row.refresh_from_db()
+    assert (row.topic, row.mohs, row.linked_problem_id) == (None, None, None)
+    assert row.confidence == "High"
+    assert row.imo_slot_guess == "Prior workbook annotation"
+
+
+def test_admin_discards_suggestions_if_statement_changes_during_request(client, provider):
+    client.force_login(UserFactory(role=User.Role.ADMIN))
+    row = make_statement()
+
+    def edit_statement(*args, **kwargs):
+        ContestProblemStatement.objects.filter(pk=row.pk).update(statement_latex="A different problem.")
+        return {"mohs": 20}
+
+    provider.side_effect = edit_statement
+
+    assert client.post(url(row)).status_code == HTTPStatus.CONFLICT
+    row.refresh_from_db()
+    assert row.mohs is None
+    assert row.ai_concept_suggestions is None
 
 
 def test_memo_p1_returns_canonical_composition_from_the_statement(client, provider):
