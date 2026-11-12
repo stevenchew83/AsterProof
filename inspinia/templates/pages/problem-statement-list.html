@@ -225,259 +225,9 @@
   </div>
   {% endif %}
 
-  <div class="row g-3 mt-0">
-    <div class="col-sm-6 col-xl-3">
-      <div class="card m-0">
-        <div class="card-body">
-          <div class="d-flex align-items-center">
-            <div class="flex-shrink-0">
-              <span class="avatar-title bg-primary-subtle text-primary rounded">
-                <i class="ti ti-file-text fs-24"></i>
-              </span>
-            </div>
-            <div class="flex-grow-1 ms-2">
-              <p class="text-muted mb-0 fs-xs text-uppercase fw-semibold">Total problems</p>
-              <h3 class="mb-0">{{ statement_total }}</h3>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-    <div class="col-sm-6 col-xl-3">
-      <div class="card m-0">
-        <div class="card-body">
-          <div class="d-flex align-items-center">
-            <div class="flex-shrink-0">
-              <span class="avatar-title bg-success-subtle text-success rounded">
-                <i class="ti ti-check fs-24"></i>
-              </span>
-            </div>
-            <div class="flex-grow-1 ms-2">
-              <p class="text-muted mb-0 fs-xs text-uppercase fw-semibold">{{ library_progress_label }}</p>
-              <h3 class="mb-0">{{ library_stats.solved_total }}</h3>
-              <span class="text-muted fs-xs">Solved problems</span>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-    <div class="col-sm-6 col-xl-3">
-      <div class="card m-0">
-        <div class="card-body">
-          <div class="d-flex align-items-center">
-            <div class="flex-shrink-0">
-              <span class="avatar-title bg-warning-subtle text-warning rounded">
-                <i class="ti ti-tags fs-24"></i>
-              </span>
-            </div>
-            <div class="flex-grow-1 ms-2">
-              <p class="text-muted mb-0 fs-xs text-uppercase fw-semibold">Needs classification</p>
-              <h3 class="mb-0">{{ library_stats.needs_metadata }}</h3>
-              <span class="text-muted fs-xs">Missing topic or MOHS</span>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-    <div class="col-sm-6 col-xl-3">
-      <div class="card m-0">
-        <div class="card-body">
-          <div class="d-flex align-items-center">
-            <div class="flex-shrink-0">
-              <span class="avatar-title bg-info-subtle text-info rounded">
-                <i class="ti ti-file-text fs-24"></i>
-              </span>
-            </div>
-            <div class="flex-grow-1 ms-2">
-              <p class="text-muted mb-0 fs-xs text-uppercase fw-semibold">Statement missing</p>
-              <h3 class="mb-0">{{ library_stats.missing_statements }}</h3>
-              <span class="text-muted fs-xs">Progress and solutions are retained</span>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  {% if statement_total == 0 %}
-  <div class="alert alert-info mt-4" role="alert">
-    <strong>No problems in the library yet.</strong>
-    Uploaded problems and existing problem records appear here together.
-  </div>
-  {% else %}
-  <div class="row g-3 mt-1 mb-4">
-    <div class="col-12">
-      <div class="card">
-        <div class="card-body">
-          <form id="statement-library-search" method="get" action="{% url 'pages:problem_statement_list' %}" role="search" aria-label="Problem library" class="mb-3">
-            {% if statement_list_filters.concept %}<input type="hidden" name="concept" value="{{ statement_list_filters.concept }}">{% endif %}
-            <div class="statement-library-searchbar">
-              <div class="statement-library-query">
-                <label class="form-label text-muted mb-1 fs-xs text-uppercase fw-semibold" for="statement-search-q">Search library</label>
-                <input
-                  type="search"
-                  name="q"
-                  id="statement-search-q"
-                  class="form-control form-control-sm"
-                  value="{{ statement_list_filters.q }}"
-                  placeholder="Contest, problem, UUID, topic or concept…"
-                  autocomplete="off"
-                >
-              </div>
-              <div>
-                <label for="library-progress-learner" class="form-label text-muted mb-1 fs-xs text-uppercase fw-semibold">Progress for</label>
-                <select name="learner" id="library-progress-learner" class="form-select form-select-sm">
-                  {% for option in library_progress_options %}<option value="{{ option.value }}"{% if option.value == library_progress_selection %} selected{% endif %}>{{ option.label }}</option>{% endfor %}
-                </select>
-              </div>
-              <button type="submit" class="btn btn-primary btn-sm">
-                <i class="ti ti-search me-1" aria-hidden="true"></i>Search
-              </button>
-              <button
-                class="btn btn-outline-secondary btn-sm"
-                type="button"
-                data-bs-toggle="collapse"
-                data-bs-target="#statement-advanced-filters"
-                aria-expanded="{% if statement_has_advanced_filters or statement_list_filters.year or statement_list_filters.topic %}true{% else %}false{% endif %}"
-                aria-controls="statement-advanced-filters"
-              >
-                <i class="ti ti-adjustments-horizontal me-1" aria-hidden="true"></i>Filters
-              </button>
-              {% if statement_has_active_filters %}
-              <a href="{{ library_clear_url }}" class="btn btn-outline-secondary btn-sm">Clear</a>
-              {% endif %}
-            </div>
-
-            <div id="statement-advanced-filters" class="collapse{% if statement_has_advanced_filters or statement_list_filters.year or statement_list_filters.topic %} show{% endif %} mt-2">
-              <div class="row g-2 align-items-end pt-2">
-                <div class="col-6 col-lg-2">
-                  <label class="form-label text-muted mb-1 fs-xs text-uppercase fw-semibold" for="statement-year-filter">Year</label>
-                  <select id="statement-year-filter" name="year" class="form-select form-select-sm">
-                    <option value="">All years</option>
-                    {% for y in statement_filter_years %}
-                    <option value="{{ y }}"{% if statement_list_filters.year == y %} selected{% endif %}>{{ y }}</option>
-                    {% endfor %}
-                  </select>
-                </div>
-                <div class="col-6 col-lg-2">
-                  <label class="form-label text-muted mb-1 fs-xs text-uppercase fw-semibold" for="statement-topic-filter">Topic</label>
-                  <select id="statement-topic-filter" name="topic" class="form-select form-select-sm">
-                    <option value="">All topics</option>
-                    {% for t in statement_filter_topics %}
-                    <option value="{{ t }}"{% if statement_list_filters.topic == t %} selected{% endif %}>{{ t }}</option>
-                    {% endfor %}
-                  </select>
-                </div>
-                <div class="col-12 col-lg-4">
-                  <label class="form-label text-muted mb-1 fs-xs text-uppercase fw-semibold" for="statement-confidence-filter">Confidence</label>
-                  <select id="statement-confidence-filter" name="confidence" class="form-select form-select-sm">
-                    <option value="">All confidence</option>
-                    {% for c in statement_filter_confidences %}
-                    <option value="{{ c }}"{% if statement_list_filters.confidence == c %} selected{% endif %}>{{ c|truncatechars:40 }}</option>
-                    {% endfor %}
-                  </select>
-                </div>
-                <div class="col-6 col-lg-2">
-                  <label class="form-label text-muted mb-1 fs-xs text-uppercase fw-semibold" for="statement-mohs-min">MOHS from</label>
-                  <input id="statement-mohs-min" name="mohs_min" type="number" min="0" step="1" class="form-control form-control-sm" placeholder="Min" value="{{ statement_list_filters.mohs_min }}">
-                </div>
-                <div class="col-6 col-lg-2">
-                  <label class="form-label text-muted mb-1 fs-xs text-uppercase fw-semibold" for="statement-mohs-max">MOHS to</label>
-                  <input id="statement-mohs-max" name="mohs_max" type="number" min="0" step="1" class="form-control form-control-sm" placeholder="Max" value="{{ statement_list_filters.mohs_max }}">
-                </div>
-              </div>
-            </div>
-          </form>
-          <p class="text-muted fs-xs mb-3">Progress shown: {{ library_progress_label }}. Starting a solution opens your own workspace.</p>
-
-          {% if statement_active_filter_chips %}
-          <div class="d-flex flex-wrap gap-2 mb-3">
-            {% for chip in statement_active_filter_chips %}
-            <a href="{{ chip.remove_url }}" class="badge {{ chip.badge_class }} statement-filter-chip">
-              <span>{{ chip.label }}: {{ chip.value }}</span>
-              <i class="ti ti-x"></i>
-            </a>
-            {% endfor %}
-          </div>
-          {% endif %}
-
-          <div class="statement-loaded-strip mb-3">
-            <p id="problem-statements-loaded-status" class="statement-table-meta mb-0">
-              {{ statement_loaded_summary }}
-              {% if statement_filtered_total and statement_total != statement_filtered_total %}
-              <span class="text-muted">({{ statement_total }} total in library)</span>
-              {% endif %}
-            </p>
-            <div class="d-flex flex-wrap align-items-center gap-2">
-              <button type="button" id="problem-statements-copy" class="btn btn-outline-primary btn-sm">
-                <i class="ti ti-copy me-1"></i>Copy loaded rows
-              </button>
-              <span id="problem-statements-copy-status" class="text-muted fs-xs" aria-live="polite"></span>
-            </div>
-          </div>
-
-          {% if statement_filtered_total > 0 %}
-          {% if library_has_classification %}
-          <p class="text-muted fs-xs mb-2" id="library-classification-help">
-            Suggest with AI sends the statement and any existing topic and MOHS to OpenAI.
-            {% if library_saves_classification %}
-            Supported suggestions fill missing fields on the shared problem.
-            {% else %}
-            Values marked AI are suggestions for this page.
-            {% endif %}
-          </p>
-          <p id="library-classification-status" class="visually-hidden" role="status"></p>
-          {% endif %}
-          {{ statement_datatable_rows|json_script:"problem-statements-table-data" }}
-          <div id="problem-statements-table-alert" class="alert alert-warning d-none" role="alert">
-            Statement table data could not be loaded.
-          </div>
-          <div class="statement-table-shell">
-            <table id="problem-statements-table"
-              class="table table-sm table-hover table-bordered align-middle w-100 mb-0"
-              aria-describedby="problem-statements-loaded-status"
-            >
-              <thead class="table-light">
-                <tr>
-                  <th>Problem</th>
-                  <th>Topic</th>
-                  <th>MOHS</th>
-                  <th class="text-nowrap">{{ library_progress_label }}</th>
-                  <th>Area</th>
-                  <th title="Canonical concepts covered by the problem">Coverage</th>
-                  <th class="text-nowrap">Signals</th>
-                  <th class="text-nowrap">Avg difficulty</th>
-                  <th class="text-nowrap">Updated</th>
-                  <th class="text-nowrap">AI suggestions</th>
-                  <th class="d-none" aria-hidden="true"></th>
-                  <th class="d-none" aria-hidden="true"></th>
-                </tr>
-              </thead>
-              <tbody></tbody>
-            </table>
-          </div>
-          {% else %}
-          <div id="problem-statements-empty-state" class="alert alert-info mb-0" role="alert">
-            <div class="d-flex flex-wrap align-items-center justify-content-between gap-2">
-              <div>
-                <strong>No rows match current filters.</strong>
-                <span class="d-block fs-xs">Clear filters or broaden the search to load statement rows.</span>
-              </div>
-              {% if statement_has_active_filters %}
-              <a href="{% url 'pages:problem_statement_list' %}" class="btn btn-outline-primary btn-sm">
-                <i class="ti ti-refresh me-1"></i>Reset filters
-              </a>
-              {% endif %}
-            </div>
-          </div>
-          {% endif %}
-        </div>
-      </div>
-    </div>
-  </div>
-  {% endif %}
+  {% include 'pages/partials/problem-library.html' %}
 </div>
-{% if statement_filtered_total > 0 %}
+{% if statement_total > 0 %}
 <dialog class="statement-taxonomy-dialog" id="statement-taxonomy-modal" aria-labelledby="statement-taxonomy-title">
     <div class="card m-0 statement-taxonomy-content">
       <div class="card-header d-flex align-items-center justify-content-between flex-shrink-0">
@@ -509,10 +259,7 @@
 
 {% block extra_javascript %}
 {% if statement_total > 0 %}
-<textarea id="statement-copy-tsv" class="d-none" readonly>{{ statement_copy_tsv }}</textarea>
-{% if statement_filtered_total > 0 %}
 {% include 'partials/datatables-vendor-scripts.html' %}
-{% endif %}
 <script>
 (function () {
   var copyBtn = document.getElementById("problem-statements-copy");
@@ -581,7 +328,6 @@
   });
 })();
 </script>
-{% if statement_filtered_total > 0 %}
 <script>
 (function () {
   var dataEl = document.getElementById("problem-statements-table-data");
@@ -866,6 +612,8 @@
         }
       },
       {
+        name: "progress",
+        ariaTitle: "Progress",
         data: null,
         className: "text-nowrap",
         render: function (_data, type, row) {
@@ -999,6 +747,7 @@
         className: "text-nowrap",
         orderable: false,
         visible: hasClassification,
+        name: "classification",
         render: function (_data, type, row) { return type === "display" ? classificationAction(row) : ""; }
       },
       {
@@ -1012,14 +761,23 @@
     ]
   });
 
-  if (!hasClassification) return;
   var classificationStatus = document.getElementById("library-classification-status");
 
-  function updateClassification(row, state) {
-    var entry = table.row(function (_index, data) { return data === row; });
+  var classifications = new Map();
+
+  function updateClassification(row, state, fields) {
+    var url = row.classification_url;
+    var previous = classifications.get(url);
+    state = {...state, suggestions: {...previous?.state.suggestions, ...state.suggestions}};
+    classifications.set(url, {state, fields: fields || previous?.fields});
+
+    var current = rowsByUuid.get(row.problem_uuid);
+    if (current?.classification_url !== url) return;
+    var entry = table.row(function (_index, data) { return data === current; });
     var oldButton = entry.node()?.querySelector(".library-classification-button");
     var restoreFocus = document.activeElement === oldButton;
-    row.classification = {...state, suggestions: {...row.classification?.suggestions, ...state.suggestions}};
+    Object.assign(current, fields);
+    current.classification = state;
     entry.invalidate("data").draw("page");
     if (restoreFocus) {
       entry.node()?.querySelector(".library-classification-button")?.focus({preventScroll: true});
@@ -1052,10 +810,9 @@
         return;
       }
       if (!response.ok || !data.suggestions) throw new Error(data.error || "AI suggestions are unavailable.");
-      if (data.row) Object.assign(row, data.row);
       updateClassification(row, {
         phase: data.saved ? "saved" : "done", suggestions: data.suggestions, taxonomyMissing: data.taxonomy_missing,
-      });
+      }, data.row);
       var hasSuggestions = Object.keys(data.suggestions).length > 0;
       classificationStatus.textContent = data.saved
         ? "AI suggestions saved to " + label + "."
@@ -1068,8 +825,124 @@
       classificationStatus.textContent = label + ". " + error.message;
     }
   });
+
+  var library = document.getElementById("statement-library");
+  if (!library) return;
+  var requestStatus = document.getElementById("statement-library-status");
+  var tableShell = document.getElementById("statement-library-table-shell");
+  var activeRequest;
+
+  function applyResults(fragment, draft) {
+    var nextData = fragment.getElementById("problem-statements-table-data");
+    var nextRows = JSON.parse(nextData.textContent);
+    var regions = Array.from(library.querySelectorAll("[data-library-refresh]"), function (region) {
+      var next = fragment.getElementById(region.id);
+      if (!next) throw new Error("Missing Problem Library results");
+      return [region, next];
+    });
+    var oldForm = document.getElementById("statement-library-search");
+    var nextForm = fragment.getElementById(oldForm.id);
+    var progressTitle = fragment.getElementById(library.id).dataset.progressLabel;
+    var nextCopy = fragment.getElementById("statement-copy-tsv").value;
+    var activeElement = document.activeElement;
+    var restoreFocus = regions.some(function ([region]) { return region.contains(activeElement); });
+
+    if (draft) {
+      // Keep edits made after submission and leave the filter disclosure where the user left it.
+      for (var name of ["q", "mohs_min", "mohs_max"]) {
+        var value = oldForm.elements.namedItem(name).value;
+        if (value !== draft.get(name)) nextForm.elements.namedItem(name).value = value;
+      }
+      var toggle = document.getElementById("statement-library-filter-toggle");
+      var expanded = toggle.getAttribute("aria-expanded");
+      fragment.getElementById(toggle.id).setAttribute("aria-expanded", expanded);
+      fragment.getElementById("statement-advanced-filters").classList.toggle("show", expanded === "true");
+    }
+
+    for (var [region, next] of regions) region.replaceWith(next);
+    document.getElementById("statement-copy-tsv").value = nextCopy;
+    if (taxonomyModal.open) taxonomyModal.close();
+
+    rowsByUuid = new Map(nextRows.map(function (row) {
+      var classification = classifications.get(row.classification_url);
+      if (classification) {
+        if (classification.fields?.updated_at_sort > row.updated_at_sort) {
+          Object.assign(row, classification.fields);
+        }
+        row.classification = classification.state;
+      }
+      return [row.problem_uuid, row];
+    }));
+    tableShell.hidden = !nextRows.length;
+    table.column("progress:name").title(escapeHtml(progressTitle));
+    table.column("classification:name").visible(nextRows.some(function (row) { return row.classification_url; }), false);
+    table.clear().rows.add(nextRows).draw();
+    if (nextRows.length) table.columns.adjust();
+    if (restoreFocus) {
+      (document.getElementById(activeElement.id) || document.getElementById("statement-search-q"))
+        .focus({preventScroll: true});
+    }
+  }
+
+  async function loadResults(url, push) {
+    activeRequest?.abort();
+    var controller = new AbortController();
+    activeRequest = controller;
+    var draft = push ? new FormData(document.getElementById("statement-library-search")) : null;
+    tableShell.setAttribute("aria-busy", "true");
+    requestStatus.textContent = "Updating problems…";
+    try {
+      var response = await fetch(url, {
+        headers: {"X-Requested-With": "XMLHttpRequest"},
+        signal: controller.signal,
+      });
+      if (!response.ok || response.redirected) throw new Error("Problem Library request failed");
+      var html = await response.text();
+      if (controller.signal.aborted) return;
+      var fragment = new DOMParser().parseFromString(html, "text/html");
+      applyResults(fragment, draft);
+      if (push && url.href !== window.location.href) window.history.pushState(null, "", url);
+      requestStatus.textContent = document.getElementById("problem-statements-loaded-status").textContent.trim();
+    } catch (error) {
+      if (controller.signal.aborted) return;
+      if (push) window.location.assign(url);
+      else window.location.replace(url);
+    } finally {
+      if (activeRequest === controller) {
+        activeRequest = null;
+        tableShell.removeAttribute("aria-busy");
+      }
+    }
+  }
+
+  library.addEventListener("submit", function (event) {
+    var form = event.target;
+    if (form.id !== "statement-library-search") return;
+    event.preventDefault();
+    var url = new URL(form.action);
+    for (var [name, value] of new FormData(form)) {
+      var filter = value.trim();
+      if (filter && !(name === "learner" && filter === "my")) url.searchParams.set(name, filter);
+    }
+    loadResults(url, true);
+  });
+
+  library.addEventListener("change", function (event) {
+    if (event.target.matches("#statement-library-search select")) event.target.form.requestSubmit();
+  });
+
+  library.addEventListener("click", function (event) {
+    var link = event.target.closest("[data-library-filter-link]");
+    if (!link || event.defaultPrevented || event.button !== 0 ||
+        event.ctrlKey || event.metaKey || event.shiftKey || event.altKey) return;
+    event.preventDefault();
+    loadResults(new URL(link.href), true);
+  });
+
+  window.addEventListener("popstate", function () {
+    loadResults(new URL(window.location.href), false);
+  });
 })();
 </script>
-{% endif %}
 {% endif %}
 {% endblock extra_javascript %}

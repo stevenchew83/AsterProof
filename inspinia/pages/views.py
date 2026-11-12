@@ -49,6 +49,7 @@ from django.utils.text import slugify
 from django.views.decorators.cache import never_cache
 from django.views.decorators.http import require_GET
 from django.views.decorators.http import require_POST
+from django.views.decorators.vary import vary_on_headers
 
 from inspinia.pages.algebra_tag_aliases import AlgebraAliasError
 from inspinia.pages.algebra_tag_imports import normalization_active
@@ -6984,6 +6985,8 @@ def problem_statement_editor_update_view(request):
 
 
 @login_required
+@never_cache
+@vary_on_headers("X-Requested-With")
 def problem_statement_list_view(request):
     """Shared problem library with explicitly scoped learner progress."""
     if request.method == "POST" and request.POST.get("action") == "recheck_links":
@@ -7017,7 +7020,10 @@ def problem_statement_list_view(request):
             },
         ),
     )
-    return render(request, "pages/problem-statement-list.html", context)
+    template = "pages/problem-statement-list.html"
+    if request.method == "GET" and request.headers.get("X-Requested-With") == "XMLHttpRequest":
+        template = "pages/partials/problem-library.html"
+    return render(request, template, context)
 
 
 @login_required

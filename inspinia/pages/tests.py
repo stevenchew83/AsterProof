@@ -18631,7 +18631,7 @@ def test_problem_statement_list_shows_statement_rows_and_link_counts(client):
     assert "statement_completion_toggle_url" not in response_html
     assert "data-completion-toggle-url=" not in response_html
     populated_shell_match = re.search(
-        r'<div class="(?P<classes>statement-table-shell[^"]*)">\s*'
+        r'<div id="statement-library-table-shell" class="(?P<classes>statement-table-shell[^"]*)">\s*'
         r'<table id="problem-statements-table"',
         response_html,
         re.S,
@@ -18835,7 +18835,7 @@ def test_problem_statement_list_invalid_mohs_filters_are_non_fatal(client):
     assert len(response.context["statement_datatable_rows"]) == 1
 
 
-def test_problem_statement_list_skips_datatables_when_filters_match_nothing(client):
+def test_problem_statement_list_can_recover_when_filters_match_nothing(client):
     user = UserFactory()
     client.force_login(user)
     ContestProblemStatement.objects.create(
@@ -18854,8 +18854,7 @@ def test_problem_statement_list_skips_datatables_when_filters_match_nothing(clie
     assert response.context["statement_loaded_summary"] == "No rows match current filters"
     assert response.context["statement_has_active_filters"] is True
     response_html = response.content.decode("utf-8")
-    assert "datatables" not in response_html.lower()
-    assert 'new DataTable("#problem-statements-table"' not in response_html
+    assert 'id="statement-library-table-shell" class="statement-table-shell" hidden' in response_html
     assert "No rows match current filters" in response_html
     assert "Reset filters" in response_html
     assert 'id="problem-statements-empty-state"' in response_html
