@@ -1,0 +1,18 @@
+<div class="problem-list-add-form" data-inline-action-region>
+  <form data-inline-action method="post" action="{% url 'problemsets:add_to_list' %}">
+    {% csrf_token %}
+    <input type="hidden" name="problem_uuid" value="{{ problem_uuid }}">
+    <input type="hidden" name="next" value="{{ next_url }}">
+    <div class="input-group input-group-sm">
+      <select class="form-select" name="list_uuid" aria-label="Choose problem list">
+        {% for target in problem_list_add_targets %}
+        <option value="{{ target.list_uuid }}">{{ target.title }}</option>
+        {% endfor %}
+      </select>
+      <button type="submit" class="btn btn-outline-primary">
+        <i class="ti ti-plus me-1" aria-hidden="true"></i>Add to list
+      </button>
+    </div>
+  </form>
+  {% include 'partials/inline-action-feedback.html' %}
+</div>

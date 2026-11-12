@@ -1484,3 +1484,58 @@ def test_author_cannot_vote_on_own_list(client):
 
     assert response.status_code == HTTPStatus.OK
     assert not ProblemListVote.objects.filter(problem_list=problem_list, user=author).exists()
+
+
+@pytest.mark.parametrize("inline", [False, True])
+def test_add_to_selected_problem_list(client, inline):
+    author = UserFactory()
+    client.force_login(author)
+    first = _problem_list(author=author, title="First list")
+    selected = _problem_list(author=author, title="Selected list")
+    other = _problem_list(title="Another user's list")
+    problem = _problem()
+    endpoint = reverse("problemsets:add_to_list")
+    data = {"list_uuid": selected.list_uuid, "problem_uuid": problem.problem_uuid}
+    headers = {"HTTP_ACCEPT": "application/json"} if inline else {}
+
+    response = client.post(endpoint, data, **headers)
+    assert response.status_code == (HTTPStatus.OK if inline else HTTPStatus.FOUND)
+    assert list(ProblemListItem.objects.values_list("problem_list_id", flat=True)) == [selected.pk]
+    assert not first.items.exists()
+
+    if inline:
+        assert response.json()["message"] == "Added problem to Selected list."
+        duplicate = client.post(endpoint, data, **headers)
+        assert duplicate.status_code == HTTPStatus.BAD_REQUEST
+        assert "already in this list" in duplicate.json()["message"]
+
+    denied = client.post(endpoint, {**data, "list_uuid": other.list_uuid}, **headers)
+    assert denied.status_code == HTTPStatus.NOT_FOUND
+    assert not other.items.exists()
+
+
+@pytest.mark.parametrize("show_stats", [False, True])
+def test_inline_problem_list_votes_return_current_state_and_replay_safely(client, show_stats):
+    voter = UserFactory()
+    problem_list = _problem_list(visibility=ProblemList.Visibility.PUBLIC)
+    endpoint = reverse("problemsets:vote", args=[problem_list.list_uuid])
+    data = {
+        "vote_mode": "set",
+        "value": "1",
+        "show_vote_stats": "1" if show_stats else "",
+        "next": problem_list.public_url(),
+    }
+    client.force_login(voter)
+
+    for _ in range(2):
+        response = client.post(endpoint, data, HTTP_ACCEPT="application/json")
+        assert response.status_code == HTTPStatus.OK
+        html = response.json()["html"]
+        assert 'name="value" value="0" aria-pressed="true"' in html
+        assert ("Score 1" in html) == show_stats
+        assert ProblemListVote.objects.get(problem_list=problem_list, user=voter).value == ProblemListVote.Value.UP
+
+    response = client.post(endpoint, {**data, "value": "0"}, HTTP_ACCEPT="application/json")
+    assert response.status_code == HTTPStatus.OK
+    assert 'name="value" value="1" aria-pressed="false"' in response.json()["html"]
+    assert not ProblemListVote.objects.filter(problem_list=problem_list, user=voter).exists()

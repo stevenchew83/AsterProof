@@ -101,26 +101,12 @@
           {% endif %}
         </span>
         {% if can_vote %}
-          <form method="post"
-                action="{% url 'solutions:forum_action' solution.pk 'upvote' %}">
-            {% csrf_token %}
-            <input type="hidden"
-                   name="active"
-                   value="{% if has_upvoted %}0{% else %}1{% endif %}" />
-            <button type="submit"
-                    class="forum-vote {% if has_upvoted %}is-voted{% endif %}"
-                    aria-label="{% if has_upvoted %}Remove your upvote{% else %}Upvote solution{% endif %}; {{ vote_count }} upvote{{ vote_count|pluralize }}"
-                    aria-pressed="{{ has_upvoted|yesno:'true,false' }}"
-                    title="{% if has_upvoted %}Remove your upvote{% else %}Upvote this solution{% endif %}">
-              <i class="ti ti-arrow-up" aria-hidden="true"></i><span>{{ vote_count }}</span><span class="forum-vote-label">
-                {% if has_upvoted %}
-                  Upvoted
-                {% else %}
-                  Upvote
-                {% endif %}
-              </span>
-            </button>
-          </form>
+          <div data-inline-action-region>
+            <div data-inline-action-content>
+              {% include 'solutions/partials/forum-vote.html' %}
+            </div>
+            {% include 'partials/inline-action-feedback.html' %}
+          </div>
         {% else %}
           <span class="forum-vote forum-vote-count"><i class="ti ti-arrow-up" aria-hidden="true"></i>{{ vote_count }} <span class="forum-vote-label">upvote{{ vote_count|pluralize }}</span></span>
         {% endif %}

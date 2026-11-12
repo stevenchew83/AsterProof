@@ -356,3 +356,28 @@ def test_archiving_from_my_notes_retains_source_and_publication(workspace):
     client.post(reverse("learning:archive", args=[item.pk]), {"edit_version": item.edit_version, "action": "reopen"})
     item.refresh_from_db()
     assert not item.is_archived
+
+
+def test_inline_learning_issue_actions_require_publisher_and_return_row(client, workspace):
+    author, publisher, _, concept = workspace
+    issue = ContentIssue.objects.create(
+        submission_id=uuid.uuid4(), kind="classification", target_key=concept.pk, description="Check the concept.",
+    )
+    endpoint = reverse("learning:issues")
+    data = {"issue_id": issue.pk, "action": "close"}
+    client.force_login(author)
+    denied = client.post(endpoint, data, HTTP_ACCEPT="application/json")
+    assert denied.status_code == HTTPStatus.FORBIDDEN
+
+    client.force_login(publisher)
+    closed = client.post(endpoint, data, HTTP_ACCEPT="application/json")
+    assert closed.status_code == HTTPStatus.OK
+    assert 'value="reopen"' in closed.json()["html"]
+    issue.refresh_from_db()
+    assert issue.status == "closed"
+
+    reopened = client.post(endpoint, {**data, "action": "reopen"}, HTTP_ACCEPT="application/json")
+    assert reopened.status_code == HTTPStatus.OK
+    assert 'value="close"' in reopened.json()["html"]
+    issue.refresh_from_db()
+    assert issue.status == "open"

@@ -338,3 +338,35 @@ def test_review_redirect_rejects_untrusted_status_and_bounds_query(client, state
     query = parse_qs(urlsplit(response.url).query)
     assert query["q"] == ["x" * 200]
     assert query["page"] == ["1"]
+
+
+def test_inline_review_updates_filtered_queue_and_clamps_emptied_page(client, statement, public_list):
+    submit(client, report_url(statement, public_list))
+    oldest = StatementIssueReport.objects.get()
+    StatementIssueReport.objects.bulk_create([
+        StatementIssueReport(
+            statement=statement,
+            statement_uuid=statement.statement_uuid,
+            problem_uuid=statement.problem_uuid,
+            statement_label="IMO P1",
+            statement_snapshot=statement.statement_latex,
+            description="The domain for x is missing.",
+        )
+        for _ in range(25)
+    ])
+    admin = UserFactory(role=User.Role.ADMIN)
+    client.force_login(admin)
+    endpoint = reverse("pages:statement_report_update", args=[oldest.pk])
+    response = client.post(endpoint, {
+        "status": "resolved", "return_status": "open", "return_query": "domain", "return_page": "2",
+    }, HTTP_ACCEPT="application/json")
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert parse_qs(urlsplit(payload["url"]).query) == {"status": ["open"], "q": ["domain"], "page": ["1"]}
+    assert 'value="domain"' in payload["html"]
+    assert "of 25 reports" in payload["html"]
+    assert f'id="statement-report-{oldest.pk}"' not in payload["html"]
+    oldest.refresh_from_db()
+    assert oldest.status == "resolved"
+    assert oldest.reviewed_by == admin

@@ -872,3 +872,16 @@ def test_trainer_topics_marks_imo_syllabus_subtopics(client):
     assert "Core" in html
     assert "ti ti-award" in html
     assert "IMO" in html
+
+
+def test_inline_material_completion_returns_completed_state_without_double_credit(client):
+    learner = UserFactory()
+    _topic, _subtopic, material, _problem = _topic_tree()
+    endpoint = reverse("training:material_detail", args=[material.slug])
+    client.force_login(learner)
+
+    for _ in range(2):
+        response = client.post(endpoint, HTTP_ACCEPT="application/json")
+        assert response.status_code == HTTPStatus.OK
+        assert "This material is complete." in response.json()["html"]
+    assert get_user_total_points(learner) == MATERIAL_COMPLETION_POINTS

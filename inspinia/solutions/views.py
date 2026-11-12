@@ -44,6 +44,9 @@ from django.views.decorators.http import require_POST
 from PIL import Image
 from PIL import UnidentifiedImageError
 
+from inspinia.inline_actions import inline_action_fragment
+from inspinia.inline_actions import inline_action_response
+from inspinia.inline_actions import wants_inline_action
 from inspinia.pages.asymptote_render import build_statement_render_segments
 from inspinia.pages.completion_record_fields import is_completion_status_solved
 from inspinia.pages.contest_links import contest_dashboard_listing_url
@@ -893,11 +896,9 @@ def _apply_editor_action(solution: ProblemSolution, action: str) -> tuple[str, s
     return "Saved changes.", "success"
 
 
-@login_required
-@never_cache
-def my_solution_list_view(request):
-    solutions = list(
-        ProblemSolution.objects.filter(author=request.user)
+def _solution_list_for_user(user):
+    return list(
+        ProblemSolution.objects.filter(author=user)
         .select_related("problem", "author")
         .annotate(
             block_count=Case(
@@ -916,6 +917,12 @@ def my_solution_list_view(request):
         )
         .order_by("-updated_at", "-id"),
     )
+
+
+@login_required
+@never_cache
+def my_solution_list_view(request):
+    solutions = _solution_list_for_user(request.user)
     status_counts = Counter(solution.status for solution in solutions)
     writer_draft = get_writer_draft(request)
     context = {
@@ -946,8 +953,31 @@ def solution_guide_preference_view(request):
     statuses = {"dismiss": User.SolutionGuideStatus.DISMISSED, "show": User.SolutionGuideStatus.ACTIVE}
     status = statuses.get(request.POST.get("action"))
     if status is None:
-        return HttpResponseBadRequest("Choose whether to show or dismiss the solution guide.")
+        message = "Choose whether to show or dismiss the solution guide."
+        if wants_inline_action(request):
+            return inline_action_response(message, status=400)
+        return HttpResponseBadRequest(message)
     User.objects.filter(pk=request.user.pk).update(solution_guide_status=status)
+    if wants_inline_action(request):
+        request.user.solution_guide_status = status
+        writer_draft = get_writer_draft(request)
+        guide = (
+            solution_guide_context(request.user, _solution_list_for_user(request.user), writer_draft=writer_draft)
+            if status == User.SolutionGuideStatus.ACTIVE else {"visible": False}
+        )
+        message = "Getting-started guide shown." if guide["visible"] else "Getting-started guide hidden."
+        template = (
+            "solutions/partials/my-solutions-empty.html"
+            if request.POST.get("guide_scope") == "empty" else "solutions/partials/solution-guide-content.html"
+        )
+        return inline_action_fragment(
+            request, message, template,
+            context={
+                "solution_guide": guide,
+                "writer_draft": writer_draft,
+                "writer_handoff_url": writer_handoff_url(),
+            },
+        )
     return redirect(reverse("solutions:my_solution_list") + "#solution-guide")
 
 

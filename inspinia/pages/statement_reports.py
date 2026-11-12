@@ -24,6 +24,9 @@ from django.views.decorators.cache import never_cache
 from django.views.decorators.http import require_http_methods
 from django.views.decorators.http import require_POST
 
+from inspinia.inline_actions import inline_action_fragment
+from inspinia.inline_actions import inline_action_response
+from inspinia.inline_actions import wants_inline_action
 from inspinia.pages.models import ContestProblemStatement
 from inspinia.pages.models import StatementIssueReport
 from inspinia.problemsets.models import ProblemList
@@ -166,15 +169,7 @@ def _require_report_admin(request):
         raise PermissionDenied
 
 
-@login_required
-@never_cache
-@require_http_methods(["GET"])
-def statement_report_list(request):
-    _require_report_admin(request)
-    status = request.GET.get("status", StatementIssueReport.Status.OPEN)
-    if status not in {"all", *StatementIssueReport.Status.values}:
-        status = StatementIssueReport.Status.OPEN
-    query = request.GET.get("q", "").strip()[:REPORT_QUERY_MAX_LENGTH]
+def _statement_report_context(status, query, page_number):
     reports = StatementIssueReport.objects.select_related("statement", "reporter", "reviewed_by")
     if query:
         reports = reports.filter(Q(statement_label__icontains=query) | Q(description__icontains=query))
@@ -191,8 +186,8 @@ def statement_report_list(request):
         })
     if status != "all":
         reports = reports.filter(status=status)
-    page = Paginator(reports, 25).get_page(request.GET.get("page"))
-    return render(request, "pages/statement-report-list.html", {
+    page = Paginator(reports, 25).get_page(page_number)
+    return {
         "reports": page,
         "selected_status": status,
         "status_tabs": status_tabs,
@@ -202,30 +197,58 @@ def statement_report_list(request):
             StatementIssueReport.objects.filter(status=StatementIssueReport.Status.OPEN).count()
             if query else counts[StatementIssueReport.Status.OPEN]
         ),
-    })
+    }
+
+
+@login_required
+@never_cache
+@require_http_methods(["GET"])
+def statement_report_list(request):
+    _require_report_admin(request)
+    status = request.GET.get("status", StatementIssueReport.Status.OPEN)
+    if status not in {"all", *StatementIssueReport.Status.values}:
+        status = StatementIssueReport.Status.OPEN
+    query = request.GET.get("q", "").strip()[:REPORT_QUERY_MAX_LENGTH]
+    context = _statement_report_context(status, query, request.GET.get("page"))
+    return render(request, "pages/statement-report-list.html", context)
 
 
 @login_required
 @require_POST
 def statement_report_update(request, report_id):
     _require_report_admin(request)
+    inline = wants_inline_action(request)
     status = request.POST.get("status")
     if status not in StatementIssueReport.Status.values:
-        return HttpResponseBadRequest("Choose a valid review status.")
+        message = "Choose a valid review status."
+        if inline:
+            return inline_action_response(message, status=400)
+        return HttpResponseBadRequest(message)
     report = get_object_or_404(StatementIssueReport, pk=report_id)
     report.status = status
     report.reviewed_by = request.user if status != StatementIssueReport.Status.OPEN else None
     report.reviewed_at = timezone.now() if status != StatementIssueReport.Status.OPEN else None
     report.save(update_fields=["status", "reviewed_by", "reviewed_at"])
-    messages.success(request, f"Report #{report.pk} marked {report.get_status_display().lower()}.")
+    message = f"Report #{report.pk} marked {report.get_status_display().lower()}."
+
     url = reverse("pages:statement_report_list")
     return_status = request.POST.get("return_status")
-    if return_status in {"all", *StatementIssueReport.Status.values}:
-        page = request.POST.get("return_page", "1")
-        params = {
-            "status": return_status,
-            "q": request.POST.get("return_query", "").strip()[:REPORT_QUERY_MAX_LENGTH],
-            "page": page if page.isdecimal() and len(page) <= REPORT_PAGE_MAX_DIGITS else "1",
-        }
-        url += "?" + urlencode(params)
+    query = request.POST.get("return_query", "").strip()[:REPORT_QUERY_MAX_LENGTH]
+    page_number = request.POST.get("return_page", "1")
+    if not page_number.isdecimal() or len(page_number) > REPORT_PAGE_MAX_DIGITS:
+        page_number = "1"
+    valid_return = return_status in {"all", *StatementIssueReport.Status.values}
+    if inline:
+        return_status = return_status if valid_return else StatementIssueReport.Status.OPEN
+        context = _statement_report_context(return_status, query, page_number)
+        page = context["reports"]
+        corrected_url = None
+        if int(page_number) != page.number:
+            corrected_url = f"{url}?{context['pagination_query']}&page={page.number}"
+        return inline_action_fragment(
+            request, message, "pages/partials/statement-report-queue.html", context, url=corrected_url,
+        )
+    messages.success(request, message)
+    if valid_return:
+        url += "?" + urlencode({"status": return_status, "q": query, "page": page_number})
     return redirect(url)

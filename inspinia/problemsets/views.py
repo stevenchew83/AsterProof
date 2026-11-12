@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from io import BytesIO
+from uuid import UUID
 
 from django.conf import settings
 from django.contrib import messages
@@ -17,6 +18,9 @@ from django.utils.text import slugify
 from django.views.decorators.http import require_GET
 from django.views.decorators.http import require_POST
 
+from inspinia.inline_actions import inline_action_fragment
+from inspinia.inline_actions import inline_action_response
+from inspinia.inline_actions import wants_inline_action
 from inspinia.pages.models import PageViewEvent
 from inspinia.pages.page_views import PageViewPayload
 from inspinia.pages.page_views import record_page_view
@@ -40,6 +44,7 @@ from inspinia.problemsets.services import remove_problem_list_item
 from inspinia.problemsets.services import reorder_problem_list_items
 from inspinia.problemsets.services import replace_problem_list_items
 from inspinia.problemsets.services import set_problem_list_visibility
+from inspinia.problemsets.services import set_problem_list_vote
 from inspinia.problemsets.services import toggle_problem_list_vote
 from inspinia.solutions.pdf_latex import SolutionPdfCompileError
 from inspinia.solutions.pdf_latex import SolutionPdfError
@@ -156,22 +161,32 @@ def edit_view(request, list_uuid):
 
 @login_required
 @require_POST
-def add_item_view(request, list_uuid):
+def add_item_view(request, list_uuid=None):
+    if list_uuid is None:
+        try:
+            list_uuid = UUID(request.POST.get("list_uuid", ""))
+        except ValueError as exc:
+            raise Http404 from exc
     problem_list = get_object_or_404(ProblemList, list_uuid=list_uuid, author=request.user)
     redirect_url = _safe_problem_list_next_url(
         request,
         fallback=reverse("problemsets:edit", args=[problem_list.list_uuid]),
     )
     form = ProblemListAddProblemForm(request.POST)
+    error = "Paste a valid problem UUID."
     if form.is_valid():
         try:
             add_problem_to_list(problem_list, form.cleaned_data["problem_uuid"])
         except ProblemListServiceError as exc:
-            messages.error(request, str(exc))
+            error = str(exc)
         else:
+            if wants_inline_action(request):
+                return inline_action_response(f"Added problem to {problem_list.title}.")
             messages.success(request, "Added problem to list.")
-    else:
-        messages.error(request, "Paste a valid problem UUID.")
+            return redirect(redirect_url)
+    if wants_inline_action(request):
+        return inline_action_response(error, status=400)
+    messages.error(request, error)
     return redirect(redirect_url)
 
 
@@ -265,18 +280,42 @@ def vote_view(request, list_uuid):
         list_uuid=list_uuid,
         visibility=ProblemList.Visibility.PUBLIC,
     )
+    inline = wants_inline_action(request)
     try:
-        value = int(request.POST.get("value", "0"))
-        toggle_problem_list_vote(problem_list, request.user, value)
-    except (TypeError, ValueError, ProblemListServiceError) as exc:
+        value = int(request.POST.get("value", ""))
+        if request.POST.get("vote_mode") == "set":
+            user_vote = set_problem_list_vote(problem_list, request.user, value)
+        else:
+            user_vote = toggle_problem_list_vote(problem_list, request.user, value)
+    except (TypeError, ValueError) as exc:
         message = str(exc) if isinstance(exc, ProblemListServiceError) else "Choose thumbs up or thumbs down."
+        if inline:
+            return inline_action_response(message, status=400)
         messages.error(request, message)
     else:
+        if inline:
+            show_stats = request.POST.get("show_vote_stats") == "1"
+            return inline_action_fragment(
+                request,
+                "Updated vote.",
+                template="problemsets/partials/vote-panel.html",
+                context={
+                    "problem_list": problem_list,
+                    "user_vote": user_vote,
+                    "can_vote": True,
+                    "show_vote_stats": show_stats,
+                    "problem_list_votes": problem_list_vote_totals(problem_list) if show_stats else None,
+                    "visible_problem_count": (
+                        problem_list.items.filter(problem__is_active=True).count() if show_stats else None
+                    ),
+                    "vote_next": _safe_problem_list_next_url(request, fallback=""),
+                },
+            )
         messages.success(request, "Updated vote.")
-    next_url = request.POST.get("next") or ""
-    if next_url.startswith("/"):
-        return redirect(next_url)
-    return redirect("problemsets:detail", problem_list.list_uuid)
+    return redirect(_safe_problem_list_next_url(
+        request,
+        fallback=reverse("problemsets:detail", args=[problem_list.list_uuid]),
+    ))
 
 
 def public_detail_view(request, share_token, slug):

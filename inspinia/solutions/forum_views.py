@@ -17,6 +17,9 @@ from django.views.decorators.cache import never_cache
 from django.views.decorators.http import require_GET
 from django.views.decorators.http import require_POST
 
+from inspinia.inline_actions import inline_action_fragment
+from inspinia.inline_actions import inline_action_response
+from inspinia.inline_actions import wants_inline_action
 from inspinia.training.markdown import render_markdown
 from inspinia.users.roles import user_can_access_app_features
 from inspinia.users.roles import user_has_admin_role
@@ -75,6 +78,14 @@ def _comment_row(comment, user):
         "can_moderate": user_has_admin_role(user) and comment.state != "removed",
         "can_reply": visible and comment.parent_id is None,
         "can_report": visible,
+    }
+
+
+def _vote_context(solution, user):
+    votes = SolutionUpvote.objects.filter(solution=solution)
+    return {
+        "vote_count": votes.count(),
+        "has_upvoted": votes.filter(user=user).exists(),
     }
 
 
@@ -141,8 +152,7 @@ def _detail_context(request, solution, *, posted_action="", posted_data=None, er
         "can_verify": published and admin and not author,
         "can_vote": published and not author,
         "can_discuss": published,
-        "vote_count": SolutionUpvote.objects.filter(solution=solution).count(),
-        "has_upvoted": SolutionUpvote.objects.filter(solution=solution, user=request.user).exists(),
+        **_vote_context(solution, request.user),
         "assessment_rows": assessments,
         "decision_reason": render_markdown(decision.reason) if decision else "",
         "assessment_form": AssessmentForm(form_data, initial=assessment_initial, auto_id="assessment_%s"),
@@ -173,14 +183,19 @@ def solution_detail(request, solution_pk):
 @never_cache
 def forum_action(request, solution_pk, action):
     solution = _solution(request, solution_pk)
+    inline_vote = action == "upvote" and wants_inline_action(request)
     try:
         length = int(request.META.get("CONTENT_LENGTH") or 0)
     except (TypeError, ValueError):
         length = MAX_POST_BYTES + 1
     if length < 0 or length > MAX_POST_BYTES:
-        return _private(render(request, "solutions/forum-detail.html", _detail_context(
-            request, solution, error="This request is too large. Shorten the text before submitting.",
-        ), status=413))
+        response = (
+            inline_action_response("This request is too large.", status=413)
+            if inline_vote else render(request, "solutions/forum-detail.html", _detail_context(
+                request, solution, error="This request is too large. Shorten the text before submitting.",
+            ), status=413)
+        )
+        return _private(response)
     try:
         forum.write(request.user, solution.pk, action, request.POST)
     except forum.ForumError as error:
@@ -192,9 +207,20 @@ def forum_action(request, solution_pk, action):
         if not request.user.is_active or not user_can_access_app_features(request.user):
             return _private(HttpResponse(status=403))
         solution = _solution(request, solution.pk)
-        return _private(render(request, "solutions/forum-detail.html", _detail_context(
-            request, solution, posted_action=action, posted_data=request.POST, error=str(error),
-        ), status=error.status))
+        response = (
+            inline_action_response(str(error), status=error.status)
+            if inline_vote else render(request, "solutions/forum-detail.html", _detail_context(
+                request, solution, posted_action=action, posted_data=request.POST, error=str(error),
+            ), status=error.status)
+        )
+        return _private(response)
+    if inline_vote:
+        return _private(inline_action_fragment(
+            request,
+            "Your vote has been updated.",
+            template="solutions/partials/forum-vote.html",
+            context={"solution": solution, **_vote_context(solution, request.user)},
+        ))
     messages.success(request, {
         "upvote": "Your vote has been updated.",
         "request_review": "Review requested for this version.",

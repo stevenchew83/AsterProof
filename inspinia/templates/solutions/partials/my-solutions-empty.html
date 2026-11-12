@@ -1,0 +1,14 @@
+{% if solution_guide.visible %}
+  {% include 'solutions/partials/my-solutions-header.html' %}
+{% else %}
+  {% include 'solutions/partials/my-solutions-header.html' with show_create=True %}
+{% endif %}
+{% include 'solutions/partials/solution-guide-content.html' with guide_scope="empty" %}
+{% if not solution_guide.visible %}
+  <section class="card mt-2" aria-labelledby="my-solutions-list-heading">
+    <div class="card-header border-bottom">
+      <h2 class="card-title mb-0" id="my-solutions-list-heading">Saved solutions</h2>
+    </div>
+    <p class="card-body text-muted mb-0">You have not started any solutions yet. Pick a statement-backed problem and create your first draft.</p>
+  </section>
+{% endif %}

@@ -164,26 +164,39 @@ def set_problem_list_visibility(problem_list: ProblemList, visibility: str) -> P
 
 
 def toggle_problem_list_vote(problem_list: ProblemList, user, value: int) -> int:
+    return _save_problem_list_vote(problem_list, user, value, toggle=True)
+
+
+def set_problem_list_vote(problem_list: ProblemList, user, value: int) -> int:
+    return _save_problem_list_vote(problem_list, user, value, toggle=False)
+
+
+@transaction.atomic
+def _save_problem_list_vote(problem_list: ProblemList, user, value: int, *, toggle: bool) -> int:
+    problem_list = ProblemList.objects.select_for_update().get(pk=problem_list.pk)
     if problem_list.author_id == user.id:
         msg = "Authors cannot vote on their own lists."
         raise ProblemListServiceError(msg)
     if not problem_list.is_public:
         msg = "Only public lists can receive votes."
         raise ProblemListServiceError(msg)
-    if value not in {ProblemListVote.Value.DOWN, ProblemListVote.Value.UP}:
+    allowed_values = {ProblemListVote.Value.DOWN, ProblemListVote.Value.UP}
+    if not toggle:
+        allowed_values.add(0)
+    if value not in allowed_values:
         msg = "Choose thumbs up or thumbs down."
         raise ProblemListServiceError(msg)
 
     vote = ProblemListVote.objects.filter(problem_list=problem_list, user=user).first()
-    if vote is not None and vote.value == value:
-        vote.delete()
+    if value == 0 or (toggle and vote is not None and vote.value == value):
+        if vote is not None:
+            vote.delete()
         return 0
-    if vote is not None:
+    if vote is None:
+        ProblemListVote.objects.create(problem_list=problem_list, user=user, value=value)
+    elif vote.value != value:
         vote.value = value
         vote.save(update_fields=["value", "updated_at"])
-        return value
-
-    ProblemListVote.objects.create(problem_list=problem_list, user=user, value=value)
     return value
 
 

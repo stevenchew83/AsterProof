@@ -1,0 +1,22 @@
+{% if show_vote_stats %}
+<div class="d-flex flex-wrap align-items-center gap-2 mb-3">
+  <span class="badge bg-primary-subtle text-primary">Score {{ problem_list_votes.score }}</span>
+  <span class="badge bg-success-subtle text-success">{{ problem_list_votes.upvote_count }} up</span>
+  <span class="badge bg-danger-subtle text-danger">{{ problem_list_votes.downvote_count }} down</span>
+  <span class="badge bg-light text-dark border">{{ visible_problem_count }} visible problems</span>
+</div>
+{% endif %}
+{% if can_vote %}
+<form data-inline-action method="post" action="{% url 'problemsets:vote' problem_list.list_uuid %}" class="d-flex flex-wrap gap-2{% if show_vote_stats %} mb-3{% endif %}">
+  {% csrf_token %}
+  <input type="hidden" name="next" value="{{ vote_next }}">
+  <input type="hidden" name="vote_mode" value="set">
+  {% if show_vote_stats %}<input type="hidden" name="show_vote_stats" value="1">{% endif %}
+  <button id="problem-list-upvote" type="submit" name="value" value="{% if user_vote == 1 %}0{% else %}1{% endif %}" aria-pressed="{% if user_vote == 1 %}true{% else %}false{% endif %}" class="btn {% if user_vote == 1 %}btn-success{% else %}btn-outline-success{% endif %} btn-sm">
+    <i class="ti ti-thumb-up me-1" aria-hidden="true"></i>Thumbs up
+  </button>
+  <button id="problem-list-downvote" type="submit" name="value" value="{% if user_vote == -1 %}0{% else %}-1{% endif %}" aria-pressed="{% if user_vote == -1 %}true{% else %}false{% endif %}" class="btn {% if user_vote == -1 %}btn-danger{% else %}btn-outline-danger{% endif %} btn-sm">
+    <i class="ti ti-thumb-down me-1" aria-hidden="true"></i>Thumbs down
+  </button>
+</form>
+{% endif %}

@@ -14,6 +14,9 @@ from django.shortcuts import render
 from django.views.decorators.cache import never_cache
 from django.views.decorators.http import require_http_methods
 
+from inspinia.inline_actions import inline_action_fragment
+from inspinia.inline_actions import inline_action_response
+from inspinia.inline_actions import wants_inline_action
 from inspinia.learning.forms import IssueForm
 from inspinia.learning.forms import NewDocumentForm
 from inspinia.learning.forms import StyledForm
@@ -90,7 +93,18 @@ def issues(request):
     require_publisher(request.user)
     if request.method == "POST":
         issue = get_object_or_404(ContentIssue, pk=request.POST.get("issue_id"))
-        review_issue(issue=issue, user=request.user, closed=request.POST.get("action") == "close")
+        action = request.POST.get("action")
+        inline = wants_inline_action(request)
+        if inline and action not in {"close", "reopen"}:
+            return inline_action_response("Choose whether to review or reopen the report.", status=400)
+        issue = review_issue(issue=issue, user=request.user, closed=action == "close")
+        if inline:
+            return inline_action_fragment(
+                request,
+                "Report marked reviewed." if issue.status == "closed" else "Report reopened.",
+                template="learning/partials/issue-content.html",
+                context={"issue": issue},
+            )
         return redirect("learning:issues")
     page = Paginator(ContentIssue.objects.order_by("-created_at"), 30).get_page(request.GET.get("page"))
     return render(request, "learning/issues.html", {"page": page})

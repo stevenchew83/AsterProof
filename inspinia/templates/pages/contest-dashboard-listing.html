@@ -414,25 +414,9 @@
                 {% if problem.is_addable_to_problem_list or problem.has_my_solution %}
                 <div class="d-flex flex-wrap align-items-center gap-3 border-top pt-3 mt-3">
                   {% if problem.is_addable_to_problem_list and problem_list_add_targets %}
-                  <form
-                    method="post"
-                    action="{{ problem_list_add_targets.0.add_url }}"
-                    class="problem-list-add-form"
-                  >
-                    {% csrf_token %}
-                    <input type="hidden" name="problem_uuid" value="{{ problem.problem_uuid }}">
-                    <input type="hidden" name="next" value="{{ contest_dashboard_current_url }}#{{ problem.anchor }}">
-                    <div class="input-group input-group-sm">
-                      <select class="form-select js-problem-list-add-target" aria-label="Choose problem list">
-                        {% for target in problem_list_add_targets %}
-                        <option value="{{ target.add_url }}">{{ target.title }}</option>
-                        {% endfor %}
-                      </select>
-                      <button type="submit" class="btn btn-outline-primary">
-                        <i class="ti ti-plus me-1"></i>Add to list
-                      </button>
-                    </div>
-                  </form>
+                  {% with anchor='#'|add:problem.anchor %}
+                    {% include 'problemsets/partials/add-form.html' with problem_uuid=problem.problem_uuid next_url=contest_dashboard_current_url|add:anchor %}
+                  {% endwith %}
                   {% elif problem.is_addable_to_problem_list %}
                   <a href="{% url 'problemsets:create' %}" class="btn btn-outline-secondary btn-sm">Create list</a>
                   {% endif %}
@@ -574,16 +558,6 @@
   })();
   </script>
   {% endif %}
-  <script>
-  (function () {
-    document.addEventListener("change", function (event) {
-      if (!event.target.matches(".js-problem-list-add-target")) return;
-      var form = event.target.closest("form");
-      if (!form) return;
-      form.action = event.target.value;
-    });
-  })();
-  </script>
   <script>
   (function () {
     function isInteractiveTarget(target) {
