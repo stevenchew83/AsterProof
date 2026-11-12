@@ -123,7 +123,7 @@ def test_admin_lookup_is_bounded_private_and_includes_zero_activity_accounts(cli
     ]
     assert client.get(lookup, {"q": "a"}).json() == {"results": [], "has_more": False}
     for i in range(21):
-        UserFactory(name=f"Lookup sample {i}")
+        UserFactory(name=f"Lookup sample {i}", email=f"lookup-sample-{i}@example.test")
     results = client.get(lookup, {"q": "Lookup sample"}).json()
     assert len(results["results"]) == 20  # noqa: PLR2004 - The external lookup cap.
     assert results["has_more"]
