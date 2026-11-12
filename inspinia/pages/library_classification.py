@@ -66,6 +66,8 @@ IMO_SLOTS = range(1, 7)
 MAX_TOPICS = 2
 MAX_SLOT_GUESSES = 2
 USER_DAILY_LIMIT = 5
+EXTENDED_QUOTA_ADMIN_EMAIL = "chinchiat83@gmail.com"
+EXTENDED_ADMIN_DAILY_LIMIT = 20
 SITE_DAILY_LIMIT = 50
 
 
@@ -306,9 +308,12 @@ def validated_suggestions(report, fields, snapshot):
     return result
 
 
-def _take_quota(user_id):
+def _take_quota(user):
     now = timezone.now().astimezone(UTC)
-    for scope, limit in ((f"user:{user_id}", USER_DAILY_LIMIT), ("site", SITE_DAILY_LIMIT)):
+    user_limit = USER_DAILY_LIMIT
+    if user.email.casefold() == EXTENDED_QUOTA_ADMIN_EMAIL and user_has_admin_role(user):
+        user_limit = EXTENDED_ADMIN_DAILY_LIMIT
+    for scope, limit in ((f"user:{user.pk}", user_limit), ("site", SITE_DAILY_LIMIT)):
         key = f"library-classification:{now.date()}:{scope}"
         cache.add(key, 0, timeout=90_000)
         try:
@@ -393,7 +398,7 @@ def _classify(statement, user, *, api_key):
         if user_has_admin_role(user):
             return JsonResponse({"suggestions": {}, "saved": False, "row": _saved_row(statement)})
         return JsonResponse({"suggestions": {}})
-    if quota_rejection := _take_quota(user.pk):
+    if quota_rejection := _take_quota(user):
         return quota_rejection
 
     snapshot = _snapshot(statement, row)
