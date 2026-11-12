@@ -29,6 +29,7 @@ from inspinia.users.tests.factories import UserFactory
 pytestmark = pytest.mark.django_db
 QUOTE = "For positive real numbers"
 STATEMENT = r"For positive real numbers $x,y$, prove that $x+y \ge 2\sqrt{xy}$."
+QUOTA_ADMIN_EMAIL = "chinchiat83@gmail.com"
 
 
 def make_statement(number=1, **kwargs):
@@ -358,6 +359,25 @@ def test_restricted_inactive_and_unusable_sources_do_not_dispatch(client, provid
     provider.assert_not_called()
 
 
+@pytest.mark.parametrize(
+    ("role", "email", "daily_limit"),
+    [
+        (User.Role.ADMIN, QUOTA_ADMIN_EMAIL.upper(), 20),
+        (User.Role.ADMIN, "other-admin@example.com", 5),
+        (User.Role.NORMAL, QUOTA_ADMIN_EMAIL, 5),
+        (User.Role.NORMAL, "member@example.com", 5),
+    ],
+)
+def test_daily_limit_only_increases_for_the_designated_admin(client, provider, role, email, daily_limit):
+    client.force_login(UserFactory(role=role, email=email))
+    endpoint = url(make_statement())
+
+    for _ in range(daily_limit):
+        assert client.post(endpoint).status_code == HTTPStatus.OK
+    assert client.post(endpoint).status_code == HTTPStatus.TOO_MANY_REQUESTS
+    assert provider.call_count == daily_limit
+
+
 def test_site_and_account_limits_prevent_dispatch(client, provider, monkeypatch):
     monkeypatch.setattr(classification, "USER_DAILY_LIMIT", 1)
     monkeypatch.setattr(classification, "SITE_DAILY_LIMIT", 2)
@@ -370,7 +390,7 @@ def test_site_and_account_limits_prevent_dispatch(client, provider, monkeypatch)
     account_limit = client.post(url(row))
     client.force_login(UserFactory())
     assert client.post(url(row)).status_code == HTTPStatus.OK
-    client.force_login(UserFactory())
+    client.force_login(UserFactory(role=User.Role.ADMIN, email=QUOTA_ADMIN_EMAIL))
     site_limit = client.post(url(row))
 
     for response in (account_limit, site_limit):
