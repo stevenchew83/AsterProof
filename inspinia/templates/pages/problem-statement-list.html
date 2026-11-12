@@ -448,6 +448,7 @@
                   <th class="text-nowrap">Signals</th>
                   <th class="text-nowrap">Avg difficulty</th>
                   <th class="text-nowrap">Updated</th>
+                  <th class="text-nowrap">AI suggestions</th>
                   <th class="d-none" aria-hidden="true"></th>
                   <th class="d-none" aria-hidden="true"></th>
                 </tr>
@@ -660,15 +661,14 @@
     var review = row.concept_review_labels || [];
     var suggestions = row.concept_suggestions || [];
     var status = row.concept_coverage_status || "Untagged";
-    if (type === "filter") return labels.concat(review, suggestions.map(function(c) { return c.label; }), row.concept_source_tags || [], [status]).join(" ");
-    if (type !== "display") return labels.join(", ") || status;
     var ai = aiTaxonomy(row);
     var aiLabels = isArea ? ai?.area : ai?.coverage?.map(function (concept) { return concept.label; });
     var showingAi = !labels.length && Boolean(aiLabels?.length);
     if (showingAi) labels = aiLabels;
-    var limit = isArea ? 1 : 2;
-    var visible = labels.slice(0, limit).join(", ") || (status === "Mapped" ? "\u2014" : status);
-    var more = labels.length > limit ? '<span class="ms-1 fw-semibold">+' + (labels.length - limit) + '</span>' : '';
+    if (type === "filter") return labels.concat(review, suggestions.map(function(c) { return c.label; }), row.concept_source_tags || [], [status]).join(" ");
+    if (type !== "display") return labels.join(", ") || status;
+    var visible = labels[0] || (status === "Mapped" ? "\u2014" : status);
+    var more = labels.length > 1 ? '<span class="ms-1 fw-semibold">+' + (labels.length - 1) + '</span>' : '';
     var heldCount = row.assignment_projection ? suggestions.length : review.length;
     var held = !isArea && heldCount
       ? '<span class="ms-2 text-warning-emphasis">Needs review (' + heldCount + ')</span>' : '';
@@ -729,18 +729,20 @@
     if (state?.phase === "pending") label = "Suggesting…";
     if (state?.phase === "saved") label = "AI saved";
     if (state?.phase === "done") label = Object.keys(state.suggestions).length ? "AI suggested" : "No suggestions";
-    if (state?.phase === "error") label = "Try AI again";
+    if (state?.phase === "error" || state?.taxonomyMissing) label = "Try AI again";
     var icon = state?.phase === "pending"
       ? '<span class="spinner-border spinner-border-sm me-1" aria-hidden="true"></span>'
       : '<i class="ti ti-sparkles me-1" aria-hidden="true"></i>';
     return '<button type="button" class="btn btn-outline-secondary btn-sm library-classification-button" ' +
       'aria-label="' + escapeHtml(label + " for " + problemLabel(row)) + '" ' +
       'aria-describedby="library-classification-help" ' +
-      (state && state.phase !== "error" ? 'aria-disabled="true" ' : '') +
+      (state && state.phase !== "error" && !state.taxonomyMissing ? 'aria-disabled="true" ' : '') +
       (state?.error ? 'title="' + escapeHtml(state.error) + '" ' : '') +
-      'data-problem-uuid="' + escapeHtml(row.problem_uuid) + '">' + icon + label + '</button>';
+      'data-problem-uuid="' + escapeHtml(row.problem_uuid) + '">' + icon + label + '</button>' +
+      (state?.taxonomyMissing ? '<div class="text-muted fs-xs mt-1">No supported concept found</div>' : '');
   }
 
+  var hasClassification = rows.some(function (row) { return row.classification_url; });
   var table = new DataTable("#problem-statements-table", {
     data: rows,
     layout: {
@@ -808,7 +810,6 @@
               "</a>";
           }
 
-          var aiAction = classificationAction(row);
           return (
             '<div class="d-inline-flex align-items-center gap-2 text-nowrap">' +
             '<span class="statement-problem-label fw-semibold text-body" title="' + escapeHtml(label) + '">' +
@@ -817,8 +818,7 @@
             (hasDay ? '<span class="statement-day-label text-muted fs-xs" title="' + escapeHtml(day) + '">\u00b7 ' + escapeHtml(day) + "</span>" : "") +
             (row.has_statement === false ? '<span class="badge text-bg-light border">Statement missing</span>' : "") +
             action +
-            "</div>" +
-            (aiAction ? '<div class="mt-1">' + aiAction + "</div>" : "")
+            "</div>"
           );
         }
       },
@@ -988,6 +988,13 @@
         }
       },
       {
+        data: null,
+        className: "text-nowrap",
+        orderable: false,
+        visible: hasClassification,
+        render: function (_data, type, row) { return type === "display" ? classificationAction(row) : ""; }
+      },
+      {
         data: "problem_uuid",
         visible: false,
       },
@@ -998,14 +1005,14 @@
     ]
   });
 
-  if (!rows.some(function (row) { return row.classification_url; })) return;
+  if (!hasClassification) return;
   var classificationStatus = document.getElementById("library-classification-status");
 
   function updateClassification(row, state) {
     var entry = table.row(function (_index, data) { return data === row; });
     var oldButton = entry.node()?.querySelector(".library-classification-button");
     var restoreFocus = document.activeElement === oldButton;
-    row.classification = state;
+    row.classification = {...state, suggestions: {...row.classification?.suggestions, ...state.suggestions}};
     entry.invalidate("data").draw("page");
     if (restoreFocus) {
       entry.node()?.querySelector(".library-classification-button")?.focus({preventScroll: true});
@@ -1029,13 +1036,16 @@
       var data = response.headers.get("content-type")?.includes("application/json") ? await response.json() : {};
       if (!response.ok || !data.suggestions) throw new Error(data.error || "AI suggestions are unavailable.");
       if (data.row) Object.assign(row, data.row);
-      updateClassification(row, {phase: data.saved ? "saved" : "done", suggestions: data.suggestions});
+      updateClassification(row, {
+        phase: data.saved ? "saved" : "done", suggestions: data.suggestions, taxonomyMissing: data.taxonomy_missing,
+      });
       var hasSuggestions = Object.keys(data.suggestions).length > 0;
       classificationStatus.textContent = data.saved
         ? "AI suggestions saved to " + label + "."
         : hasSuggestions
         ? "AI suggestions added to the row for " + label + "."
         : "No supported suggestions for " + label + ".";
+      if (data.taxonomy_missing) classificationStatus.textContent += " No supported concept found for Area or Coverage.";
     } catch (error) {
       updateClassification(row, {phase: "error", error: error.message});
       classificationStatus.textContent = label + ". " + error.message;

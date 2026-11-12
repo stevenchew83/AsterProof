@@ -56,7 +56,7 @@ test('Topic and MOHS sort independently and use suggestions only for missing val
   assert.equal(mohs(null, 'sort', row), 0);
   assert.equal(mohs(null, 'sort', {...row, linked_problem_mohs: '10'}), 10);
   assert.equal(mohs(null, 'sort', {...row, linked_problem_mohs: null}), -1);
-  assert.match(problem(null, 'display', row), /Suggest with AI/);
+  assert.doesNotMatch(problem(null, 'display', row), /Suggest with AI/);
 
   const classification = {phase: 'done', suggestions: {topic: 'Algebra', mohs: 15}};
   const missingTopic = {...row, linked_problem_topic: '', classification};
@@ -66,6 +66,43 @@ test('Topic and MOHS sort independently and use suggestions only for missing val
   const missingMohs = {...row, linked_problem_mohs: null, classification};
   assert.match(topic(null, 'display', missingMohs), />Geometry<\/span>$/);
   assert.match(mohs(null, 'display', missingMohs), />15.*>AI</);
+});
+
+test('the last column holds the AI action and explains a partial save', () => {
+  const column = config.columns.at(-3);
+  const row = {
+    ...statement, problem_uuid: 'problem-id', classification_url: '/problems/problem-id/ai-suggestions/',
+  };
+  assert.equal(column.orderable, false);
+  assert.equal(column.render(null, 'display', statement), '');
+  assert.match(column.render(null, 'display', row), /Suggest with AI/);
+  const partial = column.render(null, 'display', {...row, classification: {phase: 'saved', taxonomyMissing: true}});
+  assert.match(partial, /Try AI again/);
+  assert.match(partial, /No supported concept found/);
+  assert.doesNotMatch(partial, /aria-disabled/);
+});
+
+test('Area and Coverage each display one label with a count and keep all labels in the tooltip', () => {
+  const area = config.columns[4].render;
+  const coverage = config.columns[5].render;
+  const row = {
+    ...statement, problem_uuid: 'problem-id', concept_areas: ['First area', 'Second area'],
+    concept_coverage: ['First concept', 'Second concept', 'Third concept'].map(display => ({display})),
+  };
+  const areaHtml = area(null, 'display', row);
+  assert.match(areaHtml, /title="First area, Second area"/);
+  assert.match(areaHtml, />First area<.*>\+1</);
+  assert.doesNotMatch(areaHtml, />Second area</);
+  const coverageHtml = coverage(null, 'display', row);
+  assert.match(coverageHtml, /title="First concept, Second concept, Third concept"/);
+  assert.match(coverageHtml, />First concept<.*>\+2</);
+  assert.doesNotMatch(coverageHtml, />Second concept</);
+
+  const saved = {...row, concept_areas: [], concept_coverage: [],
+    saved_ai_concepts: [{label: 'First concept', area: 'First area'}, {label: 'Second concept', area: 'Second area'}]};
+  assert.match(area(null, 'display', saved), />First area<.*>\+1<.*>AI</);
+  assert.match(coverage(null, 'display', saved), />First concept<.*>\+1<.*>AI</);
+  assert.equal(coverage(null, 'sort', saved), 'First concept, Second concept');
 });
 
 test('unlinked statement completion shows unsolved, solved or unknown-date status', () => {
