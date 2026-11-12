@@ -144,6 +144,7 @@ def my_problem_lists_queryset(user):
 def problem_list_add_target_rows(user) -> list[dict[str, str]]:
     return [
         {
+            "add_url": reverse("problemsets:add_item", args=[problem_list.list_uuid]),
             "list_uuid": str(problem_list.list_uuid),
             "title": problem_list.title,
         }

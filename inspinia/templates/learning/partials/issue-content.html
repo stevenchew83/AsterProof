@@ -1,7 +1,7 @@
 <p class="text-muted">{{ issue.get_kind_display }} · {{ issue.target_key }} · {{ issue.get_status_display }}</p>
 <p class="learning-plain-text">{{ issue.description }}</p>
 {% if issue.document_id %}<p>Document: {{ issue.document_id }}</p>{% endif %}
-<form data-inline-action method="post" action="{% url 'learning:issues' %}">
+<form data-inline-action="page" method="post" action="{% url 'learning:issues' %}">
   {% csrf_token %}
   <input type="hidden" name="issue_id" value="{{ issue.pk }}" />
   <button id="learning-issue-{{ issue.pk }}" type="submit" class="btn btn-outline-primary"

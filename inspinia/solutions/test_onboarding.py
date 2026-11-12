@@ -354,30 +354,30 @@ def test_new_signup_lands_on_solutions_after_existing_approval_gate(client, sett
     assert response.context["solution_guide"]["visible"]
 
 
-def test_inline_guide_preference_returns_current_guide(client, learner, solution):
+def test_guide_preference_redirect_renders_current_guide(client, learner, solution):
     endpoint = reverse("solutions:solution_guide_preference")
-    hidden = client.post(endpoint, {"action": "dismiss"}, HTTP_ACCEPT="application/json")
+    hidden = client.post(endpoint, {"action": "dismiss"}, follow=True)
     assert hidden.status_code == HTTPStatus.OK
-    assert "Show getting-started guide" in hidden.json()["html"]
+    assert "Show getting-started guide" in hidden.content.decode()
     learner.refresh_from_db()
     assert learner.solution_guide_status == User.SolutionGuideStatus.DISMISSED
 
-    shown = client.post(endpoint, {"action": "show"}, HTTP_ACCEPT="application/json")
+    shown = client.post(endpoint, {"action": "show"}, follow=True)
     assert shown.status_code == HTTPStatus.OK
-    assert solution.title in shown.json()["html"]
-    assert "Skip for now" in shown.json()["html"]
+    assert solution.title in shown.content.decode()
+    assert "Skip for now" in shown.content.decode()
     learner.refresh_from_db()
     assert learner.solution_guide_status == User.SolutionGuideStatus.ACTIVE
 
 
-def test_inline_guide_preference_updates_empty_workspace_actions(client, learner):
+def test_guide_preference_redirect_renders_empty_workspace_actions(client, learner):
     endpoint = reverse("solutions:solution_guide_preference")
-    hidden = client.post(endpoint, {"action": "dismiss", "guide_scope": "empty"}, HTTP_ACCEPT="application/json")
+    hidden = client.post(endpoint, {"action": "dismiss"}, follow=True)
     assert hidden.status_code == HTTPStatus.OK
-    assert 'id="create-solution-cta"' in hidden.json()["html"]
-    assert "You have not started any solutions yet" in hidden.json()["html"]
+    assert 'id="create-solution-cta"' in hidden.content.decode()
+    assert "You have not started any solutions yet" in hidden.content.decode()
 
-    shown = client.post(endpoint, {"action": "show", "guide_scope": "empty"}, HTTP_ACCEPT="application/json")
+    shown = client.post(endpoint, {"action": "show"}, follow=True)
     assert shown.status_code == HTTPStatus.OK
-    assert "I already have a proof" in shown.json()["html"]
-    assert 'id="create-solution-cta"' not in shown.json()["html"]
+    assert "I already have a proof" in shown.content.decode()
+    assert 'id="create-solution-cta"' not in shown.content.decode()

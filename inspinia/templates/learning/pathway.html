@@ -2,6 +2,11 @@
 
 {% block learning_content %}
   <h1>{{ revision.title }}</h1>
+  {% for message in messages %}
+    <div class="alert alert-{% if message.level == DEFAULT_MESSAGE_LEVELS.ERROR %}danger{% else %}info{% endif %}"
+         {% if message.level == DEFAULT_MESSAGE_LEVELS.ERROR %}data-inline-action-page-error{% endif %}
+         role="alert">{{ message }}</div>
+  {% endfor %}
   {% if learning_is_publisher %}
     <a href="{% url 'learning:pathway_editor' %}?slug={{ path.slug|urlencode }}">Edit pathway sequence</a>
   {% endif %}
@@ -16,7 +21,7 @@
           {% if row.revision %}
             <div class="learning-prose" data-learning-math>{{ row.rendered }}</div>
             <a href="{% url 'learning:read' row.revision.document_id %}">Open lecture</a>
-            <div data-inline-action-region>
+            <div id="pathway-reading-{{ row.key }}" data-inline-action-region>
               <div data-inline-action-content>
                 {% include 'learning/partials/pathway-reading.html' with read=row.read %}
               </div>

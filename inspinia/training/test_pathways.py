@@ -260,19 +260,20 @@ def test_edit_payload_round_trips_every_activity_kind(curriculum):
     assert list(updated.current_revision.items.values_list("kind", flat=True)) == LearningPathItem.Kind.values
 
 
-def test_inline_pathway_completion_requires_the_current_revision(client, curriculum):
+def test_pathway_completion_redirect_preserves_revision_validation(client, curriculum):
     publisher, learner, publication = curriculum
     path = release(publisher, path_data(publication))
     endpoint = reverse("learning:mark_read", args=[path.slug, "amgm"])
     client.force_login(learner)
 
-    stale = client.post(endpoint, {"revision_id": uuid.uuid4()}, HTTP_ACCEPT="application/json")
-    assert stale.status_code == HTTPStatus.CONFLICT
-    assert "lecture changed" in stale.json()["message"]
+    stale = client.post(endpoint, {"revision_id": uuid.uuid4()}, follow=True)
+    assert stale.status_code == HTTPStatus.OK
+    assert "lecture changed" in stale.content.decode()
+    assert b"data-inline-action-page-error" in stale.content
     assert not PathReading.objects.exists()
 
     for _ in range(2):
-        response = client.post(endpoint, {"revision_id": publication.revision_id}, HTTP_ACCEPT="application/json")
+        response = client.post(endpoint, {"revision_id": publication.revision_id}, follow=True)
         assert response.status_code == HTTPStatus.OK
-        assert "Read · current revision" in response.json()["html"]
+        assert "Read · current revision" in response.content.decode()
     assert PathReading.objects.filter(user=learner).count() == 1
