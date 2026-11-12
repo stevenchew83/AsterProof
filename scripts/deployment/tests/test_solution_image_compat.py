@@ -144,5 +144,22 @@ def test_capability_type_and_version_are_strict(tmp_path, monkeypatch, value):
 def test_frozen_image_sources_match_the_reviewed_implementation():
     assert compat.ADMIN_REVIEW_READER_SOURCES.keys() == compat.READER_SOURCES.keys()
     assert compat.SELF_REVIEW_READER_SOURCES.keys() == compat.ADMIN_REVIEW_READER_SOURCES.keys()
-    for relative, expected in compat.MULTIPLE_SOLUTION_READER_SOURCES.items():
+    for relative, expected in compat.SHARE_MODAL_READER_SOURCES.items():
         assert hashlib.sha256((ROOT / relative).read_bytes()).hexdigest() == expected
+
+
+def test_share_modal_profile_requires_both_reviewed_files_and_preserves_prior_reader():
+    legacy = compat.MULTIPLE_SOLUTION_READER_SOURCES
+    current = compat.SHARE_MODAL_READER_SOURCES
+    template = "inspinia/templates/solutions/partials/solution-share-popover.html"
+    script = "inspinia/static/js/solution-share-popover.js"
+    assert {path for path in current if legacy.get(path) != current[path]} == {template, script}
+
+    def manifest_entries(sources):
+        return [{"path": path, "sha256": digest} for path, digest in sources.items()]
+
+    assert compat.reader_sources_match(manifest_entries(legacy))
+    assert compat.reader_sources_match(manifest_entries(current))
+    assert not compat.reader_sources_match(manifest_entries({**legacy, template: current[template]}))
+    assert not compat.reader_sources_match(manifest_entries({**legacy, script: current[script]}))
+    assert not compat.reader_sources_match(manifest_entries({**current, script: "0" * 64}))
