@@ -10,8 +10,11 @@ const script = [...template.matchAll(/<script>([\s\S]*?)<\/script>/g)]
 let config;
 const element = {textContent: '[]', addEventListener() {}, querySelectorAll: () => []};
 vm.runInNewContext(script, {
-  document: {getElementById: () => element},
-  DataTable: function (_selector, options) { config = options; },
+  document: {getElementById: id => id === 'statement-library' ? null : element},
+  DataTable: function (_selector, options) {
+    config = options;
+    this.table = () => ({node: () => element});
+  },
 });
 const statement = {
   contest_year_problem: 'Canada National Olympiad 1991 P5',
@@ -92,6 +95,7 @@ test('the AI action shows the server error and becomes available again at the da
   vm.runInNewContext(script, {
     document: {
       getElementById(id) {
+        if (id === 'statement-library') return null;
         if (id === 'problem-statements-table-data') return {textContent: JSON.stringify([row])};
         if (id === 'library-classification-status') return liveStatus;
         return element;
@@ -192,6 +196,7 @@ test('record-only problems retain distinct taxonomy dialogs across table redraws
   const elements = new Map();
   let clickHandler, dialogOpened = false, table;
   const getElementById = id => {
+    if (id === 'statement-library') return null;
     if (!elements.has(id)) elements.set(id, {
       textContent: id === 'problem-statements-table-data' ? JSON.stringify(rows) : '',
       addEventListener(event, handler) {
@@ -204,7 +209,10 @@ test('record-only problems retain distinct taxonomy dialogs across table redraws
   };
   vm.runInNewContext(script, {
     document: {getElementById, createElement: () => ({})},
-    DataTable: function (_selector, options) { table = options; },
+    DataTable: function (_selector, options) {
+      table = options;
+      this.table = () => ({node: () => element});
+    },
   });
   for (const row of rows) {
     for (let draw = 0; draw < 2; draw++) {

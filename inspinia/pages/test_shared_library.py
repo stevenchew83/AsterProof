@@ -202,12 +202,42 @@ def test_selected_learner_changes_only_progress_and_never_exposes_private_soluti
     assert history_snapshot() == before
 
 
+def test_ajax_filters_return_the_same_scoped_results_as_a_shareable_url(client, settings):
+    viewer = UserFactory(role=User.Role.ADMIN, email="library-admin@example.test")
+    alex = UserFactory(email="library-alex@example.test")
+    ben = UserFactory(email="library-ben@example.test")
+    settings.SHARED_PROGRESS_LEARNERS = {"alex": alex.email, "ben": ben.email}
+    client.force_login(viewer)
+    target = statement()
+    problem(2)
+    UserProblemCompletion.objects.create(user=alex, statement=target, completion_date=date(2026, 1, 1))
+    params = {"q": str(target.problem_uuid), "year": "2026", "learner": "alex"}
+    page = library(client, **params)
+
+    fragment = client.get(
+        reverse("pages:problem_statement_list"), params, headers={"X-Requested-With": "XMLHttpRequest"},
+    )
+
+    assert fragment.status_code == HTTPStatus.OK
+    assert "X-Requested-With" in fragment.headers["Vary"]
+    assert "no-store" in fragment.headers["Cache-Control"]
+    assert rows_by_uuid(fragment) == rows_by_uuid(page)
+    assert list(rows_by_uuid(fragment)) == [str(target.problem_uuid)]
+    assert fragment.context["library_stats"]["solved_total"] == 1
+    assert fragment.context["statement_copy_tsv"] == page.context["statement_copy_tsv"]
+    assert b'id="statement-library"' in fragment.content
+    assert b'id="statement-library-search"' in fragment.content
+    assert b"Loaded 1 matching row" in fragment.content
+    assert b"<html" not in fragment.content.lower()
+
+
+@pytest.mark.parametrize("headers", [{}, {"X-Requested-With": "XMLHttpRequest"}])
 @pytest.mark.parametrize("selector", ["alex", "999", "not-a-learner"])
-def test_progress_selector_cannot_resolve_unapproved_users(client, settings, selector):
+def test_progress_selector_cannot_resolve_unapproved_users(client, settings, selector, headers):
     viewer, alex, ben = UserFactory(), UserFactory(), UserFactory()
     settings.SHARED_PROGRESS_LEARNERS = {"alex": alex.email, "ben": ben.email}
     client.force_login(viewer)
-    response = client.get(reverse("pages:problem_statement_list"), {"learner": selector})
+    response = client.get(reverse("pages:problem_statement_list"), {"learner": selector}, headers=headers)
     assert response.status_code == HTTPStatus.FORBIDDEN
 
 
