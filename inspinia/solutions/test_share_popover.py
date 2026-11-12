@@ -157,14 +157,16 @@ def test_unshareable_saved_content_still_allows_copy_and_stop_without_flashes(cl
     assert post(client, writing, settings, "stop").json()["ok"]
 
 
-def test_dialog_is_outside_editor_form_and_has_native_focus_and_mobile_hooks(client, writing):
+def test_modal_is_outside_editor_form_and_has_inspinia_mobile_and_fallback_hooks(client, writing):
     editor = reverse("solutions:problem_solution_edit", args=[writing.problem.problem_uuid])
     html = client.get(editor).content.decode()
     assert 'id="solution-share-trigger"' in html
     assert 'aria-haspopup="dialog"' in html
     assert 'aria-controls="solution-share-dialog"' in html
     assert "data-share-fallback" in html
-    assert html.index("</dialog>") < html.index('id="solution-editor-form"')
+    assert html.index('id="solution-share-dialog" class="modal fade"') < html.index('id="solution-editor-form"')
+    assert "modal-dialog-centered modal-dialog-scrollable modal-fullscreen-sm-down" in html
+    assert 'data-bs-dismiss="modal" data-share-close' in html
     assert "Copy link" in html
     assert "WhatsApp" in html
     assert "Update shared version" in html

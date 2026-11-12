@@ -121,11 +121,26 @@ MULTIPLE_SOLUTION_READER_SOURCES = {
     "inspinia/templates/solutions/partials/solution-editor-toolbar.html": (
         "a69120f728a20cfce8e81cb73092922f073f14140e440311e0675046bfaa921b"
     ),
+    "inspinia/static/js/solution-share-popover.js": (
+        "58c7a56097b4df1b462bac2e5d708f13d6a8acaa0849253ace3f68604764a61c"
+    ),
     "inspinia/templates/solutions/partials/solution-share-popover.html": (
         "8c35e7927ad38e154c5edb5159a805e439494adf81c32043afd47ac078e2c52c"
     ),
     "inspinia/templates/solutions/problem-solution-list.html": (
         "3de6de6d4adc9a96ef9dfce330c4b1c977508f98ed27b8d56b7d09a37a2fb17b"
+    ),
+}
+
+
+# The sharing modal changes only its template and browser controller.
+SHARE_MODAL_READER_SOURCES = {
+    **MULTIPLE_SOLUTION_READER_SOURCES,
+    "inspinia/static/js/solution-share-popover.js": (
+        "8b333caa7ac51c98a8967db767338c99e21d00adb649d96b5b6ea36f8e6973d1"
+    ),
+    "inspinia/templates/solutions/partials/solution-share-popover.html": (
+        "bb7574f6e5bbda01d865a45e9aaadd01313e728bf09d704cb9143634044cb2ab"
     ),
 }
 
@@ -137,6 +152,7 @@ def _reader_profiles():
         ADMIN_REVIEW_READER_SOURCES,
         SELF_REVIEW_READER_SOURCES,
         MULTIPLE_SOLUTION_READER_SOURCES,
+        SHARE_MODAL_READER_SOURCES,
     )
 
 

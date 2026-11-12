@@ -3,7 +3,10 @@
   var dialog = document.getElementById('solution-share-dialog');
   var trigger = document.getElementById('solution-share-trigger');
   var editor = document.getElementById('solution-editor-form');
-  if (!dialog || !trigger || !editor || typeof dialog.showModal !== 'function') return;
+  if (!dialog || !trigger || !editor || !window.bootstrap?.Modal) return;
+
+  document.body.append(dialog);
+  var modal = window.bootstrap.Modal.getOrCreateInstance(dialog);
 
   var get = function (name) { return dialog.querySelector('[data-share-' + name + ']'); };
   var feedback = get('feedback');
@@ -12,30 +15,18 @@
   var loading = false;
   var generation = 0;
   var opener = trigger;
-  var narrow = window.matchMedia('(max-width: 767px)');
   var endpoint = dialog.dataset.shareUrl;
   var buttons = Array.from(dialog.querySelectorAll('[data-share-action], [data-share-copy]'));
 
-  function position() {
-    if (!dialog.open || narrow.matches) return;
-    var anchor = trigger.getBoundingClientRect();
-    var box = dialog.getBoundingClientRect();
-    var left = Math.max(12, Math.min(anchor.right - box.width, window.innerWidth - box.width - 12));
-    var top = Math.max(12, Math.min(anchor.bottom + 10, window.innerHeight - box.height - 12));
-    dialog.style.setProperty('--share-left', left + 'px');
-    dialog.style.setProperty('--share-top', top + 'px');
-  }
-
   function setFeedback(message, error) {
     feedback.textContent = message || '';
+    feedback.hidden = !message;
     feedback.classList.toggle('text-danger', Boolean(error));
-    position();
   }
 
   function syncDirty() {
     var saveStatus = document.getElementById('solution-save-status');
     get('dirty').hidden = !saveStatus || saveStatus.dataset.dirty !== 'true';
-    position();
   }
 
   function setLink(link, href, enabled) {
@@ -46,7 +37,7 @@
   }
 
   function keepFocusInside() {
-    if (dialog.open && !dialog.contains(document.activeElement)) get('close').focus({preventScroll: true});
+    if (dialog.classList.contains('show') && !dialog.contains(document.activeElement)) get('close').focus({preventScroll: true});
   }
 
   function render() {
@@ -55,7 +46,7 @@
     get('footer').hidden = !state;
     buttons.forEach(function (button) { button.disabled = !ready; });
     dialog.setAttribute('aria-busy', String(loading || busy));
-    if (!state) { position(); keepFocusInside(); return; }
+    if (!state) { keepFocusInside(); return; }
 
     var active = state.is_active;
     get('saved-title').textContent = state.saved_title || 'Your solution';
@@ -87,7 +78,6 @@
     document.querySelector('[data-share-active-notice]').hidden = !active;
     document.querySelector('[data-share-indicator]').hidden = !active;
     syncDirty();
-    position();
     keepFocusInside();
   }
 
@@ -161,11 +151,14 @@
     }
   }
 
-  function open(event) {
-    event.preventDefault();
-    opener = event.currentTarget;
-    if (!dialog.open) dialog.showModal();
-    document.documentElement.classList.add('solution-share-open');
+  document.querySelectorAll('[data-share-open]').forEach(function (button) {
+    button.addEventListener('click', function (event) {
+      event.preventDefault();
+      modal.show(button);
+    });
+  });
+  dialog.addEventListener('show.bs.modal', function (event) {
+    opener = event.relatedTarget || trigger;
     trigger.setAttribute('aria-expanded', 'true');
     if (endpoint) refresh();
     else {
@@ -173,36 +166,15 @@
       render();
       setFeedback('Save your solution before creating a public link.');
     }
-    position();
-  }
-
-  document.querySelectorAll('[data-share-open]').forEach(function (button) { button.addEventListener('click', open); });
-  get('close').addEventListener('click', function () { dialog.close(); });
-  dialog.addEventListener('close', function () {
+  });
+  dialog.addEventListener('shown.bs.modal', function () {
+    get('close').focus({preventScroll: true});
+  });
+  dialog.addEventListener('hidden.bs.modal', function () {
     generation += 1;
-    document.documentElement.classList.remove('solution-share-open');
     trigger.setAttribute('aria-expanded', 'false');
     var target = opener.isConnected && opener.getClientRects().length ? opener : trigger;
     target.focus({preventScroll: true});
-  });
-  document.addEventListener('keydown', function (event) {
-    if (!dialog.open || event.key !== 'Tab') return;
-    var focusable = Array.from(dialog.querySelectorAll('button, a[href], input, summary, [tabindex]')).filter(function (node) {
-      return !node.disabled && node.tabIndex >= 0 && node.getAttribute('aria-disabled') !== 'true' && node.getClientRects().length;
-    });
-    if (!focusable.length) return;
-    var first = focusable[0], last = focusable[focusable.length - 1];
-    var outside = !dialog.contains(document.activeElement);
-    if (event.shiftKey && (document.activeElement === first || outside)) {
-      event.preventDefault(); last.focus();
-    } else if (!event.shiftKey && (document.activeElement === last || outside)) {
-      event.preventDefault(); first.focus();
-    }
-  });
-  dialog.addEventListener('click', function (event) {
-    if (event.target !== dialog) return;
-    var box = dialog.getBoundingClientRect();
-    if (event.clientX < box.left || event.clientX > box.right || event.clientY < box.top || event.clientY > box.bottom) dialog.close();
   });
   dialog.querySelectorAll('[data-share-action]').forEach(function (button) {
     button.addEventListener('click', function () { changeSharing(button.dataset.shareAction); });
@@ -221,14 +193,10 @@
       get('link-group').open = true;
       get('link').focus();
       get('link').select();
-      setFeedback('Select and copy the public link above.');
+      setFeedback('Select and copy the public link.');
     }
   });
   editor.addEventListener('asterproof:solution-save-state', syncDirty);
-  dialog.querySelectorAll('details').forEach(function (details) {
-    details.addEventListener('toggle', position);
-  });
-  window.addEventListener('resize', position);
   trigger.hidden = false;
   var fallback = document.querySelector('[data-share-fallback]');
   if (fallback) fallback.hidden = true;
