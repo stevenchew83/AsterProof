@@ -3,6 +3,8 @@
 import json
 import re
 from datetime import UTC
+from datetime import timedelta
+from math import ceil
 
 from django.conf import settings
 from django.contrib.auth import get_user_model
@@ -305,17 +307,24 @@ def validated_suggestions(report, fields, snapshot):
 
 
 def _take_quota(user_id):
-    day = timezone.now().astimezone(UTC).date().isoformat()
+    now = timezone.now().astimezone(UTC)
     for scope, limit in ((f"user:{user_id}", USER_DAILY_LIMIT), ("site", SITE_DAILY_LIMIT)):
-        key = f"library-classification:{day}:{scope}"
+        key = f"library-classification:{now.date()}:{scope}"
         cache.add(key, 0, timeout=90_000)
         try:
             count = cache.incr(key)
         except ValueError:
-            return False
-        if type(count) is not int or count > limit:
-            return False
-    return True
+            count = None
+        if type(count) is not int:
+            return JsonResponse({"error": "The AI usage limit could not be checked. Try again shortly."}, status=503)
+        if count > limit:
+            reset = now.replace(hour=0, minute=0, second=0, microsecond=0) + timedelta(days=1)
+            return JsonResponse(
+                {"error": "Daily limit reached", "code": "daily_limit_reached"},
+                status=429,
+                headers={"Retry-After": str(ceil((reset - now).total_seconds()))},
+            )
+    return None
 
 
 def _hydrate_link(statement, *, lock=False):
@@ -384,8 +393,8 @@ def _classify(statement, user, *, api_key):
         if user_has_admin_role(user):
             return JsonResponse({"suggestions": {}, "saved": False, "row": _saved_row(statement)})
         return JsonResponse({"suggestions": {}})
-    if not _take_quota(user.pk):
-        return JsonResponse({"error": "AI suggestions are temporarily limited. Try again later."}, status=429)
+    if quota_rejection := _take_quota(user.pk):
+        return quota_rejection
 
     snapshot = _snapshot(statement, row)
     try:

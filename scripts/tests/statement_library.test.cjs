@@ -82,6 +82,62 @@ test('the last column holds the AI action and explains a partial save', () => {
   assert.doesNotMatch(partial, /aria-disabled/);
 });
 
+test('the AI action shows the server error and becomes available again at the daily reset', async () => {
+  const row = {
+    ...statement, problem_uuid: 'problem-id', classification_url: '/problems/problem-id/ai-suggestions/',
+  };
+  const liveStatus = {textContent: ''};
+  const redraws = [];
+  let click, reset, response;
+  vm.runInNewContext(script, {
+    document: {
+      getElementById(id) {
+        if (id === 'problem-statements-table-data') return {textContent: JSON.stringify([row])};
+        if (id === 'library-classification-status') return liveStatus;
+        return element;
+      },
+    },
+    fetch: async () => response,
+    window: {
+      setTimeout(callback, delay) {
+        assert.equal(delay, 1000);
+        reset = callback;
+      },
+    },
+    DataTable: function (_selector, options) {
+      this.row = () => ({
+        node: () => null,
+        invalidate: () => ({
+          draw: () => redraws.push(options.columns.at(-3).render(null, 'display', options.data[0])),
+        }),
+      });
+      this.table = () => ({node: () => ({addEventListener(_event, handler) { click = handler; }})});
+    },
+  });
+  const clickEvent = {target: {closest: () => ({getAttribute: () => null, dataset: {problemUuid: row.problem_uuid}})}};
+  const error = 'OpenAI could not return suggestions for this problem.';
+  response = {
+    ok: false, status: 502, headers: new Map([['content-type', 'application/json']]),
+    json: async () => ({error}),
+  };
+  await click(clickEvent);
+  assert.match(redraws.at(-1), /Try AI again/);
+  assert.ok(redraws.at(-1).includes('>' + error + '</div>'));
+
+  response = {
+    ok: false, status: 429, headers: new Map([['content-type', 'application/json'], ['Retry-After', '1']]),
+    json: async () => ({error: 'Daily limit reached', code: 'daily_limit_reached'}),
+  };
+  await click(clickEvent);
+  assert.match(redraws.at(-1), /aria-disabled="true".*>Daily limit reached<.*>Resets at 08:00 MYT\./);
+  assert.doesNotMatch(redraws.at(-1), /Try AI again/);
+  assert.match(liveStatus.textContent, /Daily limit reached\. Resets at 08:00 MYT\./);
+
+  reset();
+  assert.match(redraws.at(-1), /Suggest with AI/);
+  assert.doesNotMatch(redraws.at(-1), /aria-disabled|Daily limit reached/);
+});
+
 test('Area and Coverage each display one label with a count and keep all labels in the tooltip', () => {
   const area = config.columns[4].render;
   const coverage = config.columns[5].render;
