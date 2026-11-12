@@ -21,13 +21,15 @@ def allauth_settings(request):
 
 def app_roles(request):
     """Navigation and UI flags derived from roles."""
-    approved = user_can_access_app_features(request.user)
-    admin = user_has_admin_role(request.user)
-    trainer = user_has_trainer_or_admin_role(request.user)
-    can_access_rankings = approved and user_has_moderator_or_admin_role(request.user)
+    # Early error pages can render before authentication middleware runs.
+    user = getattr(request, "user", None)
+    approved = user_can_access_app_features(user)
+    admin = user_has_admin_role(user)
+    trainer = user_has_trainer_or_admin_role(user)
+    can_access_rankings = approved and user_has_moderator_or_admin_role(user)
     can_access_admin_tools = approved and (admin or settings.DEBUG)
-    can_curate_training = user_can_curate_training(request.user)
-    shared_links = shared_progress_learners(request.user)
+    can_curate_training = user_can_curate_training(user)
+    shared_links = shared_progress_learners(user)
     return {
         "is_app_admin": admin,
         "statement_report_open_count": (
