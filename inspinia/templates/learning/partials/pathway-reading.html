@@ -2,7 +2,7 @@
   <p class="text-success mt-3" data-inline-action-success-focus tabindex="-1">Read · current revision</p>
 {% else %}
   {% if row.read_earlier %}<p class="text-muted">You read an earlier revision.</p>{% endif %}
-  <form data-inline-action method="post"
+  <form data-inline-action="page" method="post"
         action="{% url 'learning:mark_read' path.slug row.key %}"
         class="mt-3">
     {% csrf_token %}

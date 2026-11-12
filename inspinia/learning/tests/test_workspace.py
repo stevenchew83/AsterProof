@@ -358,7 +358,7 @@ def test_archiving_from_my_notes_retains_source_and_publication(workspace):
     assert not item.is_archived
 
 
-def test_inline_learning_issue_actions_require_publisher_and_return_row(client, workspace):
+def test_learning_issue_actions_render_the_updated_row(client, workspace):
     author, publisher, _, concept = workspace
     issue = ContentIssue.objects.create(
         submission_id=uuid.uuid4(), kind="classification", target_key=concept.pk, description="Check the concept.",
@@ -366,18 +366,18 @@ def test_inline_learning_issue_actions_require_publisher_and_return_row(client, 
     endpoint = reverse("learning:issues")
     data = {"issue_id": issue.pk, "action": "close"}
     client.force_login(author)
-    denied = client.post(endpoint, data, HTTP_ACCEPT="application/json")
+    denied = client.post(endpoint, data, follow=True)
     assert denied.status_code == HTTPStatus.FORBIDDEN
 
     client.force_login(publisher)
-    closed = client.post(endpoint, data, HTTP_ACCEPT="application/json")
+    closed = client.post(endpoint, data, follow=True)
     assert closed.status_code == HTTPStatus.OK
-    assert 'value="reopen"' in closed.json()["html"]
+    assert 'value="reopen"' in closed.content.decode()
     issue.refresh_from_db()
     assert issue.status == "closed"
 
-    reopened = client.post(endpoint, {**data, "action": "reopen"}, HTTP_ACCEPT="application/json")
+    reopened = client.post(endpoint, {**data, "action": "reopen"}, follow=True)
     assert reopened.status_code == HTTPStatus.OK
-    assert 'value="close"' in reopened.json()["html"]
+    assert 'value="close"' in reopened.content.decode()
     issue.refresh_from_db()
     assert issue.status == "open"

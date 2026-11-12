@@ -6525,6 +6525,7 @@ def test_contest_dashboard_listing_renders_problem_list_add_controls_for_linked_
     assert response.status_code == HTTPStatus.OK
     assert response.context["problem_list_add_targets"] == [
         {
+            "add_url": reverse("problemsets:add_item", args=[problem_list.list_uuid]),
             "list_uuid": str(problem_list.list_uuid),
             "title": "Balkan practice",
         },

@@ -3,6 +3,20 @@
   if (!window.fetch || !window.AbortController || !window.SubmitEvent || !("submitter" in SubmitEvent.prototype)) return;
 
   const pending = new WeakSet();
+  const unconfirmed = "Could not confirm the change. Reload the page to check its current state.";
+
+  // The solution reader's reviewed template keeps its existing list picker and form.
+  for (const form of document.querySelectorAll("form.problem-list-add-form")) {
+    form.dataset.inlineAction = "";
+    form.dataset.inlineActionRegion = "";
+    const feedback = document.createElement("p");
+    feedback.dataset.inlineActionFeedback = "";
+    feedback.className = "small mb-0";
+    feedback.setAttribute("role", "status");
+    feedback.setAttribute("aria-atomic", "true");
+    feedback.tabIndex = -1;
+    form.append(feedback);
+  }
 
   function replaceContent(content, html, fallback) {
     const active = document.activeElement;
@@ -30,6 +44,42 @@
     }
   }
 
+  async function readPage(response) {
+    if (!response.ok || !response.headers.get("content-type")?.includes("text/html")) {
+      throw new Error(unconfirmed);
+    }
+    const page = new DOMParser().parseFromString(await response.text(), "text/html");
+    const error = page.querySelector("[data-inline-action-page-error]");
+    if (error) throw new Error(error.textContent.trim());
+    return page;
+  }
+
+  async function readRedirectedPage(response, region, signal) {
+    if (!response.redirected) throw new Error(unconfirmed);
+    const landed = new URL(response.url);
+    const current = new URL(window.location.href);
+    if (landed.origin !== current.origin) throw new Error(unconfirmed);
+    if (landed.pathname !== current.pathname) return {url: landed.href};
+
+    let page = await readPage(response);
+    // Some native redirects omit the current pagination query.
+    if (landed.search !== current.search) {
+      const currentPage = await fetch(current, {
+        credentials: "same-origin",
+        headers: {Accept: "text/html"},
+        redirect: "manual",
+        signal,
+      });
+      page = await readPage(currentPage);
+    }
+    const content = page.getElementById(region.id)?.querySelector(":scope > [data-inline-action-content]");
+    if (!content) throw new Error("Reload the page to see the current state.");
+    return {
+      html: content.innerHTML,
+      message: content.querySelector("[data-inline-action-success-focus]") ? "" : "Saved.",
+    };
+  }
+
   document.addEventListener("submit", async event => {
     const form = event.target;
     if (event.defaultPrevented || !form.matches("form[data-inline-action]")) return;
@@ -38,6 +88,7 @@
     if (!region) return;
     const feedback = region.querySelector(":scope > [data-inline-action-feedback]");
     if (!feedback) return;
+    const pageMode = form.dataset.inlineAction === "page";
     const submitter = event.submitter;
     const action = submitter?.getAttribute("formaction") || form.getAttribute("action");
     const endpoint = new URL(action || window.location.href, window.location.href);
@@ -62,22 +113,23 @@
         method: "POST",
         body: data,
         credentials: "same-origin",
-        headers: {Accept: "application/json"},
-        redirect: "manual",
+        headers: {Accept: pageMode ? "text/html" : "application/json"},
+        redirect: pageMode ? "follow" : "manual",
         signal: controller.signal,
       });
       if (response.type === "opaqueredirect") {
         throw new Error("Your session may have changed. Reload the page before continuing.");
       }
       const json = response.headers.get("content-type")?.includes("application/json");
-      const result = json ? await response.json() : {};
+      let result = json ? await response.json() : {};
       if (!response.ok) {
         const message = response.status === 403 ? "This action is no longer allowed. Reload the page." :
           response.status === 404 ? "This item is no longer available. Reload the page." :
-            "Could not confirm the change. Reload the page to check its current state.";
+            unconfirmed;
         throw new Error(result.message || message);
       }
-      if (!json) throw new Error("Could not confirm the change. Reload the page to check its current state.");
+      if (pageMode) result = await readRedirectedPage(response, region, controller.signal);
+      else if (!json) throw new Error(unconfirmed);
       const url = result.url && new URL(result.url, window.location.href);
       if (url && url.origin !== window.location.origin) throw new Error("Unexpected response. Reload the page.");
       const content = region.querySelector(":scope > [data-inline-action-content]");
@@ -97,7 +149,7 @@
       feedback.classList.add("text-success");
     } catch (error) {
       feedback.textContent = controller.signal.aborted || error instanceof TypeError ?
-        "Could not confirm the change. Reload the page to check its current state." : error.message;
+        unconfirmed : error.message;
       feedback.classList.add("text-danger");
     } finally {
       window.clearTimeout(timeout);

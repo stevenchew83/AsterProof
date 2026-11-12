@@ -15,7 +15,7 @@
   {% if my_solution_rows %}
     {% include 'solutions/partials/my-solutions-header.html' with show_create=True %}
   {% else %}
-    <div data-inline-action-region>
+    <div id="my-solutions-empty" data-inline-action-region>
       <div data-inline-action-content>
         {% include 'solutions/partials/my-solutions-empty.html' %}
       </div>

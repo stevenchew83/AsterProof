@@ -65,17 +65,15 @@
       </div>
       {% endif %}
     {% endif %}
-    <form data-inline-action class="mt-3" method="post" action="{% url 'solutions:solution_guide_preference' %}">
+    <form data-inline-action="page" class="mt-3" method="post" action="{% url 'solutions:solution_guide_preference' %}">
       {% csrf_token %}
-      {% if guide_scope %}<input type="hidden" name="guide_scope" value="{{ guide_scope }}">{% endif %}
       <button id="solution-guide-preference" type="submit" name="action" value="dismiss" class="btn btn-link btn-sm p-0">{% if solution_guide.saved and not writer_draft %}Hide guide{% else %}Skip for now{% endif %}</button>
     </form>
   </div>
 </section>
 {% else %}
-<form data-inline-action method="post" action="{% url 'solutions:solution_guide_preference' %}" id="solution-guide" class="mt-3 mb-3">
+<form data-inline-action="page" method="post" action="{% url 'solutions:solution_guide_preference' %}" id="solution-guide" class="mt-3 mb-3">
   {% csrf_token %}
-  {% if guide_scope %}<input type="hidden" name="guide_scope" value="{{ guide_scope }}">{% endif %}
   <button id="solution-guide-preference" type="submit" name="action" value="show" class="btn btn-outline-secondary btn-sm"><i class="ti ti-list-check me-1" aria-hidden="true"></i>Show getting-started guide</button>
 </form>
 {% endif %}

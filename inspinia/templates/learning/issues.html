@@ -3,7 +3,7 @@
 {% block learning_content %}
   <h1 class="h2">Content reports</h1>
   {% for issue in page %}
-    <article class="card card-body" data-inline-action-region>
+    <article class="card card-body" id="learning-issue-card-{{ issue.pk }}" data-inline-action-region>
       <div data-inline-action-content>
         {% include 'learning/partials/issue-content.html' %}
       </div>
