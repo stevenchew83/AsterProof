@@ -205,4 +205,4 @@ def test_manual_release_verifies_offline_runtime_and_static_manifest():
     assert "pip install --no-index --require-hashes" in workflow
     assert "import django, gunicorn, psycopg, bleach, markdown, cryptography" in workflow
     assert "config.settings.staticfiles" in workflow
-    assert "staticfiles/staticfiles.json" in workflow
+    assert '"$RELEASE_STATIC_ROOT/staticfiles.json"' in workflow

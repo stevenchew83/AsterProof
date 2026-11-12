@@ -1,13 +1,17 @@
 # ruff: noqa: S603, S607, TC003
 from __future__ import annotations
 
+import os
 import subprocess
 from pathlib import Path
 
 import pytest
+import yaml
 
 from scripts.deployment.archive_safety import safe_extract
 from scripts.deployment.build_release import build_release
+
+WORKFLOW = Path(__file__).resolve().parents[3] / ".github/workflows/production-deploy.yml"
 
 
 def _git(root: Path, *args: str) -> str:
@@ -31,6 +35,50 @@ def _repository(tmp_path: Path) -> tuple[Path, str]:
     _git(root, "add", "manage.py")
     _git(root, "commit", "-qm", "initial")
     return root, _git(root, "rev-parse", "HEAD")
+
+
+def test_production_static_build_preserves_the_release_checkout(tmp_path: Path) -> None:
+    root, _ = _repository(tmp_path)
+    (root / "scripts").mkdir()
+    builder = root / "scripts/build_and_collectstatic.sh"
+    builder.write_text(
+        "#!/bin/bash\n"
+        "set -eu\n"
+        "test ! -e .env\n"
+        "printf 'rebuilt\\n' > app.css\n"
+        "mkdir staticfiles\n"
+        "cp app.css staticfiles/app.css\n",
+    )
+    builder.chmod(0o755)
+    (root / "app.css").write_text("committed\n")
+    _git(root, "add", "scripts/build_and_collectstatic.sh", "app.css")
+    _git(root, "commit", "-qm", "track asset and builder")
+    sha = _git(root, "rev-parse", "HEAD")
+    status = _git(root, "status", "--porcelain", "--untracked-files=all")
+
+    steps = yaml.safe_load(WORKFLOW.read_text())["jobs"]["build"]["steps"]
+    static_step = next(step for step in steps if step.get("id") == "static")
+    manifest_step = next(step for step in steps if step["name"] == "Verify static manifest and representative assets")
+    release_step = next(step for step in steps if step.get("id") == "release")
+    runner_temp = tmp_path / "runner temp"
+    runner_temp.mkdir()
+    output = runner_temp / "outputs"
+    subprocess.run(
+        ["/bin/bash", "-eo", "pipefail", "-c", static_step["run"]],
+        cwd=root,
+        env={**os.environ, "RELEASE_SHA": sha, "RUNNER_TEMP": str(runner_temp), "GITHUB_OUTPUT": str(output)},
+        check=True,
+    )
+
+    static_root = runner_temp / "asterproof-static-build" / "staticfiles"
+    assert output.read_text() == f"root={static_root}\n"
+    assert (static_root / "app.css").read_text() == "rebuilt\n"
+    assert (root / "app.css").read_text() == "committed\n"
+    assert _git(root, "status", "--porcelain", "--untracked-files=all") == status
+    assert manifest_step["env"]["RELEASE_STATIC_ROOT"] == release_step["env"]["RELEASE_STATIC_ROOT"] == (
+        "${{ steps.static.outputs.root }}"
+    )
+    assert '--static-root "$RELEASE_STATIC_ROOT"' in release_step["run"]
 
 
 def test_build_release_is_deterministic_and_excludes_untracked_secrets(tmp_path: Path) -> None:
