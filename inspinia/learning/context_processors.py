@@ -6,8 +6,9 @@ from inspinia.learning.permissions import module_enabled
 
 
 def learning_navigation(request):
+    user = getattr(request, "user", None)
     return {
         "learning_enabled": module_enabled(),
-        "learning_can_contribute": can_contribute(request.user),
-        "learning_is_publisher": is_publisher(request.user),
+        "learning_can_contribute": can_contribute(user),
+        "learning_is_publisher": is_publisher(user),
     }

@@ -5,11 +5,8 @@ from django.urls import include
 from django.urls import path
 from django.views import defaults as default_views
 
-from config.error_views import bad_request
 from config.health import healthz
 from inspinia.solutions.image_access import raw_image_urlpatterns
-
-handler400 = bad_request
 
 urlpatterns = [
     *raw_image_urlpatterns(),
@@ -38,7 +35,11 @@ if settings.DEBUG:
     # This allows the error pages to be debugged during development, just visit
     # these url in browser to see how these error pages look like.
     urlpatterns += [
-        path("400/", bad_request),
+        path(
+            "400/",
+            default_views.bad_request,
+            kwargs={"exception": Exception("Bad Request!")},
+        ),
         path(
             "403/",
             default_views.permission_denied,
