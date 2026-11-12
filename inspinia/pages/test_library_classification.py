@@ -1,6 +1,8 @@
 """The library previews missing metadata and allows administrators to save it."""
 
 import json
+from datetime import UTC
+from datetime import datetime
 from datetime import timedelta
 from http import HTTPStatus
 from types import SimpleNamespace
@@ -359,16 +361,37 @@ def test_restricted_inactive_and_unusable_sources_do_not_dispatch(client, provid
 def test_site_and_account_limits_prevent_dispatch(client, provider, monkeypatch):
     monkeypatch.setattr(classification, "USER_DAILY_LIMIT", 1)
     monkeypatch.setattr(classification, "SITE_DAILY_LIMIT", 2)
+    now = datetime(2026, 11, 12, 23, 59, 59, 500_000, tzinfo=UTC)
+    monkeypatch.setattr(classification.timezone, "now", lambda: now)
     row = make_statement()
 
     client.force_login(UserFactory())
     assert client.post(url(row)).status_code == HTTPStatus.OK
-    assert client.post(url(row)).status_code == HTTPStatus.TOO_MANY_REQUESTS
+    account_limit = client.post(url(row))
     client.force_login(UserFactory())
     assert client.post(url(row)).status_code == HTTPStatus.OK
     client.force_login(UserFactory())
-    assert client.post(url(row)).status_code == HTTPStatus.TOO_MANY_REQUESTS
+    site_limit = client.post(url(row))
+
+    for response in (account_limit, site_limit):
+        assert response.status_code == HTTPStatus.TOO_MANY_REQUESTS
+        assert response.json() == {"error": "Daily limit reached", "code": "daily_limit_reached"}
+        assert response.headers["Retry-After"] == "1"
     assert provider.call_count == 2  # noqa: PLR2004
+
+    now += timedelta(seconds=1)
+    assert client.post(url(row)).status_code == HTTPStatus.OK
+
+
+def test_unavailable_quota_counter_does_not_report_daily_limit(client, provider, monkeypatch):
+    monkeypatch.setattr(cache, "incr", Mock(side_effect=ValueError))
+    client.force_login(UserFactory())
+
+    response = client.post(url(make_statement()))
+
+    assert response.status_code == HTTPStatus.SERVICE_UNAVAILABLE
+    assert response.json() == {"error": "The AI usage limit could not be checked. Try again shortly."}
+    provider.assert_not_called()
 
 
 def test_openai_request_uses_short_instructions_and_only_missing_fields(monkeypatch):

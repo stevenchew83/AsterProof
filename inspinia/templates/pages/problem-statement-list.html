@@ -722,6 +722,8 @@
     button.addEventListener("click", function () { taxonomyModal.close(); });
   });
 
+  var classificationResetMessage = "Resets at 08:00 MYT.";
+
   function classificationAction(row) {
     if (!row.classification_url) return "";
     var state = row.classification;
@@ -729,17 +731,22 @@
     if (state?.phase === "pending") label = "Suggesting…";
     if (state?.phase === "saved") label = "AI saved";
     if (state?.phase === "done") label = Object.keys(state.suggestions).length ? "AI suggested" : "No suggestions";
-    if (state?.phase === "error" || state?.taxonomyMissing) label = "Try AI again";
+    var canRetry = state?.phase === "error" || state?.taxonomyMissing;
+    if (canRetry) label = "Try AI again";
+    if (state?.phase === "limited") label = "Daily limit reached";
+    var reason = state?.error;
+    if (state?.taxonomyMissing) reason = "No supported concept found for Area or Coverage.";
+    if (state?.phase === "limited") reason = classificationResetMessage;
+    var reasonId = "library-classification-reason-" + row.problem_uuid;
     var icon = state?.phase === "pending"
       ? '<span class="spinner-border spinner-border-sm me-1" aria-hidden="true"></span>'
       : '<i class="ti ti-sparkles me-1" aria-hidden="true"></i>';
     return '<button type="button" class="btn btn-outline-secondary btn-sm library-classification-button" ' +
       'aria-label="' + escapeHtml(label + " for " + problemLabel(row)) + '" ' +
-      'aria-describedby="library-classification-help" ' +
-      (state && state.phase !== "error" && !state.taxonomyMissing ? 'aria-disabled="true" ' : '') +
-      (state?.error ? 'title="' + escapeHtml(state.error) + '" ' : '') +
+      'aria-describedby="library-classification-help' + (reason ? ' ' + escapeHtml(reasonId) : '') + '" ' +
+      (state?.phase && !canRetry ? 'aria-disabled="true" ' : '') +
       'data-problem-uuid="' + escapeHtml(row.problem_uuid) + '">' + icon + label + '</button>' +
-      (state?.taxonomyMissing ? '<div class="text-muted fs-xs mt-1">No supported concept found</div>' : '');
+      (reason ? '<div class="text-muted fs-xs mt-1" id="' + escapeHtml(reasonId) + '">' + escapeHtml(reason) + '</div>' : '');
   }
 
   var hasClassification = rows.some(function (row) { return row.classification_url; });
@@ -1033,7 +1040,17 @@
         method: "POST",
         headers: {"X-CSRFToken": csrfToken, "Accept": "application/json"},
       });
-      var data = response.headers.get("content-type")?.includes("application/json") ? await response.json() : {};
+      var data = response.headers.get("content-type")?.includes("application/json")
+        ? await response.json().catch(() => ({})) : {};
+      if (response.status === 429 && data.code === "daily_limit_reached") {
+        updateClassification(row, {phase: "limited"});
+        classificationStatus.textContent = label + ". Daily limit reached. " + classificationResetMessage;
+        var retryAfter = Number(response.headers.get("Retry-After"));
+        if (retryAfter > 0) {
+          window.setTimeout(() => updateClassification(row, {}), retryAfter * 1000);
+        }
+        return;
+      }
       if (!response.ok || !data.suggestions) throw new Error(data.error || "AI suggestions are unavailable.");
       if (data.row) Object.assign(row, data.row);
       updateClassification(row, {
