@@ -15,6 +15,9 @@ from django.shortcuts import render
 from django.urls import reverse
 from django.views.decorators.http import require_http_methods
 
+from inspinia.inline_actions import inline_action_fragment
+from inspinia.inline_actions import inline_action_response
+from inspinia.inline_actions import wants_inline_action
 from inspinia.training.forms import CheckpointProblemForm
 from inspinia.training.forms import LevelThresholdFormSet
 from inspinia.training.forms import MaterialForm
@@ -321,9 +324,18 @@ def material_detail_view(request, material_slug: str):
                 raise Http404
             if request.method == "POST":
                 complete_material(user=request.user, material=material)
+                if wants_inline_action(request):
+                    return inline_action_response("", url=reverse("learning:read", args=[publication.document_id]))
             return redirect("learning:read", document_id=publication.document_id)
     if request.method == "POST":
         complete_material(user=request.user, material=material)
+        if wants_inline_action(request):
+            return inline_action_fragment(
+                request,
+                "",
+                template="training/partials/material-completion.html",
+                context={"completed": True},
+            )
         messages.success(request, "Material marked complete.")
         return redirect("training:material_detail", material.slug)
     completed = has_completed_material(request.user, material)

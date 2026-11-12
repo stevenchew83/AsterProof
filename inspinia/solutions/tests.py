@@ -619,8 +619,9 @@ def test_problem_solution_list_exposes_statement_difficulty_and_problem_list_con
     assert "Your difficulty" in response_html
     assert 'value="37"' in response_html
     assert reverse("pages:problem_statement_difficulty_rating_save") in response_html
-    assert reverse("problemsets:add_item", args=[algebra_list.list_uuid]) in response_html
-    assert reverse("problemsets:add_item", args=[nt_list.list_uuid]) in response_html
+    assert reverse("problemsets:add_to_list") in response_html
+    assert f'value="{algebra_list.list_uuid}"' in response_html
+    assert f'value="{nt_list.list_uuid}"' in response_html
     assert "Other user's list" not in response_html
     assert f'name="problem_uuid" value="{problem.problem_uuid}"' in response_html
     assert "Add to list" in response_html

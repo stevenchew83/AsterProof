@@ -257,3 +257,21 @@ def test_admin_can_moderate_discussion_after_solution_is_unpublished(client, wri
     assert response.status_code == HTTPStatus.OK
     assert url(writing, "hide_comment").encode() in response.content
     assert b">Post comment</button>" not in response.content
+
+
+def test_inline_upvote_returns_current_count_and_next_action(client, writing):
+    endpoint = url(writing, "upvote")
+    client.force_login(writing["member"])
+    for _ in range(2):
+        response = client.post(endpoint, {"active": "1"}, HTTP_ACCEPT="application/json")
+        assert response.status_code == HTTPStatus.OK
+        assert 'aria-pressed="true"' in response.json()["html"]
+        assert "<span>1</span>" in response.json()["html"]
+    response = client.post(endpoint, {"active": "0"}, HTTP_ACCEPT="application/json")
+    assert response.status_code == HTTPStatus.OK
+    assert 'aria-pressed="false"' in response.json()["html"]
+    assert "<span>0</span>" in response.json()["html"]
+
+    client.force_login(writing["author"])
+    assert client.post(endpoint, {"active": "1"}, HTTP_ACCEPT="application/json").status_code == HTTPStatus.FORBIDDEN
+    assert not SolutionUpvote.objects.filter(solution=writing["solution"]).exists()

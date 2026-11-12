@@ -36,16 +36,12 @@
         {% include 'partials/page-header-intro.html' with title=problem_list.title subtitle=author_context page_icon='ti-list-details' only %}
       {% endwith %}
         {% if can_vote %}
-        <form method="post" action="{% url 'problemsets:vote' problem_list.list_uuid %}" class="d-flex flex-wrap gap-2">
-          {% csrf_token %}
-          <input type="hidden" name="next" value="{{ request.get_full_path }}">
-          <button type="submit" name="value" value="1" class="btn {% if user_vote == 1 %}btn-success{% else %}btn-outline-success{% endif %} btn-sm">
-            <i class="ti ti-thumb-up me-1"></i>Thumbs up
-          </button>
-          <button type="submit" name="value" value="-1" class="btn {% if user_vote == -1 %}btn-danger{% else %}btn-outline-danger{% endif %} btn-sm">
-            <i class="ti ti-thumb-down me-1"></i>Thumbs down
-          </button>
-        </form>
+        <div data-inline-action-region>
+          <div data-inline-action-content>
+            {% include 'problemsets/partials/vote-panel.html' with vote_next=request.get_full_path %}
+          </div>
+          {% include 'partials/inline-action-feedback.html' %}
+        </div>
         {% endif %}
       {% if problem_list.description %}<p class="w-100 text-body-secondary mb-2">{{ problem_list.description }}</p>{% endif %}
     </header>

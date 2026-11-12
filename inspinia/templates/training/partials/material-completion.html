@@ -1,0 +1,11 @@
+{% if completed %}
+<div class="alert alert-success mb-0" data-inline-action-success-focus tabindex="-1">This material is complete.</div>
+{% else %}
+<p class="text-muted">Mark complete once you have studied the notes and examples.</p>
+<form data-inline-action method="post">
+  {% csrf_token %}
+  <button type="submit" class="btn btn-primary">
+    <i class="ti ti-check me-1"></i>Mark complete
+  </button>
+</form>
+{% endif %}

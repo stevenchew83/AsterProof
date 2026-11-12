@@ -24,6 +24,7 @@ urlpatterns = [
     path("<uuid:list_uuid>/", detail_view, name="detail"),
     path("<uuid:list_uuid>/edit/", edit_view, name="edit"),
     path("<uuid:list_uuid>/problem-search/", problem_search_view, name="problem_search"),
+    path("add/", add_item_view, name="add_to_list"),
     path("<uuid:list_uuid>/add/", add_item_view, name="add_item"),
     path("<uuid:list_uuid>/items/save/", save_items_view, name="save_items"),
     path("<uuid:list_uuid>/items/<int:item_id>/remove/", remove_item_view, name="remove_item"),

@@ -6525,7 +6525,7 @@ def test_contest_dashboard_listing_renders_problem_list_add_controls_for_linked_
     assert response.status_code == HTTPStatus.OK
     assert response.context["problem_list_add_targets"] == [
         {
-            "add_url": reverse("problemsets:add_item", args=[problem_list.list_uuid]),
+            "list_uuid": str(problem_list.list_uuid),
             "title": "Balkan practice",
         },
     ]
@@ -6540,7 +6540,8 @@ def test_contest_dashboard_listing_renders_problem_list_add_controls_for_linked_
     assert row_by_problem_code["P5"]["is_addable_to_problem_list"] is False
     page = response.content.decode("utf-8")
     assert "Add to list" in page
-    assert reverse("problemsets:add_item", args=[problem_list.list_uuid]) in page
+    assert reverse("problemsets:add_to_list") in page
+    assert f'value="{problem_list.list_uuid}"' in page
     assert f'value="{linked_problem.problem_uuid}"' in page
     assert f'value="{inactive_problem.problem_uuid}"' not in page
 

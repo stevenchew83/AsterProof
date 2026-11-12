@@ -383,25 +383,7 @@
         <div class="solution-problem-list-actions">
           <p class="text-muted mb-2 fs-xs text-uppercase fw-semibold">Add to list</p>
           {% if problem_list_add_targets %}
-          <form
-            method="post"
-            action="{{ problem_list_add_targets.0.add_url }}"
-            class="problem-list-add-form"
-          >
-            {% csrf_token %}
-            <input type="hidden" name="problem_uuid" value="{{ problem_data.problem.problem_uuid }}">
-            <input type="hidden" name="next" value="{{ problem_list_next_url }}">
-            <div class="input-group input-group-sm">
-              <select class="form-select js-problem-list-add-target" aria-label="Choose problem list">
-                {% for target in problem_list_add_targets %}
-                <option value="{{ target.add_url }}">{{ target.title }}</option>
-                {% endfor %}
-              </select>
-              <button type="submit" class="btn btn-outline-primary">
-                <i class="ti ti-plus me-1" aria-hidden="true"></i>Add to list
-              </button>
-            </div>
-          </form>
+          {% include 'problemsets/partials/add-form.html' with problem_uuid=problem_data.problem.problem_uuid next_url=problem_list_next_url %}
           {% else %}
           <a href="{% url 'problemsets:create' %}" class="btn btn-outline-secondary btn-sm">Create list</a>
           {% endif %}
@@ -561,13 +543,6 @@ window.ASTERPROOF_SOLUTION_MEDIA = {
     var draftButton = event.target.closest(".js-show-inline-draft");
     if (!draftButton) return;
     showInlineDraft(draftButton.getAttribute("data-focus-inline-draft") === "true");
-  });
-
-  document.addEventListener("change", function (event) {
-    if (!event.target.matches(".js-problem-list-add-target")) return;
-    var form = event.target.closest("form");
-    if (!form) return;
-    form.action = event.target.value;
   });
 })();
 </script>

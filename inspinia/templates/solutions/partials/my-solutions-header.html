@@ -1,0 +1,20 @@
+<header class="page-title-head d-flex flex-wrap align-items-center gap-2">
+  {% include 'partials/page-header-intro.html' with title='My solutions' subtitle='Personal' page_icon='ti-notebook' only %}
+  {% if show_create %}
+  <div class="page-title-actions d-flex flex-wrap align-items-center gap-2">
+    <a id="create-solution-cta" href="{% url 'solutions:problem_solution_create' %}" class="btn btn-primary btn-sm"><i class="ti ti-plus me-1" aria-hidden="true"></i>New solution</a>
+  </div>
+  {% endif %}
+</header>
+
+{% if writer_draft %}<div class="alert alert-info mt-3" role="status">Your Solution Writer draft is waiting. <a class="alert-link" href="{{ writer_handoff_url }}">Choose a problem and continue</a>.</div>{% endif %}
+{% if messages %}
+<div class="mt-3">
+  {% for message in messages %}
+    <div class="alert alert-{% if message.tags == 'error' %}danger{% elif message.tags == 'debug' %}secondary{% else %}{{ message.tags }}{% endif %} alert-dismissible fade show" role="alert">
+      {{ message }}
+      <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+  {% endfor %}
+</div>
+{% endif %}

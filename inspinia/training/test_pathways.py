@@ -1,9 +1,11 @@
 # ruff: noqa: PLR2004 -- Fixture sizes and exact milestone counts are intentional assertions.
 import uuid
+from http import HTTPStatus
 
 import pytest
 from django.core.exceptions import PermissionDenied
 from django.core.exceptions import ValidationError
+from django.urls import reverse
 
 from inspinia.learning.drafts import checkpoint_draft
 from inspinia.learning.drafts import create_draft
@@ -256,3 +258,21 @@ def test_edit_payload_round_trips_every_activity_kind(curriculum):
     assert updated.version == 2
     assert updated.current_revision.source_digest == previous_digest
     assert list(updated.current_revision.items.values_list("kind", flat=True)) == LearningPathItem.Kind.values
+
+
+def test_inline_pathway_completion_requires_the_current_revision(client, curriculum):
+    publisher, learner, publication = curriculum
+    path = release(publisher, path_data(publication))
+    endpoint = reverse("learning:mark_read", args=[path.slug, "amgm"])
+    client.force_login(learner)
+
+    stale = client.post(endpoint, {"revision_id": uuid.uuid4()}, HTTP_ACCEPT="application/json")
+    assert stale.status_code == HTTPStatus.CONFLICT
+    assert "lecture changed" in stale.json()["message"]
+    assert not PathReading.objects.exists()
+
+    for _ in range(2):
+        response = client.post(endpoint, {"revision_id": publication.revision_id}, HTTP_ACCEPT="application/json")
+        assert response.status_code == HTTPStatus.OK
+        assert "Read · current revision" in response.json()["html"]
+    assert PathReading.objects.filter(user=learner).count() == 1

@@ -12,25 +12,15 @@
 
 {% block page_content %}
 <div class="container-fluid app-table-page my-solutions" data-my-solutions>
-  <header class="page-title-head d-flex flex-wrap align-items-center gap-2">
-    {% include 'partials/page-header-intro.html' with title='My solutions' subtitle='Personal' page_icon='ti-notebook' only %}
-    {% if my_solution_rows or not solution_guide.visible %}
-    <div class="page-title-actions d-flex flex-wrap align-items-center gap-2">
-      <a id="create-solution-cta" href="{% url 'solutions:problem_solution_create' %}" class="btn btn-primary btn-sm"><i class="ti ti-plus me-1" aria-hidden="true"></i>New solution</a>
-    </div>
-    {% endif %}
-  </header>
-
-  {% if writer_draft %}<div class="alert alert-info mt-3" role="status">Your Solution Writer draft is waiting. <a class="alert-link" href="{{ writer_handoff_url }}">Choose a problem and continue</a>.</div>{% endif %}
-  {% if messages %}
-  <div class="mt-3">
-    {% for message in messages %}
-      <div class="alert alert-{% if message.tags == 'error' %}danger{% elif message.tags == 'debug' %}secondary{% else %}{{ message.tags }}{% endif %} alert-dismissible fade show" role="alert">
-        {{ message }}
-        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+  {% if my_solution_rows %}
+    {% include 'solutions/partials/my-solutions-header.html' with show_create=True %}
+  {% else %}
+    <div data-inline-action-region>
+      <div data-inline-action-content>
+        {% include 'solutions/partials/my-solutions-empty.html' %}
       </div>
-    {% endfor %}
-  </div>
+      {% include 'partials/inline-action-feedback.html' %}
+    </div>
   {% endif %}
 
   {% if my_solution_rows %}
@@ -83,17 +73,14 @@
         </div>
       </section>
     </div>
-  {% else %}
-    {% include 'solutions/partials/solution-guide.html' %}
   {% endif %}
 
-  {% if my_solution_rows or not solution_guide.visible %}
+  {% if my_solution_rows %}
   <section class="card mt-2" aria-labelledby="my-solutions-list-heading">
     <div class="card-header border-bottom d-flex flex-wrap gap-2 align-items-center justify-content-between">
       <h2 class="card-title mb-0" id="my-solutions-list-heading">Saved solutions</h2>
-      {% if my_solution_rows %}<span class="text-muted fs-xs" role="status" data-solutions-count>{{ my_solution_stats.total }} solution{{ my_solution_stats.total|pluralize }}</span>{% endif %}
+      <span class="text-muted fs-xs" role="status" data-solutions-count>{{ my_solution_stats.total }} solution{{ my_solution_stats.total|pluralize }}</span>
     </div>
-    {% if my_solution_rows %}
     <form method="get" action="{% url 'solutions:collection_create' %}" data-collection-selection>
       <div class="my-solutions-toolbar px-3 py-2" data-solutions-controls hidden>
         <div class="input-group input-group-sm my-solutions-search">
@@ -178,9 +165,6 @@
       </div>
       <div class="px-3 pb-3" data-selection-tray hidden><h3 class="h6">Selected reading order</h3><ol class="list-group list-group-numbered mb-0" data-collection-order></ol></div>
     </form>
-    {% else %}
-    <p class="card-body text-muted mb-0">You have not started any solutions yet. Pick a statement-backed problem and create your first draft.</p>
-    {% endif %}
   </section>
   {% endif %}
 

@@ -22,6 +22,9 @@ from django.views.decorators.http import require_GET
 from django.views.decorators.http import require_http_methods
 from django.views.decorators.http import require_POST
 
+from inspinia.inline_actions import inline_action_fragment
+from inspinia.inline_actions import inline_action_response
+from inspinia.inline_actions import wants_inline_action
 from inspinia.learning.catalogue import catalogue_context
 from inspinia.learning.catalogue import subject_rows
 from inspinia.learning.drafts import checkpoint_draft
@@ -611,7 +614,17 @@ def mark_read(request, slug, item_key):
     try:
         record_read(user=request.user, path=path, item_key=item_key, revision_id=request.POST.get("revision_id"))
     except ValidationError as exc:
+        if wants_inline_action(request):
+            return inline_action_response(_error_message(exc), status=409)
         messages.error(request, _error_message(exc))
+    else:
+        if wants_inline_action(request):
+            return inline_action_fragment(
+                request,
+                "",
+                template="learning/partials/pathway-reading.html",
+                context={"read": True},
+            )
     return redirect("learning:pathway", slug=path.slug)
 
 
