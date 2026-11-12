@@ -48,6 +48,7 @@ MODEL = "gpt-5-mini"
 TOPICS = tuple(SUBJECT_CODES)
 CONFIDENCES = ("Low", "Medium", "High")
 CONCEPT_KINDS = ("technique", "object", "method", "lemma")
+TAXONOMY_FIELDS = {"area", "coverage"}
 GENERIC_FUNCTIONAL_EQUATION_LABELS = {"functional equation", "functional equations"}
 MATH_SPAN = re.compile(r"\$\$(.*?)\$\$|\$([^$]+)\$|\\\[(.*?)\\\]|\\\((.*?)\\\)", re.DOTALL)
 FUNCTION_DECLARATION = re.compile(
@@ -111,7 +112,7 @@ def _schema(fields):
         "imo_slots": {"type": "array", "items": {"type": "integer"}},
     }
     requested = {key: schema for key, schema in properties.items() if key in fields}
-    if {"area", "coverage"}.intersection(fields):
+    if TAXONOMY_FIELDS.intersection(fields):
         requested["concepts"] = {"type": "array", "items": _object({
             "subject": _enum(TOPICS),
             "kind": _enum(CONCEPT_KINDS),
@@ -209,11 +210,8 @@ def _statement_composition(statement):
     return None
 
 
-def _concepts(items, statement, subjects, *, allow_statement_algebra):
-    source = " ".join(statement.split())
-    matched = {}
-    if allow_statement_algebra and (direct := _statement_composition(source)):
-        matched[direct["id"]] = direct
+def _concepts(items, source, subjects, *, direct):
+    matched = {direct["id"]: direct} if direct else {}
     if not isinstance(items, list):
         return list(matched.values())
     for item in items[:MAX_CONCEPTS]:
@@ -290,13 +288,14 @@ def validated_suggestions(report, fields, snapshot):
     if not isinstance(report, dict):
         return {}
     result = _metadata(report, fields)
-    if {"area", "coverage"}.intersection(fields):
+    if TAXONOMY_FIELDS.intersection(fields):
+        source = " ".join(snapshot["statement"].split())
         existing_topics = _subjects(snapshot["existing_topic"])
+        direct = _statement_composition(source) if not existing_topics or "Algebra" in existing_topics else None
+        if direct and "topic" in fields and direct["subject"] not in _subjects(result.get("topic", "")):
+            result["topic"] = direct["subject"]
         subjects = existing_topics or _subjects(result.get("topic", "")) or TOPICS
-        concepts = _concepts(
-            report.get("concepts"), snapshot["statement"], subjects,
-            allow_statement_algebra=not existing_topics or "Algebra" in existing_topics,
-        )
+        concepts = _concepts(report.get("concepts"), source, subjects, direct=direct)
         if concepts:
             if "area" in fields:
                 result["area"] = sorted({item["area"] for item in concepts})
@@ -395,7 +394,11 @@ def _classify(statement, user, *, api_key):
         return JsonResponse({"error": "OpenAI could not return suggestions for this problem."}, status=502)
     if user_has_admin_role(user):
         return _save_classification(statement, user.pk, report, fields)
-    return JsonResponse({"suggestions": validated_suggestions(report, fields, snapshot)})
+    suggestions = validated_suggestions(report, fields, snapshot)
+    return JsonResponse({
+        "suggestions": suggestions,
+        "taxonomy_missing": bool(TAXONOMY_FIELDS.intersection(fields) - suggestions.keys()),
+    })
 
 
 @transaction.atomic
@@ -433,7 +436,13 @@ def _save_classification(original, actor_id, report, requested_fields):
         for key, value in updates.items():
             setattr(statement, key, value)
         statement.save(update_fields={*updates, "updated_at"})
-    return JsonResponse({"suggestions": {}, "saved": bool(updates), "row": _saved_row(statement)})
+    saved_row = _saved_row(statement)
+    return JsonResponse({
+        "suggestions": {},
+        "saved": bool(updates),
+        "row": saved_row,
+        "taxonomy_missing": bool(TAXONOMY_FIELDS.intersection(fields, missing_fields(saved_row, statement))),
+    })
 
 
 def _saved_row(statement):

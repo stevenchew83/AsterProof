@@ -122,7 +122,7 @@ def test_admin_saves_fields_and_supported_concept_evidence_for_the_shared_row(cl
         r"$$f(x+yf(x+y))=f(x)f(y)+y^2$$for all $x,y \in \mathbb{R}$"
     ))
     provider.return_value = {
-        "topic": ["Algebra"], "mohs": 0, "confidence": "High", "imo_slots": [4, 1],
+        "topic": ["Geometry"], "mohs": 0, "confidence": "High", "imo_slots": [4, 1],
         "concepts": [{
             "subject": "Algebra", "kind": "lemma", "label": "AM-GM",
             "quote": "Quote absent from the statement", "why": "An unsupported reason.",
@@ -134,6 +134,7 @@ def test_admin_saves_fields_and_supported_concept_evidence_for_the_shared_row(cl
     assert response.status_code == HTTPStatus.OK
     payload = response.json()
     assert payload["saved"] is True
+    assert payload["taxonomy_missing"] is False
     assert payload["suggestions"] == {}
     assert payload["row"]["linked_problem_topic"] == "Algebra"
     assert payload["row"]["linked_problem_mohs"] == 0
@@ -172,6 +173,32 @@ def test_admin_saves_fields_and_supported_concept_evidence_for_the_shared_row(cl
         ends_at=now + timedelta(minutes=1), reason="Fixture restricted problem",
     )
     assert "saved_ai_concepts" not in client.get(library_url).context["statement_table_rows"][0]
+
+
+def test_admin_can_retry_missing_taxonomy_after_a_partial_save(client, provider):
+    client.force_login(UserFactory(role=User.Role.ADMIN))
+    row = make_statement()
+    provider.return_value = {
+        "topic": ["Algebra"], "mohs": 20, "confidence": "High", "imo_slots": [1],
+        "concepts": [{"subject": "Algebra", "kind": "lemma", "label": "Invented technique",
+                      "quote": QUOTE, "why": "An unknown concept."}],
+    }
+
+    partial = client.post(url(row)).json()
+    assert partial["saved"] is True
+    assert partial["taxonomy_missing"] is True
+    assert partial["row"]["saved_ai_concepts"] == []
+
+    provider.return_value = {
+        "concepts": [{"subject": "Algebra", "kind": "lemma", "label": "AM-GM",
+                      "quote": QUOTE, "why": "Bounds a sum."}],
+    }
+    complete = client.post(url(row)).json()
+    assert provider.call_args.args[1] == ("area", "coverage")
+    assert complete["saved"] is True
+    assert complete["taxonomy_missing"] is False
+    assert complete["row"]["linked_problem_mohs"] == 20  # noqa: PLR2004
+    assert [concept["id"] for concept in complete["row"]["saved_ai_concepts"]] == ["am-gm"]
 
 
 def test_admin_save_keeps_existing_and_concurrently_filled_metadata(client, provider):
@@ -284,7 +311,7 @@ def test_library_uses_saved_ai_key_and_respects_the_override(client, provider, s
     provider.return_value = {"mohs": 20}
     result = client.post(url(row))
     assert result.status_code == HTTPStatus.OK
-    assert result.json() == {"suggestions": {"mohs": 20}}
+    assert result.json() == {"suggestions": {"mohs": 20}, "taxonomy_missing": True}
     assert provider.call_args.kwargs["api_key"] == saved_key.decode()
     assert saved_key not in result.content
 
