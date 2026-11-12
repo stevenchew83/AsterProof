@@ -855,6 +855,10 @@ def test_public_share_page_is_read_only_without_dashboard_chrome(client):
     assert "Find all triangles" in response_html
     assert "MOHS 12" in response_html
     assert "tex-mml-chtml.js" in response_html
+    assert 'id="landing-navbar"' in response_html
+    assert "css/public-site.min.css" in response_html
+    assert "css/app.min.css" not in response_html
+    assert response_html.count("js/inline-actions.js") == 1
     assert "Sign in to submit solution" in response_html
     assert (
         f"{reverse('account_login')}?next="

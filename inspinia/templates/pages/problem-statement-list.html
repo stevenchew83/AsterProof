@@ -136,29 +136,6 @@
     text-decoration: none;
   }
 
-  .statement-taxonomy-dialog {
-    width: min(48rem, calc(100% - 2rem));
-    max-height: 90vh;
-    padding: 0;
-    border: 1px solid var(--theme-border-color);
-    border-radius: var(--theme-border-radius);
-    background: var(--theme-secondary-bg);
-    color: var(--theme-body-color);
-  }
-
-  .statement-taxonomy-dialog::backdrop {
-    background: rgba(var(--theme-body-color-rgb), .35);
-  }
-
-  .statement-taxonomy-content {
-    max-height: 88vh;
-    border: 0;
-  }
-
-  .statement-taxonomy-body {
-    overflow-y: auto;
-  }
-
   .statement-sticky-col {
     position: sticky;
     left: 0;
@@ -228,13 +205,14 @@
   {% include 'pages/partials/problem-library.html' %}
 </div>
 {% if statement_total > 0 %}
-<dialog class="statement-taxonomy-dialog" id="statement-taxonomy-modal" aria-labelledby="statement-taxonomy-title">
-    <div class="card m-0 statement-taxonomy-content">
-      <div class="card-header d-flex align-items-center justify-content-between flex-shrink-0">
-        <h5 class="card-title mb-0" id="statement-taxonomy-title">Problem coverage</h5>
-        <button type="button" class="btn-close" data-taxonomy-close aria-label="Close"></button>
+<div class="modal fade" id="statement-taxonomy-modal" tabindex="-1" aria-hidden="true" aria-labelledby="statement-taxonomy-title">
+  <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2 class="modal-title fs-5" id="statement-taxonomy-title">Problem coverage</h2>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
       </div>
-      <div class="card-body statement-taxonomy-body">
+      <div class="modal-body">
         <p id="statement-taxonomy-status" class="text-muted"></p>
         <h6>Areas</h6><p id="statement-taxonomy-areas"></p>
         <h6 id="statement-taxonomy-concepts-heading">Covered concepts</h6><ul id="statement-taxonomy-concepts" class="mb-3"></ul>
@@ -248,12 +226,13 @@
         </div>
         <h6>Original tags</h6><ul id="statement-taxonomy-sources" class="mb-0"></ul>
       </div>
-      <div class="card-footer d-flex justify-content-end gap-2 flex-shrink-0">
+      <div class="modal-footer">
         <a id="statement-taxonomy-detail" class="btn btn-outline-primary btn-sm">Open statement</a>
-        <button type="button" class="btn btn-secondary btn-sm" data-taxonomy-close autofocus>Close</button>
+        <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Close</button>
       </div>
     </div>
-</dialog>
+  </div>
+</div>
 {% endif %}
 {% endblock page_content %}
 
@@ -427,7 +406,10 @@
   }
 
   var rowsByUuid = new Map(rows.map(function (row) { return [row.problem_uuid, row]; }));
-  var taxonomyModal = document.getElementById("statement-taxonomy-modal");
+  var taxonomyModalElement = document.getElementById("statement-taxonomy-modal");
+  var taxonomyModal = globalThis.bootstrap?.Modal?.getOrCreateInstance(taxonomyModalElement);
+  var taxonomyOpener = null;
+  var taxonomyNeedsDismissal = false;
   function fillList(id, values) {
     var list = document.getElementById(id);
     list.replaceChildren();
@@ -440,7 +422,8 @@
   document.getElementById("problem-statements-table").addEventListener("click", function (event) {
     var button = event.target.closest(".statement-taxonomy-button");
     var row = button && rowsByUuid.get(button.getAttribute("data-problem-uuid"));
-    if (!row) return;
+    if (!row || !taxonomyModal) return;
+    taxonomyOpener = button;
     document.getElementById("statement-taxonomy-title").textContent = problemLabel(row);
     document.getElementById("statement-taxonomy-status").textContent = row.concept_coverage_status;
     document.getElementById("statement-taxonomy-areas").textContent = (row.concept_areas || []).join(", ") || "None mapped";
@@ -462,10 +445,16 @@
     fillList("statement-taxonomy-sources", row.concept_source_tags || []);
     document.getElementById("statement-taxonomy-detail").href = row.statement_detail_url;
     document.getElementById("statement-taxonomy-detail").textContent = row.has_statement === false ? "Open problem" : "Open statement";
-    taxonomyModal.showModal();
+    taxonomyModal.show(button);
   });
-  taxonomyModal.querySelectorAll("[data-taxonomy-close]").forEach(function (button) {
-    button.addEventListener("click", function () { taxonomyModal.close(); });
+  taxonomyModalElement.addEventListener("shown.bs.modal", function () {
+    if (taxonomyNeedsDismissal) taxonomyModal.hide();
+  });
+  taxonomyModalElement.addEventListener("hidden.bs.modal", function () {
+    var focusTarget = taxonomyOpener?.isConnected ? taxonomyOpener : document.getElementById("statement-search-q");
+    taxonomyOpener = null;
+    taxonomyNeedsDismissal = false;
+    focusTarget?.focus({preventScroll: true});
   });
 
   var classificationResetMessage = "Resets at 08:00 MYT.";
@@ -861,7 +850,6 @@
 
     for (var [region, next] of regions) region.replaceWith(next);
     document.getElementById("statement-copy-tsv").value = nextCopy;
-    if (taxonomyModal.open) taxonomyModal.close();
 
     rowsByUuid = new Map(nextRows.map(function (row) {
       var classification = classifications.get(row.classification_url);
@@ -878,6 +866,10 @@
     table.column("classification:name").visible(nextRows.some(function (row) { return row.classification_url; }), false);
     table.clear().rows.add(nextRows).draw();
     if (nextRows.length) table.columns.adjust();
+    if (taxonomyOpener) {
+      taxonomyNeedsDismissal = true;
+      taxonomyModal.hide();
+    }
     if (restoreFocus) {
       (document.getElementById(activeElement.id) || document.getElementById("statement-search-q"))
         .focus({preventScroll: true});

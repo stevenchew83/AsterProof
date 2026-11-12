@@ -10,7 +10,6 @@
 {% block meta_description %}{{ page_description }}{% endblock meta_description %}
 {% block extra_meta %}
   <link rel="canonical" href="{{ canonical_url }}">
-  <meta name="theme-color" content="#ffffff">
   <meta property="og:title" content="{{ seo_title|default:page_title }} | AsterProof">
   <meta property="og:description" content="{{ page_description }}">
   <meta property="og:site_name" content="AsterProof">
@@ -31,19 +30,20 @@
 {% block body_attribute %}class="website-body"{% endblock body_attribute %}
 {% block body %}
   <div class="website d-flex flex-column min-vh-100 bg-body">
-    <a class="visually-hidden-focusable position-absolute z-3 btn btn-dark m-2" href="#main-content">Skip to content</a>
-    <header id="landing-navbar" class="border-bottom">
-      <nav class="navbar navbar-expand-lg" aria-label="Main navigation">
+    <header class="sticky-top border-bottom">
+      <a class="visually-hidden-focusable position-absolute z-3 btn btn-dark m-2" href="#main-content">Skip to content</a>
+      <nav id="landing-navbar" class="navbar navbar-expand-lg py-3" aria-label="Main navigation">
         <div class="container">
-          <a class="navbar-brand website-wordmark" href="{% url 'pages:home' %}" aria-label="AsterProof home">
-            <img src="{% static 'images/asterproof-logo.svg' %}" alt="AsterProof" width="507" height="100">
+          <a class="auth-brand mb-0" href="{% url 'pages:home' %}" aria-label="AsterProof home">
+            <span class="logo-dark"><img src="{% static 'images/asterproof-logo.svg' %}" alt="AsterProof"></span>
+            <span class="logo-light"><img src="{% static 'images/asterproof-logo-light.svg' %}" alt="AsterProof"></span>
           </a>
           <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#website-navigation"
                   aria-controls="website-navigation" aria-expanded="false" aria-label="Toggle navigation">
             <span class="navbar-toggler-icon"></span>
           </button>
           <div class="collapse navbar-collapse" id="website-navigation">
-            <ul class="navbar-nav mx-auto">
+            <ul class="navbar-nav fw-medium gap-lg-2 fs-sm mx-auto mt-2 mt-lg-0">
               <li class="nav-item"><a class="nav-link{% if active_nav == 'library' %} active{% endif %}" href="{% url 'website:library' %}"{% if active_nav == 'library' %} aria-current="page"{% endif %}>Library</a></li>
               <li class="nav-item"><a class="nav-link{% if active_nav == 'community' %} active{% endif %}" href="{% url 'pages:proof_public_list' %}"{% if active_nav == 'community' %} aria-current="page"{% endif %}>Community proofs</a></li>
               <li class="nav-item"><a class="nav-link{% if active_nav == 'problem_solving' %} active{% endif %}" href="{% url 'website:problem_solving' %}"{% if active_nav == 'problem_solving' %} aria-current="page"{% endif %}>Problem solving</a></li>
@@ -54,9 +54,12 @@
               <li class="nav-item"><a class="nav-link{% if active_nav == 'about' %} active{% endif %}" href="{% url 'website:about' %}"{% if active_nav == 'about' %} aria-current="page"{% endif %}>About</a></li>
               <li class="nav-item"><a class="nav-link{% if active_nav == 'contact' %} active{% endif %}" href="{% url 'website:contact' %}"{% if active_nav == 'contact' %} aria-current="page"{% endif %}>Contact</a></li>
             </ul>
-            <a class="btn btn-dark my-2 my-lg-0" href="{% if request.user.is_authenticated %}{% url 'pages:user_activity_dashboard' %}{% else %}{% url 'account_login' %}{% endif %}">
-              {% if request.user.is_authenticated %}Workspace{% else %}Sign in{% endif %}
-            </a>
+            <div class="d-flex flex-wrap align-items-center gap-2 my-2 my-lg-0">
+              <button id="theme-toggle" type="button" class="btn btn-link fw-semibold text-body" aria-pressed="false" hidden>Dark mode</button>
+              <a class="btn btn-sm btn-primary" href="{% if request.user.is_authenticated %}{% url 'pages:user_activity_dashboard' %}{% else %}{% url 'account_login' %}{% endif %}">
+                {% if request.user.is_authenticated %}Workspace{% else %}Sign in{% endif %}
+              </a>
+            </div>
           </div>
           <noscript>
             <style>

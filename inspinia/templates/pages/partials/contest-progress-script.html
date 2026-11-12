@@ -135,7 +135,8 @@
     }
   });
 
-  if (!dialog || typeof dialog.showModal !== "function") return;
+  if (!dialog || !window.bootstrap?.Modal) return;
+  const modal = window.bootstrap.Modal.getOrCreateInstance(dialog);
   for (const cell of cells) cell.setAttribute("aria-haspopup", "dialog");
   const dialogTitle = document.getElementById("contest-progress-detail-title");
   const dialogContent = dialog.querySelector("[data-progress-dialog-content]");
@@ -152,10 +153,10 @@
     opener = cell;
     dialogTitle.textContent = details.querySelector("[data-progress-detail-title]").textContent;
     dialogContent.replaceChildren(details.querySelector("[data-progress-detail-entries]").cloneNode(true));
-    dialog.showModal();
+    modal.show(cell);
   });
 
-  dialog.addEventListener("close", () => {
+  dialog.addEventListener("hidden.bs.modal", () => {
     if (opener) opener.focus();
     opener = null;
   });

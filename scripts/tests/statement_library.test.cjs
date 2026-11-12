@@ -194,21 +194,27 @@ test('record-only problems retain distinct taxonomy dialogs across table redraws
     statement_detail_url: `/solutions/problems/${id}/`,
   }));
   const elements = new Map();
-  let clickHandler, dialogOpened = false, table;
+  const modalEvents = new Map();
+  let clickHandler, modalOpener, focused, table;
+  assert.match(template, /class="modal fade" id="statement-taxonomy-modal"/);
   const getElementById = id => {
     if (id === 'statement-library') return null;
     if (!elements.has(id)) elements.set(id, {
       textContent: id === 'problem-statements-table-data' ? JSON.stringify(rows) : '',
       addEventListener(event, handler) {
         if (id === 'problem-statements-table' && event === 'click') clickHandler = handler;
+        if (id === 'statement-taxonomy-modal') modalEvents.set(event, handler);
       },
       querySelectorAll: () => [], replaceChildren() {}, appendChild() {},
-      showModal() { dialogOpened = true; },
     });
     return elements.get(id);
   };
   vm.runInNewContext(script, {
     document: {getElementById, createElement: () => ({})},
+    bootstrap: {Modal: {getOrCreateInstance(modal) {
+      assert.equal(modal, getElementById('statement-taxonomy-modal'));
+      return {show(button) { modalOpener = button; }};
+    }}},
     DataTable: function (_selector, options) {
       table = options;
       this.table = () => ({node: () => element});
@@ -218,9 +224,16 @@ test('record-only problems retain distinct taxonomy dialogs across table redraws
     for (let draw = 0; draw < 2; draw++) {
       const html = table.columns[4].render(null, 'display', row);
       assert.ok(html.includes(`data-problem-uuid="${row.problem_uuid}"`));
-      dialogOpened = false;
-      clickHandler({target: {closest: () => ({getAttribute: () => row.problem_uuid})}});
-      assert.equal(dialogOpened, true);
+      modalOpener = null;
+      const button = {
+        isConnected: true,
+        getAttribute: () => row.problem_uuid,
+        focus() { focused = button; },
+      };
+      clickHandler({target: {closest: () => button}});
+      assert.equal(modalOpener, button);
+      modalEvents.get('hidden.bs.modal')();
+      assert.equal(focused, button);
       assert.equal(getElementById('statement-taxonomy-title').textContent, row.contest_year_problem);
       assert.equal(getElementById('statement-taxonomy-detail').href, row.statement_detail_url);
       assert.equal(getElementById('statement-taxonomy-detail').textContent, 'Open problem');

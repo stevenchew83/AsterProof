@@ -109,13 +109,17 @@
       {% endfor %}
       {% endfor %}
     </div>
-    <dialog class="contest-progress-dialog" id="contest-progress-detail-dialog" aria-labelledby="contest-progress-detail-title">
-      <div class="contest-progress-dialog-header">
-        <h3 class="fs-sm mb-0" id="contest-progress-detail-title"></h3>
-        <form method="dialog"><button class="btn btn-sm btn-outline-secondary" type="submit" autofocus>Close</button></form>
+    <div class="modal fade" id="contest-progress-detail-dialog" tabindex="-1" aria-hidden="true" aria-labelledby="contest-progress-detail-title">
+      <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h3 class="modal-title fs-5" id="contest-progress-detail-title"></h3>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <div class="modal-body" data-progress-dialog-content></div>
+        </div>
       </div>
-      <div class="p-3" data-progress-dialog-content></div>
-    </dialog>
+    </div>
     {% elif focus %}
     <p class="text-muted mb-0">No problems match this suggestion.</p>
     {% else %}
