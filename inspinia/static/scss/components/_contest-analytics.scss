@@ -1,9 +1,6 @@
 .contest-analytics-page {
     padding-bottom: 1.5rem;
-    .card { min-width: 0; margin-bottom: 1rem; border: 1px solid var(--theme-border-color); box-shadow: none; }
-    .card-header, .card-body { padding: 1rem 1.25rem; }
-    .card-header { background: transparent; }
-    .card-title { font-size: .9375rem; font-weight: 600; letter-spacing: -.01em; }
+    .card { min-width: 0; }
     a:focus-visible, button:focus-visible, summary:focus-visible { outline: 2px solid var(--theme-primary); outline-offset: 3px; border-radius: var(--theme-border-radius-sm); }
     #contest-directory-title { scroll-margin-top: 5.5rem; }
     .contest-directory-js, .contest-insight-js { display: none; }
@@ -32,8 +29,6 @@
     .contest-search-field { flex: 1 1 16rem; }
     .contest-quality-field { flex: 0 1 12rem; }
     .contest-size-field { flex: 0 1 8rem; }
-    .form-label { margin-bottom: .375rem; color: var(--theme-secondary-color); font-size: .75rem; font-weight: 500; }
-    .form-control, .form-select, .btn-sm { min-height: 2.125rem; font-size: .8125rem; }
     .contest-search { position: relative; }
     .contest-search > i { position: absolute; left: .75rem; top: 50%; transform: translateY(-50%); color: var(--theme-secondary-color); pointer-events: none; }
     .contest-search input { padding-left: 2.25rem; }
@@ -94,7 +89,7 @@
         .contest-quality-meta { flex-basis: calc(100% - 2rem); }
     }
     @media (max-width: 575.98px) {
-        .card-header, .card-body, .contest-insights-toggle { padding: .875rem; }
+        .contest-insights-toggle { padding: .875rem; }
         .contest-insights-content { padding: 0 .875rem .875rem; }
         .contest-analytics-metrics dd { font-size: 1.375rem; }
         .contest-analytics-metrics .contest-analytics-year-range { font-size: 1.125rem; }

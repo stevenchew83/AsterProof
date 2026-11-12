@@ -342,6 +342,8 @@ def public_detail_view(request, share_token, slug):
         "problemsets/public-detail.html",
         {
             "can_vote": can_vote,
+            "hide_newsletter": True,
+            "public_operator_name": settings.PUBLIC_OPERATOR_NAME,
             "problem_list": problem_list,
             "problem_list_author_label": author_label(problem_list.author),
             "problem_list_items": problem_list_item_rows(problem_list),

@@ -3,10 +3,7 @@
     padding-bottom: 1.5rem;
     --page-view-hairline: var(--theme-border-color-translucent);
 
-    .card { min-width: 0; margin-bottom: 0; border: 1px solid var(--theme-border-color); box-shadow: none; }
-    .card-header { display: block; padding: 1rem 1.125rem .625rem; background: transparent; }
-    .card-body { min-width: 0; padding: 1rem 1.125rem; }
-    .card-title { margin-bottom: .25rem; font-size: .875rem; font-weight: 600; letter-spacing: -.01em; }
+    .card, .card-body { min-width: 0; }
     .row > *, .tab-content, .tab-pane { min-width: 0; }
     a:focus-visible, button:focus-visible, summary:focus-visible { outline: 2px solid var(--theme-primary); outline-offset: 3px; border-radius: var(--theme-border-radius-sm); }
     #page-view-recent { scroll-margin-top: 5.5rem; }
@@ -15,8 +12,6 @@
 
     .page-view-filter-panel { padding: .75rem 1rem; }
     .page-view-global-filters { display: flex; flex-wrap: wrap; align-items: end; gap: .625rem 1rem; }
-    .form-label { margin-bottom: .25rem; color: var(--theme-secondary-color); font-size: .6875rem; font-weight: 500; }
-    .app-table-filters .form-control, .app-table-filters .form-select, .app-table-filters .btn { min-height: 2.125rem; }
     .page-view-range-field { flex: 0 1 10rem; min-width: 0; }
     .page-view-date-options { flex: 0 0 auto; }
     .page-view-date-options > summary { display: flex; align-items: center; gap: .375rem; min-height: 2.125rem; padding: .375rem .625rem; border-radius: var(--theme-border-radius-sm); background: var(--theme-tertiary-bg); color: var(--theme-secondary-color); font-size: .75rem; cursor: pointer; list-style: none; }
@@ -169,7 +164,7 @@
         .page-view-recent-filters > .page-view-search-field { flex-basis: calc(100% - 5rem); }
     }
     @media (max-width: 575.98px) {
-        .card-header, .card-body, .page-view-filter-panel { padding: .875rem; }
+        .page-view-filter-panel { padding: .875rem; }
         .page-view-summary dd { font-size: 1.5rem; }
         .page-view-range-field { flex: 1 1 8rem; }
         .page-view-date-options { flex: 0 1 auto; }

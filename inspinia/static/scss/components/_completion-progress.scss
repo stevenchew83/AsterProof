@@ -415,10 +415,7 @@
 .completion-progress-page {
     padding-bottom: 1.5rem;
 
-    .card { min-width: 0; border: 1px solid var(--theme-border-color); box-shadow: none; margin-bottom: 0; }
-    .card-header { display: block; padding: 1rem 1.25rem .75rem; background: transparent; border: 0; }
-    .card-body { min-width: 0; padding: 1rem 1.25rem; }
-    .card-title { margin: 0 0 .25rem; font-size: .9375rem; font-weight: 600; letter-spacing: -.01em; }
+    .card, .card-body { min-width: 0; }
     .row > * { min-width: 0; }
     [id^="completion-progress-"] { scroll-margin-top: 5.5rem; }
     a:focus-visible, button:focus-visible, summary:focus-visible {
@@ -446,8 +443,6 @@
     .completion-progress-primary-filters .completion-progress-range-field { flex: .7 1 8rem; }
     .completion-progress-primary-filters .completion-progress-search-field { flex: 1.2 1 12rem; }
     .completion-progress-filters {
-        .form-label { color: var(--theme-secondary-color); font-size: .75rem; font-weight: 500; margin-bottom: .375rem; }
-        .form-control, .form-select, .btn { min-height: 2.25rem; }
         .btn { white-space: nowrap; }
     }
     .completion-progress-search-input { position: relative; }
@@ -531,10 +526,8 @@
         .completion-progress-quality { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .375rem .75rem; }
         .completion-progress-quality > div { justify-content: space-between; }
         .completion-progress-quality dt, .completion-progress-quality dd { font-size: .6875rem; }
-        .completion-progress-filter-panel, .card-body { padding: .875rem; }
-        .card-header { padding: .875rem; }
+        .completion-progress-filter-panel { padding: .875rem; }
         .completion-progress-filter-actions { gap: .375rem; }
-        .completion-progress-filter-actions .btn { font-size: .75rem; padding-inline: .5rem; }
         .completion-progress-filter-actions .ms-auto { margin-left: 0 !important; }
         .completion-progress-advanced-fields { grid-template-columns: repeat(2, minmax(0, 1fr)); }
         .completion-progress-section-nav { gap: .375rem 1.125rem; }
