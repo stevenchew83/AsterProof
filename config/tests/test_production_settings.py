@@ -30,6 +30,18 @@ def _load_staticfiles_settings():
     return importlib.import_module("config.settings.staticfiles")
 
 
+def _run_with_production_logging(production, script, *args):
+    # Isolate Django's logger configuration from pytest and other tests.
+    return subprocess.run(  # noqa: S603 - fixed test script and parametrized inputs
+        [sys.executable, "-c", textwrap.dedent(script), *args],
+        input=json.dumps(production.LOGGING),
+        capture_output=True,
+        text=True,
+        check=True,
+        timeout=15,
+    )
+
+
 def test_production_settings_keep_secure_cookies_enabled_by_default(monkeypatch):
     production = _load_production_settings(monkeypatch)
 
@@ -157,9 +169,8 @@ def test_production_logging_retains_logs_without_duplicate_or_host_emails(
     expected_email_count,
 ):
     production = _load_production_settings(monkeypatch)
-    # Configure Django in a separate process so the real logger hierarchy cannot
-    # replace pytest's handlers or leak changes into other tests.
-    script = textwrap.dedent(
+    result = _run_with_production_logging(
+        production,
         """
         import json
         import logging
@@ -181,16 +192,41 @@ def test_production_logging_retains_logs_without_duplicate_or_host_emails(
         logging.getLogger(sys.argv[1]).error("Production logging regression")
         print(json.dumps({"email_count": len(getattr(mail, "outbox", []))}))
         """,
-    )
-
-    result = subprocess.run(  # noqa: S603 - fixed test script and parametrized inputs
-        [sys.executable, "-c", script, logger_name, str(debug)],
-        input=json.dumps(production.LOGGING),
-        capture_output=True,
-        text=True,
-        check=True,
-        timeout=15,
+        logger_name,
+        str(debug),
     )
 
     assert json.loads(result.stdout)["email_count"] == expected_email_count
     assert result.stderr.count("Production logging regression") == 1
+
+
+def test_invalid_host_returns_bad_request_without_admin_email(monkeypatch):
+    production = _load_production_settings(monkeypatch, DJANGO_READ_DOT_ENV_FILE="False")
+    result = _run_with_production_logging(
+        production,
+        """
+        import json
+        import os
+        import sys
+
+        import django
+        from django.conf import settings
+        from django.core import mail
+        from django.test import Client
+
+        os.environ["DJANGO_SETTINGS_MODULE"] = "config.settings.test"
+        settings.DEBUG = False
+        settings.ALLOWED_HOSTS = ["testserver"]
+        settings.ADMINS = [("Test admin", "admin@example.com")]
+        settings.DATABASES["default"]["NAME"] = ":memory:"
+        settings.LOGGING = json.load(sys.stdin)
+        django.setup()
+
+        client = Client(raise_request_exception=False)
+        response = client.get("/healthz/", secure=True, HTTP_HOST="untrusted.invalid")
+        print(json.dumps({"status": response.status_code, "email_count": len(getattr(mail, "outbox", []))}))
+        """,
+    )
+
+    assert json.loads(result.stdout) == {"status": 400, "email_count": 0}
+    assert "Invalid HTTP_HOST header" in result.stderr
